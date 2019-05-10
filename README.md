@@ -1,4 +1,2 @@
-# simulator
-Simulador para pesquisa Mestrado
-Baseado na arquitetura Intel Skylake
 # OrCS
+Simulador simples para pesquisa em arquitetura de computadores
