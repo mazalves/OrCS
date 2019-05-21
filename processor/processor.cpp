@@ -28,7 +28,7 @@ processor_t::processor_t()
 	// Memory FUs
 	this->fu_mem_load = NULL;
 	this->fu_mem_store = NULL;
-	
+
 }
 processor_t::~processor_t()
 {
@@ -315,9 +315,9 @@ void processor_t::fetch(){
 			break;
 		}
 		#if FETCH_DEBUG
-			
+
 				ORCS_PRINTF("Opcode Fetched %s\n", operation.content_to_string2().c_str())
-			
+
 		#endif
 		//============================
 		//add control variables
@@ -361,7 +361,7 @@ void processor_t::fetch(){
 		{
 			uint32_t ttc = orcs_engine.cacheManager->searchInstruction(this->processor_id,operation.opcode_address);
 			this->fetchBuffer.back()->updatePackageReady(FETCH_LATENCY + ttc);
-			
+
 		}
 	}
 		// #if FETCH_DEBUG
@@ -729,7 +729,7 @@ void processor_t::rename(){
 		{
 			if(	this->memory_order_buffer_read_used>=MOB_READ ||
 				this->robUsed>=ROB_SIZE )break;
-			
+
 			pos_mob = this->search_position_mob_read();
 			if (pos_mob == POSITION_FAIL)
 			{
@@ -882,11 +882,11 @@ void processor_t::dispatch(){
 					ORCS_PRINTF("=================\n")
 				}
 			#endif
-		
+
 			if (total_dispatched >= DISPATCH_WIDTH){
 				break;
 			}
-			
+
 			if ((rob_line->uop.readyAt <= orcs_engine.get_global_cycle()) &&
 				(rob_line->wait_reg_deps_number == 0)){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_READY, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
@@ -1225,7 +1225,7 @@ void processor_t::execute()
 		// =========================================================================
 		if(this->memory_read_executed!=0){
 			this->mob_read();
-		}	
+		}
 
 		// ==================================
 		// Executar o MOB Write, com a escrita mais antiga.
@@ -1245,12 +1245,12 @@ void processor_t::execute()
 } //end method
 // ============================================================================
 memory_order_buffer_line_t* processor_t::get_next_op_load(){
-	
+
 	uint32_t pos = this->memory_order_buffer_read_start;
 	for(uint32_t i = 0 ; i < this->memory_order_buffer_read_used; i++){
-		if(this->memory_order_buffer_read[pos].uop_executed && 
-			this->memory_order_buffer_read[pos].status == PACKAGE_STATE_WAIT && 
-			this->memory_order_buffer_read[pos].sent==false && 
+		if(this->memory_order_buffer_read[pos].uop_executed &&
+			this->memory_order_buffer_read[pos].status == PACKAGE_STATE_WAIT &&
+			this->memory_order_buffer_read[pos].sent==false &&
         	this->memory_order_buffer_read[pos].wait_mem_deps_number == 0 &&
 			this->memory_order_buffer_read[pos].readyToGo <= orcs_engine.get_global_cycle()){
 				return &this->memory_order_buffer_read[pos];
@@ -1278,18 +1278,18 @@ uint32_t processor_t::mob_read(){
 			if(oldest_read_to_send!=NULL){
 				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
 					ORCS_PRINTF("MOB Read Atual %s\n",this->oldest_read_to_send->content_to_string().c_str())
-				}		
+				}
 			}
 		}
 	#endif
 	if(this->oldest_read_to_send == NULL){
-		
+
 			this->oldest_read_to_send = this->get_next_op_load();
 			#if MOB_DEBUG
 				if(oldest_read_to_send==NULL){
 					if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
 						ORCS_PRINTF("Oldest Read NULL\n")
-					}		
+					}
 				}
 			#endif
 	}
@@ -1329,8 +1329,8 @@ uint32_t processor_t::mob_read(){
 memory_order_buffer_line_t* processor_t::get_next_op_store(){
 		uint32_t i = this->memory_order_buffer_write_start;
 		if(this->memory_order_buffer_write[i].uop_executed &&
-			this->memory_order_buffer_write[i].status == PACKAGE_STATE_WAIT &&  
-			this->memory_order_buffer_write[i].sent ==false  && 
+			this->memory_order_buffer_write[i].status == PACKAGE_STATE_WAIT &&
+			this->memory_order_buffer_write[i].sent ==false  &&
         	this->memory_order_buffer_write[i].wait_mem_deps_number <= 0 &&
 			this->memory_order_buffer_write[i].readyToGo <= orcs_engine.get_global_cycle())
 		{
@@ -1355,7 +1355,7 @@ uint32_t processor_t::mob_write(){
 			if(this->oldest_write_to_send!=NULL){
 				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
 					ORCS_PRINTF("MOB write Atual %s\n",this->oldest_write_to_send->content_to_string().c_str())
-				}		
+				}
 			}
 		}
 	#endif
@@ -1366,7 +1366,7 @@ uint32_t processor_t::mob_write(){
 			if(this->oldest_write_to_send==NULL){
 				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
 					ORCS_PRINTF("Oldest Write NULL\n")
-				}		
+				}
 			}
 		#endif
 	/////////////////////////////////////////////
@@ -1396,7 +1396,7 @@ uint32_t processor_t::mob_write(){
 		// =============================================================
 		this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 		this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(ttc);
-		this->oldest_write_to_send->rob_ptr->sent = true;	
+		this->oldest_write_to_send->rob_ptr->sent = true;
 		//MOB
 		this->oldest_write_to_send->sent = true;
 		this->oldest_write_to_send->updatePackageReady(ttc);
@@ -1408,7 +1408,7 @@ uint32_t processor_t::mob_write(){
 		#endif
 		this->memory_write_executed--; //numero de writes executados
 		this->oldest_write_to_send=NULL;
-		// =============================================================	
+		// =============================================================
 	} //end if mob_line null
 		#if MOB_DEBUG
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
@@ -1493,7 +1493,7 @@ void processor_t::commit(){
 				case INSTRUCTION_OPERATION_MEM_STORE:
 					this->add_stat_inst_store_completed();
 					break;
-					// BRANCHES	
+					// BRANCHES
 
 				case INSTRUCTION_OPERATION_BRANCH:
 					this->add_stat_inst_branch_completed();
@@ -1616,8 +1616,11 @@ void processor_t::statistics(){
 				fprintf(output, "Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: %lu\n", this->get_times_reach_parallel_requests_write());
 			#endif
 		utils_t::largestSeparator(output);
-		fprintf(output, "Instruction_Per_Cycle: %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());	
-		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->LLC_data_cache[orcs_engine.cacheManager->generate_index_array(this->processor_id,LLC)].get_cacheMiss()/((float)this->fetchCounter/1000));
+		fprintf(output, "Instruction_Per_Cycle: %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
+		// accessing LLC cache level
+		int32_t *cache_indexes = new int32_t[2];
+		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
+		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());
 		fprintf(output, "Core_Request_RAM_AVG_Cycle: %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
 		utils_t::largestSeparator(output);

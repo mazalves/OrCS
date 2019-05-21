@@ -1,64 +1,57 @@
 #ifndef CACHE_H
 #define CACHE_H
 
+// number of cache levels
+#define INSTRUCTION_LEVELS 1
+#define DATA_LEVELS 3
 
-class cache_t
-{
-
+class cache_t {
      private:
-        //=============
         // Statistics related
-        //=============
-        uint64_t cacheHit;
-        uint64_t cacheMiss;
-        uint64_t cacheAccess;
-        uint64_t cacheRead;
-        uint64_t cacheWrite;
-        uint64_t cacheWriteBack;
-        uint64_t changeLine;
+        uint64_t cache_hit;
+        uint64_t cache_miss;
+        uint64_t cache_access;
+        uint64_t cache_read;
+        uint64_t cache_write;
+        uint64_t cache_writeback;
+        uint64_t change_line;
+
+        void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
+        void copyNextLevels(line_t *line, uint32_t idx);
+
     public:
         cache_t();
         ~cache_t();
+
         //atributtes
-        uint32_t id;
-        cacheLevel_t level;
-        uint32_t nSets;
-        uint32_t nLines;
+        uint32_t id;    // instruction or data cache
+        uint32_t level;
+        uint32_t size;
+        uint32_t latency;
+        uint32_t associativity;
+        uint32_t n_sets;
         cacheSet_t *sets;
-        uint32_t shiftData;
-        //====================
-        // Debug functions - Utils
-        //====================
-        inline void printLine(linha_t *linha);
-        inline void printCacheConfiguration();
-        // ============================================================================
-        // Functions with void return
-        // ============================================================================
+        uint32_t offset;
+
         void statistics();
-        void allocate(cacheLevel_t level);//allocate data structure
-        void writeBack(linha_t *line); //makes writeback of line
-        void returnLine(uint64_t address,cache_t *cache);//return line from lower cache level
-        // ============================================================================
-        // Functions with uint return
-        // ============================================================================
-        uint32_t idxSetCalculation(uint64_t address);//calculate index of data
-        uint64_t tagSetCalculation(uint64_t address);//makes tag from address
+        // void cacheStatsAllocation(uint32_t cache_level, uint32_t cache_sets, uint32_t cache_associativity);
+        void allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency);//allocate data structure
+        void writeBack(line_t *line); //makes writeback of line
+        void returnLine(uint64_t address, cache_t *cache);//return line from lower cache level
+        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint32_t *tag); //calculate index of data, makes tag from address
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
-        linha_t* installLine(uint64_t address,uint64_t latency);//install line of cache |mem_controller -> caches|
-        uint32_t read(uint64_t address,uint64_t &ttc);
+        uint32_t read(uint64_t address, uint32_t &ttc);
         uint32_t write(uint64_t address);
-        //getters setters
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheHit)
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheMiss)
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheAccess)
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheRead)
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheWrite)
-        INSTANTIATE_GET_SET_ADD(uint64_t,cacheWriteBack)
-        INSTANTIATE_GET_SET_ADD(uint64_t,changeLine)
-        // ============================================================================
-        // Functions for ORACLE
-        // ============================================================================
-        uint32_t read_oracle(uint64_t address);
+        line_t* installLine(uint64_t address, uint32_t latency);//install line of cache |mem_controller -> caches|
+
+        // Getters and setters
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_miss)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_access)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_read)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_write)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)
+        INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
 };
 
 #endif // CACHE_H

@@ -1,55 +1,84 @@
-#ifndef LINHA_H
-#define LINHA_H
+#ifndef LINE_H
+#define LINE_H
 
+// number of cache levels
+#define INSTRUCTION_LEVELS 1
+#define DATA_LEVELS 3
 
-class linha_t
-{
+#define POINTER_LEVELS ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS)
+
+// cache sizes for each level
+const uint32_t ICACHE_SIZE[1] = {32768};
+const uint32_t DCACHE_SIZE[3] = {32768, 262144, 4194304};
+
+// cache associativity for each level
+const uint32_t ICACHE_ASSOCIATIVITY[1] = {8};
+const uint32_t DCACHE_ASSOCIATIVITY[3] = {8, 8, 8};
+
+// cache latency for each level
+const uint32_t ICACHE_LATENCY[1] = {3};
+const uint32_t DCACHE_LATENCY[3] = {3, 6, 9};
+
+// number of caches in each level
+const uint32_t ICACHE_AMOUNT[1] = {1};
+const uint32_t DCACHE_AMOUNT[3] = {1, 1, 1};
+
+// EMC pointers removed!
+class line_t {
     public:
         uint64_t tag;
         uint32_t dirty;
         uint64_t lru;
         uint32_t prefetched;
         uint32_t valid;
-        uint64_t readyAt;
-        linha_t* linha_ptr_l1;
-        linha_t* linha_ptr_l2;
-        linha_t* linha_ptr_llc;
-        linha_t(){
+        uint64_t ready_at;
+        line_t ***line_ptr_caches;
+        line_t ***line_ptr_emc;
+
+        // Constructor
+        line_t() {
             this->clean_line();
         }
-        ~linha_t(){
+
+        // Desctructor
+        ~line_t() {
             // deleting pointes
-            if(this->linha_ptr_l1 != NULL) delete &linha_ptr_l1;
-            if(this->linha_ptr_l2 != NULL) delete &linha_ptr_l2;
-            if(this->linha_ptr_llc != NULL) delete &linha_ptr_llc;
+            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+                for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
+                    if (this->line_ptr_caches[i][j] != NULL) {
+                        delete &line_ptr_caches[i][j];
+                    }
+                }
+            }
             // Nulling pointers
-            this->linha_ptr_l1 = NULL;
-            this->linha_ptr_l2 = NULL;
-            this->linha_ptr_llc = NULL;
+            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+                for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
+                    this->line_ptr_caches[i][j] = NULL;
+                }
+            }
         }
-        void clean_line(){
+
+        void allocate() {
+            this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS];
+            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+                this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS];
+            }
+        }
+
+        void clean_line() {
             this->tag = 0;
             this->dirty = 0;
             this->lru = 0;
             this->prefetched = 0;
             this->valid = 0;
-            this->readyAt = 0;
-            this->linha_ptr_l1 = NULL;
-            this->linha_ptr_l2 = NULL;
-            this->linha_ptr_llc = NULL;
-        }
-        std::string content_to_string(){
-            std::string content_string;
-            content_string = "";
-            
-            content_string = content_string + " Valid:" + utils_t::uint32_to_string(this->valid);
-            content_string = content_string + " TAG:" + utils_t::uint64_to_string(this->tag);
-            content_string = content_string + " Prefetched:" + utils_t::uint32_to_string(this->prefetched);
-            content_string = content_string + " LRU" + utils_t::big_uint64_to_string(this->lru);
-            content_string = content_string + " readyAt" + utils_t::big_uint64_to_string(this->readyAt);
-
-            return content_string;
+            this->ready_at = 0;
+            // this->line_ptr_caches = NULL;
+            // for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+            //     for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
+            //         this->line_ptr_caches[i][j] = NULL;
+            //     }
+            // }
         }
 };
 
-#endif // LINHA_H
+#endif // LINE_H

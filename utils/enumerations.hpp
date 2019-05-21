@@ -1,6 +1,6 @@
 /**
  * Enumerations File to ORCS, SINUCA like
- * 
+ *
 */
 
 #ifndef _ORCS_ENUMERATOR_HPP_
@@ -29,8 +29,15 @@ enum cacheLevel_t{
     LLC=2,
     INST_CACHE=3
 };
+
 //get char operation
 const char* get_enum_cache_level_char(cacheLevel_t type);
+
+enum cacheId_t {
+    INSTRUCTION,
+    DATA
+};
+
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type
 enum instruction_operation_t {

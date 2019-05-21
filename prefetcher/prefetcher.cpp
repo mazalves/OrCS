@@ -18,33 +18,34 @@ void prefetcher_t::allocate(){
     #if STRIDE
         this->prefetcher = new stride_prefetcher_t;
         this->prefetcher->allocate();
-    #endif  
+    #endif
     // List of cycle completation prefetchs. Allows control issue prefetchers
-    this->prefetch_waiting_complete.reserve(PARALLEL_PREFETCH); 
+    this->prefetch_waiting_complete.reserve(PARALLEL_PREFETCH);
 }
 // ================================================================
 // @mobLine - references to index the prefetch
 // @*cache - cache to be instaled line prefetched
 // ================================================================
-void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line,cache_t *cache){
+void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache){
     uint64_t cycle = orcs_engine.get_global_cycle();
-    if((this->prefetch_waiting_complete.front() <= cycle) && 
+    if((this->prefetch_waiting_complete.front() <= cycle) &&
         (this->prefetch_waiting_complete.size()!=0)){
         this->prefetch_waiting_complete.erase(this->prefetch_waiting_complete.begin());
     }
     int64_t newAddress = this->prefetcher->verify(mob_line->opcode_address,mob_line->memory_address);
-    uint64_t sacrifice;
+    // sacrifice = 0 is a request to the function read in cache
+    uint32_t sacrifice = 0;
     if(this->prefetch_waiting_complete.size()>= PARALLEL_PREFETCH){
         return;
     }
     if(newAddress != POSITION_FAIL) {
-        uint32_t status = cache->read(newAddress,sacrifice);
+        uint32_t status = cache->read(newAddress, sacrifice);
         if(status == MISS){
             this->add_totalPrefetched();
             uint64_t latency_prefetch = orcs_engine.memory_controller->requestDRAM(newAddress);
             orcs_engine.memory_controller->add_requests_prefetcher();
-            linha_t *linha = cache->installLine(newAddress,latency_prefetch);
-            linha->prefetched=1; 
+            line_t *linha = cache->installLine(newAddress,latency_prefetch);
+            linha->prefetched=1;
             this->prefetch_waiting_complete.push_back(cycle+latency_prefetch);
         }
     }

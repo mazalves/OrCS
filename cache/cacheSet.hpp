@@ -1,19 +1,21 @@
 #ifndef CACHESET_H
 #define CACHESET_H
 
-
-class cacheSet_t
-{
+class cacheSet_t {
     public:
-    linha_t *linhas;
-    
-    cacheSet_t(){
-    this->linhas = NULL;
-    }
-    ~cacheSet_t(){
-    if(this->linhas!=NULL) delete[] &linhas;
-    }
+        uint32_t n_lines;
+        line_t *lines;
 
+        // Constructor
+        cacheSet_t() {
+            this->n_lines = 0;
+            this->lines = NULL;
+        }
+
+        // Desctructor
+        ~cacheSet_t() {
+            if(this->lines!=NULL) delete[] &lines;
+        }
 };
 
 #endif // CACHESET_H
