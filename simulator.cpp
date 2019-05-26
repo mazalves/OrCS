@@ -194,11 +194,6 @@ int main(int argc, char **argv) {
         //Branch Predictor
         //==================
         orcs_engine.branchPredictor[i].allocate();
-        // Setting id emc
-        #if EMC_ACTIVE
-            orcs_engine.memory_controller->emc[i].set_processor_id(i);
-        #endif
-
     }
     //initializate simulator
     orcs_engine.simulator_alive = true;

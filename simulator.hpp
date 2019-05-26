@@ -95,7 +95,16 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 // ============================================================================
 extern orcs_engine_t orcs_engine;
 
+#define NUMBER_OF_PROCESSORS 1
+#define PREFETCHER_ACTIVE 0
+#define DESAMBIGUATION_ENABLED 1
 
+#define SANITY_CHECK 0
+#define HEARTBEAT 1
+#define HEARTBEAT_CLOCKS 10000000
+
+#define KILO 1024
+#define MEGA KILO*KILO
 // ============================================================================
 /// Definitions for Log, Debug, Warning, Error and Statistics
 // ============================================================================
@@ -104,16 +113,13 @@ extern orcs_engine_t orcs_engine;
 #define OK 1                    /// OK when return is int32_t or uint32_t
 #define NOT_ALL_REGS 2
 #define TRACE_LINE_SIZE 512
+
 // ========================
 // Defines Simulators Caracteristics
 // ========================
 #define MAX_UOP_DECODED 5
 #define MAX_REGISTERS 6         /// opcode_package_t uop_package_t  (Max number of register (read or write) for one opcode/uop)
 #define MAX_ASSEMBLY_SIZE 32    /// In general 20 is enough
-// ========================
-// Model simulator
-// ========================
-#define SKYLAKE 1
 // ========================
 // ==============================================================================
 /// Enumerations
@@ -128,11 +134,6 @@ extern orcs_engine_t orcs_engine;
 // ============================================================================
 /// Base Includes
 // ============================================================================
-#if SKYLAKE
-#include "./model_skylake.hpp"
-#else
-#include "./model_sandyBridge.hpp"
-#endif
 #include "./simulator.hpp"
 #include "./orcs_engine.hpp"
 #include "./trace_reader.hpp"
@@ -163,7 +164,6 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 #include "./branch_predictor/btb_line.hpp"
 #include "./branch_predictor/btb.hpp"
-#include "./branch_predictor/twoBit.hpp"
 #include "./branch_predictor/piecewise.hpp"
 #include "./branch_predictor/branch_predictor.hpp"
 //  =========================================//

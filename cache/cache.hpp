@@ -16,6 +16,35 @@ class cache_t
         uint64_t cacheWrite;
         uint64_t cacheWriteBack;
         uint64_t changeLine;
+
+        uint32_t LINE_SIZE = 64;
+
+        uint32_t L1_DATA_SIZE = 32*KILO;
+        uint32_t L1_DATA_ASSOCIATIVITY = 8;
+        uint32_t L1_DATA_LATENCY = 3;
+        uint32_t L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+
+        uint32_t L1_INST_SIZE = 32*KILO;
+        uint32_t L1_INST_ASSOCIATIVITY = 8;
+        uint32_t L1_INST_LATENCY = 3;
+        uint32_t L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+        
+        uint32_t L2_SIZE = 256*KILO;
+        uint32_t L2_ASSOCIATIVITY = 4;
+        uint32_t L2_LATENCY = 6;
+        uint32_t L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
+        // ==================== LEVEL 2 =====================
+        // ==================== LLC     =====================
+        uint32_t LLC_SIZE = 20*MEGA;
+        uint32_t LLC_ASSOCIATIVITY = 20;
+        uint32_t LLC_LATENCY = 44;
+        uint32_t LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+
+        //uint32_t PREFETCHER_ACTIVE = 0;
+
+        uint32_t CACHE_MANAGER_DEBUG = 0;
+        uint32_t WAIT_CYCLE = 0;
+
     public:
         cache_t();
         ~cache_t();

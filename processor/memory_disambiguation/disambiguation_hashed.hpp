@@ -1,6 +1,16 @@
 
 class disambiguation_hashed_t
 {
+private:
+    uint32_t ROB_SIZE = 168;
+    uint32_t LOAD_HASH_SIZE = 512;
+    uint32_t STORE_HASH_SIZE = 512;
+    uint32_t DESAMBIGUATION_BLOCK_SIZE = 4;
+    uint32_t ADDRESS_TO_ADDRESS = 1;
+    uint32_t REGISTER_FORWARD = 1;
+    uint32_t MOB_DEBUG = 0;
+    uint32_t WAIT_CYCLE = 0;
+
 public:
     disambiguation_hashed_t(/* args */);
     ~disambiguation_hashed_t();

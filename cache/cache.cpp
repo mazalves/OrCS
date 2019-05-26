@@ -26,18 +26,12 @@ cache_t::~cache_t()
 // ==================
 inline void cache_t::printLine(linha_t *linha){
 	ORCS_PRINTF("[TAG: %lu| DIRTY: %u| lru : %lu| PREFETCHED: %u| VALID: %u| READY AT %lu]\n",linha->tag,linha->dirty,linha->lru,linha->prefetched, linha->valid,linha->readyAt)
-	#if SLEEP
-		usleep(500);
-	#endif
 }
 // ==================
 // print cache configuration
 // ==================
 inline void cache_t::printCacheConfiguration(){
 	ORCS_PRINTF("[Cache Level: %s|Cache ID: %u| Cache Sets: %u| Cache Lines: %u] \n",get_enum_cache_level_char(this->level),this->id,this->nSets,this->nLines)
-	#if SLEEP
-		usleep(500);
-	#endif
 }
 void cache_t::allocate(cacheLevel_t level){	
 	switch(level){
@@ -162,47 +156,47 @@ uint32_t cache_t::read(uint64_t address,uint64_t &ttc){
 	// this->add_cacheRead();
 	for (size_t i = 0; i < this->nLines; i++){
 		if(this->sets[idx].linhas[i].tag == tag){
-			#if CACHE_MANAGER_DEBUG
+			if (CACHE_MANAGER_DEBUG){
 				if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 					ORCS_PRINTF("Cache Line %s\n",this->sets[idx].linhas[i].content_to_string().c_str())
 				}
-			#endif
+			}
 			// =====================================================
 			// Se ready Cycle for menor que o atual, a latencia é
 			// apenas da leitura, sendo um hit.
 			// =====================================================
 			if(this->sets[idx].linhas[i].readyAt<=orcs_engine.get_global_cycle()){
-				#if PREFETCHER_ACTIVE
+				if (PREFETCHER_ACTIVE){
 					if (this->sets[idx].linhas[i].prefetched == 1){
 						orcs_engine.cacheManager->prefetcher->add_usefulPrefetches();
 						this->sets[idx].linhas[i].prefetched =0;
 					}
-				#endif
+				}
 				//add cache hit
 				if(this->level == INST_CACHE){
 					ttc+=L1_INST_LATENCY;
 				}else if(this->level == L1){
 					ttc+=L1_DATA_LATENCY;
-					#if CACHE_MANAGER_DEBUG
+					if (CACHE_MANAGER_DEBUG){
 						if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 							ORCS_PRINTF("L1 Ready At %lu\n",this->sets[idx].linhas[i].readyAt)
 						}
-					#endif
+					}
 				}else if(this->level == L2){
 					ttc+=L2_LATENCY;
-					#if CACHE_MANAGER_DEBUG
+					if (CACHE_MANAGER_DEBUG){
 						if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 							ORCS_PRINTF("L2 Ready At %lu\n",this->sets[idx].linhas[i].readyAt)
 						}
-					#endif
+					}
 				}
 				else if(this->level == LLC){
 					ttc+=LLC_LATENCY;
-					#if CACHE_MANAGER_DEBUG
+					if (CACHE_MANAGER_DEBUG){
 						if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 							ORCS_PRINTF("LLC Ready At %lu\n",this->sets[idx].linhas[i].readyAt)
 						}
-					#endif
+					}
 				}
 				return HIT;
 			}
@@ -211,16 +205,16 @@ uint32_t cache_t::read(uint64_t address,uint64_t &ttc){
 			// dada pela demora a chegar
 			// =====================================================
 			else{
-				#if PREFETCHER_ACTIVE
-				if (this->sets[idx].linhas[i].prefetched == 1){
-					orcs_engine.cacheManager->prefetcher->add_latePrefetches();
-					orcs_engine.cacheManager->prefetcher->add_usefulPrefetches();
-					uint32_t latePrefetcher = orcs_engine.cacheManager->prefetcher->get_totalCycleLate()+
-					(this->sets[idx].linhas[i].readyAt - orcs_engine.get_global_cycle());
-					orcs_engine.cacheManager->prefetcher->set_totalCycleLate(latePrefetcher);
-					this->sets[idx].linhas[i].prefetched =0;
+				if (PREFETCHER_ACTIVE){
+					if (this->sets[idx].linhas[i].prefetched == 1){
+						orcs_engine.cacheManager->prefetcher->add_latePrefetches();
+						orcs_engine.cacheManager->prefetcher->add_usefulPrefetches();
+						uint32_t latePrefetcher = orcs_engine.cacheManager->prefetcher->get_totalCycleLate()+
+						(this->sets[idx].linhas[i].readyAt - orcs_engine.get_global_cycle());
+						orcs_engine.cacheManager->prefetcher->set_totalCycleLate(latePrefetcher);
+						this->sets[idx].linhas[i].prefetched =0;
+					}
 				}
-				#endif
 				ttc+=(this->sets[idx].linhas[i].readyAt - orcs_engine.get_global_cycle());
 				this->sets[idx].linhas[i].lru = ttc;
 				return HIT;

@@ -25,13 +25,8 @@ void branch_predictor_t::allocate(){
     	std::memset(&this->btb[i].btb_entry[0],0,(BTB_WAYS*sizeof(btb_line_t)));
     }
     //allocate branch predictor
-#if TWO_BIT
-        this->branchPredictor = new twoBit_t();
-        this->branchPredictor->allocate()
-#else
-        this->branchPredictor = new piecewise_t();
-        this->branchPredictor->allocate();
-#endif
+	this->branchPredictor = new piecewise_t();
+    this->branchPredictor->allocate();
 }
 uint32_t branch_predictor_t::searchLine(uint64_t pc){
 	uint32_t getBits = (BTB_ENTRIES/BTB_WAYS);

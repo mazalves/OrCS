@@ -8,9 +8,9 @@ class prefetcher_t{
         uint32_t usefulPrefetches;
         uint32_t latePrefetches;
         uint64_t totalCycleLate;
-        #if STRIDE
-            stride_prefetcher_t *prefetcher;
-        #endif   
+        stride_prefetcher_t *prefetcher;
+
+        uint32_t PARALLEL_PREFETCH = NUMBER_OF_PROCESSORS;
     public:
         // constructors
         prefetcher_t();

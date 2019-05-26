@@ -12,9 +12,9 @@ private:
     #if PERFECT
         disambiguation_perfect_t *disambiguator;
     #endif
-    #if HASHED
+    //#if HASHED
         disambiguation_hashed_t *disambiguator;
-    #endif
+    //#endif
 
     
 };

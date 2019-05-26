@@ -1,21 +1,21 @@
 #include "../../simulator.hpp"
 
 desambiguation_t::desambiguation_t(){
-    #if HASHED
+    //#if HASHED
         this->disambiguator = NULL;
-    #endif
+    //#endif
 }
 
 desambiguation_t::~desambiguation_t(){
-    #if HASHED
+    //#if HASHED
         delete this->disambiguator;
-    #endif
+    //#endif
 }
 void desambiguation_t::allocate(){
-    #if HASHED
+    //#if HASHED
         this->disambiguator = new disambiguation_hashed_t;
         this->disambiguator->allocate();
-    #endif
+    //#endif
 }
 void desambiguation_t::make_memory_dependences(memory_order_buffer_line_t *mob_line){
     this->disambiguator->make_memory_dependencies(mob_line);
@@ -33,10 +33,10 @@ void desambiguation_t::statistics(){
 	if (output != NULL){
         fprintf(output, "======================== MEMORY DESAMBIGUATION ===========================\n");
         utils_t::largestSeparator(output);
-        #if HASHED
+        //#if HASHED
             fprintf(output,"Disambiguation method: HASHED\n");
             if(close)fclose(output);
             this->disambiguator->statistics();
-        #endif
+        //#endif
     }
 }

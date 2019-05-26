@@ -15,10 +15,10 @@ void prefetcher_t::allocate(){
     this->set_usefulPrefetches(0);
     this->set_latePrefetches(0);
     this->set_totalCycleLate(0);
-    #if STRIDE
+    //#if STRIDE
         this->prefetcher = new stride_prefetcher_t;
         this->prefetcher->allocate();
-    #endif  
+    //#endif  
     // List of cycle completation prefetchs. Allows control issue prefetchers
     this->prefetch_waiting_complete.reserve(PARALLEL_PREFETCH); 
 }

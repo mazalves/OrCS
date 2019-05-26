@@ -8,6 +8,19 @@ class cache_manager_t{
         uint64_t readHit;
         uint64_t writeMiss;
         uint64_t writeHit;
+
+        uint32_t L1_DATA_LATENCY = 3;
+        uint32_t L2_LATENCY= 6;
+        uint32_t LLC_LATENCY = 44;
+
+        //uint32_t PREFETCHER_ACTIVE = 0;
+
+        uint32_t CACHE_MANAGER_DEBUG = 0;
+        uint32_t WAIT_CYCLE = 0;
+
+        uint32_t SIZE_OF_L1_CACHES_ARRAY = 1;     // Numero de caches L1
+        uint32_t SIZE_OF_L2_CACHES_ARRAY = 1;     // Numero de caches L2
+        uint32_t SIZE_OF_LLC_CACHES_ARRAY = 1;
     public:
         cache_t *L1_data_cache;
         cache_t *L2_data_cache;
@@ -32,9 +45,7 @@ class cache_manager_t{
         // ==========================================
         // Prefetcher
         // ==========================================
-        #if PREFETCHER_ACTIVE
         prefetcher_t *prefetcher;
-        #endif 
 };  
 
 #endif // !CACHE_MANAGER_H
