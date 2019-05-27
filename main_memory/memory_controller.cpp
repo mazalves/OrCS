@@ -2,6 +2,12 @@
 #include <string>
 // ============================================================================
 memory_controller_t::memory_controller_t(){
+    this->requests_made = 0; //Data Requests made
+    this->operations_executed = 0; // number of operations executed
+    this->requests_llc = 0; //Data Requests made to LLC
+    this->requests_prefetcher = 0; //Data Requests made by prefetcher
+    this->row_buffer_miss = 0; //Counter row buffer misses
+    this->row_buffer_hit = 0;
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t() = default;
@@ -61,6 +67,14 @@ void memory_controller_t::set_masks(){
     this->bank_bits_shift=0;
     this->row_bits_shift=0;
     this->colbyte_bits_shift = 0;
+
+    this->channel_bits_mask = 0;
+    this->bank_bits_mask = 0;
+    this->rank_bits_mask = 0;
+    this->row_bits_mask = 0;
+    this->col_row_bits_mask = 0;
+    this->col_byte_bits_mask = 0;
+    this->latency_burst = 0;
     // =======================================================
     this->channel_bits_shift = utils_t::get_power_of_two(LINE_SIZE);
     this->bank_bits_shift = this->channel_bits_shift+  utils_t::get_power_of_two(CHANNEL);
@@ -88,6 +102,7 @@ void memory_controller_t::set_masks(){
     for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
         this->row_bits_mask |= 1 << i;
     }
+
     if (MEM_CONTROLLER_DEBUG){
             ORCS_PRINTF("ColByte Shitf %03lu -> ColByte Mask %07lu - %s\n",this->colbyte_bits_shift,this->col_byte_bits_mask,utils_t::address_to_binary(this->col_byte_bits_mask).c_str())
             ORCS_PRINTF("Channel Shift %03lu -> Channel Mask %07lu - %s\n",this->channel_bits_shift,this->channel_bits_mask,utils_t::address_to_binary(this->channel_bits_mask).c_str())
