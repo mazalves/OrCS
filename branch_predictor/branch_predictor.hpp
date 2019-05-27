@@ -1,9 +1,9 @@
 class branch_predictor_t{
     private:
-        uint32_t BTB_ENTRIES = 4096;
-        uint8_t BTB_WAYS = 4;
-        uint64_t BTB_MISS_PENALITY = 5;
-        uint64_t MISSPREDICTION_PENALITY = 10;
+        uint32_t BTB_ENTRIES;
+        uint8_t BTB_WAYS;
+        uint64_t BTB_MISS_PENALITY;
+        uint64_t MISSPREDICTION_PENALITY;
 
     public:
         //===================================   

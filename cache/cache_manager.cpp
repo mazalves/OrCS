@@ -8,6 +8,16 @@ this->inst_cache = NULL;
 }
 cache_manager_t::~cache_manager_t()=default;
 void cache_manager_t::allocate(){
+    L1_DATA_LATENCY = orcs_engine.configuration->getSetting ("L1_DATA_LATENCY");
+    L2_LATENCY = orcs_engine.configuration->getSetting ("L2_LATENCY");
+    LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
+
+    CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
+    WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");;
+
+    SIZE_OF_L1_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L1_CACHES_ARRAY");
+    SIZE_OF_L2_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L2_CACHES_ARRAY");
+    SIZE_OF_LLC_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_LLC_CACHES_ARRAY");
     //Allocate I$
     ERROR_ASSERT_PRINTF(NUMBER_OF_PROCESSORS == SIZE_OF_L1_CACHES_ARRAY,"Error - # Instruction Caches must be equal # PROCESSORS \n")
     ERROR_ASSERT_PRINTF(utils_t::check_if_power_of_two(SIZE_OF_L1_CACHES_ARRAY)==OK,"Error - Cache Size Array must be power of 2 value \n")

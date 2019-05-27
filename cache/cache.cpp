@@ -15,6 +15,30 @@ cache_t::cache_t()
         this->cacheWrite = 0;
         this->cacheWriteBack = 0;
         this->changeLine = 0;
+
+		LINE_SIZE = orcs_engine.configuration->getSetting ("LINE_SIZE");
+
+        L1_DATA_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L1_DATA_ASSOCIATIVITY");
+        L1_DATA_LATENCY = orcs_engine.configuration->getSetting ("L1_DATA_LATENCY");
+		L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+        
+        L1_INST_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L1_INST_ASSOCIATIVITY");
+        L1_INST_LATENCY = orcs_engine.configuration->getSetting ("L1_INST_LATENCY");
+		L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+        
+        L2_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L2_ASSOCIATIVITY");
+        L2_LATENCY = orcs_engine.configuration->getSetting ("L2_LATENCY");
+		L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
+        // ==================== LEVEL 2 =====================
+        // ==================== LLC     =====================
+        LLC_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("LLC_ASSOCIATIVITY");
+        LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
+		LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+        
+        // PREFETCHER_ACTIVE = 0;
+
+        CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
+        WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");
 }
 
 cache_t::~cache_t()
@@ -33,7 +57,7 @@ inline void cache_t::printLine(linha_t *linha){
 inline void cache_t::printCacheConfiguration(){
 	ORCS_PRINTF("[Cache Level: %s|Cache ID: %u| Cache Sets: %u| Cache Lines: %u] \n",get_enum_cache_level_char(this->level),this->id,this->nSets,this->nLines)
 }
-void cache_t::allocate(cacheLevel_t level){	
+void cache_t::allocate(cacheLevel_t level){
 	switch(level){
 		case INST_CACHE:{
 			this->shiftData = utils_t::get_power_of_two(LINE_SIZE);

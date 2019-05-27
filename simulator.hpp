@@ -26,6 +26,9 @@
 #include <list>
 #include <queue>
 #include <algorithm>
+#include <map>
+#include <cassert>
+#include <libconfig.h++>
 
 
 // ============================================================================
@@ -35,6 +38,7 @@
 class orcs_engine_t;
 class trace_reader_t;
 class opcode_package_t;
+class configure_t;
 
 //  =========================================//
 // Branch Predictor Classes
@@ -136,6 +140,7 @@ extern orcs_engine_t orcs_engine;
 // ============================================================================
 #include "./simulator.hpp"
 #include "./orcs_engine.hpp"
+#include "./config/config.hpp"
 #include "./trace_reader.hpp"
 #include "./package/opcode_package.hpp"
 

@@ -16,7 +16,7 @@ void memory_controller_t::allocate(){
     this->ram = (RAM_t*)malloc(CHANNEL*BANK*sizeof(RAM_t));
     std::memset(this->ram,0,CHANNEL*BANK*sizeof(RAM_t));
     // ======================= Configurando data BUS ======================= 
-    this->data_bus = new bus_t[CHANNEL];
+    this->data_bus = new bus_t[CHANNEL]();
     for(uint8_t i = 0; i < CHANNEL; i++){
         this->data_bus[i].requests.reserve(CHANNEL*NUMBER_OF_PROCESSORS*MAX_PARALLEL_REQUESTS_CORE);
     }     
@@ -101,8 +101,9 @@ uint64_t memory_controller_t::requestDRAM(uint64_t address){
     //initializes in latency burst
     uint64_t latency_request = 0;
     //
-    uint64_t channel,bank;
+    uint64_t channel;
     channel = this->get_channel(address);
+    uint64_t bank;
     bank = (channel*BANK) + this->get_bank(address);
     // Get the row where "data" is
     uint64_t actual_row = this->get_row(address);

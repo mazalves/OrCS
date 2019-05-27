@@ -42,9 +42,7 @@ static void process_argv(int argc, char **argv) {
             display_use();
             break;
         case 'c':
-            ORCS_PRINTF("%d\n",atoi(optarg))
-            ERROR_ASSERT_PRINTF(atoi(optarg)==NUMBER_OF_PROCESSORS,"Erro - Informe o numero correto de cores.\n")
-            orcs_engine.number_of_cores = atoi(optarg);
+            orcs_engine.config_file = optarg;
             break;
         case 't':
             orcs_engine.arg_trace_file_name.push_back(optarg);
@@ -169,6 +167,7 @@ int main(int argc, char **argv) {
     process_argv(argc, argv);
     /// Call all the allocate's
     orcs_engine.allocate();
+    
     //==================
     //Cache Manager
     //==================

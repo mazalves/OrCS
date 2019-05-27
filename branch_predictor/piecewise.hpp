@@ -1,10 +1,10 @@
 class piecewise_t {
 private:
-    uint64_t N = 128;
-    uint64_t M = 128;
-    uint64_t H = 43;
+    uint64_t N;
+    uint64_t M;
+    uint64_t H;
 
-    uint64_t THETA = ((2.14*(H)) + 20.58);
+    uint64_t THETA;
 
 public:
     int8_t ***W;

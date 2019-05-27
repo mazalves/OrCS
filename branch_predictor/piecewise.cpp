@@ -29,6 +29,12 @@ piecewise_t::~piecewise_t(){
 }
 
 void piecewise_t::allocate(){
+    N = orcs_engine.configuration->getSetting ("N");
+    M = orcs_engine.configuration->getSetting ("M");
+    H = orcs_engine.configuration->getSetting ("H");
+
+    THETA = ((2.14*(H)) + 20.58);
+
     // fprintf(stderr,"alocando piecewise");
     this->W = new int8_t**[N];
     
