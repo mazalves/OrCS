@@ -35,7 +35,7 @@ cache_t::cache_t()
         LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
 		LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
         
-        // PREFETCHER_ACTIVE = 0;
+        PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
 
         CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
         WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");

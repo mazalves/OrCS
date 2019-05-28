@@ -11,7 +11,7 @@ class cacheSet_t
     this->linhas = NULL;
     }
     ~cacheSet_t(){
-    if(this->linhas!=NULL) delete[] &linhas;
+        if(this->linhas!=NULL) delete[] &linhas;
     }
 
 };

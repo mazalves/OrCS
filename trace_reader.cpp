@@ -34,8 +34,8 @@ trace_reader_t::~trace_reader_t() {
     utils_t::template_delete_array<char>(line_static);
     utils_t::template_delete_matrix<char>(line_dynamic, TRACE_LINE_SIZE);
     utils_t::template_delete_matrix<char>(line_memory, TRACE_LINE_SIZE);
-
-
+    
+    delete[] binary_dict;
 }
 
 // =====================================================================

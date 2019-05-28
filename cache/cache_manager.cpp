@@ -1,19 +1,17 @@
 #include "./../simulator.hpp"
 
-cache_manager_t::cache_manager_t(){
-this->L1_data_cache = NULL;
-this->L2_data_cache = NULL;
-this->LLC_data_cache = NULL;
-this->inst_cache = NULL;
-}
+cache_manager_t::cache_manager_t()=default;
 cache_manager_t::~cache_manager_t()=default;
+
 void cache_manager_t::allocate(){
     L1_DATA_LATENCY = orcs_engine.configuration->getSetting ("L1_DATA_LATENCY");
     L2_LATENCY = orcs_engine.configuration->getSetting ("L2_LATENCY");
     LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
 
     CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
-    WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");;
+    WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");
+
+    PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
 
     SIZE_OF_L1_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L1_CACHES_ARRAY");
     SIZE_OF_L2_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L2_CACHES_ARRAY");

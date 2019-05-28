@@ -5,6 +5,8 @@ stride_prefetcher_t::~stride_prefetcher_t(){
     if(this->stride_table) delete[] &this->stride_table;
 }
 void stride_prefetcher_t::allocate(){
+    DISTANCE = orcs_engine.configuration->getSetting ("DISTANCE");
+    STRIDE_TABLE_SIZE = 32*NUMBER_OF_PROCESSORS;
     this->stride_table = new stride_table_t[STRIDE_TABLE_SIZE];
 }
 inline uint32_t stride_prefetcher_t::searchLRU(){

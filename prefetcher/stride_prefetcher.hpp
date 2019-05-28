@@ -4,8 +4,8 @@
 class stride_prefetcher_t{
     private:
 
-        uint32_t DISTANCE = 4;
-        uint32_t STRIDE_TABLE_SIZE = 32*NUMBER_OF_PROCESSORS;
+        uint32_t DISTANCE;
+        uint32_t STRIDE_TABLE_SIZE;
 
 
     public:

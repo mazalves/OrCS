@@ -20,6 +20,15 @@ disambiguation_hashed_t::~disambiguation_hashed_t()
 }
 
 void disambiguation_hashed_t::allocate(){
+	ROB_SIZE = orcs_engine.configuration->getSetting ("ROB_SIZE");
+    LOAD_HASH_SIZE = orcs_engine.configuration->getSetting("LOAD_HASH_SIZE");
+    STORE_HASH_SIZE = orcs_engine.configuration->getSetting("STORE_HASH_SIZE");
+    DESAMBIGUATION_BLOCK_SIZE = orcs_engine.configuration->getSetting("DESAMBIGUATION_BLOCK_SIZE");
+    ADDRESS_TO_ADDRESS = orcs_engine.configuration->getSetting("ADDRESS_TO_ADDRESS");
+    REGISTER_FORWARD = orcs_engine.configuration->getSetting("REGISTER_FORWARD");
+    MOB_DEBUG = orcs_engine.configuration->getSetting("MOB_DEBUG");
+    WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
+
     // LOAD/STORE Hash mask
     this->disambiguation_load_hash_bits_mask = 0;
     this->disambiguation_store_hash_bits_mask = 0;

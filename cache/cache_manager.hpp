@@ -13,7 +13,7 @@ class cache_manager_t{
         uint32_t L2_LATENCY;
         uint32_t LLC_LATENCY;
 
-        //uint32_t PREFETCHER_ACTIVE = 0;
+        uint32_t PREFETCHER_ACTIVE = 0;
 
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;

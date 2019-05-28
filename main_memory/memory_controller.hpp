@@ -45,25 +45,25 @@ class memory_controller_t{
             uint64_t cycle_ready;
         }RAM_t;
 
-        uint32_t LINE_SIZE = 64;
+        uint32_t LINE_SIZE;
 
-        uint32_t CHANNEL = 2;
-        uint32_t RANK = 1;
-        uint32_t BANK = 8;
-        uint32_t ROW_BUFFER = (RANK*BANK)*1024;
+        uint32_t CHANNEL;
+        uint32_t RANK;
+        uint32_t BANK;
+        uint32_t ROW_BUFFER;
         // =====================Parametes Comandd=======================
-        uint32_t BURST_WIDTH = 8;
-        uint32_t RAS = 44;
-        uint32_t CAS = 44;
-        uint32_t ROW_PRECHARGE = 44;
+        uint32_t BURST_WIDTH;
+        uint32_t RAS;
+        uint32_t CAS;
+        uint32_t ROW_PRECHARGE;
         // ============================================
 
         //uint64_t RAM_SIZE = 4 * MEGA * KILO;
-        uint32_t PARALLEL_LIM_ACTIVE = 1;
-        uint32_t MAX_PARALLEL_REQUESTS_CORE = 10;
+        uint32_t PARALLEL_LIM_ACTIVE;
+        uint32_t MAX_PARALLEL_REQUESTS_CORE;
 
-        uint32_t MEM_CONTROLLER_DEBUG = 0;
-        uint32_t WAIT_CYCLE = 0;
+        uint32_t MEM_CONTROLLER_DEBUG;
+        uint32_t WAIT_CYCLE;
 
     public:
         // ==========================================================================

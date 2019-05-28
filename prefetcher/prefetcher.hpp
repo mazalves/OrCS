@@ -10,7 +10,7 @@ class prefetcher_t{
         uint64_t totalCycleLate;
         stride_prefetcher_t *prefetcher;
 
-        uint32_t PARALLEL_PREFETCH = NUMBER_OF_PROCESSORS;
+        uint32_t PARALLEL_PREFETCH;
     public:
         // constructors
         prefetcher_t();

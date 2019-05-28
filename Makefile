@@ -6,7 +6,7 @@ CPPFLAGS = $(FLAGS)
 BIN_NAME = orcs
 RM = rm -f
 
-FLAGS =   -ggdb3 -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic
+FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic
 LDFLAGS = -ggdb3
 ########################################################################
 ##FOLDERS

@@ -100,8 +100,6 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 extern orcs_engine_t orcs_engine;
 
 #define NUMBER_OF_PROCESSORS 1
-#define PREFETCHER_ACTIVE 0
-#define DESAMBIGUATION_ENABLED 1
 
 #define SANITY_CHECK 0
 #define HEARTBEAT 1

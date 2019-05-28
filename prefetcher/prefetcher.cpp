@@ -11,6 +11,8 @@ prefetcher_t::~prefetcher_t()
     //dtor
 }
 void prefetcher_t::allocate(){
+    PARALLEL_PREFETCH = NUMBER_OF_PROCESSORS;
+
     this->set_latePrefetches(0);
     this->set_usefulPrefetches(0);
     this->set_latePrefetches(0);

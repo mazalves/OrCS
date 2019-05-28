@@ -10,19 +10,40 @@ memory_controller_t::memory_controller_t(){
     this->row_buffer_hit = 0;
 }
 // ============================================================================
-memory_controller_t::~memory_controller_t() = default;
+memory_controller_t::~memory_controller_t(){
+    free (this->ram);
+    delete[] data_bus;
+}
 // ============================================================================
 
 // ============================================================================
 // @allocate objects to EMC
 void memory_controller_t::allocate(){
+    LINE_SIZE = orcs_engine.configuration->getSetting("LINE_SIZE");
+
+     CHANNEL = orcs_engine.configuration->getSetting("CHANNEL");
+     RANK = orcs_engine.configuration->getSetting("RANK");
+     BANK = orcs_engine.configuration->getSetting("BANK");
+     ROW_BUFFER = (RANK*BANK)*1024;
+    // =====================Parametes Comandd=======================
+     BURST_WIDTH = orcs_engine.configuration->getSetting("BURST_WIDTH");
+     RAS = orcs_engine.configuration->getSetting("RAS");
+     CAS = orcs_engine.configuration->getSetting("CAS");
+     ROW_PRECHARGE = orcs_engine.configuration->getSetting("ROW_PRECHARGE");
+    // ============================================
+
+    //uint64_t RAM_SIZE = 4 * MEGA * KILO;
+     PARALLEL_LIM_ACTIVE = orcs_engine.configuration->getSetting("PARALLEL_LIM_ACTIVE");
+     MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
+     MEM_CONTROLLER_DEBUG = orcs_engine.configuration->getSetting("MEM_CONTROLLER_DEBUG");
+     WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
     // ======================= Configurando DRAM ======================= 
     this->latency_burst = LINE_SIZE/BURST_WIDTH;
     this->set_masks();
     this->ram = (RAM_t*)malloc(CHANNEL*BANK*sizeof(RAM_t));
     std::memset(this->ram,0,CHANNEL*BANK*sizeof(RAM_t));
     // ======================= Configurando data BUS ======================= 
-    this->data_bus = new bus_t[CHANNEL]();
+    this->data_bus = new bus_t[CHANNEL];
     for(uint8_t i = 0; i < CHANNEL; i++){
         this->data_bus[i].requests.reserve(CHANNEL*NUMBER_OF_PROCESSORS*MAX_PARALLEL_REQUESTS_CORE);
     }     

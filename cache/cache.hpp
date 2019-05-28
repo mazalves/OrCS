@@ -40,7 +40,7 @@ class cache_t
         uint32_t LLC_LATENCY;
         uint32_t LLC_SETS;
 
-        //uint32_t PREFETCHER_ACTIVE = 0;
+        uint32_t PREFETCHER_ACTIVE;
 
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;

@@ -65,6 +65,113 @@ processor_t::~processor_t()
 // =====================================================================
 void processor_t::allocate()
 {
+	FETCH_WIDTH = orcs_engine.configuration->getSetting("FETCH_WIDTH");
+	DECODE_WIDTH = orcs_engine.configuration->getSetting("DECODE_WIDTH");
+	RENAME_WIDTH = orcs_engine.configuration->getSetting("RENAME_WIDTH");
+	DISPATCH_WIDTH = orcs_engine.configuration->getSetting("DISPATCH_WIDTH");
+	EXECUTE_WIDTH = orcs_engine.configuration->getSetting("EXECUTE_WIDTH");
+	COMMIT_WIDTH = orcs_engine.configuration->getSetting("COMMIT_WIDTH");
+
+	FETCH_LATENCY = orcs_engine.configuration->getSetting("FETCH_LATENCY");
+	DECODE_LATENCY = orcs_engine.configuration->getSetting("DECODE_LATENCY");
+	RENAME_LATENCY = orcs_engine.configuration->getSetting("RENAME_LATENCY");
+	DISPATCH_LATENCY = orcs_engine.configuration->getSetting("DISPATCH_LATENCY");
+	EXECUTE_LATENCY = orcs_engine.configuration->getSetting("EXECUTE_LATENCY");
+	COMMIT_LATENCY = orcs_engine.configuration->getSetting("COMMIT_LATENCY");
+
+	 LATENCY_INTEGER_ALU = orcs_engine.configuration->getSetting("LATENCY_INTEGER_ALU");
+	 WAIT_NEXT_INT_ALU = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_ALU");
+	 INTEGER_ALU = orcs_engine.configuration->getSetting("INTEGER_ALU");
+	// INTEGER MUL
+	 LATENCY_INTEGER_MUL = orcs_engine.configuration->getSetting("LATENCY_INTEGER_MUL");
+	 WAIT_NEXT_INT_MUL = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_MUL");
+	 INTEGER_MUL = orcs_engine.configuration->getSetting("INTEGER_MUL");
+	// INTEGER DIV
+	 LATENCY_INTEGER_DIV = orcs_engine.configuration->getSetting("LATENCY_INTEGER_DIV");
+	 WAIT_NEXT_INT_DIV = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_DIV");
+	 INTEGER_DIV = orcs_engine.configuration->getSetting("INTEGER_DIV");
+
+	 QTDE_INTEGER_FU = (INTEGER_ALU+INTEGER_MUL+INTEGER_DIV);
+
+	//FP ULAS LATENCY 
+	// FLOATING POINT DIV
+	 LATENCY_FP_DIV = orcs_engine.configuration->getSetting("LATENCY_FP_DIV");
+	 WAIT_NEXT_FP_DIV = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_DIV");
+	 FP_DIV = orcs_engine.configuration->getSetting("FP_DIV");
+	// FLOATING POINT MUL
+	 LATENCY_FP_MUL = orcs_engine.configuration->getSetting("LATENCY_FP_MUL");
+	 WAIT_NEXT_FP_MUL = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_MUL");
+	 FP_MUL = orcs_engine.configuration->getSetting("FP_MUL");
+	// FLOATING POINT ALU
+	 LATENCY_FP_ALU = orcs_engine.configuration->getSetting("LATENCY_FP_ALU");
+	 WAIT_NEXT_FP_ALU = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_ALU");
+	 FP_ALU = orcs_engine.configuration->getSetting("FP_ALU");
+
+	 QTDE_FP_FU = (FP_ALU+FP_MUL+FP_DIV);
+
+	 PARALLEL_LOADS = orcs_engine.configuration->getSetting("PARALLEL_LOADS");
+	 PARALLEL_STORES = orcs_engine.configuration->getSetting("PARALLEL_STORES");
+
+	FETCH_BUFFER = orcs_engine.configuration->getSetting("FETCH_BUFFER");
+	DECODE_BUFFER = orcs_engine.configuration->getSetting("DECODE_BUFFER");
+	RAT_SIZE = orcs_engine.configuration->getSetting("RAT_SIZE");
+	ROB_SIZE = orcs_engine.configuration->getSetting("ROB_SIZE");
+	UNIFIED_RS = orcs_engine.configuration->getSetting("UNIFIED_RS");
+	//MOB
+	MOB_READ = orcs_engine.configuration->getSetting("MOB_READ");
+	MOB_WRITE = orcs_engine.configuration->getSetting("MOB_WRITE");
+	// =====================
+
+	// =====================
+	// MEMORY FU
+	// =====================
+	// Load Units
+	 LOAD_UNIT = orcs_engine.configuration->getSetting("LOAD_UNIT");
+	 WAIT_NEXT_MEM_LOAD = orcs_engine.configuration->getSetting("WAIT_NEXT_MEM_LOAD");
+	 LATENCY_MEM_LOAD = orcs_engine.configuration->getSetting("LATENCY_MEM_LOAD");
+	// Store Units
+	 STORE_UNIT = orcs_engine.configuration->getSetting("STORE_UNIT");
+	 WAIT_NEXT_MEM_STORE = orcs_engine.configuration->getSetting("WAIT_NEXT_MEM_STORE");
+	 LATENCY_MEM_STORE = orcs_engine.configuration->getSetting("LATENCY_MEM_STORE");
+
+	 QTDE_MEMORY_FU = (LOAD_UNIT+STORE_UNIT);
+
+	LINE_SIZE = orcs_engine.configuration->getSetting("LINE_SIZE");
+
+	L1_DATA_SIZE = 32*KILO;
+	L1_DATA_ASSOCIATIVITY = orcs_engine.configuration->getSetting("L1_DATA_ASSOCIATIVITY");
+	L1_DATA_LATENCY = orcs_engine.configuration->getSetting("L1_DATA_LATENCY");
+	L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+	// I$
+	 L1_INST_SIZE = 32*KILO;
+	 L1_INST_ASSOCIATIVITY = orcs_engine.configuration->getSetting("L1_INST_ASSOCIATIVITY");
+	 L1_INST_LATENCY = orcs_engine.configuration->getSetting("L1_INST_LATENCY");
+	 L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+
+	 LLC_SIZE = 20*MEGA;
+	 LLC_ASSOCIATIVITY = orcs_engine.configuration->getSetting("LLC_ASSOCIATIVITY");
+	 LLC_LATENCY = orcs_engine.configuration->getSetting("LLC_LATENCY");
+	 LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+
+	 RAM_LATENCY = orcs_engine.configuration->getSetting("RAM_LATENCY");
+	 PARALLEL_LIM_ACTIVE = orcs_engine.configuration->getSetting("PARALLEL_LIM_ACTIVE");
+	 MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
+
+	 PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
+	 DESAMBIGUATION_ENABLED = orcs_engine.configuration->getSetting ("DESAMBIGUATION_ENABLED");
+
+	 DEBUG = orcs_engine.configuration->getSetting("DEBUG");
+	 FETCH_DEBUG = orcs_engine.configuration->getSetting("FETCH_DEBUG");
+	 DECODE_DEBUG = orcs_engine.configuration->getSetting("DECODE_DEBUG");
+	 RENAME_DEBUG = orcs_engine.configuration->getSetting("RENAME_DEBUG");
+	 DISPATCH_DEBUG = orcs_engine.configuration->getSetting("DISPATCH_DEBUG");
+	 EXECUTE_DEBUG = orcs_engine.configuration->getSetting("EXECUTE_DEBUG");
+	 MOB_DEBUG = orcs_engine.configuration->getSetting("MOB_DEBUG");
+	 PRINT_MOB = orcs_engine.configuration->getSetting("PRINT_MOB");
+	 PRINT_ROB = orcs_engine.configuration->getSetting("PRINT_ROB");
+	 COMMIT_DEBUG = orcs_engine.configuration->getSetting("COMMIT_DEBUG");
+
+	 WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
 	//======================================================================
 	// Initializating variables
 	//======================================================================
@@ -81,6 +188,40 @@ void processor_t::allocate()
 	this->set_stall_wrong_branch(0);
 	this->memory_read_executed = 0;
 	this->memory_write_executed = 0;
+
+	this->set_stall_full_FetchBuffer(0);
+    this->set_stall_wrong_branch(0);
+
+    this->set_stall_full_DecodeBuffer(0);
+
+	this->set_registerWrite(0);
+	this->set_stall_full_MOB_Read(0);
+	this->set_stall_full_MOB_Write(0);
+	this->set_stall_full_ROB(0);
+
+	this->set_stall_empty_RS(0);
+
+	this->set_stat_disambiguation_read_false_positive(0);
+	this->set_stat_disambiguation_write_false_positive(0);
+	this->set_stat_address_to_address(0);
+	this->set_times_reach_parallel_requests_read(0);
+	this->set_times_reach_parallel_requests_write(0);
+	this->set_ended_cycle(0);
+	this->set_mem_req_wait_cycles(0);
+	this->set_core_ram_request_wait_cycles(0);
+	this->set_core_ram_requests(0);
+
+	this->set_stat_inst_int_alu_completed(0);
+	this->set_stat_inst_mul_alu_completed(0);
+	this->set_stat_inst_div_alu_completed(0);
+	this->set_stat_inst_int_fp_completed(0);
+	this->set_stat_inst_mul_fp_completed(0);
+	this->set_stat_inst_div_fp_completed(0);
+	this->set_stat_inst_nop_completed(0);
+	this->set_stat_inst_load_completed(0);
+	this->set_stat_inst_store_completed(0);
+	this->set_stat_inst_branch_completed(0);
+	this->set_stat_inst_other_completed(0);
 	//======================================================================
 	// Initializating structures
 	//======================================================================
@@ -838,9 +979,9 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
-	#if DESAMBIGUATION_ENABLED
+			if (DESAMBIGUATION_ENABLED){
 				this->desambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
-	#endif
+			}
 		}
 	} //end for
 }
@@ -1111,9 +1252,9 @@ void processor_t::execute()
 			this->memory_order_buffer_read[pos].processed=true;
 			this->memory_read_executed--;
 			this->solve_registers_dependency(this->memory_order_buffer_read[pos].rob_ptr);
-			#if DESAMBIGUATION_ENABLED
+			if (DESAMBIGUATION_ENABLED){
 				this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_read[pos]);
-			#endif
+			}
 			if (PARALLEL_LIM_ACTIVE){
 				if(!this->memory_order_buffer_read[pos].forwarded_data){
 						ERROR_ASSERT_PRINTF(this->counter_mshr_read > 0,"ERRO, Contador negativo READ\n")
