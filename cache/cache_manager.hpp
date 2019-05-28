@@ -8,6 +8,23 @@ class cache_manager_t {
         uint64_t write_miss;
         uint64_t write_hit;
 
+        uint32_t L1_DATA_LATENCY;
+        uint32_t L2_LATENCY;
+        uint32_t LLC_LATENCY;
+
+        uint32_t PREFETCHER_ACTIVE;
+
+        uint32_t DATA_LEVELS;
+        uint32_t INSTRUCTION_LEVELS;
+        uint32_t CACHE_LEVELS;
+        uint32_t POINTER_LEVELS;
+        uint32_t CACHE_MANAGER_DEBUG;
+        uint32_t WAIT_CYCLE;
+
+        uint32_t SIZE_OF_L1_CACHES_ARRAY;     // Numero de caches L1
+        uint32_t SIZE_OF_L2_CACHES_ARRAY;     // Numero de caches L2
+        uint32_t SIZE_OF_LLC_CACHES_ARRAY;
+
         void check_cache(uint32_t cache_size, uint32_t cache_level);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
@@ -18,8 +35,8 @@ class cache_manager_t {
 
     public:
         // instruction and data caches dynamically allocated
-        cache_t **data_cache = new cache_t*[DATA_LEVELS];
-        cache_t **instruction_cache = new cache_t*[INSTRUCTION_LEVELS];
+        cache_t **data_cache;
+        cache_t **instruction_cache;
 
 
         // Constructor
@@ -43,12 +60,8 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
 
         // Prefetcher
-        #if PREFETCHER_ACTIVE
-            prefetcher_t *prefetcher;
-        #endif
-        //
-        // // EMC Data Collect
-        // uint32_t search_EMC_Data(memory_order_buffer_line_t *mob_line);
-};
+        // ==========================================
+        prefetcher_t *prefetcher;
+};  
 
 #endif // !CACHE_MANAGER_H

@@ -16,9 +16,11 @@ class orcs_engine_t {
         // output File name
         // =======================================
         char *output_file_name;
+        char *config_file;
         bool simulator_alive;
         /// Components modeled
         trace_reader_t *trace_reader;
+        configure_t *configuration;
         //==================
         //Processor
         //==================

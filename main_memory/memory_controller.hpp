@@ -31,10 +31,7 @@ class memory_controller_t{
         // =================================================
         // Struct object defines RAM
         // =================================================
-        typedef struct RAM{
-            uint64_t last_row_accessed;
-            uint64_t cycle_ready;
-        }RAM_t;
+        
         typedef struct request{
             uint64_t request_start;
             uint64_t request_end;
@@ -43,6 +40,30 @@ class memory_controller_t{
         typedef struct bus{
             std::vector<request_t> requests;
         }bus_t;
+        typedef struct RAM{
+            uint64_t last_row_accessed;
+            uint64_t cycle_ready;
+        }RAM_t;
+
+        uint32_t LINE_SIZE;
+
+        uint32_t CHANNEL;
+        uint32_t RANK;
+        uint32_t BANK;
+        uint32_t ROW_BUFFER;
+        // =====================Parametes Comandd=======================
+        uint32_t BURST_WIDTH;
+        uint32_t RAS;
+        uint32_t CAS;
+        uint32_t ROW_PRECHARGE;
+        // ============================================
+
+        //uint64_t RAM_SIZE = 4 * MEGA * KILO;
+        uint32_t PARALLEL_LIM_ACTIVE;
+        uint32_t MAX_PARALLEL_REQUESTS_CORE;
+
+        uint32_t MEM_CONTROLLER_DEBUG;
+        uint32_t WAIT_CYCLE;
 
     public:
         // ==========================================================================

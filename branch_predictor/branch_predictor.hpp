@@ -1,4 +1,9 @@
 class branch_predictor_t{
+    private:
+        uint32_t BTB_ENTRIES;
+        uint8_t BTB_WAYS;
+        uint64_t BTB_MISS_PENALITY;
+        uint64_t MISSPREDICTION_PENALITY;
 
     public:
         //===================================   
@@ -26,11 +31,8 @@ class branch_predictor_t{
         uint32_t branches;
         uint32_t branchTakenMiss;
         uint32_t branchNotTakenMiss;
-#if TWO_BIT
-        twoBit_t *branchPredictor;
-#else
         piecewise_t *branchPredictor;
-#endif
+
         //===================================
         //metodos branch predictor
         //===================================

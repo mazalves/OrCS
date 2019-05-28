@@ -1,4 +1,10 @@
-class piecewise_t{
+class piecewise_t {
+private:
+    uint64_t N;
+    uint64_t M;
+    uint64_t H;
+
+    uint64_t THETA;
 
 public:
     int8_t ***W;

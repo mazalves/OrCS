@@ -50,6 +50,122 @@ class processor_t {
 	uint64_t stat_inst_branch_completed;
 	uint64_t stat_inst_other_completed;
 
+	uint32_t FETCH_WIDTH;
+	uint32_t DECODE_WIDTH;
+	uint32_t RENAME_WIDTH;
+	uint32_t DISPATCH_WIDTH;
+	uint32_t EXECUTE_WIDTH;
+	uint32_t COMMIT_WIDTH;
+
+	uint32_t FETCH_LATENCY;
+	uint32_t DECODE_LATENCY;
+	uint32_t RENAME_LATENCY;
+	uint32_t DISPATCH_LATENCY;
+	uint32_t EXECUTE_LATENCY;
+	uint32_t COMMIT_LATENCY;
+
+	uint32_t LATENCY_INTEGER_ALU;
+	uint32_t WAIT_NEXT_INT_ALU;
+	uint32_t INTEGER_ALU;
+	// INTEGER MUL
+	uint32_t LATENCY_INTEGER_MUL;
+	uint32_t WAIT_NEXT_INT_MUL;
+	uint32_t INTEGER_MUL;
+	// INTEGER DIV
+	uint32_t LATENCY_INTEGER_DIV;
+	uint32_t WAIT_NEXT_INT_DIV;
+	uint32_t INTEGER_DIV;
+
+	uint32_t QTDE_INTEGER_FU;
+
+	//FP ULAS LATENCY 
+	// FLOATING POINT DIV
+	uint32_t LATENCY_FP_DIV;
+	uint32_t WAIT_NEXT_FP_DIV;
+	uint32_t FP_DIV;
+	// FLOATING POINT MUL
+	uint32_t LATENCY_FP_MUL;
+	uint32_t WAIT_NEXT_FP_MUL;
+	uint32_t FP_MUL;
+	// FLOATING POINT ALU
+	uint32_t LATENCY_FP_ALU;
+	uint32_t WAIT_NEXT_FP_ALU;
+	uint32_t FP_ALU;
+
+	uint32_t QTDE_FP_FU;
+
+	uint32_t PARALLEL_LOADS;
+	uint32_t PARALLEL_STORES;
+
+	// ======================
+	///UNIFIED FUS
+
+	// PROCESSOR BUFFERS SIZE
+	uint32_t FETCH_BUFFER;
+	uint32_t DECODE_BUFFER;
+	uint32_t RAT_SIZE;
+	uint32_t ROB_SIZE;
+	uint32_t UNIFIED_RS;
+	//MOB
+	uint32_t MOB_READ;
+	uint32_t MOB_WRITE;
+	// =====================
+
+	// =====================
+	// MEMORY FU
+	// =====================
+	// Load Units
+	uint32_t LOAD_UNIT;
+	uint32_t WAIT_NEXT_MEM_LOAD;
+	uint32_t LATENCY_MEM_LOAD;
+	// Store Units
+	uint32_t STORE_UNIT;
+	uint32_t WAIT_NEXT_MEM_STORE;
+	uint32_t LATENCY_MEM_STORE;
+
+	uint32_t QTDE_MEMORY_FU;
+
+	//uint32_t KILO = 1024;
+	//uint32_t MEGA = KILO*KILO;
+
+	uint32_t LINE_SIZE;
+
+	uint32_t L1_DATA_SIZE;
+	uint32_t L1_DATA_ASSOCIATIVITY;
+	uint32_t L1_DATA_LATENCY;
+	uint32_t L1_DATA_SETS;
+	// I$
+	uint32_t L1_INST_SIZE;
+	uint32_t L1_INST_ASSOCIATIVITY;
+	uint32_t L1_INST_LATENCY;
+	uint32_t L1_INST_SETS;
+
+	uint32_t LLC_SIZE;
+	uint32_t LLC_ASSOCIATIVITY;
+	uint32_t LLC_LATENCY;
+	uint32_t LLC_SETS;
+
+	uint32_t RAM_LATENCY;
+	uint32_t PARALLEL_LIM_ACTIVE;
+	uint32_t MAX_PARALLEL_REQUESTS_CORE;
+
+	uint32_t PREFETCHER_ACTIVE;
+
+	uint32_t DESAMBIGUATION_ENABLED;
+
+	uint32_t DEBUG;
+	uint32_t FETCH_DEBUG;
+	uint32_t DECODE_DEBUG;
+	uint32_t RENAME_DEBUG;
+	uint32_t DISPATCH_DEBUG;
+	uint32_t EXECUTE_DEBUG;
+	uint32_t MOB_DEBUG;
+	uint32_t PRINT_MOB;
+	uint32_t PRINT_ROB;
+	uint32_t COMMIT_DEBUG;
+
+	uint32_t WAIT_CYCLE;
+
     public:
 		
 		// ====================================================================
@@ -206,6 +322,8 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(float_t,instruction_per_cycle)
 		INSTANTIATE_GET_SET_ADD(uint64_t,ended_cycle)
 		INSTANTIATE_GET_SET_ADD(uint32_t,core_ram_requests)
+		INSTANTIATE_GET_SET_ADD(uint64_t,mem_req_wait_cycles)
+		INSTANTIATE_GET_SET_ADD(uint64_t,core_ram_request_wait_cycles)
 		// ====================================================================
 		// Statistics inst completed
 		// ====================================================================

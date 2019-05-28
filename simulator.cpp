@@ -42,9 +42,7 @@ static void process_argv(int argc, char **argv) {
             display_use();
             break;
         case 'c':
-            ORCS_PRINTF("%d\n",atoi(optarg))
-            ERROR_ASSERT_PRINTF(atoi(optarg)==NUMBER_OF_PROCESSORS,"Erro - Informe o numero correto de cores.\n")
-            orcs_engine.number_of_cores = atoi(optarg);
+            orcs_engine.config_file = optarg;
             break;
         case 't':
             orcs_engine.arg_trace_file_name.push_back(optarg);
@@ -169,6 +167,7 @@ int main(int argc, char **argv) {
     process_argv(argc, argv);
     /// Call all the allocate's
     orcs_engine.allocate();
+    
     //==================
     //Cache Manager
     //==================
@@ -194,11 +193,6 @@ int main(int argc, char **argv) {
         //Branch Predictor
         //==================
         orcs_engine.branchPredictor[i].allocate();
-        // Setting id emc
-        #if EMC_ACTIVE
-            orcs_engine.memory_controller->emc[i].set_processor_id(i);
-        #endif
-
     }
     //initializate simulator
     orcs_engine.simulator_alive = true;
@@ -271,7 +265,6 @@ int main(int argc, char **argv) {
     ORCS_PRINTF("Deleting Cache manager\n")
     delete orcs_engine.cacheManager;
     ORCS_PRINTF("Deleting Memory Controller\n")
-    delete orcs_engine.memory_controller;
-    
-    return(EXIT_SUCCESS);
+    delete orcs_engine.memory_controller; 
+    delete orcs_engine.configuration;
 }

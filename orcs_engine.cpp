@@ -7,6 +7,7 @@ orcs_engine_t::orcs_engine_t() {
 	this->branchPredictor = NULL;
 	this->cacheManager = NULL;
 	this->memory_controller = NULL;
+	this->configuration = NULL;
 }
 // =====================================================================
 void orcs_engine_t::allocate() {
@@ -18,6 +19,7 @@ void orcs_engine_t::allocate() {
 	this->trace_reader = new trace_reader_t[NUMBER_OF_PROCESSORS];
 	this->processor = new processor_t[NUMBER_OF_PROCESSORS];
 	this->branchPredictor = new branch_predictor_t[NUMBER_OF_PROCESSORS];
+	this->configuration = new configure_t;
 	this->cacheManager = new cache_manager_t;
 	this->memory_controller = new memory_controller_t;
 }

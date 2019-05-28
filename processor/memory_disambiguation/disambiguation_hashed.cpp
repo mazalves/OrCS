@@ -20,6 +20,15 @@ disambiguation_hashed_t::~disambiguation_hashed_t()
 }
 
 void disambiguation_hashed_t::allocate(){
+	ROB_SIZE = orcs_engine.configuration->getSetting ("ROB_SIZE");
+    LOAD_HASH_SIZE = orcs_engine.configuration->getSetting("LOAD_HASH_SIZE");
+    STORE_HASH_SIZE = orcs_engine.configuration->getSetting("STORE_HASH_SIZE");
+    DESAMBIGUATION_BLOCK_SIZE = orcs_engine.configuration->getSetting("DESAMBIGUATION_BLOCK_SIZE");
+    ADDRESS_TO_ADDRESS = orcs_engine.configuration->getSetting("ADDRESS_TO_ADDRESS");
+    REGISTER_FORWARD = orcs_engine.configuration->getSetting("REGISTER_FORWARD");
+    MOB_DEBUG = orcs_engine.configuration->getSetting("MOB_DEBUG");
+    WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
+
     // LOAD/STORE Hash mask
     this->disambiguation_load_hash_bits_mask = 0;
     this->disambiguation_store_hash_bits_mask = 0;
@@ -178,11 +187,11 @@ void disambiguation_hashed_t::solve_memory_dependencies(memory_order_buffer_line
 				mob_line->mem_deps_ptr_array[j]->rob_ptr->sent = true;
 				mob_line->mem_deps_ptr_array[j]->readyAt = orcs_engine.get_global_cycle() + REGISTER_FORWARD;
 				mob_line->mem_deps_ptr_array[j]->forwarded_data=true;
-				#if MOB_DEBUG
+				if (MOB_DEBUG){
 					if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 						ORCS_PRINTF("Forwarded To : %s\n",mob_line->mem_deps_ptr_array[j]->content_to_string().c_str())
 					}
-				#endif
+				}
 
 			}
 		}

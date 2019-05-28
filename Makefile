@@ -6,7 +6,7 @@ CPPFLAGS = $(FLAGS)
 BIN_NAME = orcs
 RM = rm -f
 
-FLAGS =   -ggdb3 -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic
+FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic
 LDFLAGS = -ggdb3
 ########################################################################
 ##FOLDERS
@@ -18,11 +18,12 @@ FD_CACHE = cache
 FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
 FD_EMC = emc
+FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
 
 
 ###
-LIBRARY = -lz
+LIBRARY = -lz -lconfig++
 
 SRC_PACKAGE = 		$(FD_PACKAGE)/opcode_package.cpp $(FD_PACKAGE)/uop_package.cpp
 
@@ -48,6 +49,8 @@ SRC_PREFETCHER = $(FD_PREFETCHER)/prefetcher.cpp\
 
 SRC_MEMORY = $(FD_MEMORY)/memory_controller.cpp
 
+SRC_CONFIG = $(FD_CONFIG)/config.cpp
+
 SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_TRACE_READER)\
 			$(SRC_PACKAGE)\
@@ -58,6 +61,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_CACHE)\
 			$(SRC_PREFETCHER)\
 			$(SRC_MEMORY)\
+			$(SRC_CONFIG)\
 			$(SRC_EMC)
 
 ########################################################

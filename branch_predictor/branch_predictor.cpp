@@ -5,7 +5,7 @@ branch_predictor_t::branch_predictor_t(){
 	this->branchPredictor = NULL;
 }
 branch_predictor_t::~branch_predictor_t(){
-    if(this->branchPredictor != NULL){
+	if(this->branchPredictor != NULL){
 		delete this->branchPredictor;
 	}
 
@@ -15,6 +15,11 @@ branch_predictor_t::~branch_predictor_t(){
 	this->branchPredictor = NULL;
 }
 void branch_predictor_t::allocate(){
+	BTB_ENTRIES = orcs_engine.configuration->getSetting("BTB_ENTRIES");
+    BTB_WAYS = orcs_engine.configuration->getSetting("BTB_WAYS");
+    BTB_MISS_PENALITY = orcs_engine.configuration->getSetting("BTB_MISS_PENALITY");
+    MISSPREDICTION_PENALITY = orcs_engine.configuration->getSetting("MISSPREDICTION_PENALITY");
+
     uint32_t size  = BTB_ENTRIES/BTB_WAYS;
     this->btb = new btb_t[size];
 	this->index = 0;
@@ -25,13 +30,8 @@ void branch_predictor_t::allocate(){
     	std::memset(&this->btb[i].btb_entry[0],0,(BTB_WAYS*sizeof(btb_line_t)));
     }
     //allocate branch predictor
-#if TWO_BIT
-        this->branchPredictor = new twoBit_t();
-        this->branchPredictor->allocate()
-#else
-        this->branchPredictor = new piecewise_t();
-        this->branchPredictor->allocate();
-#endif
+	this->branchPredictor = new piecewise_t();
+    this->branchPredictor->allocate();
 }
 uint32_t branch_predictor_t::searchLine(uint64_t pc){
 	uint32_t getBits = (BTB_ENTRIES/BTB_WAYS);
@@ -101,18 +101,18 @@ void branch_predictor_t::statistics(){
 		close=true;	
 	}
 	if (output != NULL){
-			utils_t::largestSeparator(output);
-			fprintf(output,"BTB Hits: %u\n",this->btbHits);
-			fprintf(output,"BTB Miss: %u\n",this->btbMiss);
-			fprintf(output,"Total Branchs: %u\n",this->branches);
-			fprintf(output,"Total Branchs Taken: %u\n",this->branchTaken);
-			fprintf(output,"Total Branchs Not Taken: %u\n",this->branchNotTaken);
-			fprintf(output,"Correct Branchs Taken: %u\n",(this->branchTaken-this->branchTakenMiss));
-			fprintf(output,"Incorrect Branchs Taken: %u\n",this->branchTakenMiss);
-			fprintf(output,"Correct Branchs Not Taken: %u\n",(this->branchNotTaken-this->branchNotTakenMiss));
-			fprintf(output,"Incorrect Branchs Not Taken: %u\n",this->branchNotTakenMiss);
-			utils_t::largestSeparator(output);
-		}
+		utils_t::largestSeparator(output);
+		fprintf(output,"BTB Hits: %u\n",this->btbHits);
+		fprintf(output,"BTB Miss: %u\n",this->btbMiss);
+		fprintf(output,"Total Branchs: %u\n",this->branches);
+		fprintf(output,"Total Branchs Taken: %u\n",this->branchTaken);
+		fprintf(output,"Total Branchs Not Taken: %u\n",this->branchNotTaken);
+		fprintf(output,"Correct Branchs Taken: %u\n",(this->branchTaken-this->branchTakenMiss));
+		fprintf(output,"Incorrect Branchs Taken: %u\n",this->branchTakenMiss);
+		fprintf(output,"Correct Branchs Not Taken: %u\n",(this->branchNotTaken-this->branchNotTakenMiss));
+		fprintf(output,"Incorrect Branchs Not Taken: %u\n",this->branchNotTakenMiss);
+		utils_t::largestSeparator(output);
+	}
 	if(close) fclose(output);
 }
 uint32_t branch_predictor_t::solveBranch(opcode_package_t branchInstrucion, opcode_package_t nextInstruction){

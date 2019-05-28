@@ -2,14 +2,41 @@
 #include <string>
 // ============================================================================
 memory_controller_t::memory_controller_t(){
+    this->requests_made = 0; //Data Requests made
+    this->operations_executed = 0; // number of operations executed
+    this->requests_llc = 0; //Data Requests made to LLC
+    this->requests_prefetcher = 0; //Data Requests made by prefetcher
+    this->row_buffer_miss = 0; //Counter row buffer misses
+    this->row_buffer_hit = 0;
 }
 // ============================================================================
-memory_controller_t::~memory_controller_t() = default;
+memory_controller_t::~memory_controller_t(){
+    free (this->ram);
+    delete[] data_bus;
+}
 // ============================================================================
 
 // ============================================================================
 // @allocate objects to EMC
 void memory_controller_t::allocate(){
+    LINE_SIZE = orcs_engine.configuration->getSetting("LINE_SIZE");
+
+     CHANNEL = orcs_engine.configuration->getSetting("CHANNEL");
+     RANK = orcs_engine.configuration->getSetting("RANK");
+     BANK = orcs_engine.configuration->getSetting("BANK");
+     ROW_BUFFER = (RANK*BANK)*1024;
+    // =====================Parametes Comandd=======================
+     BURST_WIDTH = orcs_engine.configuration->getSetting("BURST_WIDTH");
+     RAS = orcs_engine.configuration->getSetting("RAS");
+     CAS = orcs_engine.configuration->getSetting("CAS");
+     ROW_PRECHARGE = orcs_engine.configuration->getSetting("ROW_PRECHARGE");
+    // ============================================
+
+    //uint64_t RAM_SIZE = 4 * MEGA * KILO;
+     PARALLEL_LIM_ACTIVE = orcs_engine.configuration->getSetting("PARALLEL_LIM_ACTIVE");
+     MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
+     MEM_CONTROLLER_DEBUG = orcs_engine.configuration->getSetting("MEM_CONTROLLER_DEBUG");
+     WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
     // ======================= Configurando DRAM ======================= 
     this->latency_burst = LINE_SIZE/BURST_WIDTH;
     this->set_masks();
@@ -41,26 +68,11 @@ void memory_controller_t::statistics(){
         fprintf(output,"Row_Buffer_Miss:            %lu\n",this->get_row_buffer_miss());
         utils_t::largestSeparator(output);
         if(close) fclose(output);
-        #if EMC_ACTIVE
-            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++)
-            {
-                this->emc[i].statistics();
-            }
-            utils_t::largestSeparator(output);
-            fprintf(output, "##############  EMC_Data_Cache ##################\n");
-            this->data_cache->statistics();
-        #endif
-        }
+    }
 }
 // ============================================================================
 void memory_controller_t::clock(){
-    #if EMC_ACTIVE
-        for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++)
-        {
-            this->emc[i].clock();        
-        }
-    #endif
-
+    
 }
 // ============================================================================
 void memory_controller_t::set_masks(){
@@ -76,6 +88,14 @@ void memory_controller_t::set_masks(){
     this->bank_bits_shift=0;
     this->row_bits_shift=0;
     this->colbyte_bits_shift = 0;
+
+    this->channel_bits_mask = 0;
+    this->bank_bits_mask = 0;
+    this->rank_bits_mask = 0;
+    this->row_bits_mask = 0;
+    this->col_row_bits_mask = 0;
+    this->col_byte_bits_mask = 0;
+    this->latency_burst = 0;
     // =======================================================
     this->channel_bits_shift = utils_t::get_power_of_two(LINE_SIZE);
     this->bank_bits_shift = this->channel_bits_shift+  utils_t::get_power_of_two(CHANNEL);
@@ -103,61 +123,63 @@ void memory_controller_t::set_masks(){
     for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
         this->row_bits_mask |= 1 << i;
     }
-    #if MEM_CONTROLLER_DEBUG
+
+    if (MEM_CONTROLLER_DEBUG){
             ORCS_PRINTF("ColByte Shitf %03lu -> ColByte Mask %07lu - %s\n",this->colbyte_bits_shift,this->col_byte_bits_mask,utils_t::address_to_binary(this->col_byte_bits_mask).c_str())
             ORCS_PRINTF("Channel Shift %03lu -> Channel Mask %07lu - %s\n",this->channel_bits_shift,this->channel_bits_mask,utils_t::address_to_binary(this->channel_bits_mask).c_str())
             ORCS_PRINTF("Bank Shift    %03lu -> Bank Mask    %07lu - %s\n",this->bank_bits_shift,this->bank_bits_mask,utils_t::address_to_binary(this->bank_bits_mask).c_str())
             ORCS_PRINTF("ColRow Shift  %03lu -> ColRow Mask  %07lu - %s\n",this->colrow_bits_shift,this->col_row_bits_mask,utils_t::address_to_binary(this->col_row_bits_mask).c_str())
             ORCS_PRINTF("Row Shift     %03lu -> Row Mask     %07lu - %s\n",this->row_bits_shift,this->row_bits_mask,utils_t::address_to_binary(this->row_bits_mask).c_str())
-    #endif
+    }
 }
 // ============================================================================
 uint64_t memory_controller_t::requestDRAM(uint64_t address){
     //initializes in latency burst
     uint64_t latency_request = 0;
     //
-    uint64_t channel,bank;
+    uint64_t channel;
     channel = this->get_channel(address);
+    uint64_t bank;
     bank = (channel*BANK) + this->get_bank(address);
     // Get the row where "data" is
     uint64_t actual_row = this->get_row(address);
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
             ORCS_PRINTF("Request Address %lu\n",address)
             ORCS_PRINTF("Memory Channel Accessed:%lu\n",channel)
             ORCS_PRINTF("Bank Mask %lu, Accessed: %lu\n",this->get_bank(address),bank)
             ORCS_PRINTF("Row %lu\n",actual_row)
         }
-    #endif
+    }
     // ====================================================
     // verify if last request is was served
     if( orcs_engine.get_global_cycle() >= this->ram[bank].cycle_ready){
         // if actual row acessed is equal last row, latency is CAS
-        #if MEM_CONTROLLER_DEBUG
+        if (MEM_CONTROLLER_DEBUG){
             if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
                 ORCS_PRINTF("C1 Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
             }
-        #endif
+        }
         if(actual_row == this->ram[bank].last_row_accessed){
             this->ram[bank].cycle_ready = orcs_engine.get_global_cycle()+CAS+this->latency_burst;  
             latency_request += CAS;
             this->add_row_buffer_hit();
-            #if MEM_CONTROLLER_DEBUG
+            if (MEM_CONTROLLER_DEBUG){
                 if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                 ORCS_PRINTF("Same Row Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                    ORCS_PRINTF("Same Row Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                }
             }
-            #endif            
         }else{
         // else, need make precharge, access row and colum
             this->ram[bank].cycle_ready = orcs_engine.get_global_cycle()+(ROW_PRECHARGE+RAS+CAS)+this->latency_burst;
             this->ram[bank].last_row_accessed = actual_row;
             latency_request += CAS+RAS+ROW_PRECHARGE;
             this->add_row_buffer_miss();
-            #if MEM_CONTROLLER_DEBUG
+            if (MEM_CONTROLLER_DEBUG){
                 if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
                     ORCS_PRINTF("Diff Row Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                }
             }
-            #endif               
         }
         // if the request not served yet
     }else{
@@ -167,36 +189,36 @@ uint64_t memory_controller_t::requestDRAM(uint64_t address){
             this->ram[bank].cycle_ready += CAS+this->latency_burst;
             latency_request += (this->ram[bank].cycle_ready-orcs_engine.get_global_cycle()); 
             this->add_row_buffer_hit();
-            #if MEM_CONTROLLER_DEBUG
+            if (MEM_CONTROLLER_DEBUG){
                 if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                 ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                    ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                }
             }
-            #endif   
         }else{
             // Get time to complete all requests pendents+RP+RAS+CAS
             this->ram[bank].cycle_ready +=(ROW_PRECHARGE+RAS+CAS)+this->latency_burst;
             this->ram[bank].last_row_accessed = actual_row;
             latency_request += (this->ram[bank].cycle_ready-orcs_engine.get_global_cycle())+(ROW_PRECHARGE+RAS+CAS);
             this->add_row_buffer_miss();           
-            #if MEM_CONTROLLER_DEBUG
+            if (MEM_CONTROLLER_DEBUG){
                 if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                 ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                    ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
+                }
             }
-            #endif    
         }
     }
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
             ORCS_PRINTF("Latency Request Before %lu\n",latency_request)
         }
-    #endif
+    }
    latency_request= this->add_channel_bus(address,latency_request);
    this->ram[bank].cycle_ready=latency_request;
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
             ORCS_PRINTF("Latency Request After %lu\n",latency_request)
         }
-    #endif
+    }
     this->add_requests_made();
     return this->ram[bank].cycle_ready-orcs_engine.get_global_cycle();
 }
@@ -206,10 +228,10 @@ uint64_t memory_controller_t::add_channel_bus(uint64_t address,uint64_t ready){
     uint64_t channel = this->get_channel(address);
     uint32_t i=0,pos=0;
     size_t end = 0;
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         ORCS_PRINTF("Channel %lu Bus Channel Size =  %lu\n",channel,this->data_bus[channel].requests.size())
         ORCS_PRINTF("Request Start %lu\n",request_start)
-    #endif
+    }
     end = this->data_bus[channel].requests.size();
     for(i = 0; i < end; i++){
         if(request_start < this->data_bus[channel].requests[i].request_end ){
@@ -221,25 +243,25 @@ uint64_t memory_controller_t::add_channel_bus(uint64_t address,uint64_t ready){
         }
     }
     pos=i;
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         ORCS_PRINTF("Position acquired %u \n",pos)
-    #endif
+    }
         
         this->data_bus[channel].requests.insert(this->data_bus[channel].requests.begin()+pos,{request_start,request_start+this->latency_burst});
 
-    #if MEM_CONTROLLER_DEBUG
+    if (MEM_CONTROLLER_DEBUG){
         ORCS_PRINTF("\n\nInserted at %u position\n",i)
         for(i = 0; i < this->data_bus[channel].requests.size(); i++){
             ORCS_PRINTF("Start At: %lu End At %lu\n",this->data_bus[channel].requests[i].request_start,this->data_bus[channel].requests[i].request_end)
         }   
-    #endif
+    }
 
     if( (this->data_bus[channel].requests.size()>0) &&
         (this->data_bus[channel].requests[0].request_end <= orcs_engine.get_global_cycle())){
-        #if MEM_CONTROLLER_DEBUG
+        if (MEM_CONTROLLER_DEBUG){
             ORCS_PRINTF("\n\nDeleted from channel %lu request %lu \n",channel,this->data_bus[channel].requests[0].request_end)
         
-        #endif
+        }
         this->data_bus[channel].requests.erase(this->data_bus[channel].requests.begin());
     }
     return request_start+this->latency_burst;
