@@ -134,4 +134,12 @@ enum hash_function_t {
 };
 const char *get_enum_hash_function_char(hash_function_t type);
 // ============================================================================
+enum memory_controller_command_t {
+    MEMORY_CONTROLLER_COMMAND_PRECHARGE,
+    MEMORY_CONTROLLER_COMMAND_ROW_ACCESS,
+    MEMORY_CONTROLLER_COMMAND_COLUMN_READ,
+    MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE,
+    MEMORY_CONTROLLER_COMMAND_NUMBER
+};
+const char *get_enum_memory_controller_command_char(memory_controller_command_t type);
 #endif

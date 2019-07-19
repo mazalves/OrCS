@@ -109,3 +109,15 @@ const char *get_enum_hash_function_char(hash_function_t type)  {
     ERROR_PRINTF("Wrong HASH_FUNCTION\n");
     return "FAIL";
 }
+
+const char *get_enum_memory_controller_command_char(memory_controller_command_t type){
+    switch (type){
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_READ: return "MEMORY_CONTROLLER_COMMAND_COLUMN_READ"; break;
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:    return "MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE"; break;
+        case MEMORY_CONTROLLER_COMMAND_NUMBER:  return "MEMORY_CONTROLLER_COMMAND_NUMBER"; break;
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE:   return "MEMORY_CONTROLLER_COMMAND_PRECHARGE"; break;
+        case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:  return "MEMORY_CONTROLLER_COMMAND_ROW_ACCESS"; break;
+    }
+    ERROR_PRINTF ("Wrong MEMORY_CONTROLLER_COMMAND\n");
+    return "FAIL";
+}

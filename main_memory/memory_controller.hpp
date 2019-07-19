@@ -51,7 +51,7 @@ class memory_controller_t{
         uint32_t RANK;
         uint32_t BANK;
         uint32_t ROW_BUFFER;
-        // =====================Parametes Comandd=======================
+        // =====================Command Parameters=======================
         uint32_t BURST_WIDTH;
         uint32_t RAS;
         uint32_t CAS;
