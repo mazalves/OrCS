@@ -276,6 +276,55 @@ uint32_t cache_manager_t::writeData(memory_order_buffer_line_t *mob_line) {
     return result;
 }
 
+// uint32_t cache_manager_t::search_EMC_Data(memory_order_buffer_line_t *mob_line){
+//     uint32_t ttc = 0;
+//     uint32_t latency_request = 0;
+//
+//     int32_t index_llc = this->generateIndexArray(mob_line->processor_id,LLC);
+//     if(index_llc==POSITION_FAIL){
+//         ERROR_PRINTF("Error on generate index to access array")
+//     }
+//     uint32_t cache_status = orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->read(mob_line->memory_address,ttc);
+//     orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->add_cacheRead();
+//     latency_request+=ttc;
+//     //EMC data cache Hit
+//     if(cache_status==HIT){
+//         //=========================================
+//         orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->add_cacheAccess();
+//         orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->add_cacheHit();
+//         //=========================================
+//     }else{
+//         // EMC CACHE MISS
+//         //=========================================
+//         orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->add_cacheAccess();
+//         orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->add_cacheMiss();
+//         //=========================================
+//         cache_status = this->LLC_data_cache[index_llc].read(mob_line->memory_address,ttc);
+//
+//         if(cache_status == HIT){
+//             latency_request+=ttc;
+//             // marcando access llc emc
+//             orcs_engine.memory_controller->emc[mob_line->processor_id].add_access_LLC();
+//             orcs_engine.memory_controller->emc[mob_line->processor_id].add_access_LLC_Hit();
+//             mob_line->is_llcMiss=false;
+//         }else{
+//             orcs_engine.memory_controller->emc[mob_line->processor_id].add_access_LLC();
+//             orcs_engine.memory_controller->emc[mob_line->processor_id].add_access_llcMiss();
+//
+//             latency_request += RAM_LATENCY;
+//
+//             line_t *linha_llc = this->LLC_data_cache[index_llc].installLine(mob_line->memory_address,latency_request);
+//             line_t *linha_emc = orcs_engine.memory_controller->emc[mob_line->processor_id].data_cache->installLine(mob_line->memory_address,latency_request);
+//             // linking emc and llc
+//             linha_llc->line_ptr_emc = linha_emc;
+//             linha_emc->line_ptr_llc = linha_llc;
+//             orcs_engine.memory_controller->add_requests_emc();//number of requests made by emc
+//             orcs_engine.memory_controller->add_requests_made();//add requests made by emc to total
+//         }
+//     }
+//     return latency_request;
+// };
+
 void cache_manager_t::statistics(uint32_t core_id){
     int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
     bool close = false;
