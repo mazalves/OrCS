@@ -224,7 +224,9 @@ class processor_t {
 		void execute();
 
 		uint32_t mob_read();
+		void clean_mob_read();
 		uint32_t mob_write();
+		void clean_mob_write();
 		void commit();
 		// ====================================================================
 		// Bool Functions @return 

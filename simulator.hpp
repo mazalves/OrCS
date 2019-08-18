@@ -73,6 +73,7 @@ class linha_t;
 class cacheSet_t;
 class cache_t;
 class cache_manager_t;
+class mshr_entry_t;
 
 //  =========================================//
 // Usefull Classes
@@ -177,6 +178,7 @@ extern orcs_engine_t orcs_engine;
 #include "./cache/cacheSet.hpp"
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
+#include "./cache/mshr_entry.hpp"
 //  =========================================//
 // // Prefetcher INCLUDES
 #include "./prefetcher/prefetcher.hpp"

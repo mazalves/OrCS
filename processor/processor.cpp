@@ -1222,15 +1222,50 @@ void processor_t::dispatch(){
 		}		  //end for
 		// sleep(1);
 } //end method
-// ============================================================================
-void processor_t::execute()
-{
-	if (EXECUTE_DEBUG){
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-			ORCS_PRINTF("=========================================================================\n")
-			ORCS_PRINTF("========== Execute Stage ==========\n")
+
+void processor_t::clean_mob_write(){
+	uint32_t pos = this->memory_order_buffer_write_start;
+	for (uint8_t i = 0; i < this->memory_order_buffer_write_used; i++){
+		if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_READY &&
+			this->memory_order_buffer_write[pos].readyAt <= orcs_engine.get_global_cycle() &&
+			this->memory_order_buffer_write[pos].processed == false){
+			ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[pos].uop_executed == true, "Removing memory read before being executed.\n")
+			ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[pos].wait_mem_deps_number == 0, "Number of memory dependencies should be zero.\n %s\n",this->memory_order_buffer_write[i].rob_ptr->content_to_string().c_str())
+			if (EXECUTE_DEBUG){
+				if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+					ORCS_PRINTF("\nSolving %s\n\n", this->memory_order_buffer_write[pos].rob_ptr->content_to_string().c_str())
+				}
+			}
+			this->memory_order_buffer_write[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+			this->memory_order_buffer_write[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
+			this->memory_order_buffer_write[pos].processed=true;
+			this->memory_write_executed--;
+			this->solve_registers_dependency(this->memory_order_buffer_write[pos].rob_ptr);
+			if (DESAMBIGUATION_ENABLED){
+				this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
+			}
+			if (PARALLEL_LIM_ACTIVE){
+				if(!this->memory_order_buffer_write[pos].forwarded_data){
+						ERROR_ASSERT_PRINTF(this->counter_mshr_write > 0,"ERRO, Contador negativo WRITE\n")
+						this->counter_mshr_write--;
+				}
+			}
+			if(this->memory_order_buffer_write[pos].waiting_DRAM){
+				ERROR_ASSERT_PRINTF(this->request_DRAM > 0,"ERRO, Contador negativo Waiting DRAM\n")
+				if (EXECUTE_DEBUG){
+					if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+						ORCS_PRINTF("\nReducing DRAM COUNTER\n\n")
+					}
+				}
+				this->request_DRAM--;
+			}
 		}
+		pos++;
+		if( pos >= MOB_READ) pos=0;
 	}
+}
+
+void processor_t::clean_mob_read(){
 	// ==================================
 	// verificar leituras prontas no ciclo,
 	// remover do MOB e atualizar os registradores,
@@ -1274,6 +1309,18 @@ void processor_t::execute()
 		pos++;
 		if( pos >= MOB_READ) pos=0;
 	}
+}
+// ============================================================================
+void processor_t::execute()
+{
+	if (EXECUTE_DEBUG){
+		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
+			ORCS_PRINTF("=========================================================================\n")
+			ORCS_PRINTF("========== Execute Stage ==========\n")
+		}
+	}
+	this->clean_mob_write();
+	this->clean_mob_read();
 	uint32_t uop_total_executed = 0;
 	for (uint32_t i = 0; i < this->unified_functional_units.size(); i++){
 
@@ -1447,9 +1494,9 @@ uint32_t processor_t::mob_read(){
 				ORCS_PRINTF("=================================\n")
 			}
 		}
-		uint32_t ttc = orcs_engine.cacheManager->searchData(this->oldest_read_to_send);
+		//uint32_t ttc = 
+		orcs_engine.cacheManager->searchData(this->oldest_read_to_send);
 		this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-		this->oldest_read_to_send->updatePackageReady(ttc);
 		this->oldest_read_to_send->sent=true;
 		this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
 		if (PARALLEL_LIM_ACTIVE){
@@ -1519,7 +1566,7 @@ uint32_t processor_t::mob_write(){
 					return FAIL;
 				}
 			}
-		uint32_t ttc = 0;
+		//uint32_t ttc = 0;
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
@@ -1530,23 +1577,24 @@ uint32_t processor_t::mob_write(){
 		}
 
 		//sendind to write data
-		ttc = orcs_engine.cacheManager->writeData(oldest_write_to_send);
+		//ttc = 
+		orcs_engine.cacheManager->searchData(oldest_write_to_send);
 		// updating package
 		// =============================================================
-		this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-		this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(ttc);
-		this->oldest_write_to_send->rob_ptr->sent = true;
-		//MOB
-		this->oldest_write_to_send->sent = true;
-		this->oldest_write_to_send->updatePackageReady(ttc);
-		this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
-		this->desambiguator->solve_memory_dependences(this->oldest_write_to_send);
-		this->remove_front_mob_write();
+		// this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+		// this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(ttc);
+		// this->oldest_write_to_send->rob_ptr->sent = true;
+		// //MOB
+		// this->oldest_write_to_send->sent = true;
+		// this->oldest_write_to_send->updatePackageReady(ttc);
+		orcs_engine.cacheManager->searchData(this->oldest_write_to_send);
+		this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+		this->oldest_write_to_send->sent=true;
+		this->oldest_write_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
 		if (PARALLEL_LIM_ACTIVE){
 			this->counter_mshr_write++; //numero de req paralelas, add+1
 		}
-		this->memory_write_executed--; //numero de writes executados
-		this->oldest_write_to_send=NULL;
+		this->oldest_write_to_send = NULL;
 		// =============================================================
 	} //end if mob_line null
 		if (MOB_DEBUG){
@@ -1622,6 +1670,11 @@ void processor_t::commit(){
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
+					if(this->reorderBuffer[pos_buffer].mob_ptr->waiting_DRAM){
+						this->core_ram_request_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->cycle_send_request);
+						this->add_core_ram_requests();
+					}
+					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
 					this->add_stat_inst_store_completed();
 					break;
 					// BRANCHES
@@ -1660,8 +1713,7 @@ void processor_t::commit(){
 					this->remove_front_mob_read();
 				}
 				else if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_STORE){
-					ERROR_ASSERT_PRINTF(this->counter_mshr_write > 0,"Erro, reduzindo requests paralelos abaixo de 0\n")
-					this->counter_mshr_write--;
+					this->remove_front_mob_write();
 				}
 			}
 			this->removeFrontROB();
@@ -1816,6 +1868,7 @@ void processor_t::clock(){
 			ORCS_PRINTF("Cycle %lu\n",orcs_engine.get_global_cycle())
 		}
 	}
+	orcs_engine.cacheManager->clock();
 	/////////////////////////////////////////////////
 	//// Verifica se existe coisas no ROB
 	//// CommitStage
