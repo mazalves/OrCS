@@ -168,10 +168,8 @@ void cache_manager_t::clock() {
             this->generateIndexArray(mshr_table[i]->requests[0]->processor_id, cache_indexes);
             for (uint32_t j = 0; j < mshr_table[i]->requests.size(); j++){
                 mshr_table[i]->requests[j]->updatePackageReady (mshr_table[i]->latency);
-                ORCS_PRINTF ("%lu ", mshr_table[i]->requests[j]->memory_address);
-                //this->installCacheLines(mshr_table[i]->requests[j]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
             }
-            ORCS_PRINTF ("\n");
+            this->installCacheLines(mshr_table[i]->requests[0]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[i]), mshr_table.end());
         }
     }
@@ -186,19 +184,19 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
 }
 
 uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, cacheId_t cache_type) {
-    mshr_entry_t* add = NULL;
-    std::ignore = add;
+    std::ignore = ttc;
     //printf("%s\n", "-> llcMiss in cache_manager.cpp");
-    ttc = orcs_engine.memory_controller->requestDRAM(instructionAddress);
     orcs_engine.memory_controller->add_requests_llc();
-    latency_request += ttc;
     if (mob_line != NULL) {
-        add = this->add_mshr_entry (mob_line, latency_request);
-        //add->valid = true;
-        //ORCS_PRINTF ("CM: %u\n", latency_request);
-        this->installCacheLines(mob_line->memory_address, cache_indexes, latency_request, cache_type);
-    } else this->installCacheLines(instructionAddress, cache_indexes, latency_request, cache_type);
-    return latency_request;
+        mshr_entry_t* add = this->add_mshr_entry (mob_line, latency_request);
+        orcs_engine.memory_controller->requestDRAM(add, instructionAddress);
+        return 0;
+    }
+    else {
+        latency_request += orcs_engine.memory_controller->requestDRAM(NULL, instructionAddress);
+        this->installCacheLines(instructionAddress, cache_indexes, latency_request, cache_type); //instruction, not data
+        return latency_request;
+    }
 }
 
 // Searches an instruction in cache levels
@@ -314,9 +312,8 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
                 this->data_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
             }
         }
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
+        this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
         mob_line->updatePackageReady(latency_request);
-        //ORCS_PRINTF ("CACHE LEVEL: %u, LATENCY: %u\n", cache_level, latency_request)
         return latency_request;
     }
     //printf("    Cache %u level %u miss!!!\n", cache_type, cache_level);
@@ -324,7 +321,7 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     ttc = 0;
     if (cache_level == CACHE_LEVELS - 1) {
         latency_request = llcMiss(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, cache_type);
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
+        this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
         return latency_request;
     }
     return recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);

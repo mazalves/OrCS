@@ -37,17 +37,38 @@ void memory_controller_t::allocate(){
      MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
      MEM_CONTROLLER_DEBUG = orcs_engine.configuration->getSetting("MEM_CONTROLLER_DEBUG");
      WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
+
+    TIMING_AL = orcs_engine.configuration->getSetting("TIMING_AL");     // Added Latency for column accesses
+    TIMING_CAS = orcs_engine.configuration->getSetting("TIMING_CAS");    // Column Access Strobe (CL) latency
+    TIMING_CCD = orcs_engine.configuration->getSetting("TIMING_CCD");    // Column to Column Delay
+    TIMING_CWD = orcs_engine.configuration->getSetting("TIMING_CWD");    // Column Write Delay (CWL) or simply WL
+    TIMING_FAW = orcs_engine.configuration->getSetting("TIMING_FAW");   // Four (row) Activation Window
+    TIMING_RAS = orcs_engine.configuration->getSetting("TIMING_RAS");   // Row Access Strobe
+    TIMING_RC = orcs_engine.configuration->getSetting("TIMING_RC");    // Row Cycle
+    TIMING_RCD = orcs_engine.configuration->getSetting("TIMING_RCD");    // Row to Column comand Delay
+    TIMING_RP = orcs_engine.configuration->getSetting("TIMING_RP");     // Row Precharge
+    TIMING_RRD = orcs_engine.configuration->getSetting("TIMING_RRD");    // Row activation to Row activation Delay
+    TIMING_RTP = orcs_engine.configuration->getSetting("TIMING_RTP");    // Read To Precharge
+    TIMING_WR = orcs_engine.configuration->getSetting("TIMING_WR");    // Write Recovery time
+    TIMING_WTR = orcs_engine.configuration->getSetting("TIMING_WTR");
     // ======================= Configurando DRAM ======================= 
     this->latency_burst = LINE_SIZE/BURST_WIDTH;
     this->set_masks();
-    this->ram = (RAM_t*)malloc(CHANNEL*BANK*sizeof(RAM_t));
-    std::memset(this->ram,0,CHANNEL*BANK*sizeof(RAM_t));
+    this->ram = (RAM_t**) malloc (CHANNEL*sizeof (RAM_t*));
+    std::memset (this->ram,0,CHANNEL*sizeof (RAM_t*));
+    for (uint32_t i = 0; i < CHANNEL; i++){
+        this->ram[i] = (RAM_t*) malloc (BANK*sizeof (RAM_t));
+        std::memset(this->ram[i],0,BANK*sizeof(RAM_t));
+    }
     // ======================= Configurando data BUS ======================= 
     this->data_bus = new bus_t[CHANNEL];
     for(uint8_t i = 0; i < CHANNEL; i++){
         this->data_bus[i].requests.reserve(CHANNEL*NUMBER_OF_PROCESSORS*MAX_PARALLEL_REQUESTS_CORE);
-    }     
+    }
 
+    this->bank_last_command = utils_t::template_allocate_initialize_array<memory_controller_command_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+    this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
+    this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
 }
 // ============================================================================
 void memory_controller_t::statistics(){
@@ -133,96 +154,148 @@ void memory_controller_t::set_masks(){
     }
 }
 // ============================================================================
-uint64_t memory_controller_t::requestDRAM(uint64_t address){
-    //initializes in latency burst
+uint64_t memory_controller_t::latencyCalc (memory_operation_t op, uint64_t address){
+    uint64_t channel = this->get_channel(address);
+    uint64_t bank = this->get_bank(address);
+    uint64_t current_row = this->get_row(address);
     uint64_t latency_request = 0;
-    //
-    uint64_t channel;
-    channel = this->get_channel(address);
-    uint64_t bank;
-    bank = (channel*BANK) + this->get_bank(address);
-    // Get the row where "data" is
-    uint64_t actual_row = this->get_row(address);
-    if (MEM_CONTROLLER_DEBUG){
-        if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-            ORCS_PRINTF("Request Address %lu\n",address)
-            ORCS_PRINTF("Memory Channel Accessed:%lu\n",channel)
-            ORCS_PRINTF("Bank Mask %lu, Accessed: %lu\n",this->get_bank(address),bank)
-            ORCS_PRINTF("Row %lu\n",actual_row)
-        }
+
+    if (this->ram[channel][bank].last_row_accessed != current_row){
+        this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_PRECHARGE;
+        this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
+        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
+        this->add_row_buffer_miss();
+    } else this->add_row_buffer_hit();
+
+    this->ram[channel][bank].last_row_accessed = current_row;
+
+    if (bank_last_command[bank] == MEMORY_CONTROLLER_COMMAND_PRECHARGE){
+        this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
+        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
+        this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
+        latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+    } else if (bank_last_command[bank] == MEMORY_CONTROLLER_COMMAND_ROW_ACCESS ||
+        bank_last_command[bank] == MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE ||
+        bank_last_command[bank] == MEMORY_CONTROLLER_COMMAND_COLUMN_READ){
+            switch (op){
+                case MEMORY_OPERATION_READ: {
+                    this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
+                    this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
+                    this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
+                    latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ);
+                    break;
+                }
+                case MEMORY_OPERATION_WRITE: {
+                    this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
+                    this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE);
+                    break;
+                }
+                case MEMORY_OPERATION_FREE: {
+                    break;
+                }
+            }
     }
-    // ====================================================
-    // verify if last request is was served
-    if( orcs_engine.get_global_cycle() >= this->ram[bank].cycle_ready){
-        // if actual row acessed is equal last row, latency is CAS
-        if (MEM_CONTROLLER_DEBUG){
-            if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                ORCS_PRINTF("C1 Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
-            }
-        }
-        if(actual_row == this->ram[bank].last_row_accessed){
-            this->ram[bank].cycle_ready = orcs_engine.get_global_cycle()+CAS+this->latency_burst;  
-            latency_request += CAS;
-            this->add_row_buffer_hit();
-            if (MEM_CONTROLLER_DEBUG){
-                if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                    ORCS_PRINTF("Same Row Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
-                }
-            }
-        }else{
-        // else, need make precharge, access row and colum
-            this->ram[bank].cycle_ready = orcs_engine.get_global_cycle()+(ROW_PRECHARGE+RAS+CAS)+this->latency_burst;
-            this->ram[bank].last_row_accessed = actual_row;
-            latency_request += CAS+RAS+ROW_PRECHARGE;
-            this->add_row_buffer_miss();
-            if (MEM_CONTROLLER_DEBUG){
-                if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                    ORCS_PRINTF("Diff Row Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
-                }
-            }
-        }
-        // if the request not served yet
-    }else{
-        // if new request is on same row
-         if(actual_row == this->ram[bank].last_row_accessed){
-            // latency is when row are ready(completed last req) + CAS
-            this->ram[bank].cycle_ready += CAS+this->latency_burst;
-            latency_request += (this->ram[bank].cycle_ready-orcs_engine.get_global_cycle()); 
-            this->add_row_buffer_hit();
-            if (MEM_CONTROLLER_DEBUG){
-                if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                    ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
-                }
-            }
-        }else{
-            // Get time to complete all requests pendents+RP+RAS+CAS
-            this->ram[bank].cycle_ready +=(ROW_PRECHARGE+RAS+CAS)+this->latency_burst;
-            this->ram[bank].last_row_accessed = actual_row;
-            latency_request += (this->ram[bank].cycle_ready-orcs_engine.get_global_cycle())+(ROW_PRECHARGE+RAS+CAS);
-            this->add_row_buffer_miss();           
-            if (MEM_CONTROLLER_DEBUG){
-                if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                    ORCS_PRINTF("Cycle ready %lu, last row %lu, actual row %lu\n",this->ram[bank].cycle_ready, this->ram[bank].last_row_accessed,actual_row)
-                }
-            }
-        }
-    }
-    if (MEM_CONTROLLER_DEBUG){
-        if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-            ORCS_PRINTF("Latency Request Before %lu\n",latency_request)
-        }
-    }
-   latency_request= this->add_channel_bus(address,latency_request);
-   this->ram[bank].cycle_ready=latency_request;
+    return latency_request;
+}
+//=====================================================================
+uint64_t memory_controller_t::requestDRAM (mshr_entry_t* request, uint64_t address){
+    memory_operation_t operation;
+    if (request != NULL) {
+        address = request->requests[0]->memory_address;
+        operation = request->requests[0]->memory_operation;
+    } else operation = MEMORY_OPERATION_READ;
+    //initializes in latency burst
+    uint64_t latency_request = latencyCalc (operation, address);
+    latency_request = latency_request * CORE_TO_BUS_CLOCK_RATIO;
+    latency_request = this->add_channel_bus(address,latency_request);
+    this->ram[get_channel(address)][get_bank(address)].cycle_ready = latency_request;
     if (MEM_CONTROLLER_DEBUG){
         if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
             ORCS_PRINTF("Latency Request After %lu\n",latency_request)
         }
     }
     this->add_requests_made();
-    return this->ram[bank].cycle_ready-orcs_engine.get_global_cycle();
+    latency_request = latency_request-orcs_engine.get_global_cycle();
+    if (request != NULL) {
+        request->latency += (latency_request);
+    }
+    return latency_request;
+}
+
+uint64_t memory_controller_t::get_minimum_latency(uint32_t bank, memory_controller_command_t next_command) {
+    uint64_t a = 0;
+    uint64_t b = 0;
+    uint64_t c = 0;
+    uint64_t d = 0;
+
+    switch (next_command){
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE:
+            a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RAS;
+            b = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] + this->TIMING_AL + this->TIMING_RTP - this->TIMING_CCD; // + this->timing_burst; // tBurst will be controlled separated
+            c = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] + this->TIMING_AL + this->TIMING_CWD + this->TIMING_WR; // + this->timing_burst; // tBurst will be controlled separated
+            if (a > b && a > c) return this->TIMING_RAS;
+            if (b > a && b > c) return this->TIMING_AL + this->TIMING_RTP - this->TIMING_CCD;
+            if (c > a && c > b) return this->TIMING_AL + this->TIMING_CWD + this->TIMING_WR;
+        break;
+
+        case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
+        {
+            /// Obtain the 4th newer RAS+FAW command amoung the banks.
+            uint64_t last_ras = 0;
+            for (uint32_t i = 0; i < this->BANK; i++) {
+                last_ras = this->bank_last_command_cycle[i][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_FAW;
+                if ((a < last_ras) && (d = c) && (c = b) && (b=a) && (a=last_ras)) continue;
+                if ((b < last_ras) && (d = c) && (c = b) && (b=last_ras)) continue;
+                if ((c < last_ras) && (d = c) && (c = last_ras)) continue;
+                if ((d < last_ras) && (d = last_ras)) continue;
+            }
+            /// 4th RAS + FAW window
+            d += this->TIMING_FAW;
+
+            a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] + this->TIMING_RP;
+            b = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RC;
+            c = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RRD;
+            if (a > b && a > c && a > d) return this->TIMING_RP;
+            if (b > a && b > c && b > d) return this->TIMING_RC;
+            if (c > a && c > b && c > d) return this->TIMING_RRD;
+            if (d > a && d > b && d > c) return this->TIMING_FAW;
+        }
+        break;
+
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_READ:
+            a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RCD - this->TIMING_AL;
+            b = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ];// + this->timing_burst; // tBurst will be controlled separated
+            c = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] + this->TIMING_CCD;
+            d = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] + this->TIMING_CWD + this->TIMING_WTR;// + this->timing_burst; // tBurst will be controlled separated
+            if (a > b && a > c && a > d) return this->TIMING_RCD - this->TIMING_AL;
+            if (b > a && b > c && b > d) return 0;
+            if (c > a && c > b && c > d) return this->TIMING_CCD;
+            if (d > a && d > b && d > c) return this->TIMING_CWD + this->TIMING_WTR;
+        break;
+
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:
+            a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RCD - this->TIMING_AL;
+            b = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] + this->TIMING_CAS;// + this->timing_burst; // tBurst will be controlled separated
+            c = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE];// + this->timing_burst; // tBurst will be controlled separated
+            d = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] + this->TIMING_CCD;
+            if (a > b && a > c && a > d) return this->TIMING_RCD - this->TIMING_AL;
+            if (b > a && b > c && b > d) return this->TIMING_CAS;
+            if (c > a && c > b && c > d) return 0;
+            if (d > a && d > b && d > c) return this->TIMING_CCD;
+        break;
+
+        case MEMORY_CONTROLLER_COMMAND_NUMBER:
+            ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
+        break;
+    }
+
+    /// Obtain the maximum value to be respected
+    return 0;
 }
 // ============================================================================
+
 uint64_t memory_controller_t::add_channel_bus(uint64_t address,uint64_t ready){
     uint64_t request_start = orcs_engine.get_global_cycle()+ready;
     uint64_t channel = this->get_channel(address);

@@ -1225,43 +1225,24 @@ void processor_t::dispatch(){
 
 void processor_t::clean_mob_write(){
 	uint32_t pos = this->memory_order_buffer_write_start;
-	for (uint8_t i = 0; i < this->memory_order_buffer_write_used; i++){
-		if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_READY &&
-			this->memory_order_buffer_write[pos].readyAt <= orcs_engine.get_global_cycle() &&
-			this->memory_order_buffer_write[pos].processed == false){
-			ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[pos].uop_executed == true, "Removing memory read before being executed.\n")
-			ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[pos].wait_mem_deps_number == 0, "Number of memory dependencies should be zero.\n %s\n",this->memory_order_buffer_write[i].rob_ptr->content_to_string().c_str())
-			if (EXECUTE_DEBUG){
-				if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-					ORCS_PRINTF("\nSolving %s\n\n", this->memory_order_buffer_write[pos].rob_ptr->content_to_string().c_str())
-				}
-			}
-			this->memory_order_buffer_write[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-			this->memory_order_buffer_write[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
-			this->memory_order_buffer_write[pos].processed=true;
-			this->memory_write_executed--;
-			this->solve_registers_dependency(this->memory_order_buffer_write[pos].rob_ptr);
-			if (DESAMBIGUATION_ENABLED){
-				this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
-			}
-			if (PARALLEL_LIM_ACTIVE){
-				if(!this->memory_order_buffer_write[pos].forwarded_data){
-						ERROR_ASSERT_PRINTF(this->counter_mshr_write > 0,"ERRO, Contador negativo WRITE\n")
-						this->counter_mshr_write--;
-				}
-			}
-			if(this->memory_order_buffer_write[pos].waiting_DRAM){
-				ERROR_ASSERT_PRINTF(this->request_DRAM > 0,"ERRO, Contador negativo Waiting DRAM\n")
-				if (EXECUTE_DEBUG){
-					if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-						ORCS_PRINTF("\nReducing DRAM COUNTER\n\n")
-					}
-				}
-				this->request_DRAM--;
+	if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_READY &&
+		this->memory_order_buffer_write[pos].readyAt <= orcs_engine.get_global_cycle() &&
+		this->memory_order_buffer_write[pos].processed == false){
+		if (EXECUTE_DEBUG){
+			if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+				ORCS_PRINTF("\nSolving %s\n\n", this->memory_order_buffer_write[pos].rob_ptr->content_to_string().c_str())
 			}
 		}
-		pos++;
-		if( pos >= MOB_READ) pos=0;
+		uint64_t latency = this->memory_order_buffer_write[pos].readyAt - this->memory_order_buffer_write[pos].cycle_send_request;
+		this->memory_order_buffer_write[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+		this->memory_order_buffer_write[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
+		this->memory_order_buffer_write[pos].processed=true;
+		this->memory_write_executed--;
+		this->solve_registers_dependency(this->memory_order_buffer_write[pos].rob_ptr);
+		if (DESAMBIGUATION_ENABLED){
+			this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
+		}
+		this->remove_front_mob_write();
 	}
 }
 
@@ -1670,11 +1651,6 @@ void processor_t::commit(){
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
-					if(this->reorderBuffer[pos_buffer].mob_ptr->waiting_DRAM){
-						this->core_ram_request_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->cycle_send_request);
-						this->add_core_ram_requests();
-					}
-					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
 					this->add_stat_inst_store_completed();
 					break;
 					// BRANCHES
@@ -1713,7 +1689,8 @@ void processor_t::commit(){
 					this->remove_front_mob_read();
 				}
 				else if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_STORE){
-					this->remove_front_mob_write();
+					ERROR_ASSERT_PRINTF(this->counter_mshr_write > 0,"Erro, reduzindo requests paralelos abaixo de 0\n")
+					this->counter_mshr_write--;
 				}
 			}
 			this->removeFrontROB();
