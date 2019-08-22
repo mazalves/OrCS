@@ -8,9 +8,11 @@ mshr_entry_t::~mshr_entry_t(){
 
 }
 
-void mshr_entry_t::updateRequests(){
-    uint64_t oldest = requests[0]->readyToGo;
-    for (std::size_t j = 0; j < requests.size(); j++){
-        requests[j]->updatePackageReady (latency - (oldest - requests[j]->readyToGo));
-    }
+bool mshr_entry_t::contains (memory_order_buffer_line_t* mob_line){
+    if(std::find(requests.begin(), requests.end(), mob_line) != requests.end()) return true;
+    return false;
+}
+
+void mshr_entry_t::remove (memory_order_buffer_line_t* mob_line){
+    requests.erase(std::remove(requests.begin(), requests.end(), mob_line));
 }

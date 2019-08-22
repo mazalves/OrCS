@@ -136,9 +136,10 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] line;
 }
 
-mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request, int32_t* cache_indexes, cacheId_t cache_type){
+mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request){
     uint64_t tag = (mob_line->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
+        if (mshr_table[i]->contains (mob_line)) return mshr_table[i];
         if (mshr_table[i]->tag == tag) {
             mshr_table[i]->requests.push_back (mob_line);
             return mshr_table[i];
@@ -150,8 +151,7 @@ mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_l
     new_entry->latency = latency_request;
     new_entry->valid = false;
     new_entry->issued = true;
-    new_entry->cache_indexes = cache_indexes;
-    new_entry->cache_type = cache_type;
+    new_entry->cycle_created = orcs_engine.get_global_cycle();
     new_entry->requests.push_back (mob_line);
     mshr_table.push_back (new_entry);
     return new_entry;
@@ -159,14 +159,19 @@ mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_l
 
 void cache_manager_t::clock() {
     for (std::size_t i = 0; i < mshr_table.size(); i++){
+        if (mshr_table[i]->cycle_created + mshr_table[i]->latency >= orcs_engine.get_global_cycle()){
+            mshr_table[i]->valid = true;
+        }
         if (mshr_table[i]->valid) {
-            //uint64_t oldest = mshr_table[i]->requests[0]->readyAt;
-            //int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
-            //this->generateIndexArray(mshr_table[i]->requests[0]->processor_id, cache_indexes);
+            //uint64_t oldest = mshr_table[i]->requests[0]->cycle_send_request;
+            int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
+            this->generateIndexArray(mshr_table[i]->requests[0]->processor_id, cache_indexes);
             for (uint32_t j = 0; j < mshr_table[i]->requests.size(); j++){
                 mshr_table[i]->requests[j]->updatePackageReady (mshr_table[i]->latency);
+                ORCS_PRINTF ("%lu ", mshr_table[i]->requests[j]->memory_address);
+                //this->installCacheLines(mshr_table[i]->requests[j]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
             }
-            //this->installCacheLines(mshr_table[i]->requests[0]->memory_address, mshr_table[i]->cache_indexes, mshr_table[i]->latency, mshr_table[i]->cache_type);
+            ORCS_PRINTF ("\n");
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[i]), mshr_table.end());
         }
     }
@@ -188,8 +193,8 @@ uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint64_t
     orcs_engine.memory_controller->add_requests_llc();
     latency_request += ttc;
     if (mob_line != NULL) {
-        add = this->add_mshr_entry (mob_line, latency_request, cache_indexes, cache_type);
-        add->valid = true;
+        add = this->add_mshr_entry (mob_line, latency_request);
+        //add->valid = true;
         //ORCS_PRINTF ("CM: %u\n", latency_request);
         this->installCacheLines(mob_line->memory_address, cache_indexes, latency_request, cache_type);
     } else this->installCacheLines(instructionAddress, cache_indexes, latency_request, cache_type);
@@ -229,7 +234,7 @@ uint32_t cache_manager_t::searchInstruction(uint32_t processor_id, uint64_t inst
     int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
     this->generateIndexArray(processor_id, cache_indexes);
     result = recursiveInstructionSearch(instructionAddress, cache_indexes, latency_request, ttc, 0);
-    //delete[] cache_indexes;
+    delete[] cache_indexes;
     return result;
 }
 
@@ -292,7 +297,7 @@ uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
         result = recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
         //mob_line->updatePackageReady(result);
     }
-    //delete[] cache_indexes;
+    delete[] cache_indexes;
     return result;
 }
 
