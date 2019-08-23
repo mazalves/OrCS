@@ -65,113 +65,114 @@ processor_t::~processor_t()
 // =====================================================================
 void processor_t::allocate()
 {
-	FETCH_WIDTH = orcs_engine.configuration->getSetting("FETCH_WIDTH");
-	DECODE_WIDTH = orcs_engine.configuration->getSetting("DECODE_WIDTH");
-	RENAME_WIDTH = orcs_engine.configuration->getSetting("RENAME_WIDTH");
-	DISPATCH_WIDTH = orcs_engine.configuration->getSetting("DISPATCH_WIDTH");
-	EXECUTE_WIDTH = orcs_engine.configuration->getSetting("EXECUTE_WIDTH");
-	COMMIT_WIDTH = orcs_engine.configuration->getSetting("COMMIT_WIDTH");
+	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	set_FETCH_WIDTH (cfg_root[0]["FETCH_WIDTH"]);
+	set_DECODE_WIDTH (cfg_root[0]["DECODE_WIDTH"]);
+	set_RENAME_WIDTH (cfg_root[0]["RENAME_WIDTH"]);
+	set_DISPATCH_WIDTH (cfg_root[0]["DISPATCH_WIDTH"]);
+	set_EXECUTE_WIDTH (cfg_root[0]["EXECUTE_WIDTH"]);
+	set_COMMIT_WIDTH (cfg_root[0]["COMMIT_WIDTH"]);
 
-	FETCH_LATENCY = orcs_engine.configuration->getSetting("FETCH_LATENCY");
-	DECODE_LATENCY = orcs_engine.configuration->getSetting("DECODE_LATENCY");
-	RENAME_LATENCY = orcs_engine.configuration->getSetting("RENAME_LATENCY");
-	DISPATCH_LATENCY = orcs_engine.configuration->getSetting("DISPATCH_LATENCY");
-	EXECUTE_LATENCY = orcs_engine.configuration->getSetting("EXECUTE_LATENCY");
-	COMMIT_LATENCY = orcs_engine.configuration->getSetting("COMMIT_LATENCY");
+	set_FETCH_LATENCY (cfg_root[0]["FETCH_LATENCY"]);
+	set_DECODE_LATENCY (cfg_root[0]["DECODE_LATENCY"]);
+	set_RENAME_LATENCY (cfg_root[0]["RENAME_LATENCY"]);
+	set_DISPATCH_LATENCY (cfg_root[0]["DISPATCH_LATENCY"]);
+	set_EXECUTE_LATENCY (cfg_root[0]["EXECUTE_LATENCY"]);
+	set_COMMIT_LATENCY (cfg_root[0]["COMMIT_LATENCY"]);
 
-	 LATENCY_INTEGER_ALU = orcs_engine.configuration->getSetting("LATENCY_INTEGER_ALU");
-	 WAIT_NEXT_INT_ALU = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_ALU");
-	 INTEGER_ALU = orcs_engine.configuration->getSetting("INTEGER_ALU");
+	set_LATENCY_INTEGER_ALU (cfg_root[0]["LATENCY_INTEGER_ALU"]);
+	set_WAIT_NEXT_INT_ALU (cfg_root[0]["WAIT_NEXT_INT_ALU"]);
+	set_INTEGER_ALU (cfg_root[0]["INTEGER_ALU"]);
 	// INTEGER MUL
-	 LATENCY_INTEGER_MUL = orcs_engine.configuration->getSetting("LATENCY_INTEGER_MUL");
-	 WAIT_NEXT_INT_MUL = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_MUL");
-	 INTEGER_MUL = orcs_engine.configuration->getSetting("INTEGER_MUL");
+	set_LATENCY_INTEGER_MUL (cfg_root[0]["LATENCY_INTEGER_MUL"]);
+	set_WAIT_NEXT_INT_MUL (cfg_root[0]["WAIT_NEXT_INT_MUL"]);
+	set_INTEGER_MUL (cfg_root[0]["INTEGER_MUL"]);
 	// INTEGER DIV
-	 LATENCY_INTEGER_DIV = orcs_engine.configuration->getSetting("LATENCY_INTEGER_DIV");
-	 WAIT_NEXT_INT_DIV = orcs_engine.configuration->getSetting("WAIT_NEXT_INT_DIV");
-	 INTEGER_DIV = orcs_engine.configuration->getSetting("INTEGER_DIV");
+	set_LATENCY_INTEGER_DIV (cfg_root[0]["LATENCY_INTEGER_DIV"]);
+	set_WAIT_NEXT_INT_DIV (cfg_root[0]["WAIT_NEXT_INT_DIV"]);
+	set_INTEGER_DIV (cfg_root[0]["INTEGER_DIV"]);
 
-	 QTDE_INTEGER_FU = (INTEGER_ALU+INTEGER_MUL+INTEGER_DIV);
+	set_QTDE_INTEGER_FU (INTEGER_ALU+INTEGER_MUL+INTEGER_DIV);
 
 	//FP ULAS LATENCY 
 	// FLOATING POINT DIV
-	 LATENCY_FP_DIV = orcs_engine.configuration->getSetting("LATENCY_FP_DIV");
-	 WAIT_NEXT_FP_DIV = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_DIV");
-	 FP_DIV = orcs_engine.configuration->getSetting("FP_DIV");
+	set_LATENCY_FP_DIV (cfg_root[0]["LATENCY_FP_DIV"]);
+	set_WAIT_NEXT_FP_DIV (cfg_root[0]["WAIT_NEXT_FP_DIV"]);
+	set_FP_DIV (cfg_root[0]["FP_DIV"]);
 	// FLOATING POINT MUL
-	 LATENCY_FP_MUL = orcs_engine.configuration->getSetting("LATENCY_FP_MUL");
-	 WAIT_NEXT_FP_MUL = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_MUL");
-	 FP_MUL = orcs_engine.configuration->getSetting("FP_MUL");
+	set_LATENCY_FP_MUL (cfg_root[0]["LATENCY_FP_MUL"]);
+	set_WAIT_NEXT_FP_MUL (cfg_root[0]["WAIT_NEXT_FP_MUL"]);
+	set_FP_MUL (cfg_root[0]["FP_MUL"]);
 	// FLOATING POINT ALU
-	 LATENCY_FP_ALU = orcs_engine.configuration->getSetting("LATENCY_FP_ALU");
-	 WAIT_NEXT_FP_ALU = orcs_engine.configuration->getSetting("WAIT_NEXT_FP_ALU");
-	 FP_ALU = orcs_engine.configuration->getSetting("FP_ALU");
+	set_LATENCY_FP_ALU (cfg_root[0]["LATENCY_FP_ALU"]);
+	set_WAIT_NEXT_FP_ALU (cfg_root[0]["WAIT_NEXT_FP_ALU"]);
+	set_FP_ALU (cfg_root[0]["FP_ALU"]);
 
-	 QTDE_FP_FU = (FP_ALU+FP_MUL+FP_DIV);
+	set_QTDE_FP_FU (FP_ALU+FP_MUL+FP_DIV);
 
-	 PARALLEL_LOADS = orcs_engine.configuration->getSetting("PARALLEL_LOADS");
-	 PARALLEL_STORES = orcs_engine.configuration->getSetting("PARALLEL_STORES");
+	set_PARALLEL_LOADS (cfg_root[0]["PARALLEL_LOADS"]);
+	set_PARALLEL_STORES (cfg_root[0]["PARALLEL_STORES"]);
 
-	FETCH_BUFFER = orcs_engine.configuration->getSetting("FETCH_BUFFER");
-	DECODE_BUFFER = orcs_engine.configuration->getSetting("DECODE_BUFFER");
-	RAT_SIZE = orcs_engine.configuration->getSetting("RAT_SIZE");
-	ROB_SIZE = orcs_engine.configuration->getSetting("ROB_SIZE");
-	UNIFIED_RS = orcs_engine.configuration->getSetting("UNIFIED_RS");
+	set_FETCH_BUFFER (cfg_root[0]["FETCH_BUFFER"]);
+	set_DECODE_BUFFER (cfg_root[0]["DECODE_BUFFER"]);
+	set_RAT_SIZE (cfg_root[0]["RAT_SIZE"]);
+	set_ROB_SIZE (cfg_root[0]["ROB_SIZE"]);
+	set_UNIFIED_RS (cfg_root[0]["UNIFIED_RS"]);
 	//MOB
-	MOB_READ = orcs_engine.configuration->getSetting("MOB_READ");
-	MOB_WRITE = orcs_engine.configuration->getSetting("MOB_WRITE");
+	set_MOB_READ (cfg_root[0]["MOB_READ"]);
+	set_MOB_WRITE (cfg_root[0]["MOB_WRITE"]);
 	// =====================
 
 	// =====================
 	// MEMORY FU
 	// =====================
 	// Load Units
-	 LOAD_UNIT = orcs_engine.configuration->getSetting("LOAD_UNIT");
-	 WAIT_NEXT_MEM_LOAD = orcs_engine.configuration->getSetting("WAIT_NEXT_MEM_LOAD");
-	 LATENCY_MEM_LOAD = orcs_engine.configuration->getSetting("LATENCY_MEM_LOAD");
+	set_LOAD_UNIT (cfg_root[0]["LOAD_UNIT"]);
+	set_WAIT_NEXT_MEM_LOAD (cfg_root[0]["WAIT_NEXT_MEM_LOAD"]);
+	set_LATENCY_MEM_LOAD (cfg_root[0]["LATENCY_MEM_LOAD"]);
 	// Store Units
-	 STORE_UNIT = orcs_engine.configuration->getSetting("STORE_UNIT");
-	 WAIT_NEXT_MEM_STORE = orcs_engine.configuration->getSetting("WAIT_NEXT_MEM_STORE");
-	 LATENCY_MEM_STORE = orcs_engine.configuration->getSetting("LATENCY_MEM_STORE");
+	set_STORE_UNIT (cfg_root[0]["STORE_UNIT"]);
+	set_WAIT_NEXT_MEM_STORE (cfg_root[0]["WAIT_NEXT_MEM_STORE"]);
+	set_LATENCY_MEM_STORE (cfg_root[0]["LATENCY_MEM_STORE"]);
 
-	 QTDE_MEMORY_FU = (LOAD_UNIT+STORE_UNIT);
+	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT);
 
-	LINE_SIZE = orcs_engine.configuration->getSetting("LINE_SIZE");
+	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
 
-	L1_DATA_SIZE = 32*KILO;
-	L1_DATA_ASSOCIATIVITY = orcs_engine.configuration->getSetting("L1_DATA_ASSOCIATIVITY");
-	L1_DATA_LATENCY = orcs_engine.configuration->getSetting("L1_DATA_LATENCY");
-	L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+	set_L1_DATA_SIZE (32*KILO);
+	set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
+	set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
+	set_L1_DATA_SETS ((L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY);
 	// I$
-	 L1_INST_SIZE = 32*KILO;
-	 L1_INST_ASSOCIATIVITY = orcs_engine.configuration->getSetting("L1_INST_ASSOCIATIVITY");
-	 L1_INST_LATENCY = orcs_engine.configuration->getSetting("L1_INST_LATENCY");
-	 L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+	set_L1_INST_SIZE (32*KILO);
+	set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
+	set_L1_INST_LATENCY (cfg_root[0]["L1_INST_LATENCY"]);
+	set_L1_INST_SETS ((L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY);
 
-	 LLC_SIZE = 20*MEGA;
-	 LLC_ASSOCIATIVITY = orcs_engine.configuration->getSetting("LLC_ASSOCIATIVITY");
-	 LLC_LATENCY = orcs_engine.configuration->getSetting("LLC_LATENCY");
-	 LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+	set_LLC_SIZE (20*MEGA);
+	set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
+	set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
+	set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY);
 
-	 RAM_LATENCY = orcs_engine.configuration->getSetting("RAM_LATENCY");
-	 PARALLEL_LIM_ACTIVE = orcs_engine.configuration->getSetting("PARALLEL_LIM_ACTIVE");
-	 MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
+	set_RAM_LATENCY (cfg_root[0]["RAM_LATENCY"]);
+	set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
+	set_MAX_PARALLEL_REQUESTS_CORE (cfg_root[0]["MAX_PARALLEL_REQUESTS_CORE"]);
 
-	 PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
-	 DESAMBIGUATION_ENABLED = orcs_engine.configuration->getSetting ("DESAMBIGUATION_ENABLED");
+	set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
+	set_DESAMBIGUATION_ENABLED (cfg_root[0]["DESAMBIGUATION_ENABLED"]);
 
-	 DEBUG = orcs_engine.configuration->getSetting("DEBUG");
-	 FETCH_DEBUG = orcs_engine.configuration->getSetting("FETCH_DEBUG");
-	 DECODE_DEBUG = orcs_engine.configuration->getSetting("DECODE_DEBUG");
-	 RENAME_DEBUG = orcs_engine.configuration->getSetting("RENAME_DEBUG");
-	 DISPATCH_DEBUG = orcs_engine.configuration->getSetting("DISPATCH_DEBUG");
-	 EXECUTE_DEBUG = orcs_engine.configuration->getSetting("EXECUTE_DEBUG");
-	 MOB_DEBUG = orcs_engine.configuration->getSetting("MOB_DEBUG");
-	 PRINT_MOB = orcs_engine.configuration->getSetting("PRINT_MOB");
-	 PRINT_ROB = orcs_engine.configuration->getSetting("PRINT_ROB");
-	 COMMIT_DEBUG = orcs_engine.configuration->getSetting("COMMIT_DEBUG");
+	set_DEBUG (cfg_root[0]["DEBUG"]);
+	set_FETCH_DEBUG (cfg_root[0]["FETCH_DEBUG"]);
+	set_DECODE_DEBUG (cfg_root[0]["DECODE_DEBUG"]);
+	set_RENAME_DEBUG (cfg_root[0]["RENAME_DEBUG"]);
+	set_DISPATCH_DEBUG (cfg_root[0]["DISPATCH_DEBUG"]);
+	set_EXECUTE_DEBUG (cfg_root[0]["EXECUTE_DEBUG"]);
+	set_MOB_DEBUG (cfg_root[0]["MOB_DEBUG"]);
+	set_PRINT_MOB (cfg_root[0]["PRINT_MOB"]);
+	set_PRINT_ROB (cfg_root[0]["PRINT_ROB"]);
+	set_COMMIT_DEBUG (cfg_root[0]["COMMIT_DEBUG"]);
 
-	 WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
+	set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
 	//======================================================================
 	// Initializating variables
 	//======================================================================

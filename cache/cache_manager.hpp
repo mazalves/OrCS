@@ -64,6 +64,25 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
+
+        INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_LATENCY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,L2_LATENCY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,LLC_LATENCY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t,DATA_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t,POINTER_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
+        INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t,SIZE_OF_L1_CACHES_ARRAY)     // Numero de caches L1
+        INSTANTIATE_GET_SET_ADD(uint32_t,SIZE_OF_L2_CACHES_ARRAY)     // Numero de caches L2
+        INSTANTIATE_GET_SET_ADD(uint32_t,SIZE_OF_LLC_CACHES_ARRAY)
+
         // Prefetcher
         // ==========================================
         prefetcher_t *prefetcher;

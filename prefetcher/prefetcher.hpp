@@ -23,6 +23,7 @@ class prefetcher_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,usefulPrefetches)
         INSTANTIATE_GET_SET_ADD(uint32_t,latePrefetches)
         INSTANTIATE_GET_SET_ADD(uint32_t,totalCycleLate)
+        INSTANTIATE_GET_SET_ADD(uint32_t,PARALLEL_PREFETCH)
 
         void allocate();
         void statistics();

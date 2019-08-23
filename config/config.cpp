@@ -16,17 +16,7 @@ void configure_t::loadConfig(){
     }
 }
 
-int configure_t::getSetting (std::string setting) {
-    int result = 0;
-    if (conf.find (setting) != conf.end()) result = conf[setting];
-    else {
-        try {
-            result = cfg.lookup (setting);
-            conf[setting] = result;
-        } catch (const libconfig::SettingNotFoundException &pex){
-            std::cerr << "Setting " << setting << " Not Found!" << std::endl;
-        }
-    }
-    //std::cout << setting << " " << result << "\n";
-    return result;
+libconfig::Setting* configure_t::getConfig(){
+    libconfig::Setting* cfg_root = &cfg.getRoot();
+    return cfg_root;
 }

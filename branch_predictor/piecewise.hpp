@@ -1,8 +1,8 @@
 class piecewise_t {
 private:
-    uint64_t N;
-    uint64_t M;
-    uint64_t H;
+    uint32_t N;
+    uint32_t M;
+    uint32_t H;
 
     uint64_t THETA;
 
@@ -16,5 +16,9 @@ public:
     void train(uint64_t address,taken_t predict, taken_t correct);
     piecewise_t();
     ~piecewise_t();
+
+    INSTANTIATE_GET_SET_ADD(uint32_t, N)
+    INSTANTIATE_GET_SET_ADD(uint32_t, M)
+    INSTANTIATE_GET_SET_ADD(uint32_t, H)
     
 };

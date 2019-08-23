@@ -20,14 +20,15 @@ disambiguation_hashed_t::~disambiguation_hashed_t()
 }
 
 void disambiguation_hashed_t::allocate(){
-	ROB_SIZE = orcs_engine.configuration->getSetting ("ROB_SIZE");
-    LOAD_HASH_SIZE = orcs_engine.configuration->getSetting("LOAD_HASH_SIZE");
-    STORE_HASH_SIZE = orcs_engine.configuration->getSetting("STORE_HASH_SIZE");
-    DESAMBIGUATION_BLOCK_SIZE = orcs_engine.configuration->getSetting("DESAMBIGUATION_BLOCK_SIZE");
-    ADDRESS_TO_ADDRESS = orcs_engine.configuration->getSetting("ADDRESS_TO_ADDRESS");
-    REGISTER_FORWARD = orcs_engine.configuration->getSetting("REGISTER_FORWARD");
-    MOB_DEBUG = orcs_engine.configuration->getSetting("MOB_DEBUG");
-    WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
+	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	set_ROB_SIZE (cfg_root[0]["ROB_SIZE"]);
+    set_LOAD_HASH_SIZE (cfg_root[0]["LOAD_HASH_SIZE"]);
+    set_STORE_HASH_SIZE (cfg_root[0]["STORE_HASH_SIZE"]);
+    set_DESAMBIGUATION_BLOCK_SIZE (cfg_root[0]["DESAMBIGUATION_BLOCK_SIZE"]);
+    set_ADDRESS_TO_ADDRESS (cfg_root[0]["ADDRESS_TO_ADDRESS"]);
+    set_REGISTER_FORWARD (cfg_root[0]["REGISTER_FORWARD"]);
+    set_MOB_DEBUG (cfg_root[0]["MOB_DEBUG"]);
+    set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
 
     // LOAD/STORE Hash mask
     this->disambiguation_load_hash_bits_mask = 0;

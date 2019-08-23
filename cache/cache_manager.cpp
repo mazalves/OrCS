@@ -26,23 +26,24 @@ void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
 // TODO exclude enum definition about cache types, we will not use it anymore
 // TODO 8 is SandyBridge associativity, Skylake has different associativities for each cache
 void cache_manager_t::allocate() {
-    L1_DATA_LATENCY = orcs_engine.configuration->getSetting ("L1_DATA_LATENCY");
-    L2_LATENCY = orcs_engine.configuration->getSetting ("L2_LATENCY");
-    LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
-    LINE_SIZE = orcs_engine.configuration->getSetting ("LINE_SIZE");
+    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
+    set_L2_LATENCY (cfg_root[0]["L2_LATENCY"]);
+    set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
+    set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
 
-    PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
+    set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
 
-    INSTRUCTION_LEVELS = orcs_engine.configuration->getSetting ("INSTRUCTION_LEVELS");
-	DATA_LEVELS = orcs_engine.configuration->getSetting ("DATA_LEVELS");
-    CACHE_LEVELS = orcs_engine.configuration->getSetting ("CACHE_LEVELS");
-    CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
-    WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");
+    set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
+	set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
+    set_CACHE_LEVELS (cfg_root[0]["CACHE_LEVELS"]);
+    set_CACHE_MANAGER_DEBUG (cfg_root[0]["CACHE_MANAGER_DEBUG"]);
+    set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
     POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
-    SIZE_OF_L1_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L1_CACHES_ARRAY");     // Numero de caches L1
-    SIZE_OF_L2_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_L2_CACHES_ARRAY");     // Numero de caches L2
-    SIZE_OF_LLC_CACHES_ARRAY = orcs_engine.configuration->getSetting ("SIZE_OF_LLC_CACHES_ARRAY");
+    set_SIZE_OF_L1_CACHES_ARRAY (cfg_root[0]["SIZE_OF_L1_CACHES_ARRAY"]);     // Numero de caches L1
+    set_SIZE_OF_L2_CACHES_ARRAY (cfg_root[0]["SIZE_OF_L2_CACHES_ARRAY"]);     // Numero de caches L2
+    set_SIZE_OF_LLC_CACHES_ARRAY (cfg_root[0]["SIZE_OF_LLC_CACHES_ARRAY"]);
 
     data_cache = new cache_t*[DATA_LEVELS];
     instruction_cache = new cache_t*[INSTRUCTION_LEVELS];

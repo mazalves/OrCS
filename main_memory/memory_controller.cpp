@@ -19,38 +19,38 @@ memory_controller_t::~memory_controller_t(){
 // ============================================================================
 // @allocate objects to EMC
 void memory_controller_t::allocate(){
-    LINE_SIZE = orcs_engine.configuration->getSetting("LINE_SIZE");
+    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    set_CORE_TO_BUS_CLOCK_RATIO (cfg_root[0]["CORE_TO_BUS_CLOCK_RATIO"]);
 
-     CHANNEL = orcs_engine.configuration->getSetting("CHANNEL");
-     RANK = orcs_engine.configuration->getSetting("RANK");
-     BANK = orcs_engine.configuration->getSetting("BANK");
-     ROW_BUFFER = (RANK*BANK)*1024;
+    set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
+    set_CHANNEL (cfg_root[0]["CHANNEL"]);
+    set_RANK (cfg_root[0]["RANK"]);
+    set_BANK (cfg_root[0]["BANK"]);
+    ROW_BUFFER = (RANK*BANK)*1024;
     // =====================Parametes Comandd=======================
-     BURST_WIDTH = orcs_engine.configuration->getSetting("BURST_WIDTH");
-     RAS = orcs_engine.configuration->getSetting("RAS");
-     CAS = orcs_engine.configuration->getSetting("CAS");
-     ROW_PRECHARGE = orcs_engine.configuration->getSetting("ROW_PRECHARGE");
+    set_BURST_WIDTH (cfg_root[0]["BURST_WIDTH"]);
+    set_RAS (cfg_root[0]["RAS"]);
+    set_CAS (cfg_root[0]["CAS"]);
+    set_ROW_PRECHARGE (cfg_root[0]["ROW_PRECHARGE"]);
     // ============================================
+    set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
+    set_MAX_PARALLEL_REQUESTS_CORE (cfg_root[0]["MAX_PARALLEL_REQUESTS_CORE"]);
+    set_MEM_CONTROLLER_DEBUG (cfg_root[0]["MEM_CONTROLLER_DEBUG"]);
+    set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
 
-    //uint64_t RAM_SIZE = 4 * MEGA * KILO;
-     PARALLEL_LIM_ACTIVE = orcs_engine.configuration->getSetting("PARALLEL_LIM_ACTIVE");
-     MAX_PARALLEL_REQUESTS_CORE = orcs_engine.configuration->getSetting("MAX_PARALLEL_REQUESTS_CORE");
-     MEM_CONTROLLER_DEBUG = orcs_engine.configuration->getSetting("MEM_CONTROLLER_DEBUG");
-     WAIT_CYCLE = orcs_engine.configuration->getSetting("WAIT_CYCLE");
-
-    TIMING_AL = orcs_engine.configuration->getSetting("TIMING_AL");     // Added Latency for column accesses
-    TIMING_CAS = orcs_engine.configuration->getSetting("TIMING_CAS");    // Column Access Strobe (CL) latency
-    TIMING_CCD = orcs_engine.configuration->getSetting("TIMING_CCD");    // Column to Column Delay
-    TIMING_CWD = orcs_engine.configuration->getSetting("TIMING_CWD");    // Column Write Delay (CWL) or simply WL
-    TIMING_FAW = orcs_engine.configuration->getSetting("TIMING_FAW");   // Four (row) Activation Window
-    TIMING_RAS = orcs_engine.configuration->getSetting("TIMING_RAS");   // Row Access Strobe
-    TIMING_RC = orcs_engine.configuration->getSetting("TIMING_RC");    // Row Cycle
-    TIMING_RCD = orcs_engine.configuration->getSetting("TIMING_RCD");    // Row to Column comand Delay
-    TIMING_RP = orcs_engine.configuration->getSetting("TIMING_RP");     // Row Precharge
-    TIMING_RRD = orcs_engine.configuration->getSetting("TIMING_RRD");    // Row activation to Row activation Delay
-    TIMING_RTP = orcs_engine.configuration->getSetting("TIMING_RTP");    // Read To Precharge
-    TIMING_WR = orcs_engine.configuration->getSetting("TIMING_WR");    // Write Recovery time
-    TIMING_WTR = orcs_engine.configuration->getSetting("TIMING_WTR");
+    set_TIMING_AL (cfg_root[0]["TIMING_AL"]);     // Added Latency for column accesses
+    set_TIMING_CAS (cfg_root[0]["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
+    set_TIMING_CCD (cfg_root[0]["TIMING_CCD"]);    // Column to Column Delay
+    set_TIMING_CWD (cfg_root[0]["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
+    set_TIMING_FAW (cfg_root[0]["TIMING_FAW"]);   // Four (row]) Activation Window
+    set_TIMING_RAS (cfg_root[0]["TIMING_RAS"]);   // Row Access Strobe
+    set_TIMING_RC (cfg_root[0]["TIMING_RC"]);    // Row Cycle
+    set_TIMING_RCD (cfg_root[0]["TIMING_RCD"]);    // Row to Column comand Delay
+    set_TIMING_RP (cfg_root[0]["TIMING_RP"]);     // Row Precharge
+    set_TIMING_RRD (cfg_root[0]["TIMING_RRD"]);    // Row activation to Row activation Delay
+    set_TIMING_RTP (cfg_root[0]["TIMING_RTP"]);    // Read To Precharge
+    set_TIMING_WR (cfg_root[0]["TIMING_WR"]);    // Write Recovery time
+    set_TIMING_WTR (cfg_root[0]["TIMING_WTR"]);
     // ======================= Configurando DRAM ======================= 
     this->latency_burst = LINE_SIZE/BURST_WIDTH;
     this->set_masks();

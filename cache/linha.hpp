@@ -33,11 +33,16 @@ class line_t {
         uint32_t DATA_LEVELS;
         uint32_t POINTER_LEVELS;
 
+        INSTANTIATE_GET_SET_ADD (uint32_t, INSTRUCTION_LEVELS)
+        INSTANTIATE_GET_SET_ADD (uint32_t, DATA_LEVELS)
+
         // Constructor
         line_t() {
             this->clean_line();
-            INSTRUCTION_LEVELS = orcs_engine.configuration->getSetting ("INSTRUCTION_LEVELS");
-	        DATA_LEVELS = orcs_engine.configuration->getSetting ("DATA_LEVELS");
+            
+            libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+            set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
+	        set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
             POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
         }
 

@@ -17,33 +17,6 @@ cache_t::cache_t() {
     this->cache_write = 0;
     this->cache_writeback = 0;
     this->change_line = 0;
-
-	LINE_SIZE = orcs_engine.configuration->getSetting ("LINE_SIZE");
-
-	L1_DATA_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L1_DATA_ASSOCIATIVITY");
-    L1_DATA_LATENCY = orcs_engine.configuration->getSetting ("L1_DATA_LATENCY");
-	L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
-        
-    L1_INST_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L1_INST_ASSOCIATIVITY");
-    L1_INST_LATENCY = orcs_engine.configuration->getSetting ("L1_INST_LATENCY");
-	L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
-        
-    L2_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("L2_ASSOCIATIVITY");
-    L2_LATENCY = orcs_engine.configuration->getSetting ("L2_LATENCY");
-	L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
-    // ==================== LEVEL 2 =====================
-    // ==================== LLC     =====================
-    LLC_ASSOCIATIVITY = orcs_engine.configuration->getSetting ("LLC_ASSOCIATIVITY");
-    LLC_LATENCY = orcs_engine.configuration->getSetting ("LLC_LATENCY");
-	LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
-        
-    PREFETCHER_ACTIVE = orcs_engine.configuration->getSetting ("PREFETCHER_ACTIVE");
-
-	INSTRUCTION_LEVELS = orcs_engine.configuration->getSetting ("INSTRUCTION_LEVELS");
-	DATA_LEVELS = orcs_engine.configuration->getSetting ("DATA_LEVELS");
-	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
-    CACHE_MANAGER_DEBUG = orcs_engine.configuration->getSetting ("CACHE_MANAGER_DEBUG");
-    WAIT_CYCLE = orcs_engine.configuration->getSetting ("WAIT_CYCLE");
 }
 
 // Desctructor
@@ -57,6 +30,34 @@ cache_t::~cache_t(){
 // Allocate each cache type (removed EMC case)
 void cache_t::allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency) {
     //printf("-> Allocating %u cache %u\n", cache_type, cache_level);
+	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
+
+	set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
+    set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
+	L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+        
+    set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
+    set_L1_INST_LATENCY (cfg_root[0]["L1_INST_LATENCY"]);
+	L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+        
+    set_L2_ASSOCIATIVITY (cfg_root[0]["L2_ASSOCIATIVITY"]);
+    set_L2_LATENCY (cfg_root[0]["L2_LATENCY"]);
+	L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
+    // ==================== LEVEL 2 =====================
+    // ==================== LLC     =====================
+    set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
+    set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
+	LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+        
+    set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
+
+	set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
+	set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
+	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+    set_CACHE_MANAGER_DEBUG (cfg_root[0]["CACHE_MANAGER_DEBUG"]);
+    set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
+	
     this->id = cache_type;
     this->level = cache_level;
     this->size = cache_size;

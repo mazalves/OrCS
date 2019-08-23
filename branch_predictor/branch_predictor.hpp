@@ -1,9 +1,9 @@
 class branch_predictor_t{
     private:
         uint32_t BTB_ENTRIES;
-        uint8_t BTB_WAYS;
-        uint64_t BTB_MISS_PENALITY;
-        uint64_t MISSPREDICTION_PENALITY;
+        uint32_t BTB_WAYS;
+        uint32_t BTB_MISS_PENALITY;
+        uint32_t MISSPREDICTION_PENALITY;
 
     public:
         //===================================   
@@ -42,5 +42,10 @@ class branch_predictor_t{
         uint32_t solveBranch(opcode_package_t instruction, opcode_package_t nextOpcode);
         void statistics();
         void reset_statistics();
+
+        INSTANTIATE_GET_SET_ADD (uint32_t, BTB_ENTRIES)
+        INSTANTIATE_GET_SET_ADD (uint32_t, BTB_WAYS)
+        INSTANTIATE_GET_SET_ADD (uint32_t, BTB_MISS_PENALITY)
+        INSTANTIATE_GET_SET_ADD (uint32_t, MISSPREDICTION_PENALITY)
 
 };
