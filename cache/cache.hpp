@@ -35,7 +35,7 @@ class cache_t {
         uint32_t L1_INST_ASSOCIATIVITY;
         uint32_t L1_INST_LATENCY;
         uint32_t L1_INST_SETS;
-        
+
         uint32_t L2_SIZE = 256*KILO;
         uint32_t L2_ASSOCIATIVITY;
         uint32_t L2_LATENCY;
@@ -74,7 +74,7 @@ class cache_t {
         void allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency);//allocate data structure
         void writeBack(line_t *line); //makes writeback of line
         void returnLine(uint64_t address, cache_t *cache);//return line from lower cache level
-        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint32_t *tag); //calculate index of data, makes tag from address
+        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
         uint32_t read(uint64_t address, uint32_t &ttc);
         uint32_t write(uint64_t address);
