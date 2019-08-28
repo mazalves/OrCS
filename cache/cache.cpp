@@ -29,7 +29,7 @@ cache_t::~cache_t(){
 
 // Allocate each cache type (removed EMC case)
 void cache_t::allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency) {
-    //printf("-> Allocating %u cache %u\n", cache_type, cache_level);
+    // printf("-> Allocating %u cache %u\n", cache_type, cache_level);
 	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
 
@@ -102,7 +102,7 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
     uint32_t idx;
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
-    //printf("    address: %lu | tag: %u | idx: %u | offset: %u\n", address, tag, idx, this->offset);
+    // printf("    address: %lu | tag: %u | idx: %u | offset: %u\n", address, tag, idx, this->offset);
     //printf("    Searches tag in associativity\n");
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		if(this->sets[idx].lines[i].tag == tag) {
@@ -172,7 +172,7 @@ void cache_t::copyLevels(line_t *line, uint32_t idxa, uint32_t idxb) {
 
 // Copy data information to lower cache levels when data addresses are invalid
 void cache_t::copyNextLevels(line_t *line, uint32_t idx) {
-    printf("%u\n", line->dirty);
+    // printf("%u\n", line->dirty);
     // printf("%s %u\n", "    copy cache information to lower cache levels when data address is invalid", idx);
 	line->line_ptr_caches[0][idx]->dirty = line->dirty;
 	line->line_ptr_caches[0][idx]->lru = orcs_engine.get_global_cycle();
@@ -241,7 +241,7 @@ inline void cache_t::writeBack(line_t *line) {
 
 // Searches for a cache line to write data (removed EMC)
 line_t* cache_t::installLine(uint64_t address, uint32_t latency) {
-        // printf("-> installLine in cache.cpp - cache level = %u\n", this->level);
+    // printf("-> installLine in cache.cpp - cache level = %u\n", this->level);
 	int32_t line = POSITION_FAIL;
     uint32_t idx;
     uint64_t tag;
@@ -259,7 +259,7 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency) {
         //printf("%s\n", "There is no valid line in set");
 		line = this->searchLru(&this->sets[idx]);
         //printf("    line %u in set %u was found.\n", line, idx);
-        printf("%u\n", this->sets[idx].lines[line].line_ptr_caches[0][this->level+1]->dirty);
+        // printf("%u\n", this->sets[idx].lines[line].line_ptr_caches[0][this->level+1]->dirty);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
             //printf("    line %u is dirty\n", line);
