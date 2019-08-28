@@ -138,6 +138,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
 }
 
 mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request){
+    // printf("%s\n", "mshr entry");
     uint64_t tag = (mob_line->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
         if (mshr_table[i]->contains (mob_line)) return mshr_table[i];
@@ -159,6 +160,7 @@ mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_l
 }
 
 void cache_manager_t::clock() {
+    // printf("%s\n", "clock");
     for (std::size_t i = 0; i < mshr_table.size(); i++){
         if (mshr_table[i]->cycle_created + mshr_table[i]->latency >= orcs_engine.get_global_cycle()){
             mshr_table[i]->valid = true;
@@ -313,14 +315,14 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
                 this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
             }
         }
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
+        this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
         mob_line->updatePackageReady(latency_request);
         return latency_request;
     }
     //printf("    Cache %u level %u miss!!!\n", cache_type, cache_level);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
-    if (cache_level == CACHE_LEVELS - 1) {
+    if (cache_level == DATA_LEVELS - 1) {
         latency_request = llcMiss(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, cache_type);
         this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
         return latency_request;
