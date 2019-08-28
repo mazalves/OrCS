@@ -48,7 +48,8 @@ SRC_OTHER = $(FD_OTHER)/utils.cpp\
 SRC_PREFETCHER = $(FD_PREFETCHER)/prefetcher.cpp\
 				 $(FD_PREFETCHER)/stride_prefetcher.cpp
 
-SRC_MEMORY = $(FD_MEMORY)/memory_controller.cpp
+SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
+			 $(FD_MEMORY)/memory_controller.cpp
 
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 

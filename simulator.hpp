@@ -186,6 +186,7 @@ extern orcs_engine_t orcs_engine;
 #include "./prefetcher/stride_prefetcher.hpp"
 //  =========================================//
 // // MemoryController INCLUDES
+#include "./main_memory/memory_channel.hpp"
 #include "./main_memory/memory_controller.hpp"
 //  =========================================//
 #endif  // _ORCS_ORCS_HPP_
