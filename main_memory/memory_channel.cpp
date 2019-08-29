@@ -35,10 +35,10 @@ memory_channel_t::memory_channel_t(){
 }
 
 memory_channel_t::~memory_channel_t(){
-    this->bank_last_row = utils_t::template_allocate_initialize_array<uint64_t>(this->BANK, 0);
-    this->bank_last_command = utils_t::template_allocate_initialize_array<memory_controller_command_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
-    this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
-    this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
+    utils_t::template_delete_array<uint64_t>(this->bank_last_row);
+    utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
+    utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
+    utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
 }
 
 void memory_channel_t::set_masks(){       
@@ -94,6 +94,59 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
     uint64_t bank = this->get_bank(address);
     uint64_t row = this->get_row(address);
     uint64_t latency_request = 0;
+    switch (bank_last_command[bank]){
+        case MEMORY_CONTROLLER_COMMAND_NUMBER:
+            ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
+        break;
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
+            //ERROR_ASSERT_PRINTF (row != bank_last_row[bank], "Sending ROW_ACCESS to wrong row.")
+            this->add_stat_row_buffer_miss();
+            this->bank_last_row[bank] = row;
+            this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
+            this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
+            this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
+            latency_request = latencyCalc (op, address);
+            break;
+        }
+        case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_READ:
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:{
+            if (bank_last_row[bank] == row){
+                switch (op){
+                    case MEMORY_OPERATION_READ: {
+                        this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
+                        this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ);
+                        this->add_stat_row_buffer_hit();
+                        break;
+                    }
+                    case MEMORY_OPERATION_WRITE: {
+                        this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
+                        this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                        latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE);
+                        this->add_stat_row_buffer_hit();
+                        break;
+                    }
+                    case MEMORY_OPERATION_FREE: {
+                        break;
+                    }
+                }
+            } else {
+                this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_PRECHARGE;
+                this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
+                this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
+                latency_request = latencyCalc (op, address);
+            }
+        }
+    }
+    return latency_request;
+    /*=====================================================
+
+    uint64_t bank = this->get_bank(address);
+    uint64_t row = this->get_row(address);
+    uint64_t latency_request = 0;
 
     if (this->bank_last_row[bank] != row){
         this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_PRECHARGE;
@@ -123,8 +176,8 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
                 case MEMORY_OPERATION_WRITE: {
                     this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                     this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
-                        this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
-                        latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE);
+                    this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                    latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE);
                     break;
                 }
                 case MEMORY_OPERATION_FREE: {
@@ -132,7 +185,7 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
                 }
             }
     }
-    return latency_request;
+    return latency_request; */
 }
 //=====================================================================
 
