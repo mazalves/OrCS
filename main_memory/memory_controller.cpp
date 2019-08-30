@@ -33,12 +33,7 @@ void memory_controller_t::statistics(){
     FILE *output = stdout;
     bool close = false;
 
-    for (uint32_t i = 0; i < CHANNEL; i++){
-        this->row_buffer_hit += this->channels[i].get_stat_row_buffer_hit();
-        this->row_buffer_miss += this->channels[i].get_stat_row_buffer_miss();
-    }
-
-	if(orcs_engine.output_file_name != NULL){
+    if(orcs_engine.output_file_name != NULL){
         close=true;
 		output = fopen(orcs_engine.output_file_name,"a+");
     }
@@ -49,8 +44,10 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_Made:              %lu\n",this->get_requests_made());
         fprintf(output,"Requests_from_Prefetcher:   %lu\n",this->get_requests_prefetcher());
         fprintf(output,"Requests_from_LLC:          %lu\n",this->get_requests_llc());
-        fprintf(output,"Row_Buffer_Hit:             %lu\n",this->get_row_buffer_hit());
-        fprintf(output,"Row_Buffer_Miss:            %lu\n",this->get_row_buffer_miss());
+        for (uint32_t i = 0; i < CHANNEL; i++){
+            fprintf(output,"Row_Buffer_Hit, Channel %u:  %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
+            fprintf(output,"Row_Buffer_Miss, Channel %u: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+        }
         utils_t::largestSeparator(output);
         if(close) fclose(output);
     }
