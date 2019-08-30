@@ -44,15 +44,48 @@ void cache_manager_t::allocate() {
     set_SIZE_OF_L1_CACHES_ARRAY (cfg_root[0]["SIZE_OF_L1_CACHES_ARRAY"]);     // Numero de caches L1
     set_SIZE_OF_L2_CACHES_ARRAY (cfg_root[0]["SIZE_OF_L2_CACHES_ARRAY"]);     // Numero de caches L2
     set_SIZE_OF_LLC_CACHES_ARRAY (cfg_root[0]["SIZE_OF_LLC_CACHES_ARRAY"]);
+    
+    set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
+	set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
+    set_L2_ASSOCIATIVITY (cfg_root[0]["L2_ASSOCIATIVITY"]);
+    set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
+
+    uint32_t *CACHE_LEVELS = new uint32_t[POINTER_LEVELS];
+    CACHE_LEVELS[0] = SIZE_OF_L1_CACHES_ARRAY;
+    CACHE_LEVELS[1] = SIZE_OF_L2_CACHES_ARRAY;
+    CACHE_LEVELS[2] = SIZE_OF_LLC_CACHES_ARRAY;    
+    
+    ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS];
+    DCACHE_AMOUNT = new uint32_t[DATA_LEVELS];
+
+    ICACHE_LATENCY = new uint32_t[INSTRUCTION_LEVELS];
+    ICACHE_LATENCY[0] = L1_DATA_LATENCY;
+    DCACHE_LATENCY = new uint32_t[DATA_LEVELS];
+    DCACHE_LATENCY[0] = L1_DATA_LATENCY;
+    DCACHE_LATENCY[1] = L2_LATENCY;
+    DCACHE_LATENCY[2] = LLC_LATENCY;
+
+    ICACHE_ASSOCIATIVITY = new uint32_t[INSTRUCTION_LEVELS];
+    ICACHE_ASSOCIATIVITY[0] = L1_INST_ASSOCIATIVITY;
+    DCACHE_ASSOCIATIVITY = new uint32_t[DATA_LEVELS];
+    DCACHE_ASSOCIATIVITY[0] = L1_DATA_ASSOCIATIVITY;
+    DCACHE_ASSOCIATIVITY[1] = L2_ASSOCIATIVITY;
+    DCACHE_ASSOCIATIVITY[2] = LLC_ASSOCIATIVITY;
+
+//         // cache associativity for each level
+// const uint32_t ICACHE_ASSOCIATIVITY[1] = {8};
+// const uint32_t DCACHE_ASSOCIATIVITY[3] = {8, 8, 8};
 
     data_cache = new cache_t*[DATA_LEVELS];
     instruction_cache = new cache_t*[INSTRUCTION_LEVELS];
 
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         this->data_cache[i] = NULL;
+        DCACHE_AMOUNT[i] = CACHE_LEVELS[i];
     }
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
         this->instruction_cache[i] = NULL;
+        ICACHE_AMOUNT[i] = CACHE_LEVELS[i];
     }
 
     //printf("%s\n", "Allocating caches in cacheManager");
@@ -100,12 +133,11 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         line[i] = new line_t*[POINTER_LEVELS];
-    }
-    for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             line[i][j] = NULL;
         }
     }
+
     if (cache_type == INSTRUCTION) {
         //printf("%s\n", "    Instruction");
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
@@ -251,7 +283,12 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         if (cache_level != 0) {
             for (int32_t i = cache_level - 1; i >= 0; i--) {
-                this->data_cache[cache_level][cache_indexes[cache_level]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
+                if (cache_type == DATA) {
+                    this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
+                } else {
+                    // this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]]);
+                    this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
+                }
             }
         }
         // if (cache_level == DATA_LEVELS - 1 && cache_type == DATA) {
@@ -315,7 +352,7 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
                 this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
             }
         }
-        this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
+        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
         mob_line->updatePackageReady(latency_request);
         return latency_request;
     }

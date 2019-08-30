@@ -5,18 +5,6 @@
 const uint32_t ICACHE_SIZE[1] = {32768};
 const uint32_t DCACHE_SIZE[3] = {32768, 262144, 4194304};
 
-// cache associativity for each level
-const uint32_t ICACHE_ASSOCIATIVITY[1] = {8};
-const uint32_t DCACHE_ASSOCIATIVITY[3] = {8, 8, 8};
-
-// cache latency for each level
-const uint32_t ICACHE_LATENCY[1] = {3};
-const uint32_t DCACHE_LATENCY[3] = {3, 6, 9};
-
-// number of caches in each level
-const uint32_t ICACHE_AMOUNT[1] = {1};
-const uint32_t DCACHE_AMOUNT[3] = {1, 1, 1};
-
 // EMC pointers removed!
 class line_t {
     public:

@@ -27,6 +27,20 @@ class cache_manager_t {
         uint32_t SIZE_OF_L2_CACHES_ARRAY;     // Numero de caches L2
         uint32_t SIZE_OF_LLC_CACHES_ARRAY;
 
+        uint32_t L1_INST_ASSOCIATIVITY;
+        uint32_t L1_DATA_ASSOCIATIVITY;
+        uint32_t L2_ASSOCIATIVITY;
+        uint32_t LLC_ASSOCIATIVITY;
+
+        uint32_t *ICACHE_AMOUNT;
+        uint32_t *DCACHE_AMOUNT;
+
+        uint32_t *ICACHE_LATENCY;
+        uint32_t *DCACHE_LATENCY;
+
+        uint32_t *ICACHE_ASSOCIATIVITY;
+        uint32_t *DCACHE_ASSOCIATIVITY;
+
         std::vector<mshr_entry_t*> mshr_table;
 
         void check_cache(uint32_t cache_size, uint32_t cache_level);
@@ -83,6 +97,10 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t,SIZE_OF_L2_CACHES_ARRAY)     // Numero de caches L2
         INSTANTIATE_GET_SET_ADD(uint32_t,SIZE_OF_LLC_CACHES_ARRAY)
 
+        INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_ASSOCIATIVITY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_ASSOCIATIVITY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,L2_ASSOCIATIVITY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,LLC_ASSOCIATIVITY)
         // Prefetcher
         // ==========================================
         prefetcher_t *prefetcher;

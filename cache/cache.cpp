@@ -33,22 +33,22 @@ void cache_t::allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cach
 	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
 
-	set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
-    set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
-	L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
+	// set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
+    // set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
+	// L1_DATA_SETS = (L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY;
         
-    set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
-    set_L1_INST_LATENCY (cfg_root[0]["L1_INST_LATENCY"]);
-	L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
+    // set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
+    // set_L1_INST_LATENCY (cfg_root[0]["L1_INST_LATENCY"]);
+	// L1_INST_SETS = (L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY;
         
-    set_L2_ASSOCIATIVITY (cfg_root[0]["L2_ASSOCIATIVITY"]);
-    set_L2_LATENCY (cfg_root[0]["L2_LATENCY"]);
-	L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
+    // set_L2_ASSOCIATIVITY (cfg_root[0]["L2_ASSOCIATIVITY"]);
+    // set_L2_LATENCY (cfg_root[0]["L2_LATENCY"]);
+	// L2_SETS = (L2_SIZE/LINE_SIZE)/L2_ASSOCIATIVITY;
     // ==================== LEVEL 2 =====================
     // ==================== LLC     =====================
-    set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
-    set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
-	LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
+    // set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
+    // set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
+	// LLC_SETS = (LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY;
         
     set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
 
@@ -118,11 +118,11 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
 				}
 				this->sets[idx].lines[i].lru = orcs_engine.get_global_cycle();
 				ttc += this->latency;
-				if (this->id == DATA) {
-					if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-						//ORCS_PRINTF("     Cache level %u Ready At %lu\n", this->level, this->sets[idx].lines[i].ready_at)
-					}
-				}
+				// if (this->id == DATA) {
+				// 	if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
+				// 		//ORCS_PRINTF("     Cache level %u Ready At %lu\n", this->level, this->sets[idx].lines[i].ready_at)
+				// 	}
+				// }
 				return HIT;
 			}
 			// Se ready Cycle for maior que o atual, a latencia é dada pela demora a chegar
@@ -210,24 +210,24 @@ inline void cache_t::writeBack(line_t *line) {
 	// Intermediate cache levels issues
 	} else {
         // printf("%s\n", "    in intermediate levels:");
-		uint32_t i;
-		for (i = 0; i < this->level - 1; i++) {
-            // printf("%s\n", "for");
-			if (line->line_ptr_caches[0][i] != NULL) {
-                // printf("%s\n", "if");
-				copyLevels(line, i, i + 1);
-			}
-		}
+		uint32_t i = 0;
+		// for (i = 0; i < this->level - 1; i++) {
+        //     // printf("%s\n", "for");
+		// 	if (line->line_ptr_caches[0][i] != NULL) {
+        //         // printf("%s\n", "if");
+		// 		copyLevels(line, i, i + 1);
+		// 	}
+		// }
         // printf("%u\n", i);
         if (line->line_ptr_caches[0][i] != NULL) {
             // printf("%s\n", "if");
 			copyLevels(line, i, i + 2);
 		} else {
             // printf("%s\n", "else");
-			// copyNextLevels(line->line_ptr_caches[0][i], i + 2);
-            line->line_ptr_caches[0][i + 2]->dirty = line->dirty;
-            line->line_ptr_caches[0][i + 2]->lru = orcs_engine.get_global_cycle();
-            line->line_ptr_caches[0][i + 2]->ready_at = line->ready_at;
+			copyNextLevels(line, i + 2);
+            // line->line_ptr_caches[0][i + 2]->dirty = line->dirty;
+            // line->line_ptr_caches[0][i + 2]->lru = orcs_engine.get_global_cycle();
+            // line->line_ptr_caches[0][i + 2]->ready_at = line->ready_at;
 		}
         //printf("%s\n", "    NULLs lines from higher level caches");
 		for (uint32_t i = this->level + 1; i < DATA_LEVELS; i++) {
@@ -288,7 +288,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache) {
 
 	// Selects a line in this cache
     //printf("    Selects a line in cache %u...\n", this->level);
-	for (size_t i = 0; i < cache->sets->n_lines; i++) {
+	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		if (this->sets[idx].lines[i].tag == tag) {
 			this->sets[idx].lines[i].lru = orcs_engine.get_global_cycle();
 			line = i;
