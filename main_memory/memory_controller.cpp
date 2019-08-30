@@ -87,6 +87,7 @@ uint64_t memory_controller_t::requestDRAM (mshr_entry_t* request, uint64_t addre
     this->add_requests_made();
     if (request != NULL) {
         request->latency += (latency_request);
+        request->valid = true;
     }
     return latency_request;
 }

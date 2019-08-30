@@ -194,19 +194,25 @@ mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_l
 void cache_manager_t::clock() {
     // printf("%s\n", "clock");
     for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if (mshr_table[i]->cycle_created + mshr_table[i]->latency >= orcs_engine.get_global_cycle()){
-            mshr_table[i]->valid = true;
-        }
         if (mshr_table[i]->valid) {
             //uint64_t oldest = mshr_table[i]->requests[0]->cycle_send_request;
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[i]->requests[0]->processor_id, cache_indexes);
+            this->installCacheLines(mshr_table[i]->requests[0]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
+            if (mshr_table[i]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
+                int cache_level = DATA_LEVELS - 1;
+                for (int32_t k = cache_level - 1; k >= 0; k--) {
+                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[i]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
+                }
+                this->data_cache[0][cache_indexes[0]].write(mshr_table[i]->requests[0]->memory_address);
+            }
+            
             for (uint32_t j = 0; j < mshr_table[i]->requests.size(); j++){
                 mshr_table[i]->requests[j]->updatePackageReady (mshr_table[i]->latency);
             }
-            this->installCacheLines(mshr_table[i]->requests[0]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[i]), mshr_table.end());
         }
+        else orcs_engine.memory_controller->requestDRAM(mshr_table[i], mshr_table[i]->requests[0]->memory_address);
     }
 }
 
@@ -223,8 +229,7 @@ uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint64_t
     std::ignore = ttc;
     orcs_engine.memory_controller->add_requests_llc();
     if (mob_line != NULL) {
-        mshr_entry_t* add = this->add_mshr_entry (mob_line, latency_request);
-        orcs_engine.memory_controller->requestDRAM(add, instructionAddress);
+        this->add_mshr_entry (mob_line, latency_request);
         return 0;
     }
     else {
@@ -283,12 +288,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         if (cache_level != 0) {
             for (int32_t i = cache_level - 1; i >= 0; i--) {
-                if (cache_type == DATA) {
-                    this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
-                } else {
-                    // this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]]);
-                    this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
-                }
+                this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
             }
         }
         // if (cache_level == DATA_LEVELS - 1 && cache_type == DATA) {
@@ -361,7 +361,6 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
         latency_request = llcMiss(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, cache_type);
-        this->data_cache[cache_level][cache_indexes[cache_level]].write(mob_line->memory_address);
         return latency_request;
     }
     return recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
