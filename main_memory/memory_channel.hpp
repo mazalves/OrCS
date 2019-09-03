@@ -20,9 +20,11 @@ class memory_channel_t {
         /// Keep track of the last command in each bank
         memory_controller_command_t *bank_last_command; /// Last command sent to each bank
 
+        bool *bank_is_ready;
         uint64_t *bank_last_row;
         uint64_t **bank_last_command_cycle;      /// Cycle of the Last command sent to each bank
         uint64_t *channel_last_command_cycle;      /// Cycle of the last command type
+        std::vector<mshr_entry_t*> *bank_requests;
 
         uint32_t last_bank_selected;
 
@@ -33,6 +35,7 @@ class memory_channel_t {
 
         uint32_t RANK;
         uint32_t BANK;
+        uint32_t BANK_BUFFER_SIZE;
         uint32_t CHANNEL;
         uint32_t ROW_BUFFER;
         uint32_t LINE_SIZE;
@@ -70,7 +73,9 @@ class memory_channel_t {
 
         uint64_t latencyCalc (memory_operation_t op, uint64_t address);
         uint64_t get_minimum_latency(uint32_t bank, memory_controller_command_t next_command);
+        void addRequest (mshr_entry_t* request);
         void set_masks();
+        void clock();
 
         INSTANTIATE_GET_SET_ADD (uint64_t, latency_burst)
 
@@ -94,6 +99,7 @@ class memory_channel_t {
 
         INSTANTIATE_GET_SET_ADD(uint32_t, RANK)
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK)
+        INSTANTIATE_GET_SET_ADD(uint32_t, BANK_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t, ROW_BUFFER)
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)

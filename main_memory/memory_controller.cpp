@@ -54,7 +54,7 @@ void memory_controller_t::statistics(){
 }
 // ============================================================================
 void memory_controller_t::clock(){
-    
+    for (uint32_t i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
 }
 // ============================================================================
 void memory_controller_t::set_masks(){
@@ -76,18 +76,14 @@ void memory_controller_t::set_masks(){
 }
 //=====================================================================
 uint64_t memory_controller_t::requestDRAM (mshr_entry_t* request, uint64_t address){
+    this->add_requests_made();
     memory_operation_t operation;
     if (request != NULL) {
-        address = request->requests[0]->memory_address;
-        operation = request->requests[0]->memory_operation;
+        this->channels[get_channel (address)].addRequest (request);
+        return 0;
     } else operation = MEMORY_OPERATION_READ;
     //initializes in latency burst
     uint64_t latency_request = this->channels[get_channel (address)].latencyCalc (operation, address);
     latency_request = latency_request * CORE_TO_BUS_CLOCK_RATIO;
-    this->add_requests_made();
-    if (request != NULL) {
-        request->latency += (latency_request);
-        request->valid = true;
-    }
     return latency_request;
 }

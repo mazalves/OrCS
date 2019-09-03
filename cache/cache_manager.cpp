@@ -184,7 +184,7 @@ mshr_entry_t* cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_l
     new_entry->tag = tag;
     new_entry->latency = latency_request;
     new_entry->valid = false;
-    new_entry->issued = true;
+    new_entry->issued = false;
     new_entry->cycle_created = orcs_engine.get_global_cycle();
     new_entry->requests.push_back (mob_line);
     mshr_table.push_back (new_entry);
@@ -212,7 +212,12 @@ void cache_manager_t::clock() {
             }
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[i]), mshr_table.end());
         }
-        else orcs_engine.memory_controller->requestDRAM(mshr_table[i], mshr_table[i]->requests[0]->memory_address);
+        else {
+            if (!mshr_table[i]->issued){
+                orcs_engine.memory_controller->requestDRAM(mshr_table[i], mshr_table[i]->requests[0]->memory_address);
+                mshr_table[i]->issued = true;
+            }
+        }
     }
 }
 
