@@ -140,19 +140,19 @@ void processor_t::allocate()
 	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
 
 	set_L1_DATA_SIZE (32*KILO);
-	set_L1_DATA_ASSOCIATIVITY (cfg_root[0]["L1_DATA_ASSOCIATIVITY"]);
-	set_L1_DATA_LATENCY (cfg_root[0]["L1_DATA_LATENCY"]);
-	set_L1_DATA_SETS ((L1_DATA_SIZE/LINE_SIZE)/L1_DATA_ASSOCIATIVITY);
+	set_ASSOCIATIVITY_L1D(cfg_root[0]["ASSOCIATIVITY_L1D"]);
+	set_LATENCY_L1D(cfg_root[0]["LATENCY_L1D"]);
+	set_L1_DATA_SETS ((L1_DATA_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1D);
 	// I$
 	set_L1_INST_SIZE (32*KILO);
-	set_L1_INST_ASSOCIATIVITY (cfg_root[0]["L1_INST_ASSOCIATIVITY"]);
-	set_L1_INST_LATENCY (cfg_root[0]["L1_INST_LATENCY"]);
-	set_L1_INST_SETS ((L1_INST_SIZE/LINE_SIZE)/L1_INST_ASSOCIATIVITY);
+	set_ASSOCIATIVITY_L1I(cfg_root[0]["ASSOCIATIVITY_L1I"]);
+	set_LATENCY_L1I(cfg_root[0]["LATENCY_L1I"]);
+	set_L1_INST_SETS ((L1_INST_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1I);
 
 	set_LLC_SIZE (20*MEGA);
-	set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
-	set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
-	set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY);
+	set_ASSOCIATIVITY_LLCD(cfg_root[0]["ASSOCIATIVITY_LLCD"]);
+	set_LATENCY_LLCD(cfg_root[0]["LATENCY_LLCD"]);
+	set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/ASSOCIATIVITY_LLCD);
 
 	set_RAM_LATENCY (cfg_root[0]["RAM_LATENCY"]);
 	set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
@@ -1814,18 +1814,18 @@ void processor_t::printConfiguration(){
 		fprintf(output, "===============Memory Configuration============\n");
 		fprintf(output, "===============Instruction $============\n");
 		fprintf(output, "L1_INST_SIZE ->%u\n", L1_INST_SIZE);
-		fprintf(output, "L1_INST_ASSOCIATIVITY ->%u\n", L1_INST_ASSOCIATIVITY);
-		fprintf(output, "L1_INST_LATENCY ->%u\n", L1_INST_LATENCY);
+		fprintf(output, "ASSOCIATIVITY_L1I ->%u\n", ASSOCIATIVITY_L1I);
+		fprintf(output, "LATENCY_L1I ->%u\n", LATENCY_L1I);
 		fprintf(output, "L1_INST_SETS ->%u\n", L1_INST_SETS);
 		fprintf(output, "===============Data $ L1============\n");
 		fprintf(output, "L1_DATA_SIZE ->%u\n", L1_DATA_SIZE);
-		fprintf(output, "L1_DATA_ASSOCIATIVITY ->%u\n", L1_DATA_ASSOCIATIVITY);
-		fprintf(output, "L1_DATA_LATENCY ->%u\n", L1_DATA_LATENCY);
+		fprintf(output, "ASSOCIATIVITY_L1D ->%u\n", ASSOCIATIVITY_L1D);
+		fprintf(output, "LATENCY_L1D ->%u\n", LATENCY_L1D);
 		fprintf(output, "L1_DATA_SETS ->%u\n", L1_DATA_SETS);
 		fprintf(output, "===============LLC ============\n");
 		fprintf(output, "LLC_SIZE ->%u\n", LLC_SIZE);
-		fprintf(output, "LLC_ASSOCIATIVITY ->%u\n", LLC_ASSOCIATIVITY);
-		fprintf(output, "LLC_LATENCY ->%u\n", LLC_LATENCY);
+		fprintf(output, "ASSOCIATIVITY_LLCD ->%u\n", ASSOCIATIVITY_LLCD);
+		fprintf(output, "LATENCY_LLCD ->%u\n", LATENCY_LLCD);
 		fprintf(output, "LLC_SETS ->%u\n", LLC_SETS);
 		fprintf(output, "=============== PREFETCHER ============\n");
 		fprintf(output, "PREFETCHER_ACTIVE ->%u\n", PREFETCHER_ACTIVE);

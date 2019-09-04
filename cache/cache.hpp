@@ -27,24 +27,24 @@ class cache_t {
         uint32_t LINE_SIZE;
 
         uint32_t L1_DATA_SIZE = 32*KILO;
-        uint32_t L1_DATA_ASSOCIATIVITY;
-        uint32_t L1_DATA_LATENCY;
+        uint32_t ASSOCIATIVITY_L1D;
+        uint32_t LATENCY_L1D;
         uint32_t L1_DATA_SETS;
 
         uint32_t L1_INST_SIZE = 32*KILO;
-        uint32_t L1_INST_ASSOCIATIVITY;
-        uint32_t L1_INST_LATENCY;
+        uint32_t ASSOCIATIVITY_L1I;
+        uint32_t LATENCY_L1I;
         uint32_t L1_INST_SETS;
 
         uint32_t L2_SIZE = 256*KILO;
-        uint32_t L2_ASSOCIATIVITY;
-        uint32_t L2_LATENCY;
+        uint32_t ASSOCIATIVITY_L2D;
+        uint32_t LATENCY_L2D;
         uint32_t L2_SETS;
         // ==================== LEVEL 2 =====================
         // ==================== LLC     =====================
         uint32_t LLC_SIZE = 20*MEGA;
-        uint32_t LLC_ASSOCIATIVITY;
-        uint32_t LLC_LATENCY;
+        uint32_t ASSOCIATIVITY_LLCD;
+        uint32_t LATENCY_LLCD;
         uint32_t LLC_SETS;
 
         uint32_t PREFETCHER_ACTIVE;
@@ -61,7 +61,7 @@ class cache_t {
 
         //atributtes
         uint32_t id;    // instruction or data cache
-        uint32_t level;
+        char16_t *level;
         uint32_t size;
         uint32_t latency;
         uint32_t associativity;
@@ -90,23 +90,6 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
         
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
-
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SETS)
-
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SETS)
-        
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_SETS)
-        // ==================== LEVEL 2 =====================
-        // ==================== LLC     =====================
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SETS)
 
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
 

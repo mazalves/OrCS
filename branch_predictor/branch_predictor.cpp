@@ -15,13 +15,14 @@ branch_predictor_t::~branch_predictor_t(){
 	this->branchPredictor = NULL;
 }
 void branch_predictor_t::allocate(){
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-	set_BTB_ENTRIES (cfg_root[0]["BTB_ENTRIES"]);
-    set_BTB_WAYS (cfg_root[0]["BTB_WAYS"]);
-    set_BTB_MISS_PENALITY (cfg_root[0]["BTB_MISS_PENALITY"]);
-    set_MISSPREDICTION_PENALITY (cfg_root[0]["MISSPREDICTION_PENALITY"]);
+	libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+	libconfig::Setting &cfg_branch_pred = cfg_root["PROCESSOR"]["BRANCH_PREDICTOR"];
+	set_BTB_ENTRIES(cfg_branch_pred["BTB_ENTRIES"]);
+	set_BTB_WAYS(cfg_branch_pred["BTB_WAYS"]);
+	set_BTB_MISS_PENALITY(cfg_branch_pred["BTB_MISS_PENALITY"]);
+	set_MISSPREDICTION_PENALITY(cfg_branch_pred["MISSPREDICTION_PENALITY"]);
 
-    uint32_t size  = BTB_ENTRIES/BTB_WAYS;
+	uint32_t size  = BTB_ENTRIES/BTB_WAYS;
     this->btb = new btb_t[size];
 	this->index = 0;
 	this->way = 0;
