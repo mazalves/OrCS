@@ -1461,7 +1461,7 @@ uint32_t processor_t::mob_read(){
 				}
 			}
 	}
-	if (this->oldest_read_to_send != NULL){
+	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent){
 		if (PARALLEL_LIM_ACTIVE){
 			if(this->counter_mshr_read >= MAX_PARALLEL_REQUESTS_CORE){
 				this->add_times_reach_parallel_requests_read();
@@ -1476,13 +1476,15 @@ uint32_t processor_t::mob_read(){
 				ORCS_PRINTF("=================================\n")
 			}
 		}
-		//uint32_t ttc = 
-		orcs_engine.cacheManager->searchData(this->oldest_read_to_send);
-		this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-		this->oldest_read_to_send->sent=true;
-		this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-		if (PARALLEL_LIM_ACTIVE){
-			this->counter_mshr_read++; //numero de req paralelas, add+1
+		
+		if (!oldest_read_to_send->sent){
+			orcs_engine.cacheManager->searchData(this->oldest_read_to_send);
+			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_read_to_send->sent=true;
+			this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (PARALLEL_LIM_ACTIVE){
+				this->counter_mshr_read++; //numero de req paralelas, add+1
+			}
 		}
 		this->oldest_read_to_send = NULL;
 	} //end if mob_line null
@@ -1559,22 +1561,14 @@ uint32_t processor_t::mob_write(){
 		}
 
 		//sendind to write data
-		//ttc = 
-		orcs_engine.cacheManager->searchData(oldest_write_to_send);
-		// updating package
-		// =============================================================
-		// this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-		// this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(ttc);
-		// this->oldest_write_to_send->rob_ptr->sent = true;
-		// //MOB
-		// this->oldest_write_to_send->sent = true;
-		// this->oldest_write_to_send->updatePackageReady(ttc);
-		orcs_engine.cacheManager->searchData(this->oldest_write_to_send);
-		this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-		this->oldest_write_to_send->sent=true;
-		this->oldest_write_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-		if (PARALLEL_LIM_ACTIVE){
-			this->counter_mshr_write++; //numero de req paralelas, add+1
+		if (!this->oldest_write_to_send->sent){
+			orcs_engine.cacheManager->searchData(oldest_write_to_send);
+			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_write_to_send->sent=true;
+			this->oldest_write_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (PARALLEL_LIM_ACTIVE){
+				this->counter_mshr_write++; //numero de req paralelas, add+1
+			}
 		}
 		this->oldest_write_to_send = NULL;
 		// =============================================================

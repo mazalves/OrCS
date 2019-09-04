@@ -5,7 +5,7 @@ memory_channel_t::memory_channel_t(){
 
     set_RANK (cfg_root[0]["RANK"]);
     set_BANK (cfg_root[0]["BANK"]);
-    set_BANK (cfg_root[0]["BANK_BUFFER_SIZE"]);
+    set_BANK_BUFFER_SIZE (cfg_root[0]["BANK_BUFFER_SIZE"]);
     set_CHANNEL (cfg_root[0]["CHANNEL"]);
     set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
     set_BURST_WIDTH (cfg_root[0]["BURST_WIDTH"]);
