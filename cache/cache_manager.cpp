@@ -177,6 +177,7 @@ void cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint
     new_entry->latency = latency_request;
     new_entry->valid = false;
     new_entry->issued = false;
+    new_entry->treated = false;
     new_entry->cycle_created = orcs_engine.get_global_cycle();
     new_entry->requests.push_back (mob_line);
     mshr_table.push_back (new_entry);

@@ -22,9 +22,12 @@ class memory_channel_t {
 
         bool *bank_is_ready;
         uint64_t *bank_last_row;
+        bool *bank_is_drain_write;
+        uint64_t bank_last_transmission;
         uint64_t **bank_last_command_cycle;      /// Cycle of the Last command sent to each bank
         uint64_t *channel_last_command_cycle;      /// Cycle of the last command type
-        std::vector<mshr_entry_t*> *bank_requests;
+        std::vector<mshr_entry_t*> *bank_read_requests;
+        std::vector<mshr_entry_t*> *bank_write_requests;
 
         uint32_t last_bank_selected;
 
@@ -55,6 +58,12 @@ class memory_channel_t {
         uint32_t TIMING_WR;    // Write Recovery time
         uint32_t TIMING_WTR;
 
+        uint32_t REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
+        uint32_t REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
+
+        uint32_t WRITE_PRIORITY_DRAIN_WHEN_FULL;
+        uint32_t WRITE_PRIORITY_SERVICE_AT_NO_READ;
+
         // Get channel to access DATA
         inline  uint64_t get_channel(uint64_t address){
                 return (address&this->channel_bits_mask)>>this->channel_bits_shift;
@@ -73,6 +82,9 @@ class memory_channel_t {
 
         uint64_t latencyCalc (memory_operation_t op, uint64_t address);
         uint64_t get_minimum_latency(uint32_t bank, memory_controller_command_t next_command);
+        mshr_entry_t* findNext (uint32_t bank);
+        mshr_entry_t* findNextRead (uint32_t bank);
+        mshr_entry_t* findNextWrite (uint32_t bank);
         void addRequest (mshr_entry_t* request);
         void set_masks();
         void clock();
@@ -118,4 +130,10 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RTP)    // Read To Precharge
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WR)    // Write Recovery time
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WTR)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST)
+        INSTANTIATE_GET_SET_ADD(uint32_t, REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, WRITE_PRIORITY_DRAIN_WHEN_FULL)
+        INSTANTIATE_GET_SET_ADD(uint32_t, WRITE_PRIORITY_SERVICE_AT_NO_READ)
 };

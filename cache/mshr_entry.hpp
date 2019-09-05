@@ -3,6 +3,7 @@ class mshr_entry_t {
         bool valid;
         uint64_t tag;
         bool issued;
+        bool treated;
         uint64_t latency;
         uint64_t cycle_created;
         std::vector<memory_order_buffer_line_t*> requests;
