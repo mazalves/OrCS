@@ -6,6 +6,7 @@ memory_channel_t::memory_channel_t(){
     set_RANK (cfg_root[0]["RANK"]);
     set_BANK (cfg_root[0]["BANK"]);
     set_BANK_BUFFER_SIZE (cfg_root[0]["BANK_BUFFER_SIZE"]);
+    set_BANK_ROW_BUFFER_SIZE (cfg_root[0]["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_root[0]["CHANNEL"]);
     set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
     set_BURST_WIDTH (cfg_root[0]["BURST_WIDTH"]);
@@ -71,32 +72,39 @@ void memory_channel_t::set_masks(){
     this->bank_bits_mask = 0;
     this->rank_bits_mask = 0;
     this->row_bits_mask = 0;
-    this->col_row_bits_mask = 0;
-    this->col_byte_bits_mask = 0;
+    this->colrow_bits_mask = 0;
+    this->colbyte_bits_mask = 0;
     this->latency_burst = 0;
     // =======================================================
-    this->channel_bits_shift = utils_t::get_power_of_two(LINE_SIZE);
-    this->bank_bits_shift = this->channel_bits_shift+  utils_t::get_power_of_two(CHANNEL);
-    this->colrow_bits_shift = this->bank_bits_shift +utils_t::get_power_of_two(BANK);
-    this->row_bits_shift = this->colrow_bits_shift + utils_t::get_power_of_two(ROW_BUFFER / LINE_SIZE);
+    this->controller_bits_shift = 0;
+    this->colbyte_bits_shift = 0;
+    this->colrow_bits_shift = utils_t::get_power_of_two(this->LINE_SIZE);
+    this->channel_bits_shift = utils_t::get_power_of_two(this->BANK_ROW_BUFFER_SIZE);
+    this->bank_bits_shift = this->channel_bits_shift + utils_t::get_power_of_two(this->CHANNEL);
+    this->row_bits_shift = this->bank_bits_shift + utils_t::get_power_of_two(this->BANK);
 
     /// COLBYTE MASK
-    for (i = 0; i < utils_t::get_power_of_two(LINE_SIZE); i++) {
-        this->col_byte_bits_mask |= 1 << (i + this->colbyte_bits_shift);
+    for (i = 0; i < utils_t::get_power_of_two(this->LINE_SIZE); i++) {
+        this->colbyte_bits_mask |= 1 << (i + this->colbyte_bits_shift);
     }
 
-    /// CHANNEL MASK
-    for (i = 0; i < utils_t::get_power_of_two(CHANNEL); i++) {
-        this->channel_bits_mask |= 1 << (i + this->channel_bits_shift);
-    }
-    /// BANK MASK
-    for (i = 0; i < utils_t::get_power_of_two(BANK); i++) {
-        this->bank_bits_mask |= 1 << (i + this->bank_bits_shift);
-    }
     /// COLROW MASK
-    for (i = 0; i < utils_t::get_power_of_two((ROW_BUFFER / LINE_SIZE)); i++) {
-        this->col_row_bits_mask |= 1 << (i + this->colrow_bits_shift);
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK_ROW_BUFFER_SIZE / this->LINE_SIZE); i++) {
+        this->colrow_bits_mask |= 1 << (i + this->colrow_bits_shift);
     }
+
+    //this->not_column_bits_mask = ~(colbyte_bits_mask | colrow_bits_mask);
+
+    /// CHANNEL MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->CHANNEL); i++) {
+        this->channel_bits_mask |= 1 << (i + channel_bits_shift);
+    }
+
+    /// BANK MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {
+        this->bank_bits_mask |= 1 << (i + bank_bits_shift);
+    }
+
     /// ROW MASK
     for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
         this->row_bits_mask |= 1 << i;

@@ -32,9 +32,10 @@ class memory_controller_t{
         // ==========================================================================
         void allocate();    //Aloca recursos do Memory Controller
         // Get channel to access DATA
-        inline  uint64_t get_channel(uint64_t address){
-                return (address&this->channel_bits_mask)>>this->channel_bits_shift;
+        inline uint64_t get_channel(uint64_t addr) {
+            return (addr & this->channel_bits_mask) >> this->channel_bits_shift;
         }
+
         // ==========================================================================
         memory_controller_t();
         ~memory_controller_t();

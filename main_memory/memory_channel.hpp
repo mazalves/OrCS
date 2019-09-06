@@ -7,8 +7,8 @@ class memory_channel_t {
         uint64_t rank_bits_mask;
         uint64_t bank_bits_mask;
         uint64_t row_bits_mask;
-        uint64_t col_row_bits_mask;
-        uint64_t col_byte_bits_mask;
+        uint64_t colrow_bits_mask;
+        uint64_t colbyte_bits_mask;
         
         // Shifts bits
         uint64_t channel_bits_shift;
@@ -16,6 +16,7 @@ class memory_channel_t {
         uint64_t colrow_bits_shift;
         uint64_t bank_bits_shift;
         uint64_t row_bits_shift;
+        uint64_t controller_bits_shift;
 
         /// Keep track of the last command in each bank
         memory_controller_command_t *bank_last_command; /// Last command sent to each bank
@@ -39,6 +40,7 @@ class memory_channel_t {
         uint32_t RANK;
         uint32_t BANK;
         uint32_t BANK_BUFFER_SIZE;
+        uint32_t BANK_ROW_BUFFER_SIZE;
         uint32_t CHANNEL;
         uint32_t ROW_BUFFER;
         uint32_t LINE_SIZE;
@@ -65,12 +67,12 @@ class memory_channel_t {
         uint32_t WRITE_PRIORITY_SERVICE_AT_NO_READ;
 
         // Get channel to access DATA
-        inline  uint64_t get_channel(uint64_t address){
-                return (address&this->channel_bits_mask)>>this->channel_bits_shift;
+        inline uint64_t get_channel(uint64_t addr) {
+            return (addr & this->channel_bits_mask) >> this->channel_bits_shift;
         }
-        // get memory bank accessed
-        inline  uint64_t get_bank(uint64_t address){
-            return (address&this->bank_bits_mask)>>this->bank_bits_shift;
+
+        inline uint64_t get_bank(uint64_t addr) {
+            return (addr & this->bank_bits_mask) >> this->bank_bits_shift;
         }
         //get row accessed
         inline uint64_t get_row(uint64_t address){
@@ -95,8 +97,8 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD (uint64_t, rank_bits_mask)
         INSTANTIATE_GET_SET_ADD (uint64_t, bank_bits_mask)
         INSTANTIATE_GET_SET_ADD (uint64_t, row_bits_mask)
-        INSTANTIATE_GET_SET_ADD (uint64_t, col_row_bits_mask)
-        INSTANTIATE_GET_SET_ADD (uint64_t, col_byte_bits_mask)
+        INSTANTIATE_GET_SET_ADD (uint64_t, colrow_bits_mask)
+        INSTANTIATE_GET_SET_ADD (uint64_t, colbyte_bits_mask)
         
         // Shifts bits
         INSTANTIATE_GET_SET_ADD (uint64_t, channel_bits_shift)
@@ -112,6 +114,7 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, RANK)
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK)
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK_BUFFER_SIZE)
+        INSTANTIATE_GET_SET_ADD(uint32_t, BANK_ROW_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t, ROW_BUFFER)
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
