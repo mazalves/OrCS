@@ -50,6 +50,9 @@ void cache_manager_t::allocate() {
     set_L2_ASSOCIATIVITY (cfg_root[0]["L2_ASSOCIATIVITY"]);
     set_LLC_ASSOCIATIVITY (cfg_root[0]["LLC_ASSOCIATIVITY"]);
 
+    set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
+    set_MAX_PARALLEL_REQUESTS_CORE (cfg_root[0]["MAX_PARALLEL_REQUESTS_CORE"]);
+
     uint32_t *CACHE_LEVELS = new uint32_t[POINTER_LEVELS];
     CACHE_LEVELS[0] = SIZE_OF_L1_CACHES_ARRAY;
     CACHE_LEVELS[1] = SIZE_OF_L2_CACHES_ARRAY;
@@ -78,6 +81,8 @@ void cache_manager_t::allocate() {
 
     data_cache = new cache_t*[DATA_LEVELS];
     instruction_cache = new cache_t*[INSTRUCTION_LEVELS];
+
+    mshr_index = 0;
 
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         this->data_cache[i] = NULL;
@@ -196,32 +201,36 @@ bool cache_manager_t::isInMSHR (memory_order_buffer_line_t* mob_line){
 }
 
 void cache_manager_t::clock() {
-    // printf("%s\n", "clock");
-    for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if (mshr_table[i]->valid) {
+    if (mshr_table.size() > 0){
+        mshr_index += 1;
+        if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
+        if (mshr_table[mshr_index]->valid) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
-            this->generateIndexArray(mshr_table[i]->requests[0]->processor_id, cache_indexes);
-            this->installCacheLines(mshr_table[i]->requests[0]->memory_address, cache_indexes, mshr_table[i]->latency, DATA);
-            if (mshr_table[i]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
+            this->generateIndexArray(mshr_table[mshr_index]->requests[0]->processor_id, cache_indexes);
+            this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+            if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[i]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
+                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
                 }
-                this->data_cache[0][cache_indexes[0]].write(mshr_table[i]->requests[0]->memory_address);
+                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address);
             }
             
-            for (uint32_t j = 0; j < mshr_table[i]->requests.size(); j++){
-                mshr_table[i]->requests[j]->updatePackageReady (mshr_table[i]->latency);
+            for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++){
+                mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
             }
-            mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[i]), mshr_table.end());
+            mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
         }
         else {
-            if (!mshr_table[i]->issued){
-                orcs_engine.memory_controller->requestDRAM(mshr_table[i], mshr_table[i]->requests[0]->memory_address);
-                mshr_table[i]->issued = true;
+            if (!mshr_table[mshr_index]->issued){
+                orcs_engine.memory_controller->requestDRAM(mshr_table[mshr_index], mshr_table[mshr_index]->requests[0]->memory_address);
+                mshr_table[mshr_index]->issued = true;
             }
         }
     }
+    //for (std::size_t i = 0; i < mshr_table.size(); i++){
+        
+    //}
 }
 
 uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc) {
@@ -254,6 +263,7 @@ uint32_t cache_manager_t::recursiveInstructionSearch(uint64_t instructionAddress
     if (cache_status == HIT) {
         //printf("    Cache %u level %u hit!!!\n", INSTRUCTION, cache_level);
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
+        this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
                 this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]]);
@@ -322,19 +332,19 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
 }
 
 uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
-    uint32_t ttc = 0, latency_request = 0, result = 0;
+    uint32_t ttc = 0, latency_request = 0;
     if (!isInMSHR (mob_line)){
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(mob_line->processor_id, cache_indexes);
         if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
-            result = recursiveDataSearch(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, 0, DATA);
+            recursiveDataSearch(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, 0, DATA);
         }
         else if (mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
-            result = recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
+            recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
         }
         delete[] cache_indexes;
     }
-    return result;
+    return 0;
 }
 
 uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes,

@@ -8,6 +8,7 @@ class cache_t {
         uint64_t cache_hit;
         uint64_t cache_miss;
         uint64_t cache_access;
+        uint64_t cache_eviction;
         uint64_t cache_read;
         uint64_t cache_write;
         uint64_t cache_writeback;
@@ -84,6 +85,7 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_access)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_eviction)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_read)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_write)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)

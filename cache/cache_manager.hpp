@@ -8,6 +8,7 @@ class cache_manager_t {
         uint64_t write_miss;
         uint64_t write_hit;
         uint64_t offset;
+        uint64_t mshr_index;
 
         uint32_t L1_DATA_LATENCY;
         uint32_t L2_LATENCY;
@@ -31,6 +32,9 @@ class cache_manager_t {
         uint32_t L1_DATA_ASSOCIATIVITY;
         uint32_t L2_ASSOCIATIVITY;
         uint32_t LLC_ASSOCIATIVITY;
+
+        uint32_t PARALLEL_LIM_ACTIVE;
+        uint32_t MAX_PARALLEL_REQUESTS_CORE;
 
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
@@ -102,6 +106,8 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_ASSOCIATIVITY)
         INSTANTIATE_GET_SET_ADD(uint32_t,L2_ASSOCIATIVITY)
         INSTANTIATE_GET_SET_ADD(uint32_t,LLC_ASSOCIATIVITY)
+        INSTANTIATE_GET_SET_ADD(uint32_t,PARALLEL_LIM_ACTIVE)
+        INSTANTIATE_GET_SET_ADD(uint32_t,MAX_PARALLEL_REQUESTS_CORE)
         // Prefetcher
         // ==========================================
         prefetcher_t *prefetcher;

@@ -13,6 +13,7 @@ cache_t::cache_t() {
 	this->cache_hit = 0;
     this->cache_miss = 0;
     this->cache_access = 0;
+	this->cache_eviction = 0;
     this->cache_read = 0;
     this->cache_write = 0;
     this->cache_writeback = 0;
@@ -82,6 +83,7 @@ void cache_t::allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cach
     this->set_cache_access(0);
     this->set_cache_hit(0);
     this->set_cache_miss(0);
+	this->set_cache_eviction(0);
     this->set_cache_read(0);
     this->set_cache_write(0);
     this->set_cache_writeback(0);
@@ -274,6 +276,7 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency) {
 	this->sets[idx].lines[line].dirty = 0;
 	this->sets[idx].lines[line].prefetched = 0;
 	this->sets[idx].lines[line].ready_at = orcs_engine.get_global_cycle() + latency;
+	this->add_cache_eviction();
     // printf("    Installed line: %p\n", &this->sets[idx].lines[line]);
 	return &this->sets[idx].lines[line];
 }
@@ -381,6 +384,7 @@ void cache_t::statistics() {
 		fprintf(output, "%d_Cache_Access: %lu\n", this->level, this->get_cache_access());
 		fprintf(output, "%d_Cache_Hits: %lu\n", this->level, this->get_cache_hit());
 		fprintf(output, "%d_Cache_Miss: %lu\n", this->level, this->get_cache_miss());
+		fprintf(output, "%d_Cache_Eviction: %lu\n", this->level, this->get_cache_eviction());
 		fprintf(output, "%d_Cache_Read: %lu\n", this->level, this->get_cache_read());
 		fprintf(output, "%d_Cache_Write: %lu\n", this->level, this->get_cache_write());
 		if(this->get_cache_writeback()!=0){
