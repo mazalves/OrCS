@@ -48,9 +48,11 @@ void cache_manager_t::get_cache_amount(uint32_t *cache_amount, vector<string> ca
     }
 }
 
-void cache_manager_t::allocate() {
+void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+
+    set_NUMBER_OF_PROCESSORS(NUMBER_OF_PROCESSORS);
 
     // Get prefetcher info
     libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
@@ -103,7 +105,7 @@ void cache_manager_t::allocate() {
         this->instruction_cache[i] = new cache_t[ICACHE_AMOUNT[i]];
         check_cache(ICACHE_AMOUNT[i], i);
         for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
-            this->instruction_cache[i][j].allocate();
+            this->instruction_cache[i][j].allocate(NUMBER_OF_PROCESSORS);
         }
     }
 
@@ -151,7 +153,7 @@ void cache_manager_t::allocate() {
         this->data_cache[i] = new cache_t[DCACHE_AMOUNT[i]];
         check_cache(DCACHE_AMOUNT[i], i);
         for (uint32_t j = 0; j < DCACHE_AMOUNT[i]; j++) {
-            this->data_cache[i][j].allocate();
+            this->data_cache[i][j].allocate(NUMBER_OF_PROCESSORS);
         }
     }
 
@@ -165,7 +167,7 @@ void cache_manager_t::allocate() {
     //Allocate Prefetcher
     if (PREFETCHER_ACTIVE){
         this->prefetcher = new prefetcher_t;
-        this->prefetcher->allocate();
+        this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     }
 }
 

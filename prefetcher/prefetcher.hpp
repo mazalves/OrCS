@@ -25,7 +25,7 @@ class prefetcher_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,totalCycleLate)
         INSTANTIATE_GET_SET_ADD(uint32_t,PARALLEL_PREFETCH)
 
-        void allocate();
+        void allocate(uint32_t NUMBER_OF_PROCESSORS);
         void statistics();
         void prefecht(memory_order_buffer_line_t *mob_line,cache_t *cache);//endereco cache alvo
 };

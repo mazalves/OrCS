@@ -35,6 +35,8 @@ class cache_manager_t {
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
 
+        uint32_t NUMBER_OF_PROCESSORS;
+
         // uint32_t *ICACHE_LATENCY;
         // uint32_t *DCACHE_LATENCY;
 
@@ -66,7 +68,7 @@ class cache_manager_t {
         // Desctructor
         ~cache_manager_t();
 
-        void allocate();
+        void allocate(uint32_t NUMBER_OF_PROCESSORS);
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
@@ -93,7 +95,9 @@ class cache_manager_t {
         // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t,POINTER_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
-        INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
+        INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
 
         // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L1)     // Numero de caches L1
         // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L2)     // Numero de caches L2

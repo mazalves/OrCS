@@ -74,7 +74,7 @@ class cache_t {
 
         void statistics();
         // void cacheStatsAllocation(uint32_t cache_level, uint32_t cache_sets, uint32_t cache_associativity);
-        void allocate();//allocate data structure
+        void allocate(uint32_t NUMBER_OF_PROCESSORS);//allocate data structure
         void writeBack(line_t *line); //makes writeback of line
         void returnLine(uint64_t address, cache_t *cache);//return line from lower cache level
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address

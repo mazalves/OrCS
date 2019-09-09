@@ -25,7 +25,7 @@ cache_t::~cache_t(){
 }
 
 // Allocate each cache type
-void cache_t::allocate() {
+void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 

@@ -130,20 +130,19 @@ class processor_t {
 
 	uint32_t LINE_SIZE;
 
-	uint32_t L1_DATA_SIZE;
-	uint32_t ASSOCIATIVITY_L1D;
-	uint32_t LATENCY_L1D;
-	uint32_t L1_DATA_SETS;
+	uint32_t DATA_CACHES;
+	uint32_t *DATA_SIZE;
+	uint32_t *DATA_ASSOCIATIVITY;
+	uint32_t *DATA_LATENCY;
+	uint32_t *DATA_SETS;
+	char **DATA_LABEL;
 	// I$
-	uint32_t L1_INST_SIZE;
-	uint32_t ASSOCIATIVITY_L1I;
-	uint32_t LATENCY_L1I;
-	uint32_t L1_INST_SETS;
-
-	uint32_t LLC_SIZE;
-	uint32_t ASSOCIATIVITY_LLCD;
-	uint32_t LATENCY_LLCD;
-	uint32_t LLC_SETS;
+	uint32_t INSTRUCTION_CACHES;
+	uint32_t *INST_SIZE;
+	uint32_t *INST_ASSOCIATIVITY;
+	uint32_t *INST_LATENCY;
+	uint32_t *INST_SETS;
+	char **INST_LABEL;
 
 	uint32_t RAM_LATENCY;
 	uint32_t PARALLEL_LIM_ACTIVE;
@@ -200,9 +199,10 @@ class processor_t {
 	    void clock();
 		void statistics();
 		void printConfiguration();
-		// ====================================================================
-		// ROB RELATED	
-		void update_registers(reorder_buffer_line_t *robLine);
+		void printCache(FILE *output);
+			// ====================================================================
+			// ROB RELATED
+			void update_registers(reorder_buffer_line_t *robLine);
 		void solve_registers_dependency(reorder_buffer_line_t *rob_line);
 		int32_t searchPositionROB();
 		void removeFrontROB();
@@ -421,20 +421,20 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
 
-		INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SIZE)
-		INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
-		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
-		INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SETS)
-		// I$
-		INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SIZE)
-		INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
-		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1I)
-		INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SETS)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SIZE)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SETS)
+		// // I$
+		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SIZE)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1I)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SETS)
 
-		INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SIZE)
-		INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
-		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
-		INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SETS)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SIZE)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
+		// INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SETS)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,RAM_LATENCY)
 		INSTANTIATE_GET_SET_ADD(uint32_t,PARALLEL_LIM_ACTIVE)

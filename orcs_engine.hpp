@@ -43,8 +43,8 @@ class orcs_engine_t {
 		/// Methods
 		// ====================================================================
 		orcs_engine_t();
-		void allocate();
-		bool get_simulation_alive();
+		void allocate(uint32_t NUMBER_OF_PROCESSORS);
+        bool get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS);
         uint64_t get_global_cycle() {
             return this->global_cycle;
         };

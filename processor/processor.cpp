@@ -66,113 +66,165 @@ processor_t::~processor_t()
 void processor_t::allocate()
 {
 	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-	set_FETCH_WIDTH (cfg_root[0]["FETCH_WIDTH"]);
-	set_DECODE_WIDTH (cfg_root[0]["DECODE_WIDTH"]);
-	set_RENAME_WIDTH (cfg_root[0]["RENAME_WIDTH"]);
-	set_DISPATCH_WIDTH (cfg_root[0]["DISPATCH_WIDTH"]);
-	set_EXECUTE_WIDTH (cfg_root[0]["EXECUTE_WIDTH"]);
-	set_COMMIT_WIDTH (cfg_root[0]["COMMIT_WIDTH"]);
 
-	set_FETCH_LATENCY (cfg_root[0]["FETCH_LATENCY"]);
-	set_DECODE_LATENCY (cfg_root[0]["DECODE_LATENCY"]);
-	set_RENAME_LATENCY (cfg_root[0]["RENAME_LATENCY"]);
-	set_DISPATCH_LATENCY (cfg_root[0]["DISPATCH_LATENCY"]);
-	set_EXECUTE_LATENCY (cfg_root[0]["EXECUTE_LATENCY"]);
-	set_COMMIT_LATENCY (cfg_root[0]["COMMIT_LATENCY"]);
+	// Processor defaults
+	libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];
 
-	set_LATENCY_INTEGER_ALU (cfg_root[0]["LATENCY_INTEGER_ALU"]);
-	set_WAIT_NEXT_INT_ALU (cfg_root[0]["WAIT_NEXT_INT_ALU"]);
-	set_INTEGER_ALU (cfg_root[0]["INTEGER_ALU"]);
-	// INTEGER MUL
-	set_LATENCY_INTEGER_MUL (cfg_root[0]["LATENCY_INTEGER_MUL"]);
-	set_WAIT_NEXT_INT_MUL (cfg_root[0]["WAIT_NEXT_INT_MUL"]);
-	set_INTEGER_MUL (cfg_root[0]["INTEGER_MUL"]);
-	// INTEGER DIV
-	set_LATENCY_INTEGER_DIV (cfg_root[0]["LATENCY_INTEGER_DIV"]);
-	set_WAIT_NEXT_INT_DIV (cfg_root[0]["WAIT_NEXT_INT_DIV"]);
-	set_INTEGER_DIV (cfg_root[0]["INTEGER_DIV"]);
+	set_FETCH_WIDTH (cfg_processor["FETCH_WIDTH"]);
+	set_DECODE_WIDTH (cfg_processor["DECODE_WIDTH"]);
+	set_RENAME_WIDTH (cfg_processor["RENAME_WIDTH"]);
+	set_DISPATCH_WIDTH (cfg_processor["DISPATCH_WIDTH"]);
+	set_EXECUTE_WIDTH (cfg_processor["EXECUTE_WIDTH"]);
+	set_COMMIT_WIDTH (cfg_processor["COMMIT_WIDTH"]);
+
+	set_FETCH_LATENCY (cfg_processor["FETCH_LATENCY"]);
+	set_DECODE_LATENCY (cfg_processor["DECODE_LATENCY"]);
+	set_RENAME_LATENCY (cfg_processor["RENAME_LATENCY"]);
+	set_DISPATCH_LATENCY (cfg_processor["DISPATCH_LATENCY"]);
+	set_EXECUTE_LATENCY (cfg_processor["EXECUTE_LATENCY"]);
+	set_COMMIT_LATENCY (cfg_processor["COMMIT_LATENCY"]);
+
+	set_LATENCY_INTEGER_ALU (cfg_processor["LATENCY_INTEGER_ALU"]);
+	set_WAIT_NEXT_INT_ALU (cfg_processor["WAIT_NEXT_INT_ALU"]);
+	set_INTEGER_ALU (cfg_processor["INTEGER_ALU"]);
+
+	set_LATENCY_INTEGER_MUL (cfg_processor["LATENCY_INTEGER_MUL"]);
+	set_WAIT_NEXT_INT_MUL (cfg_processor["WAIT_NEXT_INT_MUL"]);
+	set_INTEGER_MUL (cfg_processor["INTEGER_MUL"]);
+
+	set_LATENCY_INTEGER_DIV (cfg_processor["LATENCY_INTEGER_DIV"]);
+	set_WAIT_NEXT_INT_DIV (cfg_processor["WAIT_NEXT_INT_DIV"]);
+	set_INTEGER_DIV (cfg_processor["INTEGER_DIV"]);
 
 	set_QTDE_INTEGER_FU (INTEGER_ALU+INTEGER_MUL+INTEGER_DIV);
 
-	//FP ULAS LATENCY 
-	// FLOATING POINT DIV
-	set_LATENCY_FP_DIV (cfg_root[0]["LATENCY_FP_DIV"]);
-	set_WAIT_NEXT_FP_DIV (cfg_root[0]["WAIT_NEXT_FP_DIV"]);
-	set_FP_DIV (cfg_root[0]["FP_DIV"]);
-	// FLOATING POINT MUL
-	set_LATENCY_FP_MUL (cfg_root[0]["LATENCY_FP_MUL"]);
-	set_WAIT_NEXT_FP_MUL (cfg_root[0]["WAIT_NEXT_FP_MUL"]);
-	set_FP_MUL (cfg_root[0]["FP_MUL"]);
-	// FLOATING POINT ALU
-	set_LATENCY_FP_ALU (cfg_root[0]["LATENCY_FP_ALU"]);
-	set_WAIT_NEXT_FP_ALU (cfg_root[0]["WAIT_NEXT_FP_ALU"]);
-	set_FP_ALU (cfg_root[0]["FP_ALU"]);
+	set_LATENCY_FP_DIV (cfg_processor["LATENCY_FP_DIV"]);
+	set_WAIT_NEXT_FP_DIV (cfg_processor["WAIT_NEXT_FP_DIV"]);
+	set_FP_DIV (cfg_processor["FP_DIV"]);
+
+	set_LATENCY_FP_MUL (cfg_processor["LATENCY_FP_MUL"]);
+	set_WAIT_NEXT_FP_MUL (cfg_processor["WAIT_NEXT_FP_MUL"]);
+	set_FP_MUL (cfg_processor["FP_MUL"]);
+
+	set_LATENCY_FP_ALU (cfg_processor["LATENCY_FP_ALU"]);
+	set_WAIT_NEXT_FP_ALU (cfg_processor["WAIT_NEXT_FP_ALU"]);
+	set_FP_ALU (cfg_processor["FP_ALU"]);
 
 	set_QTDE_FP_FU (FP_ALU+FP_MUL+FP_DIV);
 
-	set_PARALLEL_LOADS (cfg_root[0]["PARALLEL_LOADS"]);
-	set_PARALLEL_STORES (cfg_root[0]["PARALLEL_STORES"]);
+	set_PARALLEL_LOADS (cfg_processor["PARALLEL_LOADS"]);
+	set_PARALLEL_STORES (cfg_processor["PARALLEL_STORES"]);
 
-	set_FETCH_BUFFER (cfg_root[0]["FETCH_BUFFER"]);
-	set_DECODE_BUFFER (cfg_root[0]["DECODE_BUFFER"]);
-	set_RAT_SIZE (cfg_root[0]["RAT_SIZE"]);
-	set_ROB_SIZE (cfg_root[0]["ROB_SIZE"]);
-	set_UNIFIED_RS (cfg_root[0]["UNIFIED_RS"]);
-	//MOB
-	set_MOB_READ (cfg_root[0]["MOB_READ"]);
-	set_MOB_WRITE (cfg_root[0]["MOB_WRITE"]);
-	// =====================
+	set_FETCH_BUFFER (cfg_processor["FETCH_BUFFER"]);
+	set_DECODE_BUFFER (cfg_processor["DECODE_BUFFER"]);
+	set_RAT_SIZE (cfg_processor["RAT_SIZE"]);
+	set_ROB_SIZE (cfg_processor["ROB_SIZE"]);
+	set_UNIFIED_RS (cfg_processor["UNIFIED_RS"]);
 
-	// =====================
-	// MEMORY FU
-	// =====================
+	set_MOB_READ (cfg_processor["MOB_READ"]);
+	set_MOB_WRITE (cfg_processor["MOB_WRITE"]);
+
+	set_DEBUG(cfg_processor["DEBUG"]);
+	set_FETCH_DEBUG(cfg_processor["FETCH_DEBUG"]);
+	set_DECODE_DEBUG(cfg_processor["DECODE_DEBUG"]);
+	set_RENAME_DEBUG(cfg_processor["RENAME_DEBUG"]);
+	set_DISPATCH_DEBUG(cfg_processor["DISPATCH_DEBUG"]);
+	set_EXECUTE_DEBUG(cfg_processor["EXECUTE_DEBUG"]);
+	set_MOB_DEBUG(cfg_processor["MOB_DEBUG"]);
+	set_PRINT_MOB(cfg_processor["PRINT_MOB"]);
+	set_PRINT_ROB(cfg_processor["PRINT_ROB"]);
+	set_COMMIT_DEBUG(cfg_processor["COMMIT_DEBUG"]);
+
+	set_WAIT_CYCLE(cfg_processor["WAIT_CYCLE"]);
 	// Load Units
-	set_LOAD_UNIT (cfg_root[0]["LOAD_UNIT"]);
-	set_WAIT_NEXT_MEM_LOAD (cfg_root[0]["WAIT_NEXT_MEM_LOAD"]);
-	set_LATENCY_MEM_LOAD (cfg_root[0]["LATENCY_MEM_LOAD"]);
+	set_LOAD_UNIT (cfg_processor["LOAD_UNIT"]);
+	set_WAIT_NEXT_MEM_LOAD (cfg_processor["WAIT_NEXT_MEM_LOAD"]);
+	set_LATENCY_MEM_LOAD (cfg_processor["LATENCY_MEM_LOAD"]);
 	// Store Units
-	set_STORE_UNIT (cfg_root[0]["STORE_UNIT"]);
-	set_WAIT_NEXT_MEM_STORE (cfg_root[0]["WAIT_NEXT_MEM_STORE"]);
-	set_LATENCY_MEM_STORE (cfg_root[0]["LATENCY_MEM_STORE"]);
+	set_STORE_UNIT (cfg_processor["STORE_UNIT"]);
+	set_WAIT_NEXT_MEM_STORE (cfg_processor["WAIT_NEXT_MEM_STORE"]);
+	set_LATENCY_MEM_STORE (cfg_processor["LATENCY_MEM_STORE"]);
 
 	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT);
 
-	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
+	// Cache memory defaults
+	libconfig::Setting &cfg_cache_mem = cfg_root[0]["CACHE_MEMORY"];
+	set_LINE_SIZE(cfg_cache_mem[0]["LINE_SIZE"]);
 
-	set_L1_DATA_SIZE (32*KILO);
-	set_ASSOCIATIVITY_L1D(cfg_root[0]["ASSOCIATIVITY_L1D"]);
-	set_LATENCY_L1D(cfg_root[0]["LATENCY_L1D"]);
-	set_L1_DATA_SETS ((L1_DATA_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1D);
-	// I$
-	set_L1_INST_SIZE (32*KILO);
-	set_ASSOCIATIVITY_L1I(cfg_root[0]["ASSOCIATIVITY_L1I"]);
-	set_LATENCY_L1I(cfg_root[0]["LATENCY_L1I"]);
-	set_L1_INST_SETS ((L1_INST_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1I);
+	// Get the list of intruction caches
+	libconfig::Setting &cfg_inst_caches = cfg_cache_mem["INSTRUCTION"];
+	uint32_t INSTRUCTION_CACHES = cfg_inst_caches.getLength();
+	INST_ASSOCIATIVITY = new uint32_t[INSTRUCTION_CACHES];
+	INST_LATENCY = new uint32_t[INSTRUCTION_CACHES];
+	INST_SIZE = new uint32_t[INSTRUCTION_CACHES];
+	INST_SETS = new uint32_t[INSTRUCTION_CACHES];
+	INST_LABEL = new char*[INSTRUCTION_CACHES];
 
-	set_LLC_SIZE (20*MEGA);
-	set_ASSOCIATIVITY_LLCD(cfg_root[0]["ASSOCIATIVITY_LLCD"]);
-	set_LATENCY_LLCD(cfg_root[0]["LATENCY_LLCD"]);
-	set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/ASSOCIATIVITY_LLCD);
+	// Get information of each instruction cache
+	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
+		libconfig::Setting &cfg_inst_cache = cfg_inst_caches[i];
+		try {
+			INST_ASSOCIATIVITY[i] = cfg_inst_cache["ASSOCIATIVITY"];
+			INST_LATENCY[i] = cfg_inst_cache["LATENCY"];
+			INST_SIZE[i] = cfg_inst_cache["SIZE"];
+			INST_SETS[i] = ((INST_SIZE[i]/ LINE_SIZE) / INST_ASSOCIATIVITY[i]);
+			strcpy(INST_LABEL[i], cfg_inst_cache["LABEL"]);
+		}
+		catch (int e) {
+			cout << "An exception occurred. Exception Nr. " << e << '\n';
+		}
+	}
 
-	set_RAM_LATENCY (cfg_root[0]["RAM_LATENCY"]);
-	set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
-	set_MAX_PARALLEL_REQUESTS_CORE (cfg_root[0]["MAX_PARALLEL_REQUESTS_CORE"]);
+	libconfig::Setting &cfg_data_caches = cfg_cache_mem["DATA"];
+	uint32_t DATA_CACHES = cfg_data_caches.getLength();
+	DATA_ASSOCIATIVITY = new uint32_t[DATA_CACHES];
+	DATA_LATENCY = new uint32_t[DATA_CACHES];
+	DATA_SIZE = new uint32_t[DATA_CACHES];
+	DATA_SETS = new uint32_t[DATA_CACHES];
+	DATA_LABEL = new char*[DATA_CACHES];
 
-	set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
-	set_DESAMBIGUATION_ENABLED (cfg_root[0]["DESAMBIGUATION_ENABLED"]);
+	// Get information of each instruction cache
+	for (uint32_t i = 0; i < DATA_CACHES; i++) {
+		libconfig::Setting &cfg_data_cache = cfg_data_caches[i];
+		try {
+			DATA_ASSOCIATIVITY[i] = cfg_data_cache["ASSOCIATIVITY"];
+			DATA_LATENCY[i] = cfg_data_cache["LATENCY"];
+			DATA_SIZE[i] = cfg_data_cache["SIZE"];
+			DATA_SETS[i] = ((DATA_SIZE[i] / LINE_SIZE) / DATA_ASSOCIATIVITY[i]);
+			strcpy(DATA_LABEL[i], cfg_data_cache["LABEL"]);
+		}
+		catch (int e) {
+			cout << "An exception occurred. Exception Nr. " << e << '\n';
+		}
+	}
 
-	set_DEBUG (cfg_root[0]["DEBUG"]);
-	set_FETCH_DEBUG (cfg_root[0]["FETCH_DEBUG"]);
-	set_DECODE_DEBUG (cfg_root[0]["DECODE_DEBUG"]);
-	set_RENAME_DEBUG (cfg_root[0]["RENAME_DEBUG"]);
-	set_DISPATCH_DEBUG (cfg_root[0]["DISPATCH_DEBUG"]);
-	set_EXECUTE_DEBUG (cfg_root[0]["EXECUTE_DEBUG"]);
-	set_MOB_DEBUG (cfg_root[0]["MOB_DEBUG"]);
-	set_PRINT_MOB (cfg_root[0]["PRINT_MOB"]);
-	set_PRINT_ROB (cfg_root[0]["PRINT_ROB"]);
-	set_COMMIT_DEBUG (cfg_root[0]["COMMIT_DEBUG"]);
+	// set_L1_DATA_SIZE (32*KILO);
+	// set_ASSOCIATIVITY_L1D(cfg_root[0]["ASSOCIATIVITY_L1D"]);
+	// set_LATENCY_L1D(cfg_root[0]["LATENCY_L1D"]);
+	// set_L1_DATA_SETS ((L1_DATA_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1D);
+	// // I$
+	// set_L1_INST_SIZE (32*KILO);
+	// set_ASSOCIATIVITY_L1I(cfg_root[0]["ASSOCIATIVITY_L1I"]);
+	// set_LATENCY_L1I(cfg_root[0]["LATENCY_L1I"]);
+	// set_L1_INST_SETS ((L1_INST_SIZE/LINE_SIZE)/ASSOCIATIVITY_L1I);
 
-	set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
+	// set_LLC_SIZE (20*MEGA);
+	// set_ASSOCIATIVITY_LLCD(cfg_root[0]["ASSOCIATIVITY_LLCD"]);
+	// set_LATENCY_LLCD(cfg_root[0]["LATENCY_LLCD"]);
+	// set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/ASSOCIATIVITY_LLCD);
+
+	// Memory controller defaults
+	libconfig::Setting &cfg_memory = cfg_root[0]["MEMORY_CONTROLLER"];
+
+	set_RAM_LATENCY(cfg_memory["RAM_LATENCY"]);
+	set_PARALLEL_LIM_ACTIVE(cfg_memory["PARALLEL_LIM_ACTIVE"]);
+	set_MAX_PARALLEL_REQUESTS_CORE(cfg_memory["MAX_PARALLEL_REQUESTS_CORE"]);
+
+	// Prefetcher defaults
+	libconfig::Setting &cfg_prefetcher = cfg_root[0]["PREFETCHER"];
+
+	set_PREFETCHER_ACTIVE(cfg_prefetcher["PREFETCHER_ACTIVE"]);
+	set_DESAMBIGUATION_ENABLED(cfg_prefetcher["DESAMBIGUATION_ENABLED"]);
 	//======================================================================
 	// Initializating variables
 	//======================================================================
@@ -1790,6 +1842,23 @@ void processor_t::statistics(){
 	if(close) fclose(output);
 	this->desambiguator->statistics();
 }
+
+void processor_t::printCache(FILE *output) {
+	fprintf(output, "===============Instruction $============\n");
+	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
+		fprintf(output, "%s SIZE -> %u\n", INST_LABEL[i], INST_SIZE[i]);
+		fprintf(output, "%s ASSOCIATIVITY -> %u\n", INST_LABEL[i], INST_ASSOCIATIVITY[i]);
+		fprintf(output, "%s LATENCY -> %u\n", INST_LABEL[i], INST_LATENCY[i]);
+		fprintf(output, "%s SETS -> %u\n\n", INST_LABEL[i], INST_SETS[i]);
+	}
+	fprintf(output, "==================Data $================\n");
+	for (uint32_t i = 0; i < DATA_CACHES; i++) {
+		fprintf(output, "%s SIZE -> %u\n", DATA_LABEL[i], DATA_SIZE[i]);
+		fprintf(output, "%s ASSOCIATIVITY -> %u\n", DATA_LABEL[i], DATA_ASSOCIATIVITY[i]);
+		fprintf(output, "%s LATENCY -> %u\n", DATA_LABEL[i], DATA_LATENCY[i]);
+		fprintf(output, "%s SETS -> %u\n\n", DATA_LABEL[i], DATA_SETS[i]);
+	}
+}
 // ============================================================================
 void processor_t::printConfiguration(){
 	FILE *output = fopen(orcs_engine.output_file_name, "a+");
@@ -1812,21 +1881,7 @@ void processor_t::printConfiguration(){
 		fprintf(output, "MOB Write->%u\n", MOB_WRITE);
 		fprintf(output, "Reservation Station->%u\n", UNIFIED_RS);
 		fprintf(output, "===============Memory Configuration============\n");
-		fprintf(output, "===============Instruction $============\n");
-		fprintf(output, "L1_INST_SIZE ->%u\n", L1_INST_SIZE);
-		fprintf(output, "ASSOCIATIVITY_L1I ->%u\n", ASSOCIATIVITY_L1I);
-		fprintf(output, "LATENCY_L1I ->%u\n", LATENCY_L1I);
-		fprintf(output, "L1_INST_SETS ->%u\n", L1_INST_SETS);
-		fprintf(output, "===============Data $ L1============\n");
-		fprintf(output, "L1_DATA_SIZE ->%u\n", L1_DATA_SIZE);
-		fprintf(output, "ASSOCIATIVITY_L1D ->%u\n", ASSOCIATIVITY_L1D);
-		fprintf(output, "LATENCY_L1D ->%u\n", LATENCY_L1D);
-		fprintf(output, "L1_DATA_SETS ->%u\n", L1_DATA_SETS);
-		fprintf(output, "===============LLC ============\n");
-		fprintf(output, "LLC_SIZE ->%u\n", LLC_SIZE);
-		fprintf(output, "ASSOCIATIVITY_LLCD ->%u\n", ASSOCIATIVITY_LLCD);
-		fprintf(output, "LATENCY_LLCD ->%u\n", LATENCY_LLCD);
-		fprintf(output, "LLC_SETS ->%u\n", LLC_SETS);
+		printCache(output);
 		fprintf(output, "=============== PREFETCHER ============\n");
 		fprintf(output, "PREFETCHER_ACTIVE ->%u\n", PREFETCHER_ACTIVE);
 

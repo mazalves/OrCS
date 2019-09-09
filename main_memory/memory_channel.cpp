@@ -2,7 +2,7 @@
 
 memory_channel_t::memory_channel_t(){
     libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_memory_ctrl = cfg_root[0];
+    libconfig::Setting &cfg_memory_ctrl = cfg_root[0]["MEMORY_CONTROLLER"];
 
     set_RANK(cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);

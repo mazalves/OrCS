@@ -13,7 +13,7 @@ static void display_use() {
 }
 
 // =============================================================================
-static void process_argv(int argc, char **argv) {
+static void process_argv(int argc, char **argv, int32_t NUMBER_OF_PROCESSORS) {
 
     // Name, {no_argument, required_argument and optional_argument}, flag, value
     static struct option long_options[] = {
@@ -72,7 +72,7 @@ static void process_argv(int argc, char **argv) {
     }
 
 }
-std::string get_status_execution(){
+std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){   
     std::string final_report;
     char report[1000];
     // Data - Atual,total, active cores
@@ -163,15 +163,19 @@ std::string get_status_execution(){
 
 // =============================================================================
 int main(int argc, char **argv) {
+
+    libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+    uint32_t NUMBER_OF_PROCESSORS = (cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
+
     // process args
-    process_argv(argc, argv);
+    process_argv(argc, argv, NUMBER_OF_PROCESSORS);
     /// Call all the allocate's
-    orcs_engine.allocate();
-    
+    orcs_engine.allocate(NUMBER_OF_PROCESSORS);
+
     //==================
     //Cache Manager
     //==================
-    orcs_engine.cacheManager->allocate();
+    orcs_engine.cacheManager->allocate(NUMBER_OF_PROCESSORS);
     //==================
     //Memory Controller
     //==================
@@ -199,10 +203,10 @@ int main(int argc, char **argv) {
 
 
     /// Start CLOCK for all the components
-    while (orcs_engine.get_simulation_alive()) {
+    while (orcs_engine.get_simulation_alive(NUMBER_OF_PROCESSORS)) {
         #if HEARTBEAT
             if(orcs_engine.get_global_cycle()%HEARTBEAT_CLOCKS==0){
-                ORCS_PRINTF("%s\n",get_status_execution().c_str())
+                ORCS_PRINTF("%s\n",get_status_execution(NUMBER_OF_PROCESSORS).c_str())
             }
         #endif
         orcs_engine.memory_controller->clock();

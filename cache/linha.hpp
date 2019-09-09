@@ -17,25 +17,30 @@ class line_t {
         line_t ***line_ptr_caches;
         line_t ***line_ptr_emc;
 
+        uint32_t NUMBER_OF_PROCESSORS;
         uint32_t INSTRUCTION_LEVELS;
         uint32_t DATA_LEVELS;
         uint32_t POINTER_LEVELS;
 
         INSTANTIATE_GET_SET_ADD (uint32_t, INSTRUCTION_LEVELS)
-        INSTANTIATE_GET_SET_ADD (uint32_t, DATA_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
 
         // Constructor
         line_t() {
             this->clean_line();
-            
-            libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-            set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
-	        set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
-            POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+
+            // libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+            // libconfig::Setting &cfg_cache = cfg_root["CACHE_MEMORY"];
+            // set_INSTRUCTION_LEVELS(cfg_cache["INSTRUCTION"]);
+            // set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
+            // POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
         }
 
         // Desctructor
         ~line_t() {
+            libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+            set_NUMBER_OF_PROCESSORS(cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line_ptr_caches[i];
             delete[] line_ptr_caches;
         }
