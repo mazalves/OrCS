@@ -19,7 +19,7 @@ memory_controller_t::~memory_controller_t(){
 // @allocate objects to EMC
 void memory_controller_t::allocate(){
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
+    libconfig::Setting &cfg_memory_ctrl = cfg_root[0];
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);

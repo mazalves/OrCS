@@ -16,7 +16,7 @@ branch_predictor_t::~branch_predictor_t(){
 }
 void branch_predictor_t::allocate(){
 	libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-	libconfig::Setting &cfg_branch_pred = cfg_root["PROCESSOR"]["BRANCH_PREDICTOR"];
+	libconfig::Setting &cfg_branch_pred = cfg_root[0]["PROCESSOR"];
 	set_BTB_ENTRIES(cfg_branch_pred["BTB_ENTRIES"]);
 	set_BTB_WAYS(cfg_branch_pred["BTB_WAYS"]);
 	set_BTB_MISS_PENALITY(cfg_branch_pred["BTB_MISS_PENALITY"]);

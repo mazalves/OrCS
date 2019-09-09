@@ -3,6 +3,7 @@
 // Constructor
 cache_t::cache_t() {
     this->id = 0;
+	this->label = NULL;
     this->level = 0;
     this->size = 0;
     this->latency = 0;
@@ -24,25 +25,26 @@ cache_t::~cache_t(){
 }
 
 // Allocate each cache type
-void cache_t::allocate(cacheId_t cache_type, char16_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency) {
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-	set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
-        
-    set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
+void cache_t::allocate() {
+    // Access configure file
+    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 
-	set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
-	set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
-	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
-    set_CACHE_MANAGER_DEBUG (cfg_root[0]["CACHE_MANAGER_DEBUG"]);
-    set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
+    // Get prefetcher info
+    libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
+    set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
+
+    // Get general cache info
+ 	libconfig::Setting &cfg_cache_defs = cfg_root[0];
+    set_WAIT_CYCLE(cfg_cache_defs[0]["WAIT_CYCLE"]);
+ 
+	// set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
+	// set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
+	// POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+	POINTER_LEVELS = 3;
+	set_DATA_LEVELS(3);
+	set_INSTRUCTION_LEVELS(1);
 	
-    this->id = cache_type;
-    this->level = cache_level;
-    this->size = cache_size;
-    this->n_sets = (cache_size / LINE_SIZE) / cache_associativity;
-    this->latency = cache_latency;
-    this->associativity = cache_associativity;
-    this->offset = utils_t::get_power_of_two(LINE_SIZE);
+    // this->offset = utils_t::get_power_of_two(LINE_SIZE);
     this->sets = new cacheSet_t[this->n_sets];
     for (size_t i = 0; i < this->n_sets; i++) {
         this->sets[i].lines = new line_t[this->associativity];

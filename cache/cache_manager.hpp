@@ -9,9 +9,9 @@ class cache_manager_t {
         uint64_t write_hit;
         uint64_t offset;
 
-        uint32_t LATENCY_L1D;
-        uint32_t LATENCY_L2D;
-        uint32_t LATENCY_LLCD;
+        // uint32_t LATENCY_L1D;
+        // uint32_t LATENCY_L2D;
+        // uint32_t LATENCY_LLCD;
         uint32_t LINE_SIZE;
 
         uint32_t PREFETCHER_ACTIVE;
@@ -23,27 +23,29 @@ class cache_manager_t {
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
 
-        uint32_t CACHE_ARRAY_L1;     // Numero de caches L1
-        uint32_t CACHE_ARRAY_L2;     // Numero de caches L2
-        uint32_t CACHE_ARRAY_LLC;
+        // uint32_t CACHE_ARRAY_L1;     // Numero de caches L1
+        // uint32_t CACHE_ARRAY_L2;     // Numero de caches L2
+        // uint32_t CACHE_ARRAY_LLC;
 
-        uint32_t ASSOCIATIVITY_L1I;
-        uint32_t ASSOCIATIVITY_L1D;
-        uint32_t ASSOCIATIVITY_L2D;
-        uint32_t ASSOCIATIVITY_LLCD;
+        // uint32_t ASSOCIATIVITY_L1I;
+        // uint32_t ASSOCIATIVITY_L1D;
+        // uint32_t ASSOCIATIVITY_L2D;
+        // uint32_t ASSOCIATIVITY_LLCD;
 
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
 
-        uint32_t *ICACHE_LATENCY;
-        uint32_t *DCACHE_LATENCY;
+        // uint32_t *ICACHE_LATENCY;
+        // uint32_t *DCACHE_LATENCY;
 
-        uint32_t *ICACHE_ASSOCIATIVITY;
-        uint32_t *DCACHE_ASSOCIATIVITY;
+        // uint32_t *ICACHE_ASSOCIATIVITY;
+        // uint32_t *DCACHE_ASSOCIATIVITY;
 
         std::vector<mshr_entry_t*> mshr_table;
 
         void check_cache(uint32_t cache_size, uint32_t cache_level);
+        void get_cache_amount(uint32_t *cache_amount, vector<string> cache_levels, cache_t *caches, int32_t caches_amount);
+        void get_cache_levels(vector<string> cache_levels, cache_t *cache, uint32_t cache_amount);
         mshr_entry_t* add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
@@ -79,9 +81,9 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
 
-        INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
-        INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L2D)
-        INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L2D)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
 
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
@@ -93,14 +95,14 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
 
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L1)     // Numero de caches L1
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L2)     // Numero de caches L2
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_LLC)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L1)     // Numero de caches L1
+        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L2)     // Numero de caches L2
+        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_LLC)
 
-        INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
-        INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
-        INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L2D)
-        INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L2D)
+        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
         // Prefetcher
         // ==========================================
         prefetcher_t *prefetcher;

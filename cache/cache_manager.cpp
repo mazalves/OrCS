@@ -1,5 +1,6 @@
 #include "./../simulator.hpp"
-
+#include <string>
+using namespace std;
 // Constructor
 cache_manager_t::cache_manager_t(){
 }
@@ -21,34 +22,30 @@ void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
     }
 }
 
-char16_t cache_manager_t::get_cache_levels(cache_t cache, uint32_t cache_amount) {
-    std::vector<char16_t> v_levels;
-    for (int32_t i = 0; i < cache_amount; i++) {
-        if (std::find(v_levels.begin(), v_levels.end(), cache[i]->level) == v_levels.end()) {
-            v_levels.push_back(cache[i]->level);
+void cache_manager_t::get_cache_levels(vector<string> v_levels, cache_t *cache, uint32_t cache_amount) {
+    for (uint32_t i = 0; i < cache_amount; i++) {
+        if (find(v_levels.begin(), v_levels.end(), cache[i].label) == v_levels.end()) {
+            v_levels.push_back(cache[i].label);
         }
     }
-    std::sort(v_levels.begin(), v_levels.end());
+    sort(v_levels.begin(), v_levels.end());
     // char16_t *levels = new[v_levels.size()];
     // for (int32_t i = 0; i < v_levels.size(); i++) {
     //     levels[i] = v_levels[i];
     // }
-    return v_levels;
 }
 
-int32_t *get_cache_amount(vector<char16_t> cache_levels, cache_t caches, int32_t caches_amount) {
-    int32_t *cache_amount = new[cache_levels.size()];
-    for (int32_t i = 0; i < cache_levels.size(); i++) {
+void cache_manager_t::get_cache_amount(uint32_t *cache_amount, vector<string> cache_levels, cache_t *caches, int32_t caches_amount) {
+    for (uint32_t i = 0; i < cache_levels.size(); i++) {
         cache_amount[i] = 0;
     }
-    for (int32_t i = 0; i < cache_levels.size(); i++) {
+    for (uint32_t i = 0; i < cache_levels.size(); i++) {
         for (int32_t j = 0; j < caches_amount; j++) {
-            if (strcmp(cache_levels[i], caches[j]->level) == 0) {
+            if (strcmp(cache_levels[i].c_str(), caches[j].label) == 0) {
                 cache_amount[i]++;
             }
         }
     }
-    return cache_amount;
 }
 
 void cache_manager_t::allocate() {
@@ -56,11 +53,11 @@ void cache_manager_t::allocate() {
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 
     // Get prefetcher info
-    libconfig::Setting &prefetcher_defs = cfg_root["PREFETCHER"];
+    libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
     set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
 
     // Get general cache info
-    libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
+    libconfig::Setting &cfg_cache_defs = cfg_root[0]["CACHE_MEMORY"];
     set_CACHE_MANAGER_DEBUG(cfg_cache_defs[0]["CACHE_MANAGER_DEBUG"]);
     set_WAIT_CYCLE(cfg_cache_defs[0]["WAIT_CYCLE"]);
     set_LINE_SIZE(cfg_cache_defs[0]["LINE_SIZE"]);
@@ -71,27 +68,44 @@ void cache_manager_t::allocate() {
     cache_t **instruction_caches = new cache_t *[INSTRUCTION_CACHES];
 
     // Get information of each instruction cache
-    for (int32_t i = 0; i < INSTRUCTION_CACHES; i++) {
+    for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
         instruction_caches[i] = new cache_t;
 
         libconfig::Setting &cfg_inst_cache = cfg_inst_caches[i];
         try {
             instruction_caches[i]->id = INSTRUCTION;
             instruction_caches[i]->size = cfg_inst_cache["SIZE"];
-            instruction_caches[i]->level = cfg_inst_cache["LABEL"];
+            strcpy(instruction_caches[i]->label, cfg_inst_cache["LABEL"]);
+            // instruction_caches[i]->label = cfg_inst_cache["LABEL"];
             instruction_caches[i]->offset = cfg_inst_cache["OFFSET"];
             instruction_caches[i]->latency = cfg_inst_cache["LATENCY"];
             instruction_caches[i]->associativity = cfg_inst_cache["ASSOCIATIVITY"];
             instruction_caches[i]->n_sets = (instruction_caches[i]->size / LINE_SIZE) / instruction_caches[i]->associativity;
+        } catch (int e) {
+            cout << "An exception occurred. Exception Nr. " << e << '\n';
         }
     }
 
     // Get the number of cache levels
-    std::vector<char16_t> *cache_levels = this->get_cache_levels(instruction_caches, INSTRUCTION_CACHES);
+    vector<string> cache_levels;
+    this->get_cache_levels(cache_levels, *instruction_caches, INSTRUCTION_CACHES);
     // Get the amount of caches in each level
-    int32_t *cache_amount = this->get_cache_amount(cache_levels, instruction_caches, INSTRUCTION_CACHES);
+    ICACHE_AMOUNT = new uint32_t[cache_levels.size()];
+    this->get_cache_amount(ICACHE_AMOUNT, cache_levels, *instruction_caches, INSTRUCTION_CACHES);
     set_INSTRUCTION_LEVELS(cache_levels.size());
     instruction_cache = new cache_t *[INSTRUCTION_LEVELS];
+
+    // for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
+    //     this->instruction_cache[i] = NULL;
+    // }
+
+    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
+        this->instruction_cache[i] = new cache_t[ICACHE_AMOUNT[i]];
+        check_cache(ICACHE_AMOUNT[i], i);
+        for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
+            this->instruction_cache[i][j].allocate();
+        }
+    }
 
     // Get the list of data caches
     libconfig::Setting &cfg_data_caches = cfg_cache_defs["DATA"];
@@ -99,97 +113,45 @@ void cache_manager_t::allocate() {
     cache_t **data_caches = new cache_t *[DATA_CACHES];
 
     // Get information of each data cache
-    for (int32_t i = 0; i < DATA_CACHES; i++)
+    for (uint32_t i = 0; i < DATA_CACHES; i++)
     {
         data_caches[i] = new cache_t;
 
         libconfig::Setting &cfg_data_cache = cfg_data_caches[i];
         try
         {
-            data_caches[i]->id = INSTRUCTION;
+            data_caches[i]->id = DATA;
             data_caches[i]->size = cfg_data_cache["SIZE"];
-            data_caches[i]->level = cfg_data_cache["LABEL"];
+            strcpy(data_caches[i]->label, cfg_data_cache["LABEL"]);
+            // data_caches[i]->label = cfg_data_cache["LABEL"];
             data_caches[i]->offset = cfg_data_cache["OFFSET"];
             data_caches[i]->latency = cfg_data_cache["LATENCY"];
             data_caches[i]->associativity = cfg_data_cache["ASSOCIATIVITY"];
             data_caches[i]->n_sets = (data_caches[i]->size / LINE_SIZE) / data_caches[i]->associativity;
+        } catch (int e) {
+            cout << "An exception occurred. Exception Nr. " << e << '\n';
         }
     }
 
-    std::vector<char16_t> *cache_levels = this->get_cache_levels(data_caches, DATA_CACHES);
+    vector<string> dcache_levels;
+    this->get_cache_levels(dcache_levels, *data_caches, DATA_CACHES);
     // Get the amount of caches in each level
-    int32_t *cache_amount = this->get_cache_amount(cache_levels, data_caches, DATA_CACHES);
-    set_DATA_LEVELS(cache_levels.size());
+    DCACHE_AMOUNT = new uint32_t[dcache_levels.size()];
+    this->get_cache_amount(DCACHE_AMOUNT, dcache_levels, *data_caches, DATA_CACHES);
+    set_DATA_LEVELS(dcache_levels.size());
     data_cache = new cache_t *[DATA_LEVELS];
     
     POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
-    // set_LATENCY_L1D (cfg_root[0]["LATENCY_L1D"]);
-    // set_LATENCY_L2D (cfg_root[0]["LATENCY_L2D"]);
-    // set_LATENCY_LLCD (cfg_root[0]["LATENCY_LLCD"]);
-    // set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
+    // for (uint32_t i = 0; i < DATA_LEVELS; i++) {
+    //     this->data_cache[i] = NULL;
+    // }
 
-    // set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
-
-
-    // set_CACHE_LEVELS (cfg_root[0]["CACHE_LEVELS"]);
-    // set_CACHE_MANAGER_DEBUG (cfg_root[0]["CACHE_MANAGER_DEBUG"]);
-    // set_WAIT_CYCLE(cfg_root[0]["WAIT_CYCLE"]);
-
-    // set_CACHE_ARRAY_L1 (cfg_root[0]["CACHE_ARRAY_L1"]);     // Numero de caches L1
-    // set_CACHE_ARRAY_L2 (cfg_root[0]["CACHE_ARRAY_L2"]);     // Numero de caches L2
-    // set_CACHE_ARRAY_LLC (cfg_root[0]["CACHE_ARRAY_LLC"]);
-    
-    // set_ASSOCIATIVITY_L1I (cfg_root[0]["ASSOCIATIVITY_L1I"]);
-	// set_ASSOCIATIVITY_L1D (cfg_root[0]["ASSOCIATIVITY_L1D"]);
-    // set_ASSOCIATIVITY_L2D (cfg_root[0]["ASSOCIATIVITY_L2D"]);
-    // set_ASSOCIATIVITY_LLCD (cfg_root[0]["ASSOCIATIVITY_LLCD"]);
-
-    // uint32_t *CACHE_LEVELS = new uint32_t[POINTER_LEVELS];
-    // CACHE_LEVELS[0] = CACHE_ARRAY_L1;
-    // CACHE_LEVELS[1] = CACHE_ARRAY_L2;
-    // CACHE_LEVELS[2] = CACHE_ARRAY_LLC;    
-    
-    // ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS];
-    // DCACHE_AMOUNT = new uint32_t[DATA_LEVELS];
-
-    // ICACHE_LATENCY = new uint32_t[INSTRUCTION_LEVELS];
-    // ICACHE_LATENCY[0] = LATENCY_L1D;
-    // DCACHE_LATENCY = new uint32_t[DATA_LEVELS];
-    // DCACHE_LATENCY[0] = LATENCY_L1D;
-    // DCACHE_LATENCY[1] = LATENCY_L2D;
-    // DCACHE_LATENCY[2] = LATENCY_LLCD;
-
-    // ICACHE_ASSOCIATIVITY = new uint32_t[INSTRUCTION_LEVELS];
-    // ICACHE_ASSOCIATIVITY[0] = ASSOCIATIVITY_L1I;
-    // DCACHE_ASSOCIATIVITY = new uint32_t[DATA_LEVELS];
-    // DCACHE_ASSOCIATIVITY[0] = ASSOCIATIVITY_L1D;
-    // DCACHE_ASSOCIATIVITY[1] = ASSOCIATIVITY_L2D;
-    // DCACHE_ASSOCIATIVITY[2] = ASSOCIATIVITY_LLCD;
-
-
-
-    for (uint32_t i = 0; i < DATA_LEVELS; i++) {
-        this->data_cache[i] = NULL;
-        DCACHE_AMOUNT[i] = CACHE_LEVELS[i];
-    }
-    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
-        this->instruction_cache[i] = NULL;
-        ICACHE_AMOUNT[i] = CACHE_LEVELS[i];
-    }
-
-    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
-        this->instruction_cache[i] = new cache_t[ICACHE_AMOUNT[i]];
-        check_cache(ICACHE_AMOUNT[i], i);
-        for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
-            this->instruction_cache[i][j].allocate(INSTRUCTION, i, ICACHE_SIZE[i], ICACHE_ASSOCIATIVITY[i], ICACHE_LATENCY[i]);
-        }
-    }
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         this->data_cache[i] = new cache_t[DCACHE_AMOUNT[i]];
         check_cache(DCACHE_AMOUNT[i], i);
         for (uint32_t j = 0; j < DCACHE_AMOUNT[i]; j++) {
-            this->data_cache[i][j].allocate(DATA, i, DCACHE_SIZE[i], DCACHE_ASSOCIATIVITY[i], DCACHE_LATENCY[i]);
+            this->data_cache[i][j].allocate();
         }
     }
 
