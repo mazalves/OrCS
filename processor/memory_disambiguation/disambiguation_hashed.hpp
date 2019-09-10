@@ -1,5 +1,5 @@
 
-class disambiguation_hashed_t
+class disambiguation_hashed_t: public desambiguation_t
 {
 private:
     uint32_t ROB_SIZE;

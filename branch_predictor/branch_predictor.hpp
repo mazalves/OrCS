@@ -4,6 +4,7 @@ class branch_predictor_t{
         uint32_t BTB_WAYS;
         uint32_t BTB_MISS_PENALITY;
         uint32_t MISSPREDICTION_PENALITY;
+        branch_prediction_method_t BRANCH_PREDICTION_METHOD;
 
     public:
         //===================================   
@@ -11,7 +12,7 @@ class branch_predictor_t{
         //===================================
         btb_t *btb;
         uint32_t btbHits;
-	uint32_t btbMiss;
+	    uint32_t btbMiss;
         //===================================
         // para acesso direto btb
         //===================================
@@ -31,7 +32,7 @@ class branch_predictor_t{
         uint32_t branches;
         uint32_t branchTakenMiss;
         uint32_t branchNotTakenMiss;
-        piecewise_t *branchPredictor;
+        predictor_t *branchPredictor;
 
         //===================================
         //metodos branch predictor

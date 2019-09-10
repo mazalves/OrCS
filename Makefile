@@ -29,8 +29,7 @@ SRC_PACKAGE = 		$(FD_PACKAGE)/opcode_package.cpp $(FD_PACKAGE)/uop_package.cpp
 
 SRC_TRACE_READER = 	trace_reader.cpp
 
-SRC_MEMORY_DISAMBIGUATION = $(FD_PROCESSOR)/$(FD_DISAMBIGUATION)/disambiguation.cpp\
-							$(FD_PROCESSOR)/$(FD_DISAMBIGUATION)/disambiguation_hashed.cpp
+SRC_MEMORY_DISAMBIGUATION = $(FD_PROCESSOR)/$(FD_DISAMBIGUATION)/disambiguation_hashed.cpp
 
 SRC_PROCESSOR =		$(FD_PROCESSOR)/processor.cpp\
 					$(FD_PROCESSOR)/reorder_buffer_line.cpp\

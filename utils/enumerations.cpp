@@ -109,3 +109,12 @@ const char *get_enum_hash_function_char(hash_function_t type)  {
     ERROR_PRINTF("Wrong HASH_FUNCTION\n");
     return "FAIL";
 }
+
+const char *get_enum_request_priority_char (request_priority_t type){
+    switch (type) {
+        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:  return "FIRST_COME_FIRST_SERVE"; break;
+        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST: return "ROW_BUFFER_HITS_FIRST"; break;
+    }
+    ERROR_PRINTF("Wrong REQUEST_PRIORITY\n");
+    return "FAIL";
+}

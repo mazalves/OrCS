@@ -26,28 +26,6 @@ class cache_t {
         uint64_t changeLine;
 
         uint32_t LINE_SIZE;
-
-        uint32_t L1_DATA_SIZE = 32*KILO;
-        uint32_t L1_DATA_ASSOCIATIVITY;
-        uint32_t L1_DATA_LATENCY;
-        uint32_t L1_DATA_SETS;
-
-        uint32_t L1_INST_SIZE = 32*KILO;
-        uint32_t L1_INST_ASSOCIATIVITY;
-        uint32_t L1_INST_LATENCY;
-        uint32_t L1_INST_SETS;
-
-        uint32_t L2_SIZE = 256*KILO;
-        uint32_t L2_ASSOCIATIVITY;
-        uint32_t L2_LATENCY;
-        uint32_t L2_SETS;
-        // ==================== LEVEL 2 =====================
-        // ==================== LLC     =====================
-        uint32_t LLC_SIZE = 20*MEGA;
-        uint32_t LLC_ASSOCIATIVITY;
-        uint32_t LLC_LATENCY;
-        uint32_t LLC_SETS;
-
         uint32_t PREFETCHER_ACTIVE;
 
         uint32_t INSTRUCTION_LEVELS;

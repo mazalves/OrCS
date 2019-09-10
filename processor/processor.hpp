@@ -151,7 +151,8 @@ class processor_t {
 
 	uint32_t PREFETCHER_ACTIVE;
 
-	uint32_t DESAMBIGUATION_ENABLED;
+	uint32_t DISAMBIGUATION_ENABLED;
+	disambiguation_method_t DISAMBIGUATION_METHOD;
 
 	uint32_t DEBUG;
 	uint32_t FETCH_DEBUG;
@@ -255,7 +256,7 @@ class processor_t {
 		// ======================
 		// Memory Order Buffer
 		// ======================
-		desambiguation_t *desambiguator;
+		desambiguation_t *disambiguator;
 		// ======================
 		//READ
 		// ======================
@@ -442,7 +443,7 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
 
-		INSTANTIATE_GET_SET_ADD(uint32_t,DESAMBIGUATION_ENABLED)
+		INSTANTIATE_GET_SET_ADD(uint32_t,DISAMBIGUATION_ENABLED)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
 		INSTANTIATE_GET_SET_ADD(uint32_t,FETCH_DEBUG)

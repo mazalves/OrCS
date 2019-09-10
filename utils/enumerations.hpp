@@ -143,4 +143,26 @@ enum memory_controller_command_t {
 };
 const char *get_enum_memory_controller_command_char(memory_controller_command_t type);
 // ============================================================================
+enum request_priority_t {
+    REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST,
+    REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE
+};
+const char *get_enum_request_priority_char(request_priority_t type);
+// ============================================================================
+enum write_priority_t {
+    WRITE_PRIORITY_DRAIN_WHEN_FULL,
+    WRITE_PRIORITY_SERVICE_AT_NO_READ
+};
+const char *get_enum_write_priority_char(write_priority_t type);
+// ============================================================================
+enum disambiguation_method_t {
+    DISAMBIGUATION_METHOD_HASHED,
+    DISAMBIGUATION_METHOD_PERFECT
+};
+
+enum branch_prediction_method_t {
+    BRANCH_PREDICTION_METHOD_TWO_BIT,
+    BRANCH_PREDICTION_METHOD_PIECEWISE
+};
+// ============================================================================
 #endif

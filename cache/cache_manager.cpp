@@ -36,7 +36,6 @@ void cache_manager_t::allocate() {
 
     set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
 	set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
-    set_CACHE_LEVELS (cfg_root[0]["CACHE_LEVELS"]);
     set_CACHE_MANAGER_DEBUG (cfg_root[0]["CACHE_MANAGER_DEBUG"]);
     set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
     POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);

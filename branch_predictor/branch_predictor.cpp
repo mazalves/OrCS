@@ -3,9 +3,17 @@
 branch_predictor_t::branch_predictor_t(){
     this->btb = NULL;
 	this->branchPredictor = NULL;
+	
+	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	set_BTB_ENTRIES (cfg_root[0]["BTB_ENTRIES"]);
+    set_BTB_WAYS (cfg_root[0]["BTB_WAYS"]);
+    set_BTB_MISS_PENALITY (cfg_root[0]["BTB_MISS_PENALITY"]);
+    set_MISSPREDICTION_PENALITY (cfg_root[0]["MISSPREDICTION_PENALITY"]);
+	if (!strcmp (cfg_root[0]["BRANCH_PREDICTION_METHOD"], "PIECEWISE")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_PIECEWISE;
+	else if (!strcmp (cfg_root[0]["BRANCH_PREDICTION_METHOD"], "TWO_BIT")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_TWO_BIT;
 }
 branch_predictor_t::~branch_predictor_t(){
-	if(this->branchPredictor != NULL){
+	if (this->branchPredictor != NULL){
 		delete this->branchPredictor;
 	}
 
@@ -15,13 +23,7 @@ branch_predictor_t::~branch_predictor_t(){
 	this->branchPredictor = NULL;
 }
 void branch_predictor_t::allocate(){
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-	set_BTB_ENTRIES (cfg_root[0]["BTB_ENTRIES"]);
-    set_BTB_WAYS (cfg_root[0]["BTB_WAYS"]);
-    set_BTB_MISS_PENALITY (cfg_root[0]["BTB_MISS_PENALITY"]);
-    set_MISSPREDICTION_PENALITY (cfg_root[0]["MISSPREDICTION_PENALITY"]);
-
-    uint32_t size  = BTB_ENTRIES/BTB_WAYS;
+	uint32_t size  = BTB_ENTRIES/BTB_WAYS;
     this->btb = new btb_t[size];
 	this->index = 0;
 	this->way = 0;
@@ -30,9 +32,17 @@ void branch_predictor_t::allocate(){
         this->btb[i].btb_entry = new btb_line_t[BTB_WAYS];
     	std::memset(&this->btb[i].btb_entry[0],0,(BTB_WAYS*sizeof(btb_line_t)));
     }
-    //allocate branch predictor
-	this->branchPredictor = new piecewise_t();
-    this->branchPredictor->allocate();
+    switch (this->BRANCH_PREDICTION_METHOD){
+		case BRANCH_PREDICTION_METHOD_PIECEWISE:{
+			this->branchPredictor = new piecewise_t();
+    		this->branchPredictor->allocate();
+			break;
+		}
+		case BRANCH_PREDICTION_METHOD_TWO_BIT:{
+			break;
+		}
+	}
+	
 }
 uint32_t branch_predictor_t::searchLine(uint64_t pc){
 	uint32_t getBits = (BTB_ENTRIES/BTB_WAYS);

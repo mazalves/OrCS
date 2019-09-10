@@ -60,12 +60,9 @@ class memory_channel_t {
         uint32_t TIMING_WR;    // Write Recovery time
         uint32_t TIMING_WTR;
 
-        uint32_t REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
-        uint32_t REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
-
-        uint32_t WRITE_PRIORITY_DRAIN_WHEN_FULL;
-        uint32_t WRITE_PRIORITY_SERVICE_AT_NO_READ;
-
+        request_priority_t REQUEST_PRIORITY;
+        write_priority_t WRITE_PRIORITY;
+        
         // Get channel to access DATA
         inline uint64_t get_channel(uint64_t addr) {
             return (addr & this->channel_bits_mask) >> this->channel_bits_shift;
@@ -133,10 +130,4 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RTP)    // Read To Precharge
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WR)    // Write Recovery time
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WTR)
-
-        INSTANTIATE_GET_SET_ADD(uint32_t, REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST)
-        INSTANTIATE_GET_SET_ADD(uint32_t, REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE)
-
-        INSTANTIATE_GET_SET_ADD(uint32_t, WRITE_PRIORITY_DRAIN_WHEN_FULL)
-        INSTANTIATE_GET_SET_ADD(uint32_t, WRITE_PRIORITY_SERVICE_AT_NO_READ)
 };

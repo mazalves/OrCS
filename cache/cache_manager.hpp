@@ -19,7 +19,6 @@ class cache_manager_t {
 
         uint32_t DATA_LEVELS;
         uint32_t INSTRUCTION_LEVELS;
-        uint32_t CACHE_LEVELS;
         uint32_t POINTER_LEVELS;
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
@@ -93,7 +92,6 @@ class cache_manager_t {
 
         INSTANTIATE_GET_SET_ADD(uint32_t,DATA_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t,POINTER_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)

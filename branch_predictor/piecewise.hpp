@@ -1,4 +1,4 @@
-class piecewise_t {
+class piecewise_t : public predictor_t {
 private:
     uint32_t N;
     uint32_t M;

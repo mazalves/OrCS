@@ -26,11 +26,17 @@ memory_channel_t::memory_channel_t(){
     set_TIMING_WR (cfg_root[0]["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_root[0]["TIMING_WTR"]);
 
-    set_REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST (cfg_root[0]["REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST"]);
-    set_REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE (cfg_root[0]["REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE"]);
+    if (!strcmp (cfg_root[0]["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
+        this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
+    } else if (!strcmp (cfg_root[0]["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
+        this->REQUEST_PRIORITY = REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
+    }
 
-    set_WRITE_PRIORITY_DRAIN_WHEN_FULL (cfg_root[0]["WRITE_PRIORITY_DRAIN_WHEN_FULL"]);
-    set_WRITE_PRIORITY_SERVICE_AT_NO_READ (cfg_root[0]["WRITE_PRIORITY_SERVICE_AT_NO_READ"]);
+    if (!strcmp (cfg_root[0]["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")){
+        this->WRITE_PRIORITY = WRITE_PRIORITY_DRAIN_WHEN_FULL;
+    } else if (!strcmp (cfg_root[0]["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")){
+        this->WRITE_PRIORITY = WRITE_PRIORITY_SERVICE_AT_NO_READ;
+    }
 
     set_latency_burst (LINE_SIZE/BURST_WIDTH);
 
@@ -64,6 +70,7 @@ void memory_channel_t::set_masks(){
     this->channel_bits_shift=0;
     this->colbyte_bits_shift=0;
     this->colrow_bits_shift=0;
+    
     this->bank_bits_shift=0;
     this->row_bits_shift=0;
     this->colbyte_bits_shift = 0;
@@ -82,7 +89,7 @@ void memory_channel_t::set_masks(){
     this->channel_bits_shift = utils_t::get_power_of_two(this->BANK_ROW_BUFFER_SIZE);
     this->bank_bits_shift = this->channel_bits_shift + utils_t::get_power_of_two(this->CHANNEL);
     this->row_bits_shift = this->bank_bits_shift + utils_t::get_power_of_two(this->BANK);
-
+    
     /// COLBYTE MASK
     for (i = 0; i < utils_t::get_power_of_two(this->LINE_SIZE); i++) {
         this->colbyte_bits_mask |= 1 << (i + this->colbyte_bits_shift);
@@ -101,7 +108,7 @@ void memory_channel_t::set_masks(){
     }
 
     /// BANK MASK
-    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {    
         this->bank_bits_mask |= 1 << (i + bank_bits_shift);
     }
 
@@ -128,18 +135,23 @@ mshr_entry_t* memory_channel_t::findNext (uint32_t bank){
         this->bank_is_drain_write[bank] = false;
         return findNextRead (bank);
     } else {
-        if (WRITE_PRIORITY_DRAIN_WHEN_FULL){
-            if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
-            if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
-                this->bank_is_drain_write[bank] = true;
+        switch (this->WRITE_PRIORITY){
+            case WRITE_PRIORITY_SERVICE_AT_NO_READ:{
+                if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
+                if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
+                    this->bank_is_drain_write[bank] = true;
+                }
                 return findNextWrite (bank);
+                break;
             }
-        } else if (WRITE_PRIORITY_SERVICE_AT_NO_READ){
-            if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
-            if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
-                this->bank_is_drain_write[bank] = true;
+            case WRITE_PRIORITY_DRAIN_WHEN_FULL:{ //NÃO FUNCIONA :-)
+                if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
+                if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
+                    this->bank_is_drain_write[bank] = true;
+                    return findNextWrite (bank);
+                }
+                break;
             }
-            return findNextWrite (bank);
         }
     }
     return NULL;
@@ -147,12 +159,18 @@ mshr_entry_t* memory_channel_t::findNext (uint32_t bank){
 
 mshr_entry_t* memory_channel_t::findNextRead (uint32_t bank){
     if (bank_read_requests[bank].empty()) return NULL;
-    if (REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE) return bank_read_requests[bank].front();
-    else if (REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST){
-        for (size_t i = 0; i < bank_read_requests[bank].size(); i++){
-            if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->requests[0]->memory_address)){
-                return bank_read_requests[bank][i];
+    switch (this->REQUEST_PRIORITY){
+        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
+            return bank_read_requests[bank].front();
+            break;
+        }
+        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST:{
+            for (size_t i = 0; i < bank_read_requests[bank].size(); i++){
+                if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->requests[0]->memory_address)){
+                    return bank_read_requests[bank][i];
+                }
             }
+            break;
         }
     }
     return bank_read_requests[bank].front();
@@ -160,12 +178,18 @@ mshr_entry_t* memory_channel_t::findNextRead (uint32_t bank){
 
 mshr_entry_t* memory_channel_t::findNextWrite (uint32_t bank){
     if (bank_write_requests[bank].empty()) return NULL;
-    if (REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE) return bank_write_requests[bank].front();
-    else if (REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST){
-        for (size_t i = 0; i < bank_write_requests[bank].size(); i++){
-            if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->requests[0]->memory_address)){
-                return bank_write_requests[bank][i];
+    switch (this->REQUEST_PRIORITY){
+        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
+            return bank_write_requests[bank].front();
+            break;
+        }
+        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST:{
+            for (size_t i = 0; i < bank_write_requests[bank].size(); i++){
+                if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->requests[0]->memory_address)){
+                    return bank_write_requests[bank][i];
+                }
             }
+            break;
         }
     }
     return bank_write_requests[bank].front();

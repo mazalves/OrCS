@@ -11,7 +11,7 @@ processor_t::processor_t()
 	this->memory_order_buffer_read = NULL;
 	this->memory_order_buffer_write = NULL;
 	//=========DESAMBIGUATION ============
-	this->desambiguator = NULL;
+	this->disambiguator = NULL;
 	// ==========RAT======
 	this->register_alias_table = NULL;
 	// ==========ROB========
@@ -35,7 +35,7 @@ processor_t::~processor_t()
 	//Memory structures
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_read);
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_write);
-	utils_t::template_delete_variable<desambiguation_t>(this->desambiguator);
+	utils_t::template_delete_variable<desambiguation_t>(this->disambiguator);
 	//auxiliar var to maintain status oldest instruction
 	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_read_to_send);
 	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_write_to_send);
@@ -154,12 +154,11 @@ void processor_t::allocate()
 	set_LLC_LATENCY (cfg_root[0]["LLC_LATENCY"]);
 	set_LLC_SETS ((LLC_SIZE/LINE_SIZE)/LLC_ASSOCIATIVITY);
 
-	set_RAM_LATENCY (cfg_root[0]["RAM_LATENCY"]);
 	set_PARALLEL_LIM_ACTIVE (cfg_root[0]["PARALLEL_LIM_ACTIVE"]);
 	set_MAX_PARALLEL_REQUESTS_CORE (cfg_root[0]["MAX_PARALLEL_REQUESTS_CORE"]);
 
 	set_PREFETCHER_ACTIVE (cfg_root[0]["PREFETCHER_ACTIVE"]);
-	set_DESAMBIGUATION_ENABLED (cfg_root[0]["DESAMBIGUATION_ENABLED"]);
+	set_DISAMBIGUATION_ENABLED (cfg_root[0]["DISAMBIGUATION_ENABLED"]);
 
 	set_DEBUG (cfg_root[0]["DEBUG"]);
 	set_FETCH_DEBUG (cfg_root[0]["FETCH_DEBUG"]);
@@ -171,6 +170,9 @@ void processor_t::allocate()
 	set_PRINT_MOB (cfg_root[0]["PRINT_MOB"]);
 	set_PRINT_ROB (cfg_root[0]["PRINT_ROB"]);
 	set_COMMIT_DEBUG (cfg_root[0]["COMMIT_DEBUG"]);
+
+	if (!strcmp(cfg_root[0]["DISAMBIGUATION_METHOD"], "HASHED")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_HASHED;
+	else if (!strcmp(cfg_root[0]["DISAMBIGUATION_METHOD"], "PERFECT")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_PERFECT;
 
 	set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
 	//======================================================================
@@ -267,9 +269,18 @@ void processor_t::allocate()
 	this->memory_order_buffer_write_end = 0;
 	this->memory_order_buffer_write_used = 0;
 	// =========================================================================================
-	//desambiguator
-	this->desambiguator = new desambiguation_t;
-	this->desambiguator->allocate();
+	//disambiguator
+	switch (this->DISAMBIGUATION_METHOD){
+		case DISAMBIGUATION_METHOD_HASHED:{
+			this->disambiguator = new disambiguation_hashed_t;
+			this->disambiguator->allocate();
+			break;
+		}
+		case DISAMBIGUATION_METHOD_PERFECT:{
+			//this->disambiguator = new disambiguation_perfect_t;
+			break;
+		}
+	}
 	// parallel requests
 	// =========================================================================================
 	//DRAM
@@ -980,8 +991,8 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
-			if (DESAMBIGUATION_ENABLED){
-				this->desambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
 			}
 		}
 	} //end for
@@ -1240,8 +1251,8 @@ void processor_t::clean_mob_write(){
 		this->memory_order_buffer_write[pos].processed=true;
 		this->memory_write_executed--;
 		this->solve_registers_dependency(this->memory_order_buffer_write[pos].rob_ptr);
-		if (DESAMBIGUATION_ENABLED){
-			this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
+		if (DISAMBIGUATION_ENABLED){
+			this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
 		}
 		this->remove_front_mob_write();
 	}
@@ -1269,8 +1280,8 @@ void processor_t::clean_mob_read(){
 			this->memory_order_buffer_read[pos].processed=true;
 			this->memory_read_executed--;
 			this->solve_registers_dependency(this->memory_order_buffer_read[pos].rob_ptr);
-			if (DESAMBIGUATION_ENABLED){
-				this->desambiguator->solve_memory_dependences(&this->memory_order_buffer_read[pos]);
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_read[pos]);
 			}
 			if (PARALLEL_LIM_ACTIVE){
 				if(!this->memory_order_buffer_read[pos].forwarded_data){
@@ -1782,7 +1793,7 @@ void processor_t::statistics(){
 		delete[] cache_indexes;
 	}
 	if(close) fclose(output);
-	this->desambiguator->statistics();
+	this->disambiguator->statistics();
 }
 // ============================================================================
 void processor_t::printConfiguration(){

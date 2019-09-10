@@ -18,8 +18,8 @@ void orcs_engine_t::allocate() {
 	ERROR_ASSERT_PRINTF(utils_t::check_if_power_of_two(NUMBER_OF_PROCESSORS)==OK,"Error - # of processors must be power of 2 value")
 	this->trace_reader = new trace_reader_t[NUMBER_OF_PROCESSORS];
 	this->processor = new processor_t[NUMBER_OF_PROCESSORS];
-	this->branchPredictor = new branch_predictor_t[NUMBER_OF_PROCESSORS];
 	this->configuration = new configure_t;
+	this->branchPredictor = new branch_predictor_t[NUMBER_OF_PROCESSORS];
 	this->cacheManager = new cache_manager_t;
 	this->memory_controller = new memory_controller_t;
 }

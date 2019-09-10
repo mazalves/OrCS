@@ -48,6 +48,7 @@ class btb_line_t;
 class btb_t;
 class twoBit_t;
 class piecewise_t;
+class predictor_t;
 class branch_predictor_t;
 
 //  =========================================//
@@ -168,7 +169,9 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 #include "./branch_predictor/btb_line.hpp"
 #include "./branch_predictor/btb.hpp"
+#include "./branch_predictor/predictor.hpp"
 #include "./branch_predictor/piecewise.hpp"
+#include "./branch_predictor/twoBit.hpp"
 #include "./branch_predictor/branch_predictor.hpp"
 //  =========================================//
 // Cache Classes
