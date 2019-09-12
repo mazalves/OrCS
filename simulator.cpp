@@ -13,7 +13,7 @@ static void display_use() {
 }
 
 // =============================================================================
-static void process_argv(int argc, char **argv, int32_t NUMBER_OF_PROCESSORS) {
+static uint32_t process_argv(int argc, char **argv) {
 
     // Name, {no_argument, required_argument and optional_argument}, flag, value
     static struct option long_options[] = {
@@ -27,7 +27,7 @@ static void process_argv(int argc, char **argv, int32_t NUMBER_OF_PROCESSORS) {
     // Count number of traces
     int opt;
     int option_index = 0;
-    int traces_informados = 0;
+    uint32_t traces_informados = 0;
     
     while ((opt = getopt_long_only(argc, argv, "h:c:t:f:w:",
                  long_options, &option_index)) != -1) {
@@ -65,13 +65,23 @@ static void process_argv(int argc, char **argv, int32_t NUMBER_OF_PROCESSORS) {
             ORCS_PRINTF("%s ", argv[optind++]);
         ORCS_PRINTF("\n");
     }
+    orcs_engine.configuration = new configure_t;
+    libconfig::Config cfg;
+    cfg.readFile(orcs_engine.config_file);
+
+
+    libconfig::Setting &cfg_root = cfg.getRoot();
+    // libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    uint32_t NUMBER_OF_PROCESSORS = (cfg_root["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
+    printf("simulator.cpp - NUMBER_OF_PROCESSORS: %u\n", NUMBER_OF_PROCESSORS);
     ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
     if (orcs_engine.arg_trace_file_name.empty()) {
         ORCS_PRINTF("Trace file not defined.\n");
         display_use();
     }
-
+    return NUMBER_OF_PROCESSORS;
 }
+
 std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){   
     std::string final_report;
     char report[1000];
@@ -164,11 +174,8 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
 // =============================================================================
 int main(int argc, char **argv) {
 
-    libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-    uint32_t NUMBER_OF_PROCESSORS = (cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
-
     // process args
-    process_argv(argc, argv, NUMBER_OF_PROCESSORS);
+    uint32_t NUMBER_OF_PROCESSORS = process_argv(argc, argv);
     /// Call all the allocate's
     orcs_engine.allocate(NUMBER_OF_PROCESSORS);
 

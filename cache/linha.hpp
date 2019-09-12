@@ -22,30 +22,42 @@ class line_t {
         uint32_t DATA_LEVELS;
         uint32_t POINTER_LEVELS;
 
-        INSTANTIATE_GET_SET_ADD (uint32_t, INSTRUCTION_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
+        // INSTANTIATE_GET_SET_ADD (uint32_t, INSTRUCTION_LEVELS)
+        // INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
 
         // Constructor
         line_t() {
             this->clean_line();
+            libconfig::Config cfg;
+            cfg.readFile(orcs_engine.config_file);
+
+            libconfig::Setting &cfg_root = cfg.getRoot();
+            // libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+
+            set_NUMBER_OF_PROCESSORS(cfg_root["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
+            // printf("linha.hpp - NUMBER_OF_PROCESSORS: %u\n", NUMBER_OF_PROCESSORS);
 
             // libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-            // libconfig::Setting &cfg_cache = cfg_root["CACHE_MEMORY"];
-            // set_INSTRUCTION_LEVELS(cfg_cache["INSTRUCTION"]);
-            // set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
+            // libconfig::Setting &cfg_cache = cfg_root[0]["CACHE_MEMORY"]["CONFIG"];
+            // set_INSTRUCTION_LEVELS(cfg_cache["INSTRUCTION_LEVEL"]);
+            // set_DATA_LEVELS(cfg_cache["DATA_LEVEL"]);
             // POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
         }
 
         // Desctructor
         ~line_t() {
             libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+            // libconfig::Config cfg;
+            // cfg.readFile(orcs_engine.config_file);
+
+            // libconfig::Setting &cfg_root = cfg.getRoot();
             set_NUMBER_OF_PROCESSORS(cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line_ptr_caches[i];
             delete[] line_ptr_caches;
         }
 
-        void allocate() {
+        void allocate(uint32_t POINTER_LEVELS) {
             this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS];
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
                 this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS];

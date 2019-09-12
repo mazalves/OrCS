@@ -3,7 +3,6 @@
 // Constructor
 cache_t::cache_t() {
     this->id = 0;
-	this->label = NULL;
     this->level = 0;
     this->size = 0;
     this->latency = 0;
@@ -28,29 +27,34 @@ cache_t::~cache_t(){
 void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	// libconfig::Config cfg;
+	// cfg.readFile(orcs_engine.config_file);
 
-    // Get prefetcher info
-    libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
-    set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
+	// libconfig::Setting &cfg_root = cfg.getRoot();
+	// Get prefetcher info
+	libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
+	set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
+	printf("cache.cpp - PREFETCHER_ACTIVE: %u\n", PREFETCHER_ACTIVE);
 
-    // Get general cache info
- 	libconfig::Setting &cfg_cache_defs = cfg_root[0];
-    set_WAIT_CYCLE(cfg_cache_defs[0]["WAIT_CYCLE"]);
- 
+	// Get general cache info
+	libconfig::Setting &cfg_cache_defs = cfg_root[0]["CACHE_MEMORY"]["CONFIG"];
+	set_WAIT_CYCLE(cfg_cache_defs["WAIT_CYCLE"]);
+	printf("cache.cpp - WAIT_CYCLE: %u\n", WAIT_CYCLE);
+
 	// set_INSTRUCTION_LEVELS (cfg_root[0]["INSTRUCTION_LEVELS"]);
 	// set_DATA_LEVELS (cfg_root[0]["DATA_LEVELS"]);
 	// POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 	POINTER_LEVELS = 3;
 	set_DATA_LEVELS(3);
 	set_INSTRUCTION_LEVELS(1);
-	
-    // this->offset = utils_t::get_power_of_two(LINE_SIZE);
+	printf("id: %u | size: %u | level: %u | offset: %u | latency: %u | associ: %u | n_sets: %u\n", this->id, this->size, this->level, this->offset, this->latency, this->associativity, this->n_sets);
     this->sets = new cacheSet_t[this->n_sets];
+	printf("%s\n", "morra");
     for (size_t i = 0; i < this->n_sets; i++) {
-        this->sets[i].lines = new line_t[this->associativity];
-        this->sets[i].n_lines = this->associativity;
+		this->sets[i].lines = new line_t[this->associativity];
+		this->sets[i].n_lines = this->associativity;
         for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
-            this->sets[i].lines[j].allocate();
+            this->sets[i].lines[j].allocate(POINTER_LEVELS);
             for (uint32_t k = 0; k < NUMBER_OF_PROCESSORS; k++) {
                 for (uint32_t l = 0; l < POINTER_LEVELS; l++) {
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;

@@ -63,7 +63,6 @@ class cache_t {
 
         //atributtes
         uint32_t id;    // instruction or data cache
-        char *label;
         uint32_t level;
         uint32_t size;
         uint32_t latency;
