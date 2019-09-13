@@ -211,6 +211,7 @@ void cache_manager_t::clock() {
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
                     this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
+                    this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                 }
                 this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address);
             }
@@ -357,6 +358,7 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
         if (cache_level > 0) {
             for (int32_t i = cache_level - 1; i >= 0; i--) {
                 this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
+                this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
             }
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);

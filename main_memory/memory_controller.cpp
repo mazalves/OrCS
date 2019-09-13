@@ -23,8 +23,37 @@ void memory_controller_t::allocate(){
     set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_root[0]["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_root[0]["CORE_TO_BUS_CLOCK_RATIO"]);
+
+    set_TIMING_AL (cfg_root[0]["TIMING_AL"]);     // Added Latency for column accesses
+    set_TIMING_CAS (cfg_root[0]["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
+    set_TIMING_CCD (cfg_root[0]["TIMING_CCD"]);    // Column to Column Delay
+    set_TIMING_CWD (cfg_root[0]["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
+    set_TIMING_FAW (cfg_root[0]["TIMING_FAW"]);   // Four (row]) Activation Window
+    set_TIMING_RAS (cfg_root[0]["TIMING_RAS"]);   // Row Access Strobe
+    set_TIMING_RC (cfg_root[0]["TIMING_RC"]);    // Row Cycle
+    set_TIMING_RCD (cfg_root[0]["TIMING_RCD"]);    // Row to Column comand Delay
+    set_TIMING_RP (cfg_root[0]["TIMING_RP"]);     // Row Precharge
+    set_TIMING_RRD (cfg_root[0]["TIMING_RRD"]);    // Row activation to Row activation Delay
+    set_TIMING_RTP (cfg_root[0]["TIMING_RTP"]);    // Read To Precharge
+    set_TIMING_WR (cfg_root[0]["TIMING_WR"]);    // Write Recovery time
+    set_TIMING_WTR (cfg_root[0]["TIMING_WTR"]);
     
     this->channels = new memory_channel_t[CHANNEL];
+    for (size_t i = 0; i < CHANNEL; i++){
+        channels[i].set_TIMING_AL (ceil (this->TIMING_AL * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_CAS (ceil (this->TIMING_CAS * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_CCD (ceil (this->TIMING_CCD * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_CWD (ceil (this->TIMING_CWD * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_FAW (ceil (this->TIMING_FAW * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RAS (ceil (this->TIMING_RAS * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RC (ceil (this->TIMING_RC * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RCD (ceil (this->TIMING_RCD * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RP (ceil (this->TIMING_RP * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RRD (ceil (this->TIMING_RRD * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_RTP (ceil (this->TIMING_RTP * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_WR (ceil (this->TIMING_WR * this->CORE_TO_BUS_CLOCK_RATIO));
+        channels[i].set_TIMING_WTR (ceil (this->TIMING_WTR * this->CORE_TO_BUS_CLOCK_RATIO));
+    }
     
     this->set_masks();
 }

@@ -44,6 +44,7 @@ class processor_t {
 	uint64_t stat_inst_int_fp_completed;
 	uint64_t stat_inst_mul_fp_completed;
 	uint64_t stat_inst_div_fp_completed;
+	uint64_t stat_inst_hive_completed;
 	uint64_t stat_inst_nop_completed;
 	uint64_t stat_inst_load_completed;
 	uint64_t stat_inst_store_completed;
@@ -109,6 +110,7 @@ class processor_t {
 	//MOB
 	uint32_t MOB_READ;
 	uint32_t MOB_WRITE;
+	uint32_t MOB_HIVE;
 	// =====================
 
 	// =====================
@@ -122,6 +124,10 @@ class processor_t {
 	uint32_t STORE_UNIT;
 	uint32_t WAIT_NEXT_MEM_STORE;
 	uint32_t LATENCY_MEM_STORE;
+	// HIVE Units
+	uint32_t HIVE_UNIT;
+	uint32_t WAIT_NEXT_MEM_HIVE;
+	uint32_t LATENCY_MEM_HIVE;
 
 	uint32_t QTDE_MEMORY_FU;
 
@@ -215,6 +221,9 @@ class processor_t {
 		// MOB WRITE RELATED
 		int32_t search_position_mob_write();
 		void remove_front_mob_write();
+		// MOB HIVE RELATED
+		int32_t search_position_mob_hive();
+		void remove_front_mob_hive();
 		// ====================================================================
 		// Stage Methods
 		// ====================================================================
@@ -278,6 +287,16 @@ class processor_t {
 		// Pointers to retain oldests memory operations
 		memory_order_buffer_line_t *oldest_write_to_send;
 		// ======================
+		//WRITE
+		// ======================
+		memory_order_buffer_line_t *memory_order_buffer_hive;
+		uint32_t memory_order_buffer_hive_start;
+        uint32_t memory_order_buffer_hive_end;
+        uint32_t memory_order_buffer_hive_used;
+		memory_order_buffer_line_t* get_next_op_hive();
+		// Pointers to retain oldests memory operations
+		memory_order_buffer_line_t *oldest_hive_to_send;
+		// ======================
 		// Parallel requests
 		uint32_t counter_mshr_read;
 		uint32_t counter_mshr_write;
@@ -300,6 +319,7 @@ class processor_t {
 		// Memory FUs
 		uint64_t *fu_mem_load;
 		uint64_t *fu_mem_store;
+		uint64_t *fu_mem_hive;
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
@@ -337,6 +357,7 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_int_fp_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_mul_alu_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_mul_fp_completed)
+		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_hive_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_load_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_store_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_nop_completed)
@@ -401,6 +422,7 @@ class processor_t {
 		//MOB
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_READ)
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_WRITE)
+		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_HIVE)
 		// =====================
 
 		// =====================
@@ -414,6 +436,10 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,STORE_UNIT)
 		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_NEXT_MEM_STORE)
 		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_MEM_STORE)
+
+		INSTANTIATE_GET_SET_ADD(uint32_t,HIVE_UNIT)
+		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_NEXT_MEM_HIVE)
+		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_MEM_HIVE)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,QTDE_MEMORY_FU)
 
