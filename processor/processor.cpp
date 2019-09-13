@@ -158,7 +158,7 @@ void processor_t::allocate()
 	INST_LATENCY = new uint32_t[INSTRUCTION_CACHES];
 	INST_SIZE = new uint32_t[INSTRUCTION_CACHES];
 	INST_SETS = new uint32_t[INSTRUCTION_CACHES];
-	INST_LABEL = new char*[INSTRUCTION_CACHES];
+	INST_LEVEL = new uint32_t[INSTRUCTION_CACHES];
 
 	// Get information of each instruction cache
 	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
@@ -168,7 +168,7 @@ void processor_t::allocate()
 			INST_LATENCY[i] = cfg_inst_cache["LATENCY"];
 			INST_SIZE[i] = cfg_inst_cache["SIZE"];
 			INST_SETS[i] = ((INST_SIZE[i]/ LINE_SIZE) / INST_ASSOCIATIVITY[i]);
-			strcpy(INST_LABEL[i], cfg_inst_cache["LABEL"]);
+			INST_LEVEL[i] = cfg_inst_cache["LEVEL"];
 		}
 		catch (int e) {
 			cout << "An exception occurred. Exception Nr. " << e << '\n';
@@ -181,7 +181,7 @@ void processor_t::allocate()
 	DATA_LATENCY = new uint32_t[DATA_CACHES];
 	DATA_SIZE = new uint32_t[DATA_CACHES];
 	DATA_SETS = new uint32_t[DATA_CACHES];
-	DATA_LABEL = new char*[DATA_CACHES];
+	DATA_LEVEL = new uint32_t[DATA_CACHES];
 
 	// Get information of each instruction cache
 	for (uint32_t i = 0; i < DATA_CACHES; i++) {
@@ -191,7 +191,7 @@ void processor_t::allocate()
 			DATA_LATENCY[i] = cfg_data_cache["LATENCY"];
 			DATA_SIZE[i] = cfg_data_cache["SIZE"];
 			DATA_SETS[i] = ((DATA_SIZE[i] / LINE_SIZE) / DATA_ASSOCIATIVITY[i]);
-			strcpy(DATA_LABEL[i], cfg_data_cache["LABEL"]);
+			DATA_LEVEL[i] = cfg_data_cache["LEVEL"];
 		}
 		catch (int e) {
 			cout << "An exception occurred. Exception Nr. " << e << '\n';
@@ -1846,17 +1846,17 @@ void processor_t::statistics(){
 void processor_t::printCache(FILE *output) {
 	fprintf(output, "===============Instruction $============\n");
 	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
-		fprintf(output, "%s SIZE -> %u\n", INST_LABEL[i], INST_SIZE[i]);
-		fprintf(output, "%s ASSOCIATIVITY -> %u\n", INST_LABEL[i], INST_ASSOCIATIVITY[i]);
-		fprintf(output, "%s LATENCY -> %u\n", INST_LABEL[i], INST_LATENCY[i]);
-		fprintf(output, "%s SETS -> %u\n\n", INST_LABEL[i], INST_SETS[i]);
+		fprintf(output, "%u SIZE -> %u\n", INST_LEVEL[i], INST_SIZE[i]);
+		fprintf(output, "%u ASSOCIATIVITY -> %u\n", INST_LEVEL[i], INST_ASSOCIATIVITY[i]);
+		fprintf(output, "%u LATENCY -> %u\n", INST_LEVEL[i], INST_LATENCY[i]);
+		fprintf(output, "%u SETS -> %u\n\n", INST_LEVEL[i], INST_SETS[i]);
 	}
 	fprintf(output, "==================Data $================\n");
 	for (uint32_t i = 0; i < DATA_CACHES; i++) {
-		fprintf(output, "%s SIZE -> %u\n", DATA_LABEL[i], DATA_SIZE[i]);
-		fprintf(output, "%s ASSOCIATIVITY -> %u\n", DATA_LABEL[i], DATA_ASSOCIATIVITY[i]);
-		fprintf(output, "%s LATENCY -> %u\n", DATA_LABEL[i], DATA_LATENCY[i]);
-		fprintf(output, "%s SETS -> %u\n\n", DATA_LABEL[i], DATA_SETS[i]);
+		fprintf(output, "%u SIZE -> %u\n", DATA_LEVEL[i], DATA_SIZE[i]);
+		fprintf(output, "%u ASSOCIATIVITY -> %u\n", DATA_LEVEL[i], DATA_ASSOCIATIVITY[i]);
+		fprintf(output, "%u LATENCY -> %u\n", DATA_LEVEL[i], DATA_LATENCY[i]);
+		fprintf(output, "%u SETS -> %u\n\n", DATA_LEVEL[i], DATA_SETS[i]);
 	}
 }
 // ============================================================================

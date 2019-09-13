@@ -46,6 +46,7 @@ void cache_manager_t::copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n
         for (uint32_t j = 0, k = 0; k < cache_amount; k++) {
             if (aux_cache[k].level == i) {
                 cache[i][j] = aux_cache[k];
+                printf("v_levels[%d] = %u\n", i, v_levels[i]);
                 if (j < v_levels[i]) {
                     j++;
                 }
@@ -54,106 +55,95 @@ void cache_manager_t::copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n
     }
 }
 
+cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *N_CACHES) {
+    const char *string_cache_type;
+    if (cache_type == 0) {
+        string_cache_type = "INSTRUCTION";
+        // strcpy(string_cache_type, "INSTRUCTION");
+    } else {
+        string_cache_type = "DATA";
+        // strcpy(string_cache_type, "DATA");
+    }
+
+    // Get the list of caches
+    libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
+    *N_CACHES = cfg_caches.getLength();
+    cache_t *caches = new cache_t[*N_CACHES];
+
+    // Get information of each cache
+    for (uint32_t i = 0; i < *N_CACHES; i++) {
+        libconfig::Setting &cfg_cache = cfg_caches[i];
+        try {
+            caches[i].id = cache_type;
+            caches[i].size = cfg_cache["SIZE"];
+            caches[i].level = cfg_cache["LEVEL"];
+            caches[i].offset = utils_t::get_power_of_two(LINE_SIZE);
+            caches[i].latency = cfg_cache["LATENCY"];
+            caches[i].associativity = cfg_cache["ASSOCIATIVITY"];
+            caches[i].n_sets = (caches[i].size / LINE_SIZE) / caches[i].associativity;
+        } catch (libconfig::SettingNotFoundException const(&nfex)) {
+            ERROR_PRINTF("MISSING CACHE PARAMETERS");
+        } catch (libconfig::SettingTypeException const(&tex)) {
+            ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
+        }
+    }
+
+    // Get the amount of caches in each level
+    vector<uint32_t> cache_levels;
+    
+    if (cache_type == 0) {
+        ICACHE_AMOUNT = this->get_cache_levels(cache_levels, caches, *N_CACHES);
+        set_INSTRUCTION_LEVELS(cache_levels.size());
+    } else {
+        DCACHE_AMOUNT = this->get_cache_levels(cache_levels, caches, *N_CACHES);
+        set_DATA_LEVELS(cache_levels.size());
+        POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+    }
+    return caches;
+}
+
 void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    // libconfig::Config cfg;
-    // cfg.readFile(orcs_engine.config_file);
-    // libconfig::Setting &cfg_root = cfg.getRoot();
-
     set_NUMBER_OF_PROCESSORS(NUMBER_OF_PROCESSORS);
+
+    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 
     // Get prefetcher info
     libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];
     set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
-    printf("cache_manager.cpp - PREFETCHER_ACTIVE: %u\n", PREFETCHER_ACTIVE);
+
     // Get general cache info
     libconfig::Setting &cfg_cache_defs = cfg_root[0]["CACHE_MEMORY"];
-    // printf("CACHE_MEMORY SIZE: %d   CONFIG SIZE: %d\n", cfg_cache_defs.getLength(), cfg_cache_defs["CONFIG"]["LINE_SIZE"].getLength());
     set_CACHE_MANAGER_DEBUG(cfg_cache_defs["CONFIG"]["CACHE_MANAGER_DEBUG"]);
-    printf("cache_manager.cpp - CACHE_MANAGER_DEBUG: %u\n", CACHE_MANAGER_DEBUG);
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
-    printf("cache_manager.cpp - LINE_SIZE: %u\n", LINE_SIZE);
     set_WAIT_CYCLE(cfg_cache_defs["CONFIG"]["WAIT_CYCLE"]);
-    printf("cache_manager.cpp - WAIT_CYCLE: %u\n", WAIT_CYCLE);
 
     // Get the list of intruction caches
-    libconfig::Setting &cfg_inst_caches = cfg_cache_defs["INSTRUCTION"];
-    uint32_t INSTRUCTION_CACHES = cfg_inst_caches.getLength();
-    printf("cache_manager.cpp - INSTRUCTION_CACHES: %u\n", INSTRUCTION_CACHES);
-    cache_t *instruction_caches = new cache_t[INSTRUCTION_CACHES];
-
-    // Get information of each instruction cache
-    for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
-        libconfig::Setting &cfg_inst_cache = cfg_inst_caches[i];
-
-        // try {
-            instruction_caches[i].id = INSTRUCTION;
-            instruction_caches[i].size = cfg_inst_cache["SIZE"];
-            instruction_caches[i].level = cfg_inst_cache["LEVEL"];
-            instruction_caches[i].offset = utils_t::get_power_of_two(LINE_SIZE);
-            instruction_caches[i].latency = cfg_inst_cache["LATENCY"];
-            instruction_caches[i].associativity = cfg_inst_cache["ASSOCIATIVITY"];
-            instruction_caches[i].n_sets = (instruction_caches[i].size / LINE_SIZE) / instruction_caches[i].associativity;
-        // } catch (int e) {
-        //     cout << "An exception occurred. Exception Nr. " << e << '\n';
-        // }
-    }
-
-    // Get the number of cache levels
-    vector<uint32_t> cache_levels;
-    ICACHE_AMOUNT = this->get_cache_levels(cache_levels, instruction_caches, INSTRUCTION_CACHES);
-    set_INSTRUCTION_LEVELS(cache_levels.size());
+    uint32_t INSTRUCTION_CACHES;
+    cache_t *instruction_caches = get_cache_info(INSTRUCTION, cfg_cache_defs, &INSTRUCTION_CACHES);
     instruction_cache = new cache_t *[INSTRUCTION_LEVELS];
-
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
         this->instruction_cache[i] = new cache_t[ICACHE_AMOUNT[i]];
         check_cache(ICACHE_AMOUNT[i], i);
-        copy_cache(this->instruction_cache, instruction_caches, INSTRUCTION_LEVELS, ICACHE_AMOUNT, INSTRUCTION_CACHES);
+    }
+    copy_cache(this->instruction_cache, instruction_caches, INSTRUCTION_LEVELS, ICACHE_AMOUNT, INSTRUCTION_CACHES);
+    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
         for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
-            // printf("id: %u | size: %u | level: %u | offset: %u | latency: %u | associ: %u | n_sets: %u\n", this->instruction_cache[i][j].id, this->instruction_cache[i][j].size, this->instruction_cache[i][j].level, this->instruction_cache[i][j].offset, this->instruction_cache[i][j].latency, this->instruction_cache[i][j].associativity, this->instruction_cache[i][j].n_sets);
             this->instruction_cache[i][j].allocate(NUMBER_OF_PROCESSORS);
         }
     }
 
     // Get the list of data caches
-    libconfig::Setting &cfg_data_caches = cfg_cache_defs["DATA"];
-    uint32_t DATA_CACHES = cfg_data_caches.getLength();
-    printf("cache_manager.cpp - DATA_CACHES: %u\n", DATA_CACHES);
-    cache_t *data_caches = new cache_t[DATA_CACHES];
-
-    // Get information of each data cache
-    for (uint32_t i = 0; i < DATA_CACHES; i++) {
-        libconfig::Setting &cfg_data_cache = cfg_data_caches[i];
-        // try
-        // {
-            data_caches[i].id = DATA;
-            data_caches[i].size = cfg_data_cache["SIZE"];
-            data_caches[i].level = cfg_data_cache["LEVEL"];
-            data_caches[i].offset = utils_t::get_power_of_two(LINE_SIZE);
-            data_caches[i].latency = cfg_data_cache["LATENCY"];
-            data_caches[i].associativity = cfg_data_cache["ASSOCIATIVITY"];
-            data_caches[i].n_sets = (data_caches[i].size / LINE_SIZE) / data_caches[i].associativity;
-        // } catch (int e) {
-        //     cout << "An exception occurred. Exception Nr. " << e << '\n';
-        // }
-    }
-
-    vector<uint32_t> dcache_levels;
-    DCACHE_AMOUNT = this->get_cache_levels(dcache_levels, data_caches, DATA_CACHES);
-    for (uint32_t i = 0; i < dcache_levels.size(); i++) {
-        printf("DCACHE_AMOUNT[%d] = %u\n", i, DCACHE_AMOUNT[i]);
-    }
-    set_DATA_LEVELS(dcache_levels.size());
+    uint32_t DATA_CACHES;
+    cache_t *data_caches = get_cache_info(DATA, cfg_cache_defs, &DATA_CACHES);
     data_cache = new cache_t *[DATA_LEVELS];
-    POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         this->data_cache[i] = new cache_t[DCACHE_AMOUNT[i]];
         check_cache(DCACHE_AMOUNT[i], i);
-        copy_cache(this->data_cache, data_caches, DATA_LEVELS, DCACHE_AMOUNT, DATA_CACHES);
-    printf("%s\n", "deu ruim aqui");
+    }
+    copy_cache(this->data_cache, data_caches, DATA_LEVELS, DCACHE_AMOUNT, DATA_CACHES);
+    for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         for (uint32_t j = 0; j < DCACHE_AMOUNT[i]; j++) {
-            printf("id: %u | size: %u | level: %u | offset: %u | latency: %u | associ: %u | n_sets: %u\n", this->data_cache[i][j].id, this->data_cache[i][j].size, this->data_cache[i][j].level, this->data_cache[i][j].offset, this->data_cache[i][j].latency, this->data_cache[i][j].associativity, this->data_cache[i][j].n_sets);
             this->data_cache[i][j].allocate(NUMBER_OF_PROCESSORS);
         }
     }
@@ -166,7 +156,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_offset(utils_t::get_power_of_two(LINE_SIZE));
 
     //Allocate Prefetcher
-    if (PREFETCHER_ACTIVE){
+    if (PREFETCHER_ACTIVE) {
         this->prefetcher = new prefetcher_t;
         this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     }

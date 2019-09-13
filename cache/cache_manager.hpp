@@ -32,9 +32,6 @@ class cache_manager_t {
         // uint32_t ASSOCIATIVITY_L2D;
         // uint32_t ASSOCIATIVITY_LLCD;
 
-        uint32_t *ICACHE_AMOUNT;
-        uint32_t *DCACHE_AMOUNT;
-
         uint32_t NUMBER_OF_PROCESSORS;
 
         // uint32_t *ICACHE_LATENCY;
@@ -49,6 +46,7 @@ class cache_manager_t {
         void copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n_levels, uint32_t *v_levels, uint32_t cache_amount);
         uint32_t *get_cache_levels(vector<uint32_t> &v_levels, cache_t *cache, uint32_t cache_amount);
         mshr_entry_t* add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
+        cache_t *get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *N_CACHES);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
         uint32_t llcMiss(memory_order_buffer_line_t* mob_line, uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, cacheId_t cache_type);
@@ -61,7 +59,8 @@ class cache_manager_t {
         cache_t **data_cache;
         cache_t **instruction_cache;
 
-
+        uint32_t *ICACHE_AMOUNT;
+        uint32_t *DCACHE_AMOUNT;
         // Constructor
         cache_manager_t();
 

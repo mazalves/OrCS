@@ -135,14 +135,14 @@ class processor_t {
 	uint32_t *DATA_ASSOCIATIVITY;
 	uint32_t *DATA_LATENCY;
 	uint32_t *DATA_SETS;
-	char **DATA_LABEL;
+	uint32_t *DATA_LEVEL;
 	// I$
 	uint32_t INSTRUCTION_CACHES;
 	uint32_t *INST_SIZE;
 	uint32_t *INST_ASSOCIATIVITY;
 	uint32_t *INST_LATENCY;
 	uint32_t *INST_SETS;
-	char **INST_LABEL;
+	uint32_t *INST_LEVEL;
 
 	uint32_t RAM_LATENCY;
 	uint32_t PARALLEL_LIM_ACTIVE;

@@ -47,9 +47,9 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 	POINTER_LEVELS = 3;
 	set_DATA_LEVELS(3);
 	set_INSTRUCTION_LEVELS(1);
-	printf("id: %u | size: %u | level: %u | offset: %u | latency: %u | associ: %u | n_sets: %u\n", this->id, this->size, this->level, this->offset, this->latency, this->associativity, this->n_sets);
+	// printf("id: %u | size: %u | level: %u | offset: %u | latency: %u | associ: %u | n_sets: %u\n", this->id, this->size, this->level, this->offset, this->latency, this->associativity, this->n_sets);
     this->sets = new cacheSet_t[this->n_sets];
-	printf("%s\n", "morra");
+	printf("\n\n\n\n%u\n\n\n\n", this->level);
     for (size_t i = 0; i < this->n_sets; i++) {
 		this->sets[i].lines = new line_t[this->associativity];
 		this->sets[i].n_lines = this->associativity;
