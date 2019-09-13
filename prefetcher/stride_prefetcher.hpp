@@ -14,7 +14,7 @@ class stride_prefetcher_t{
 
         stride_table_t *stride_table;
         inline uint32_t searchLRU(); //Replacement
-        void allocate();
+        void allocate(uint32_t NUMBER_OF_PROCESSORS);
         int32_t searchPattern(uint64_t pc);//search entry 
         uint32_t installStride(uint64_t pc, uint64_t address); //install new entry
         uint32_t updateStride(uint64_t pc, uint64_t address, status_stride_prefetcher_t status); //update entry

@@ -30,9 +30,10 @@ piecewise_t::~piecewise_t(){
 
 void piecewise_t::allocate(){
     libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    set_N (cfg_root[0]["N"]);
-    set_M (cfg_root[0]["M"]);
-    set_H (cfg_root[0]["H"]);
+    libconfig::Setting &cfg_branch_pred = cfg_root[0]["PROCESSOR"];
+    set_N(cfg_branch_pred["N"]);
+    set_M(cfg_branch_pred["M"]);
+    set_H(cfg_branch_pred["H"]);
 
     THETA = ((2.14*(H)) + 20.58);
 

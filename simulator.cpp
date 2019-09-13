@@ -13,7 +13,7 @@ static void display_use() {
 }
 
 // =============================================================================
-static void process_argv(int argc, char **argv) {
+static uint32_t process_argv(int argc, char **argv) {
 
     // Name, {no_argument, required_argument and optional_argument}, flag, value
     static struct option long_options[] = {
@@ -27,7 +27,7 @@ static void process_argv(int argc, char **argv) {
     // Count number of traces
     int opt;
     int option_index = 0;
-    int traces_informados = 0;
+    uint32_t traces_informados = 0;
     
     while ((opt = getopt_long_only(argc, argv, "h:c:t:f:w:",
                  long_options, &option_index)) != -1) {
@@ -65,14 +65,24 @@ static void process_argv(int argc, char **argv) {
             ORCS_PRINTF("%s ", argv[optind++]);
         ORCS_PRINTF("\n");
     }
+    orcs_engine.configuration = new configure_t;
+    libconfig::Config cfg;
+    cfg.readFile(orcs_engine.config_file);
+
+
+    libconfig::Setting &cfg_root = cfg.getRoot();
+    // libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    uint32_t NUMBER_OF_PROCESSORS = (cfg_root["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
+    printf("simulator.cpp - NUMBER_OF_PROCESSORS: %u\n", NUMBER_OF_PROCESSORS);
     ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
     if (orcs_engine.arg_trace_file_name.empty()) {
         ORCS_PRINTF("Trace file not defined.\n");
         display_use();
     }
-
+    return NUMBER_OF_PROCESSORS;
 }
-std::string get_status_execution(){
+
+std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){   
     std::string final_report;
     char report[1000];
     // Data - Atual,total, active cores
@@ -163,15 +173,16 @@ std::string get_status_execution(){
 
 // =============================================================================
 int main(int argc, char **argv) {
+
     // process args
-    process_argv(argc, argv);
+    uint32_t NUMBER_OF_PROCESSORS = process_argv(argc, argv);
     /// Call all the allocate's
-    orcs_engine.allocate();
-    
+    orcs_engine.allocate(NUMBER_OF_PROCESSORS);
+
     //==================
     //Cache Manager
     //==================
-    orcs_engine.cacheManager->allocate();
+    orcs_engine.cacheManager->allocate(NUMBER_OF_PROCESSORS);
     //==================
     //Memory Controller
     //==================
@@ -199,10 +210,10 @@ int main(int argc, char **argv) {
 
 
     /// Start CLOCK for all the components
-    while (orcs_engine.get_simulation_alive()) {
+    while (orcs_engine.get_simulation_alive(NUMBER_OF_PROCESSORS)) {
         #if HEARTBEAT
             if(orcs_engine.get_global_cycle()%HEARTBEAT_CLOCKS==0){
-                ORCS_PRINTF("%s\n",get_status_execution().c_str())
+                ORCS_PRINTF("%s\n",get_status_execution(NUMBER_OF_PROCESSORS).c_str())
             }
         #endif
         orcs_engine.memory_controller->clock();

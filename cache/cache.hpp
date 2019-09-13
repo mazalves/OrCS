@@ -1,5 +1,7 @@
 #ifndef CACHE_H
 #define CACHE_H
+#include <string>
+using namespace std;
 
 // number of cache levels
 class cache_t {
@@ -26,6 +28,28 @@ class cache_t {
         uint64_t changeLine;
 
         uint32_t LINE_SIZE;
+
+        // uint32_t L1_DATA_SIZE = 32*KILO;
+        // uint32_t ASSOCIATIVITY_L1D;
+        // uint32_t LATENCY_L1D;
+        // uint32_t L1_DATA_SETS;
+
+        // uint32_t L1_INST_SIZE = 32*KILO;
+        // uint32_t ASSOCIATIVITY_L1I;
+        // uint32_t LATENCY_L1I;
+        // uint32_t L1_INST_SETS;
+
+        // uint32_t L2_SIZE = 256*KILO;
+        // uint32_t ASSOCIATIVITY_L2D;
+        // uint32_t LATENCY_L2D;
+        // uint32_t L2_SETS;
+        // ==================== LEVEL 2 =====================
+        // ==================== LLC     =====================
+        // uint32_t LLC_SIZE = 20*MEGA;
+        // uint32_t ASSOCIATIVITY_LLCD;
+        // uint32_t LATENCY_LLCD;
+        // uint32_t LLC_SETS;
+
         uint32_t PREFETCHER_ACTIVE;
 
         uint32_t INSTRUCTION_LEVELS;
@@ -50,7 +74,7 @@ class cache_t {
 
         void statistics();
         // void cacheStatsAllocation(uint32_t cache_level, uint32_t cache_sets, uint32_t cache_associativity);
-        void allocate(cacheId_t cache_type, uint32_t cache_level, uint32_t cache_size, uint32_t cache_associativity, uint32_t cache_latency);//allocate data structure
+        void allocate(uint32_t NUMBER_OF_PROCESSORS);//allocate data structure
         void writeBack(line_t *line); //makes writeback of line
         void returnLine(uint64_t address, cache_t *cache);//return line from lower cache level
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
@@ -70,23 +94,6 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
         
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
-
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SETS)
-
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SETS)
-        
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,L2_SETS)
-        // ==================== LEVEL 2 =====================
-        // ==================== LLC     =====================
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_ASSOCIATIVITY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_LATENCY)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SETS)
 
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
 

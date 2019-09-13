@@ -5,12 +5,12 @@ branch_predictor_t::branch_predictor_t(){
 	this->branchPredictor = NULL;
 	
 	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-	set_BTB_ENTRIES (cfg_root[0]["BTB_ENTRIES"]);
-    set_BTB_WAYS (cfg_root[0]["BTB_WAYS"]);
-    set_BTB_MISS_PENALITY (cfg_root[0]["BTB_MISS_PENALITY"]);
-    set_MISSPREDICTION_PENALITY (cfg_root[0]["MISSPREDICTION_PENALITY"]);
-	if (!strcmp (cfg_root[0]["BRANCH_PREDICTION_METHOD"], "PIECEWISE")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_PIECEWISE;
-	else if (!strcmp (cfg_root[0]["BRANCH_PREDICTION_METHOD"], "TWO_BIT")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_TWO_BIT;
+	set_BTB_ENTRIES (cfg_root[0]["PROCESSOR"]["BTB_ENTRIES"]);
+    set_BTB_WAYS (cfg_root[0]["PROCESSOR"]["BTB_WAYS"]);
+    set_BTB_MISS_PENALITY (cfg_root[0]["PROCESSOR"]["BTB_MISS_PENALITY"]);
+    set_MISSPREDICTION_PENALITY (cfg_root[0]["PROCESSOR"]["MISSPREDICTION_PENALITY"]);
+	if (!strcmp (cfg_root[0]["PROCESSOR"]["BRANCH_PREDICTION_METHOD"], "PIECEWISE")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_PIECEWISE;
+	else if (!strcmp (cfg_root[0]["PROCESSOR"]["BRANCH_PREDICTION_METHOD"], "TWO_BIT")) this->BRANCH_PREDICTION_METHOD = BRANCH_PREDICTION_METHOD_TWO_BIT;
 }
 branch_predictor_t::~branch_predictor_t(){
 	if (this->branchPredictor != NULL){
@@ -23,6 +23,13 @@ branch_predictor_t::~branch_predictor_t(){
 	this->branchPredictor = NULL;
 }
 void branch_predictor_t::allocate(){
+	libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+	libconfig::Setting &cfg_branch_pred = cfg_root[0]["PROCESSOR"];
+	set_BTB_ENTRIES(cfg_branch_pred["BTB_ENTRIES"]);
+	set_BTB_WAYS(cfg_branch_pred["BTB_WAYS"]);
+	set_BTB_MISS_PENALITY(cfg_branch_pred["BTB_MISS_PENALITY"]);
+	set_MISSPREDICTION_PENALITY(cfg_branch_pred["MISSPREDICTION_PENALITY"]);
+
 	uint32_t size  = BTB_ENTRIES/BTB_WAYS;
     this->btb = new btb_t[size];
 	this->index = 0;

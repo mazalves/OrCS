@@ -10,7 +10,7 @@ orcs_engine_t::orcs_engine_t() {
 	this->configuration = NULL;
 }
 // =====================================================================
-void orcs_engine_t::allocate() {
+void orcs_engine_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 	// Statistics Time
 	gettimeofday(&this->stat_timer_start, NULL);
 	gettimeofday(&this->stat_timer_end, NULL);
@@ -23,7 +23,8 @@ void orcs_engine_t::allocate() {
 	this->cacheManager = new cache_manager_t;
 	this->memory_controller = new memory_controller_t;
 }
-bool orcs_engine_t::get_simulation_alive(){
+
+bool orcs_engine_t::get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS) {
 	for(uint16_t cpu=0;cpu<NUMBER_OF_PROCESSORS;cpu++){
 		if (this->processor[cpu].isBusy()) {
             return OK;

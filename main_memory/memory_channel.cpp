@@ -1,40 +1,41 @@
 #include "../simulator.hpp"
 
 memory_channel_t::memory_channel_t(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_memory_ctrl = cfg_root[0]["MEMORY_CONTROLLER"];
 
-    set_RANK (cfg_root[0]["RANK"]);
-    set_BANK (cfg_root[0]["BANK"]);
-    set_BANK_BUFFER_SIZE (cfg_root[0]["BANK_BUFFER_SIZE"]);
-    set_BANK_ROW_BUFFER_SIZE (cfg_root[0]["BANK_ROW_BUFFER_SIZE"]);
-    set_CHANNEL (cfg_root[0]["CHANNEL"]);
-    set_LINE_SIZE (cfg_root[0]["LINE_SIZE"]);
-    set_BURST_WIDTH (cfg_root[0]["BURST_WIDTH"]);
+    set_RANK (cfg_memory_ctrl["RANK"]);
+    set_BANK (cfg_memory_ctrl["BANK"]);
+    set_BANK_BUFFER_SIZE (cfg_memory_ctrl["BANK_BUFFER_SIZE"]);
+    set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
+    set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
+    set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
+    set_BURST_WIDTH (cfg_memory_ctrl["BURST_WIDTH"]);
     set_ROW_BUFFER ((RANK*BANK)*1024);
     // =====================Parametes Comandd=======================
-    set_TIMING_AL (cfg_root[0]["TIMING_AL"]);     // Added Latency for column accesses
-    set_TIMING_CAS (cfg_root[0]["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
-    set_TIMING_CCD (cfg_root[0]["TIMING_CCD"]);    // Column to Column Delay
-    set_TIMING_CWD (cfg_root[0]["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
-    set_TIMING_FAW (cfg_root[0]["TIMING_FAW"]);   // Four (row]) Activation Window
-    set_TIMING_RAS (cfg_root[0]["TIMING_RAS"]);   // Row Access Strobe
-    set_TIMING_RC (cfg_root[0]["TIMING_RC"]);    // Row Cycle
-    set_TIMING_RCD (cfg_root[0]["TIMING_RCD"]);    // Row to Column comand Delay
-    set_TIMING_RP (cfg_root[0]["TIMING_RP"]);     // Row Precharge
-    set_TIMING_RRD (cfg_root[0]["TIMING_RRD"]);    // Row activation to Row activation Delay
-    set_TIMING_RTP (cfg_root[0]["TIMING_RTP"]);    // Read To Precharge
-    set_TIMING_WR (cfg_root[0]["TIMING_WR"]);    // Write Recovery time
-    set_TIMING_WTR (cfg_root[0]["TIMING_WTR"]);
+    set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
+    set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
+    set_TIMING_CCD (cfg_memory_ctrl["TIMING_CCD"]);    // Column to Column Delay
+    set_TIMING_CWD (cfg_memory_ctrl["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
+    set_TIMING_FAW (cfg_memory_ctrl["TIMING_FAW"]);   // Four (row]) Activation Window
+    set_TIMING_RAS (cfg_memory_ctrl["TIMING_RAS"]);   // Row Access Strobe
+    set_TIMING_RC (cfg_memory_ctrl["TIMING_RC"]);    // Row Cycle
+    set_TIMING_RCD (cfg_memory_ctrl["TIMING_RCD"]);    // Row to Column comand Delay
+    set_TIMING_RP (cfg_memory_ctrl["TIMING_RP"]);     // Row Precharge
+    set_TIMING_RRD (cfg_memory_ctrl["TIMING_RRD"]);    // Row activation to Row activation Delay
+    set_TIMING_RTP (cfg_memory_ctrl["TIMING_RTP"]);    // Read To Precharge
+    set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
+    set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
 
-    if (!strcmp (cfg_root[0]["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
+    if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
-    } else if (!strcmp (cfg_root[0]["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
+    } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
     }
 
-    if (!strcmp (cfg_root[0]["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")){
+    if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")){
         this->WRITE_PRIORITY = WRITE_PRIORITY_DRAIN_WHEN_FULL;
-    } else if (!strcmp (cfg_root[0]["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")){
+    } else if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")){
         this->WRITE_PRIORITY = WRITE_PRIORITY_SERVICE_AT_NO_READ;
     }
 
@@ -300,7 +301,8 @@ void memory_channel_t::clock(){
 }
 
 uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address){
-    uint64_t bank = this->get_bank(address);
+    uint64_t bank = this->get_bank(address);mshr_entry_t* add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
+        
     uint64_t row = this->get_row(address);
     uint64_t latency_request = 0;
     switch (bank_last_command[bank]){

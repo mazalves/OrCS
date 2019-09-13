@@ -10,9 +10,9 @@ prefetcher_t::~prefetcher_t()
     if(this->prefetcher!=NULL) delete &this->prefetcher;
     //dtor
 }
-void prefetcher_t::allocate(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    set_PARALLEL_PREFETCH (cfg_root[0]["NUMBER_OF_PROCESSORS"]);
+void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
+    // libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    // set_PARALLEL_PREFETCH (cfg_root[0]["NUMBER_OF_PROCESSORS"]);
 
     this->set_latePrefetches(0);
     this->set_usefulPrefetches(0);
@@ -20,10 +20,10 @@ void prefetcher_t::allocate(){
     this->set_totalCycleLate(0);
     //#if STRIDE
         this->prefetcher = new stride_prefetcher_t;
-        this->prefetcher->allocate();
+        this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     //#endif  
     // List of cycle completation prefetchs. Allows control issue prefetchers
-    this->prefetch_waiting_complete.reserve(PARALLEL_PREFETCH);
+    this->prefetch_waiting_complete.reserve(NUMBER_OF_PROCESSORS);
 }
 // ================================================================
 // @mobLine - references to index the prefetch
