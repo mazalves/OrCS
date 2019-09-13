@@ -5,7 +5,6 @@
 // const uint32_t ICACHE_SIZE[1] = {32768};
 // const uint32_t DCACHE_SIZE[3] = {32768, 262144, 4194304};
 
-// EMC pointers removed!
 class line_t {
     public:
         uint64_t tag;
@@ -33,7 +32,7 @@ class line_t {
             // cfg.readFile(orcs_engine.config_file);
 
             // libconfig::Setting &cfg_root = cfg.getRoot();
-            libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+            libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
             // libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
 
             set_NUMBER_OF_PROCESSORS(cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
@@ -47,7 +46,7 @@ class line_t {
 
         // Desctructor
         ~line_t() {
-            libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
+            libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
             set_NUMBER_OF_PROCESSORS(cfg_root[0]["PROCESSOR"]["NUMBER_OF_PROCESSORS"]);
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line_ptr_caches[i];
             delete[] line_ptr_caches;

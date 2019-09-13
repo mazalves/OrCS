@@ -27,7 +27,7 @@ cache_t::~cache_t(){
 // Allocate each cache type
 void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 	// libconfig::Config cfg;
 	// cfg.readFile(orcs_engine.config_file);
 
@@ -153,7 +153,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx) {
 	line->line_ptr_caches[0][idx]->ready_at = line->ready_at;
 }
 
-// Writebacks an address from a specific cache to its next lower level (removed EMC)
+// Writebacks an address from a specific cache to its next lower leveL
 inline void cache_t::writeBack(line_t *line) {
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
         ERROR_ASSERT_PRINTF(line->line_ptr_caches[0][i] != NULL, "Error, no line reference in next levels.")
@@ -204,7 +204,7 @@ inline void cache_t::writeBack(line_t *line) {
 	}
 }
 
-// Searches for a cache line to write data (removed EMC)
+// Searches for a cache line to write data
 line_t* cache_t::installLine(uint64_t address, uint32_t latency) {
 	int32_t line = POSITION_FAIL;
     uint32_t idx;

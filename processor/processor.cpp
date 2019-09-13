@@ -65,7 +65,7 @@ processor_t::~processor_t()
 // =====================================================================
 void processor_t::allocate()
 {
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];

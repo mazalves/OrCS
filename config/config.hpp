@@ -6,5 +6,5 @@ class configure_t {
         configure_t();
         ~configure_t();
         void loadConfig();
-        libconfig::Setting* getConfig();
+        libconfig::Setting &getConfig();
 };

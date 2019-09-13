@@ -29,7 +29,7 @@ piecewise_t::~piecewise_t(){
 }
 
 void piecewise_t::allocate(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_branch_pred = cfg_root[0]["PROCESSOR"];
     set_N(cfg_branch_pred["N"]);
     set_M(cfg_branch_pred["M"]);

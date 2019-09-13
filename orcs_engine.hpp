@@ -31,7 +31,7 @@ class orcs_engine_t {
         branch_predictor_t *branchPredictor;
         //cache Manager and cache
         cache_manager_t *cacheManager;
-        //Memory Controller and EMC
+        //Memory Controller
         memory_controller_t *memory_controller;
 
         // ====================================================================

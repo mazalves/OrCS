@@ -1,5 +1,6 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
+using namespace std;
 
 class cache_manager_t {
     private:

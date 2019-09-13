@@ -1,12 +1,11 @@
 #include "./../simulator.hpp"
-#include <string>
-using namespace std;
+
 // Constructor
-cache_manager_t::cache_manager_t(){
+cache_manager_t::cache_manager_t() {
 }
 
 // Desctructor
-cache_manager_t::~cache_manager_t(){
+cache_manager_t::~cache_manager_t() {
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
     delete[] data_cache;
@@ -106,7 +105,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
     set_NUMBER_OF_PROCESSORS(NUMBER_OF_PROCESSORS);
 
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 
     // Get prefetcher info
     libconfig::Setting &prefetcher_defs = cfg_root[0]["PREFETCHER"];

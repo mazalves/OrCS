@@ -5,7 +5,7 @@ stride_prefetcher_t::~stride_prefetcher_t(){
     if(this->stride_table) delete[] &this->stride_table;
 }
 void stride_prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_prefetcher = cfg_root[0]["PREFETCHER"];
     set_DISTANCE(cfg_prefetcher[0]["DISTANCE"]);
 

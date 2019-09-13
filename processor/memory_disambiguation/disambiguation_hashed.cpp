@@ -20,7 +20,7 @@ disambiguation_hashed_t::~disambiguation_hashed_t()
 }
 
 void disambiguation_hashed_t::allocate(){
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+	libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 	libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];
 
 	set_ROB_SIZE (cfg_processor["ROB_SIZE"]);
