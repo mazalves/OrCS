@@ -52,8 +52,8 @@ class cache_manager_t {
         cache_t *get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *N_CACHES);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
-        uint32_t llcMiss(memory_order_buffer_line_t* mob_line, uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, cacheId_t cache_type);
-        uint32_t recursiveInstructionSearch(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+        uint32_t llcMiss(memory_order_buffer_line_t* mob_line, uint32_t latency_request);
+        uint32_t recursiveInstructionSearch(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
         uint32_t recursiveDataSearch(memory_order_buffer_line_t *mob_line, uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
         uint32_t recursiveDataWrite(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
 
@@ -74,7 +74,6 @@ class cache_manager_t {
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
-        uint32_t searchInstruction(uint32_t processor_id, uint64_t instructionAddress);
         uint32_t searchData(memory_order_buffer_line_t *mob_line);
         
         // Getters and setters

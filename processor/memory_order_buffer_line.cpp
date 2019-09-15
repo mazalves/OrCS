@@ -106,6 +106,9 @@ void memory_order_buffer_line_t::updatePackageUntrated(uint32_t stallTime){
 void memory_order_buffer_line_t::updatePackageReady(uint32_t stallTime){
     this->status = PACKAGE_STATE_READY;
     this->readyAt = orcs_engine.get_global_cycle()+stallTime;
+    if (this->opcode_ptr != NULL){
+        this->opcode_ptr->updatePackageReady (stallTime);
+    }
 }
 void memory_order_buffer_line_t::updatePackageWait(uint32_t stallTime){
     this->status = PACKAGE_STATE_WAIT;

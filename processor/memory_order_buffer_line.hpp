@@ -4,6 +4,7 @@ class memory_order_buffer_line_t {
         uint64_t memory_address;
         uint32_t memory_size;
          
+        opcode_package_t* opcode_ptr;
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control
         bool uop_executed; //*

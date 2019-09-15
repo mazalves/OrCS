@@ -536,12 +536,12 @@ void processor_t::fetch(){
 		{
 			//solve
 			uint32_t stallWrongBranch = orcs_engine.branchPredictor[this->processor_id].solveBranch(this->previousBranch, operation);
-			this->set_stall_wrong_branch(orcs_engine.get_global_cycle() + stallWrongBranch);
+			this->set_stall_wrong_branch (orcs_engine.get_global_cycle() + stallWrongBranch);
 			this->hasBranch = false;
-			uint32_t ttc = orcs_engine.cacheManager->searchInstruction(this->processor_id,operation.opcode_address);
+			//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
 			// ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
-			operation.updatePackageReady(FETCH_LATENCY+stallWrongBranch + ttc);
-			updated = true;
+			operation.updatePackageWait (stallWrongBranch);
+			//updated = true;
 			this->previousBranch.package_clean();
 			// ORCS_PRINTF("Stall Wrong Branch %u\n",stallWrongBranch)
 		}
@@ -563,9 +563,19 @@ void processor_t::fetch(){
 		}
 		if (!updated)
 		{
-			uint32_t ttc = orcs_engine.cacheManager->searchInstruction(this->processor_id,operation.opcode_address);
-			this->fetchBuffer.back()->updatePackageReady(FETCH_LATENCY + ttc);
+			memory_order_buffer_line_t* mob_line = new memory_order_buffer_line_t;
+			
+			mob_line->opcode_ptr = fetchBuffer.back();
+			mob_line->opcode_address = fetchBuffer.back()->opcode_address;
+			mob_line->memory_address = fetchBuffer.back()->opcode_address;
+			mob_line->memory_size = fetchBuffer.back()->opcode_size;
+			mob_line->memory_operation = MEMORY_OPERATION_INST;
+			mob_line->status = PACKAGE_STATE_WAIT;
+			mob_line->readyToGo = orcs_engine.get_global_cycle() + FETCH_LATENCY;
+			mob_line->uop_number = fetchBuffer.back()->opcode_number;
+			mob_line->processor_id = this->processor_id;
 
+			orcs_engine.cacheManager->searchData(mob_line);
 		}
 	}
 		// #if FETCH_DEBUG
