@@ -15,8 +15,8 @@ public:
     disambiguation_hashed_t(/* args */);
     ~disambiguation_hashed_t();
     void allocate();
-    void make_memory_dependencies(memory_order_buffer_line_t *mob_line);
-    void solve_memory_dependencies(memory_order_buffer_line_t *mob_line);
+    void make_memory_dependences(memory_order_buffer_line_t *mob_line);
+    void solve_memory_dependences(memory_order_buffer_line_t *mob_line);
     void statistics();
 
     // ============================================

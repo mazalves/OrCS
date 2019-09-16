@@ -147,6 +147,7 @@ void processor_t::allocate()
 
 	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT);
 
+	set_DISAMBIGUATION_ENABLED (cfg_processor["DISAMBIGUATION_ENABLED"]);
 	if (!strcmp(cfg_processor["DISAMBIGUATION_METHOD"], "HASHED")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_HASHED;
 	else if (!strcmp(cfg_processor["DISAMBIGUATION_METHOD"], "PERFECT")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_PERFECT;
 
@@ -225,9 +226,7 @@ void processor_t::allocate()
 
 	// Prefetcher defaults
 	libconfig::Setting &cfg_prefetcher = cfg_root[0]["PREFETCHER"];
-
 	set_PREFETCHER_ACTIVE(cfg_prefetcher["PREFETCHER_ACTIVE"]);
-	set_DISAMBIGUATION_ENABLED(cfg_prefetcher["DISAMBIGUATION_ENABLED"]);
 	//======================================================================
 	// Initializating variables
 	//======================================================================
