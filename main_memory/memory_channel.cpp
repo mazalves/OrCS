@@ -65,9 +65,7 @@ memory_channel_t::~memory_channel_t(){
 void memory_channel_t::set_masks(){       
     ERROR_ASSERT_PRINTF(CHANNEL > 1 && utils_t::check_if_power_of_two(CHANNEL),"Wrong number of memory_channels (%u).\n",CHANNEL);
     uint64_t i;
-    // =======================================================
-    // Setting to zero
-    // =======================================================
+    
     this->channel_bits_shift=0;
     this->colbyte_bits_shift=0;
     this->colrow_bits_shift=0;
@@ -109,7 +107,7 @@ void memory_channel_t::set_masks(){
     }
 
     /// BANK MASK
-    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {    
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {
         this->bank_bits_mask |= 1 << (i + bank_bits_shift);
     }
 
@@ -119,7 +117,7 @@ void memory_channel_t::set_masks(){
     }
 }
 
-void memory_channel_t::addRequest (mshr_entry_t* request){
+void memory_channel_t::addRequest (mshr_entry_t* request){        
     uint64_t bank = this->get_bank(request->requests[0]->memory_address);
     if (request->requests[0]->memory_operation == MEMORY_OPERATION_READ || request->requests[0]->memory_operation == MEMORY_OPERATION_INST){
         bank_read_requests[bank].push_back (request);
@@ -245,6 +243,16 @@ void memory_channel_t::clock(){
                                 this->bank_is_ready[bank] = true;
                                 break;
                             }
+                            case MEMORY_OPERATION_HIVE_LOCK   :
+                            case MEMORY_OPERATION_HIVE_UNLOCK :
+                            case MEMORY_OPERATION_HIVE_LOAD   :
+                            case MEMORY_OPERATION_HIVE_STORE  :
+                            case MEMORY_OPERATION_HIVE_INT_ALU:
+                            case MEMORY_OPERATION_HIVE_INT_MUL:
+                            case MEMORY_OPERATION_HIVE_INT_DIV:
+                            case MEMORY_OPERATION_HIVE_FP_ALU :
+                            case MEMORY_OPERATION_HIVE_FP_MUL :
+                            case MEMORY_OPERATION_HIVE_FP_DIV :
                             case MEMORY_OPERATION_FREE: {
                                 break;
                             }
@@ -292,6 +300,16 @@ void memory_channel_t::clock(){
                 current_entry->valid = true;
                 break;
             }
+            case MEMORY_OPERATION_HIVE_LOCK:
+            case MEMORY_OPERATION_HIVE_UNLOCK:
+            case MEMORY_OPERATION_HIVE_LOAD:
+            case MEMORY_OPERATION_HIVE_STORE:
+            case MEMORY_OPERATION_HIVE_INT_ALU:
+            case MEMORY_OPERATION_HIVE_INT_MUL:
+            case MEMORY_OPERATION_HIVE_INT_DIV:
+            case MEMORY_OPERATION_HIVE_FP_ALU :
+            case MEMORY_OPERATION_HIVE_FP_MUL :
+            case MEMORY_OPERATION_HIVE_FP_DIV :
             case MEMORY_OPERATION_FREE:{
                 break;
             }
@@ -312,7 +330,6 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
             ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
         break;
         case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
-            //ERROR_ASSERT_PRINTF (row != bank_last_row[bank], "Sending ROW_ACCESS to wrong row.")
             this->add_stat_row_buffer_miss();
             this->bank_last_row[bank] = row;
             this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
@@ -332,6 +349,7 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
                         this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                         latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ);
+                        ORCS_PRINTF ("READ %lu\n", latency_request)
                         this->add_stat_row_buffer_hit();
                         break;
                     }
@@ -340,9 +358,20 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
                         this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                         latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE);
+                        ORCS_PRINTF ("WRITE %lu\n", latency_request)
                         this->add_stat_row_buffer_hit();
                         break;
                     }
+                    case MEMORY_OPERATION_HIVE_LOCK:
+                    case MEMORY_OPERATION_HIVE_UNLOCK:
+                    case MEMORY_OPERATION_HIVE_LOAD:
+                    case MEMORY_OPERATION_HIVE_STORE:
+                    case MEMORY_OPERATION_HIVE_INT_ALU:
+                    case MEMORY_OPERATION_HIVE_INT_MUL:
+                    case MEMORY_OPERATION_HIVE_INT_DIV:
+                    case MEMORY_OPERATION_HIVE_FP_ALU :
+                    case MEMORY_OPERATION_HIVE_FP_MUL :
+                    case MEMORY_OPERATION_HIVE_FP_DIV :
                     case MEMORY_OPERATION_FREE: {
                         break;
                     }
@@ -353,10 +382,12 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
                 latency_request = get_minimum_latency (bank, MEMORY_CONTROLLER_COMMAND_PRECHARGE);
+                ORCS_PRINTF ("PRE %lu\n", latency_request)
             }
         }
     }
-    return latency_request-orcs_engine.get_global_cycle();
+    if (latency_request > orcs_engine.get_global_cycle()) return latency_request-orcs_engine.get_global_cycle();
+    return 0;
 }
 //=====================================================================
 

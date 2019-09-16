@@ -32,6 +32,11 @@ class opcode_package_t {
         bool is_predicated;
         bool is_prefetch;
 
+        bool is_hive;
+        int32_t hive_read1;
+        int32_t hive_read2;
+        int32_t hive_write;
+
         // ====================================================================
         /// Status Control
         // ====================================================================

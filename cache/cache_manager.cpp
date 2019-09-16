@@ -352,8 +352,11 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     uint32_t cache_status = this->searchAddress(mob_line->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
-        for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
+        if (cache_level > 0) {
+            for (int32_t i = cache_level - 1; i >= 0; i--) {
+                this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
+                this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
+            }
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
         mob_line->updatePackageReady(latency_request);

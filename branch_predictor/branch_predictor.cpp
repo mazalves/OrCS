@@ -3,6 +3,15 @@
 branch_predictor_t::branch_predictor_t(){
     this->btb = NULL;
 	this->branchPredictor = NULL;
+
+	this->set_branches (0);
+	this->set_branchNotTaken (0);
+	this->set_branchNotTakenMiss (0);
+	this->set_branchTaken (0);
+	this->set_branchTakenMiss (0);
+	
+	this->set_btbHits (0);
+	this->set_btbMiss (0);
 	
 	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
 	set_BTB_ENTRIES (cfg_root[0]["PROCESSOR"]["BTB_ENTRIES"]);

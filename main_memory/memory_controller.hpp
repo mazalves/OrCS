@@ -21,6 +21,20 @@ class memory_controller_t{
 
         float CORE_TO_BUS_CLOCK_RATIO;
 
+        uint32_t TIMING_AL;     // Added Latency for column accesses
+        uint32_t TIMING_CAS;    // Column Access Strobe (CL) latency
+        uint32_t TIMING_CCD;    // Column to Column Delay
+        uint32_t TIMING_CWD;    // Column Write Delay (CWL) or simply WL
+        uint32_t TIMING_FAW;   // Four (row) Activation Window
+        uint32_t TIMING_RAS;   // Row Access Strobe
+        uint32_t TIMING_RC;    // Row Cycle
+        uint32_t TIMING_RCD;    // Row to Column comand Delay
+        uint32_t TIMING_RP;     // Row Precharge
+        uint32_t TIMING_RRD;    // Row activation to Row activation Delay
+        uint32_t TIMING_RTP;    // Read To Precharge
+        uint32_t TIMING_WR;    // Write Recovery time
+        uint32_t TIMING_WTR;
+
         memory_channel_t *channels;
 
     public:
@@ -56,6 +70,20 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
 
         INSTANTIATE_GET_SET_ADD(float,CORE_TO_BUS_CLOCK_RATIO)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CAS)    // Column Access Strobe (CL) latency
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CCD)    // Column to Column Delay
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CWD)    // Column Write Delay (CWL) or simply WL
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_FAW)   // Four (row) Activation Window
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RAS)   // Row Access Strobe
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RC)    // Row Cycle
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RCD)    // Row to Column comand Delay
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RP)     // Row Precharge
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RRD)    // Row activation to Row activation Delay
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_RTP)    // Read To Precharge
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WR)    // Write Recovery time
+        INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_WTR)
 };
 
 #endif // MEMORY_CONTROLLER_H
