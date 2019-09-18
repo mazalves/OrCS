@@ -335,12 +335,30 @@ uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
     if (!isInMSHR (mob_line)){
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(mob_line->processor_id, cache_indexes);
-        if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
-            recursiveDataSearch(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, 0, DATA);
-        } else if (mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
-            recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
-        } else if (mob_line->memory_operation == MEMORY_OPERATION_INST) {
-            recursiveInstructionSearch (mob_line, cache_indexes, latency_request, ttc, 0);
+        switch (mob_line->memory_operation){
+            case MEMORY_OPERATION_READ:
+                recursiveDataSearch(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, 0, DATA);
+                break;
+            case MEMORY_OPERATION_HIVE_FP_ALU:
+            case MEMORY_OPERATION_HIVE_FP_DIV:
+            case MEMORY_OPERATION_HIVE_FP_MUL:
+            case MEMORY_OPERATION_HIVE_INT_ALU:
+            case MEMORY_OPERATION_HIVE_INT_DIV:
+            case MEMORY_OPERATION_HIVE_INT_MUL:
+            case MEMORY_OPERATION_HIVE_LOAD:
+            case MEMORY_OPERATION_HIVE_STORE:
+            case MEMORY_OPERATION_HIVE_LOCK:
+            case MEMORY_OPERATION_HIVE_UNLOCK:
+                llcMiss (mob_line, latency_request);
+                break;
+            case MEMORY_OPERATION_WRITE:
+                recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
+                break;
+            case MEMORY_OPERATION_INST:
+                recursiveInstructionSearch (mob_line, cache_indexes, latency_request, ttc, 0);
+                break;
+            default:
+                break;
         }
         delete[] cache_indexes;
     }

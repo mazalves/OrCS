@@ -93,13 +93,9 @@ void memory_controller_t::set_masks(){
 //=====================================================================
 uint64_t memory_controller_t::requestDRAM (mshr_entry_t* request, uint64_t address){
     this->add_requests_made();
-    memory_operation_t operation;
     if (request != NULL) {
         this->channels[get_channel (address)].addRequest (request);
         return 0;
-    } else operation = MEMORY_OPERATION_READ;
-    //initializes in latency burst
-    uint64_t latency_request = this->channels[get_channel (address)].latencyCalc (operation, address);
-    latency_request = latency_request * CORE_TO_BUS_CLOCK_RATIO;
-    return latency_request;
+    } 
+    return 0;
 }

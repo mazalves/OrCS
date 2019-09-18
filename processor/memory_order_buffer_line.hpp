@@ -3,8 +3,13 @@ class memory_order_buffer_line_t {
         uint64_t opcode_address;
         uint64_t memory_address;
         uint32_t memory_size;
+
+        //HIVE
+        uint64_t read_address;
+        uint64_t read2_address;
+        uint64_t write_address;
          
-        opcode_package_t* opcode_ptr;
+        opcode_package_t* opcode_ptr; //USED FOR INSTRUCTION FETCH
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control
         bool uop_executed; //*

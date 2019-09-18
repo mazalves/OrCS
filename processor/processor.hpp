@@ -196,6 +196,7 @@ class processor_t {
 		uint64_t commit_uop_counter;
 		uint32_t memory_read_executed;
 		uint32_t memory_write_executed;
+		uint32_t memory_hive_executed;
 		
 		// ====================================================================
 		/// Methods
@@ -221,6 +222,7 @@ class processor_t {
 		// MOB WRITE RELATED
 		int32_t search_position_mob_write();
 		void remove_front_mob_write();
+		// ====================================================================
 		// MOB HIVE RELATED
 		int32_t search_position_mob_hive();
 		void remove_front_mob_hive();
@@ -237,6 +239,9 @@ class processor_t {
 		void clean_mob_read();
 		uint32_t mob_write();
 		void clean_mob_write();
+		uint32_t mob_hive();
+		void clean_mob_hive();
+		
 		void commit();
 		// ====================================================================
 		// Bool Functions @return 

@@ -16,6 +16,10 @@ class uop_package_t{
     instruction_operation_t uop_operation;
     uint64_t memory_address;
     uint32_t memory_size;
+
+    uint64_t read_address;
+    uint64_t read2_address;
+    uint64_t write_address;
     
     bool is_hive;
     int32_t hive_read1;

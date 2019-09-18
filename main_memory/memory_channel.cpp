@@ -119,10 +119,28 @@ void memory_channel_t::set_masks(){
 
 void memory_channel_t::addRequest (mshr_entry_t* request){        
     uint64_t bank = this->get_bank(request->requests[0]->memory_address);
-    if (request->requests[0]->memory_operation == MEMORY_OPERATION_READ || request->requests[0]->memory_operation == MEMORY_OPERATION_INST){
-        bank_read_requests[bank].push_back (request);
-    } else if (request->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
-        bank_write_requests[bank].push_back (request);
+    switch (request->requests[0]->memory_operation){
+        case MEMORY_OPERATION_READ:
+        case MEMORY_OPERATION_INST:
+            bank_read_requests[bank].push_back (request);
+            break;
+        case MEMORY_OPERATION_WRITE:
+            bank_write_requests[bank].push_back (request);
+            break;
+        case MEMORY_OPERATION_HIVE_FP_ALU:
+        case MEMORY_OPERATION_HIVE_FP_DIV:
+        case MEMORY_OPERATION_HIVE_FP_MUL:
+        case MEMORY_OPERATION_HIVE_INT_ALU:
+        case MEMORY_OPERATION_HIVE_INT_DIV:
+        case MEMORY_OPERATION_HIVE_INT_MUL:
+        case MEMORY_OPERATION_HIVE_LOAD:
+        case MEMORY_OPERATION_HIVE_STORE:
+        case MEMORY_OPERATION_HIVE_LOCK:
+        case MEMORY_OPERATION_HIVE_UNLOCK:
+            ORCS_PRINTF ("HIVE NO CANAAAAL\n")
+            break;
+        case MEMORY_OPERATION_FREE:
+            break;
     }
 }
 
