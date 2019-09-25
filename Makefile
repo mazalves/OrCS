@@ -17,6 +17,7 @@ FD_OTHER = utils
 FD_CACHE = cache
 FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
+FD_HIVE = hive
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
@@ -50,6 +51,8 @@ SRC_PREFETCHER = $(FD_PREFETCHER)/prefetcher.cpp\
 SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
 			 $(FD_MEMORY)/memory_controller.cpp
 
+SRC_HIVE = $(FD_HIVE)/hive_controller.cpp
+
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 
 SRC_CORE =  simulator.cpp orcs_engine.cpp\
@@ -60,6 +63,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_OTHER)\
 			$(SRC_BRANCH_PREDICTOR)\
 			$(SRC_CACHE)\
+			$(SRC_HIVE)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\
 			$(SRC_MEMORY)\

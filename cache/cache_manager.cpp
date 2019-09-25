@@ -59,10 +59,8 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
     const char *string_cache_type;
     if (cache_type == 0) {
         string_cache_type = "INSTRUCTION";
-        // strcpy(string_cache_type, "INSTRUCTION");
     } else {
         string_cache_type = "DATA";
-        // strcpy(string_cache_type, "DATA");
     }
 
     // Get the list of caches
@@ -209,19 +207,21 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] line;
 }
 
-void cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request){
+void cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request, bool hive){
     // printf("%s\n", "mshr entry");
     uint64_t tag = (mob_line->memory_address >> this->offset);
     mshr_entry_t* new_entry = new mshr_entry_t;
     new_entry->tag = tag;
     new_entry->latency = latency_request;
     new_entry->valid = false;
-    new_entry->issued = false;
+    new_entry->issued = hive;
     new_entry->treated = false;
     new_entry->cycle_created = orcs_engine.get_global_cycle();
     new_entry->requests.push_back (mob_line);
     mshr_table.push_back (new_entry);
-    orcs_engine.memory_controller->add_requests_llc();
+    
+    if (hive) orcs_engine.hive_controller->addRequest (new_entry);
+    else orcs_engine.memory_controller->add_requests_llc();
 }
 
 bool cache_manager_t::isInMSHR (memory_order_buffer_line_t* mob_line){
@@ -242,16 +242,37 @@ void cache_manager_t::clock() {
         if (mshr_table[mshr_index]->valid) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->requests[0]->processor_id, cache_indexes);
-            if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_INST){
-                this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
-            } else this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
-            if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
-                int cache_level = DATA_LEVELS - 1;
-                for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
-                    this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
+            switch (mshr_table[mshr_index]->requests[0]->memory_operation){
+                case MEMORY_OPERATION_INST:{
+                    this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
+                    break;
                 }
-                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address);
+                case MEMORY_OPERATION_READ:{
+                   this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+                   break;
+                }
+                case MEMORY_OPERATION_WRITE:{
+                    this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+                    int cache_level = DATA_LEVELS - 1;
+                    for (int32_t k = cache_level - 1; k >= 0; k--) {
+                        this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
+                        this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
+                    }
+                    this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address);
+                    break;
+                }
+                case MEMORY_OPERATION_HIVE_LOCK:
+                case MEMORY_OPERATION_HIVE_UNLOCK:
+                case MEMORY_OPERATION_HIVE_INT_ALU:
+                case MEMORY_OPERATION_HIVE_INT_DIV:
+                case MEMORY_OPERATION_HIVE_INT_MUL:
+                case MEMORY_OPERATION_HIVE_FP_ALU:
+                case MEMORY_OPERATION_HIVE_FP_DIV:
+                case MEMORY_OPERATION_HIVE_FP_MUL:
+                case MEMORY_OPERATION_HIVE_LOAD:
+                case MEMORY_OPERATION_HIVE_STORE:
+                case MEMORY_OPERATION_FREE:
+                    break;
             }
             
             for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++){
@@ -276,7 +297,27 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
 }
 
 uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint32_t latency_request) {
-    this->add_mshr_entry (mob_line, latency_request);
+    bool hive = false;
+    switch (mob_line->memory_operation){
+        case MEMORY_OPERATION_READ:
+        case MEMORY_OPERATION_INST:
+        case MEMORY_OPERATION_WRITE:
+        case MEMORY_OPERATION_FREE:
+            break;
+        case MEMORY_OPERATION_HIVE_FP_ALU:
+        case MEMORY_OPERATION_HIVE_FP_DIV:
+        case MEMORY_OPERATION_HIVE_FP_MUL:
+        case MEMORY_OPERATION_HIVE_INT_ALU:
+        case MEMORY_OPERATION_HIVE_INT_DIV:
+        case MEMORY_OPERATION_HIVE_INT_MUL:
+        case MEMORY_OPERATION_HIVE_LOAD:
+        case MEMORY_OPERATION_HIVE_STORE:
+        case MEMORY_OPERATION_HIVE_LOCK:
+        case MEMORY_OPERATION_HIVE_UNLOCK:
+            hive = true;
+            break;
+    }
+    this->add_mshr_entry (mob_line, latency_request, hive);
     return latency_request;
 }
 

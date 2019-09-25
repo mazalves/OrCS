@@ -93,6 +93,10 @@ class stride_prefetcher_t;
 //  =========================================//
 class memory_controller_t;
 //  =========================================//
+// HIVE Classes
+//  =========================================//
+class hive_controller_t;
+//  =========================================//
 // DATA Types
 // ====================================
 typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t;
@@ -191,5 +195,8 @@ extern orcs_engine_t orcs_engine;
 // // MemoryController INCLUDES
 #include "./main_memory/memory_channel.hpp"
 #include "./main_memory/memory_controller.hpp"
+//  =========================================//
+// // HIVE INCLUDES
+#include "./hive/hive_controller.hpp"
 //  =========================================//
 #endif  // _ORCS_ORCS_HPP_

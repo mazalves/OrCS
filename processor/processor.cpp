@@ -696,6 +696,8 @@ void processor_t::decode(){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			}
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+			this->fetchBuffer.pop_front();
+			return;
 		} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_LOAD){
 			new_uop.package_clean();
 			new_uop.opcode_to_uop (this->uopCounter++,
@@ -715,6 +717,8 @@ void processor_t::decode(){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			}
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+			this->fetchBuffer.pop_front();
+			return;
 		} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_STORE){
 			new_uop.package_clean();
 			new_uop.opcode_to_uop (this->uopCounter++,
@@ -734,6 +738,8 @@ void processor_t::decode(){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			}
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+			this->fetchBuffer.pop_front();
+			return;
 		}
 
 		// =====================
@@ -1496,6 +1502,25 @@ void processor_t::dispatch(){
 		// sleep(1);
 } //end method
 
+//clean_mob_write() copy!
+void processor_t::clean_mob_hive(){
+	uint32_t pos = this->memory_order_buffer_hive_start;
+	if (this->memory_order_buffer_hive[pos].status == PACKAGE_STATE_READY &&
+		this->memory_order_buffer_hive[pos].readyAt <= orcs_engine.get_global_cycle() &&
+		this->memory_order_buffer_hive[pos].processed == false){
+		uint64_t latency = this->memory_order_buffer_hive[pos].readyAt - this->memory_order_buffer_hive[pos].cycle_send_request;
+		this->memory_order_buffer_hive[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+		this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
+		this->memory_order_buffer_hive[pos].processed=true;
+		this->memory_hive_executed--;
+		this->solve_registers_dependency(this->memory_order_buffer_hive[pos].rob_ptr);
+		if (DISAMBIGUATION_ENABLED){
+			this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_hive[pos]);
+		}
+		this->remove_front_mob_hive();
+	}
+}
+
 void processor_t::clean_mob_write(){
 	uint32_t pos = this->memory_order_buffer_write_start;
 	if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_READY &&
@@ -1573,6 +1598,7 @@ void processor_t::execute()
 			ORCS_PRINTF("========== Execute Stage ==========\n")
 		}
 	}
+	this->clean_mob_hive();
 	this->clean_mob_write();
 	this->clean_mob_read();
 	uint32_t uop_total_executed = 0;
@@ -1808,22 +1834,11 @@ uint32_t processor_t::mob_hive(){
 		this->oldest_hive_to_send = this->get_next_op_hive();
 	}
 	if (this->oldest_hive_to_send != NULL){
-		//if (PARALLEL_LIM_ACTIVE){
-			//if (this->counter_mshr_write >= MAX_PARALLEL_REQUESTS_CORE) {
-				//this->add_times_reach_parallel_requests_write();
-				//return FAIL;
-			//}
-		//}
-		//uint32_t ttc = 0;
-		//sendind to write data
 		if (!this->oldest_hive_to_send->sent){
 			orcs_engine.cacheManager->searchData(oldest_hive_to_send);
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent=true;
 			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-			//if (PARALLEL_LIM_ACTIVE){
-				//this->counter_mshr_write++; //numero de req paralelas, add+1
-			//}
 		}
 		this->oldest_hive_to_send = NULL;
 		// =============================================================
@@ -2190,6 +2205,7 @@ void processor_t::clock(){
 			ORCS_PRINTF("Cycle %lu\n",orcs_engine.get_global_cycle())
 		}
 	}
+	orcs_engine.hive_controller->clock();
 	orcs_engine.cacheManager->clock();
 	/////////////////////////////////////////////////
 	//// Verifica se existe coisas no ROB

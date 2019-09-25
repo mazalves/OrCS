@@ -5,6 +5,7 @@ class memory_order_buffer_line_t {
         uint32_t memory_size;
 
         //HIVE
+        bool is_hive;
         uint64_t read_address;
         uint64_t read2_address;
         uint64_t write_address;

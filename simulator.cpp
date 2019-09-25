@@ -187,6 +187,7 @@ int main(int argc, char **argv) {
     //Memory Controller
     //==================
     orcs_engine.memory_controller->allocate();
+    orcs_engine.hive_controller->allocate();
 
     for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++){
         //==================

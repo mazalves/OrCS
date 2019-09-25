@@ -45,7 +45,7 @@ class cache_manager_t {
         std::vector<mshr_entry_t*> mshr_table;
 
         void check_cache(uint32_t cache_size, uint32_t cache_level);
-        void add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
+        void add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request, bool hive);
         bool isInMSHR (memory_order_buffer_line_t* mob_line);
         void copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n_levels, uint32_t *v_levels, uint32_t cache_amount);
         uint32_t *get_cache_levels(std::vector<uint32_t> &v_levels, cache_t *cache, uint32_t cache_amount);

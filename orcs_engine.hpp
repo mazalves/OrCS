@@ -33,6 +33,7 @@ class orcs_engine_t {
         cache_manager_t *cacheManager;
         //Memory Controller and EMC
         memory_controller_t *memory_controller;
+        hive_controller_t *hive_controller;
 
         // ====================================================================
         /// Statistics related
