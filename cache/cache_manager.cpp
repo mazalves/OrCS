@@ -44,7 +44,6 @@ void cache_manager_t::copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n
         for (uint32_t j = 0, k = 0; k < cache_amount; k++) {
             if (aux_cache[k].level == i) {
                 cache[i][j] = aux_cache[k];
-                printf("v_levels[%d] = %u\n", i, v_levels[i]);
                 if (j < v_levels[i]) {
                     j++;
                 }

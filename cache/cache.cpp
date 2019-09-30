@@ -32,12 +32,10 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 	// Get prefetcher info
 	libconfig::Setting &prefetcher_defs = cfg_root["PREFETCHER"];
 	set_PREFETCHER_ACTIVE(prefetcher_defs["PREFETCHER_ACTIVE"]);
-	printf("cache.cpp - PREFETCHER_ACTIVE: %u\n", PREFETCHER_ACTIVE);
 
 	// Get general cache info
 	libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"]["CONFIG"];
 	set_WAIT_CYCLE(cfg_cache_defs["WAIT_CYCLE"]);
-	printf("cache.cpp - WAIT_CYCLE: %u\n", WAIT_CYCLE);
 
 	set_INSTRUCTION_LEVELS (INSTRUCTION_LEVELS);
 	set_DATA_LEVELS (DATA_LEVELS);
