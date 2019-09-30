@@ -146,6 +146,7 @@ extern orcs_engine_t orcs_engine;
 #include "./orcs_engine.hpp"
 #include "./config/config.hpp"
 #include "./trace_reader.hpp"
+#include "./main_memory/memory_request_client.hpp"
 #include "./package/opcode_package.hpp"
 
 
@@ -165,6 +166,7 @@ extern orcs_engine_t orcs_engine;
 // Core Includes
 //  =========================================//
 #include "./package/uop_package.hpp"
+#include "./package/memory_package.hpp"
 #include "./processor/reorder_buffer_line.hpp"
 #include "./processor/memory_order_buffer_line.hpp"
 #include "./processor/processor.hpp"
