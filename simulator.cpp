@@ -68,9 +68,8 @@ static uint32_t process_argv(int argc, char **argv) {
 
     orcs_engine.configuration = new configure_t;
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &processor_defs = cfg_root["PROCESSOR"];
-    uint32_t NUMBER_OF_PROCESSORS = processor_defs.getLength();
-    printf("PROCESSOR NUMBER = %d\n", NUMBER_OF_PROCESSORS);
+    uint32_t NUMBER_OF_PROCESSORS = cfg_root["PROCESSOR"].getLength();
+
     ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
     if (orcs_engine.arg_trace_file_name.empty()) {
         ORCS_PRINTF("Trace file not defined.\n");
@@ -173,7 +172,7 @@ int main(int argc, char **argv) {
 
     // process args
     uint32_t NUMBER_OF_PROCESSORS = process_argv(argc, argv);
-    printf("MAIN: %u\n", NUMBER_OF_PROCESSORS);
+
     /// Call all the allocate's
     orcs_engine.allocate(NUMBER_OF_PROCESSORS);
 
