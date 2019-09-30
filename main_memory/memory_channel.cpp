@@ -1,8 +1,8 @@
 #include "../simulator.hpp"
 
-memory_channel_t::memory_channel_t(){
-    libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_memory_ctrl = cfg_root[0]["MEMORY_CONTROLLER"];
+memory_channel_t::memory_channel_t() {
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
 
     set_RANK (cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
@@ -27,15 +27,15 @@ memory_channel_t::memory_channel_t(){
     set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
 
-    if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
+    if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")) {
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
-    } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
+    } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")) {
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
     }
 
-    if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")){
+    if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")) {
         this->WRITE_PRIORITY = WRITE_PRIORITY_DRAIN_WHEN_FULL;
-    } else if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")){
+    } else if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")) {
         this->WRITE_PRIORITY = WRITE_PRIORITY_SERVICE_AT_NO_READ;
     }
 
@@ -55,14 +55,14 @@ memory_channel_t::memory_channel_t(){
     this->set_masks();
 }
 
-memory_channel_t::~memory_channel_t(){
+memory_channel_t::~memory_channel_t() {
     utils_t::template_delete_array<uint64_t>(this->bank_last_row);
     utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
     utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
     utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
 }
 
-void memory_channel_t::set_masks(){       
+void memory_channel_t::set_masks() {       
     ERROR_ASSERT_PRINTF(CHANNEL > 1 && utils_t::check_if_power_of_two(CHANNEL),"Wrong number of memory_channels (%u).\n",CHANNEL);
     uint64_t i;
     // =======================================================
@@ -119,25 +119,25 @@ void memory_channel_t::set_masks(){
     }
 }
 
-void memory_channel_t::addRequest (mshr_entry_t* request){
+void memory_channel_t::addRequest (mshr_entry_t* request) {
     uint64_t bank = this->get_bank(request->requests[0]->memory_address);
     if (request->requests[0]->memory_operation == MEMORY_OPERATION_READ || request->requests[0]->memory_operation == MEMORY_OPERATION_INST){
         bank_read_requests[bank].push_back (request);
-    } else if (request->requests[0]->memory_operation == MEMORY_OPERATION_WRITE){
+    } else if (request->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
         bank_write_requests[bank].push_back (request);
     }
 }
 
-mshr_entry_t* memory_channel_t::findNext (uint32_t bank){
+mshr_entry_t* memory_channel_t::findNext (uint32_t bank) {
     if (bank_read_requests[bank].empty() && bank_write_requests[bank].empty()) return NULL;
 
-    if (this->bank_is_drain_write[bank]){
+    if (this->bank_is_drain_write[bank]) {
         if (bank_write_requests[bank].size() > 0) return findNextWrite (bank);
         this->bank_is_drain_write[bank] = false;
         return findNextRead (bank);
     } else {
-        switch (this->WRITE_PRIORITY){
-            case WRITE_PRIORITY_SERVICE_AT_NO_READ:{
+        switch (this->WRITE_PRIORITY) {
+            case WRITE_PRIORITY_SERVICE_AT_NO_READ: {
                 if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
                 if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
                     this->bank_is_drain_write[bank] = true;
@@ -145,7 +145,7 @@ mshr_entry_t* memory_channel_t::findNext (uint32_t bank){
                 return findNextWrite (bank);
                 break;
             }
-            case WRITE_PRIORITY_DRAIN_WHEN_FULL:{ //NÃO FUNCIONA :-)
+            case WRITE_PRIORITY_DRAIN_WHEN_FULL: { //NÃO FUNCIONA :-)
                 if (bank_read_requests[bank].size() > 0) return findNextRead (bank);
                 if (bank_write_requests[bank].size() == this->BANK_BUFFER_SIZE){
                     this->bank_is_drain_write[bank] = true;
@@ -158,15 +158,15 @@ mshr_entry_t* memory_channel_t::findNext (uint32_t bank){
     return NULL;
 }
 
-mshr_entry_t* memory_channel_t::findNextRead (uint32_t bank){
+mshr_entry_t* memory_channel_t::findNextRead (uint32_t bank) {
     if (bank_read_requests[bank].empty()) return NULL;
     switch (this->REQUEST_PRIORITY){
-        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
+        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE: {
             return bank_read_requests[bank].front();
             break;
         }
-        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST:{
-            for (size_t i = 0; i < bank_read_requests[bank].size(); i++){
+        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST: {
+            for (size_t i = 0; i < bank_read_requests[bank].size(); i++) {
                 if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->requests[0]->memory_address)){
                     return bank_read_requests[bank][i];
                 }
@@ -177,15 +177,15 @@ mshr_entry_t* memory_channel_t::findNextRead (uint32_t bank){
     return bank_read_requests[bank].front();
 }
 
-mshr_entry_t* memory_channel_t::findNextWrite (uint32_t bank){
+mshr_entry_t* memory_channel_t::findNextWrite (uint32_t bank) {
     if (bank_write_requests[bank].empty()) return NULL;
-    switch (this->REQUEST_PRIORITY){
-        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
+    switch (this->REQUEST_PRIORITY) {
+        case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE: {
             return bank_write_requests[bank].front();
             break;
         }
-        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST:{
-            for (size_t i = 0; i < bank_write_requests[bank].size(); i++){
+        case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST: {
+            for (size_t i = 0; i < bank_write_requests[bank].size(); i++) {
                 if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->requests[0]->memory_address)){
                     return bank_write_requests[bank][i];
                 }
@@ -196,7 +196,7 @@ mshr_entry_t* memory_channel_t::findNextWrite (uint32_t bank){
     return bank_write_requests[bank].front();
 }
 
-void memory_channel_t::clock(){
+void memory_channel_t::clock() {
     uint32_t bank = 0, row = 0;
     this->last_bank_selected = (this->last_bank_selected + 1) % this->BANK;
     mshr_entry_t* current_entry = this->findNext (this->last_bank_selected);
@@ -204,12 +204,12 @@ void memory_channel_t::clock(){
         bank = this->get_bank(current_entry->requests[0]->memory_address);
         row = this->get_row(current_entry->requests[0]->memory_address);
 
-        if (!bank_is_ready[bank]){
-            switch (bank_last_command[bank]){
+        if (!bank_is_ready[bank]) {
+            switch (bank_last_command[bank]) {
                 case MEMORY_CONTROLLER_COMMAND_NUMBER:
                     ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
                 break;
-                case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
+                case MEMORY_CONTROLLER_COMMAND_PRECHARGE: {
                     if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS) > orcs_engine.get_global_cycle()) break;
                     if (!current_entry->treated) {
                         this->add_stat_row_buffer_miss();
@@ -260,7 +260,7 @@ void memory_channel_t::clock(){
         }
     }
 
-    for (uint32_t i = 0; i < this->BANK; i++){
+    for (uint32_t i = 0; i < this->BANK; i++) {
         this->bank_last_transmission++;
         if (this->bank_last_transmission >= this->BANK) this->bank_last_transmission = 0;
         if (bank_is_ready[this->bank_last_transmission]) {
@@ -269,7 +269,7 @@ void memory_channel_t::clock(){
     }
     bank = this->bank_last_transmission;
 
-    if (bank_is_ready[bank]){
+    if (bank_is_ready[bank]) {
         current_entry = this->findNext (bank);
         if (this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] > orcs_engine.get_global_cycle() ||
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
@@ -284,7 +284,7 @@ void memory_channel_t::clock(){
                 current_entry->valid = true;
                 break;
             }
-            case MEMORY_OPERATION_WRITE:{
+            case MEMORY_OPERATION_WRITE: {
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
@@ -292,7 +292,7 @@ void memory_channel_t::clock(){
                 current_entry->valid = true;
                 break;
             }
-            case MEMORY_OPERATION_FREE:{
+            case MEMORY_OPERATION_FREE: {
                 break;
             }
         }
@@ -302,7 +302,7 @@ void memory_channel_t::clock(){
     }
 }
 
-uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address){
+uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address) {
     uint64_t bank = this->get_bank(address);mshr_entry_t* add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
         
     uint64_t row = this->get_row(address);
@@ -311,8 +311,7 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
         case MEMORY_CONTROLLER_COMMAND_NUMBER:
             ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
         break;
-        case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
-            //ERROR_ASSERT_PRINTF (row != bank_last_row[bank], "Sending ROW_ACCESS to wrong row.")
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE: {
             this->add_stat_row_buffer_miss();
             this->bank_last_row[bank] = row;
             this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
@@ -367,7 +366,7 @@ uint64_t memory_channel_t::get_minimum_latency(uint32_t bank, memory_controller_
     uint64_t c = 0;
     uint64_t d = 0;
 
-    switch (next_command){
+    switch (next_command) {
         case MEMORY_CONTROLLER_COMMAND_PRECHARGE:
             a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RAS;
             b = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] + this->TIMING_AL + this->TIMING_RTP - this->TIMING_CCD;
@@ -420,4 +419,3 @@ uint64_t memory_channel_t::get_minimum_latency(uint32_t bank, memory_controller_
     (max_cycle < d) && (max_cycle = d);
     return max_cycle;
 }
-//=====================================================================

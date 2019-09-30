@@ -201,6 +201,8 @@ class processor_t {
 		void statistics();
 		void printConfiguration();
 		void printCache(FILE *output);
+		uint32_t get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL);
+
 			// ====================================================================
 			// ROB RELATED
 			void update_registers(reorder_buffer_line_t *robLine);
@@ -417,25 +419,7 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,QTDE_MEMORY_FU)
 
-		//INSTANTIATE_GET_SET_ADD(uint32_t,KILO = 1024)
-		//INSTANTIATE_GET_SET_ADD(uint32_t,MEGA = KILO*KILO)
-
 		INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
-
-		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SIZE)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_DATA_SETS)
-		// // I$
-		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SIZE)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1I)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,L1_INST_SETS)
-
-		// INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SIZE)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
-		// INSTANTIATE_GET_SET_ADD(uint32_t,LLC_SETS)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,RAM_LATENCY)
 		INSTANTIATE_GET_SET_ADD(uint32_t,PARALLEL_LIM_ACTIVE)
@@ -457,5 +441,9 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,COMMIT_DEBUG)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
+
+		INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_CACHES)
+		INSTANTIATE_GET_SET_ADD(uint32_t,DATA_CACHES)
+		
 		// ====================================================================
 };

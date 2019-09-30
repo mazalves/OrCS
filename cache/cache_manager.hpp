@@ -1,7 +1,9 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
+using namespace std;
 
 class cache_manager_t {
+
     private:
         uint64_t read_miss;
         uint64_t read_hit;
@@ -10,37 +12,15 @@ class cache_manager_t {
         uint64_t offset;
         uint64_t mshr_index;
 
-        // uint32_t LATENCY_L1D;
-        // uint32_t LATENCY_L2D;
-        // uint32_t LATENCY_LLCD;
         uint32_t LINE_SIZE;
-
         uint32_t PREFETCHER_ACTIVE;
-
         uint32_t DATA_LEVELS;
         uint32_t INSTRUCTION_LEVELS;
-        // uint32_t CACHE_LEVELS;
         uint32_t POINTER_LEVELS;
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
-
-        // uint32_t CACHE_ARRAY_L1;     // Numero de caches L1
-        // uint32_t CACHE_ARRAY_L2;     // Numero de caches L2
-        // uint32_t CACHE_ARRAY_LLC;
-
-        // uint32_t ASSOCIATIVITY_L1I;
-        // uint32_t ASSOCIATIVITY_L1D;
-        // uint32_t ASSOCIATIVITY_L2D;
-        // uint32_t ASSOCIATIVITY_LLCD;
-
         uint32_t NUMBER_OF_PROCESSORS;
         uint32_t MAX_PARALLEL_REQUESTS_CORE;
-
-        // uint32_t *ICACHE_LATENCY;
-        // uint32_t *DCACHE_LATENCY;
-
-        // uint32_t *ICACHE_ASSOCIATIVITY;
-        // uint32_t *DCACHE_ASSOCIATIVITY;
 
         std::vector<mshr_entry_t*> mshr_table;
 
@@ -61,15 +41,11 @@ class cache_manager_t {
         // instruction and data caches dynamically allocated
         cache_t **data_cache;
         cache_t **instruction_cache;
-
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
-        // Constructor
+
         cache_manager_t();
-
-        // Desctructor
         ~cache_manager_t();
-
         void allocate(uint32_t NUMBER_OF_PROCESSORS);
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
@@ -83,33 +59,18 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
+        INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
+        INSTANTIATE_GET_SET_ADD(uint32_t, PREFETCHER_ACTIVE)
 
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L1D)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_L2D)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_LLCD)
-        INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
-
-        INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
-
-        INSTANTIATE_GET_SET_ADD(uint32_t,DATA_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,POINTER_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
+        INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, INSTRUCTION_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
         INSTANTIATE_GET_SET_ADD(uint32_t, MAX_PARALLEL_REQUESTS_CORE)
 
-        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L1)     // Numero de caches L1
-        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_L2)     // Numero de caches L2
-        // INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_ARRAY_LLC)
-
-        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1I)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L1D)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_L2D)
-        // INSTANTIATE_GET_SET_ADD(uint32_t,ASSOCIATIVITY_LLCD)
-        // Prefetcher
-        // ==========================================
         prefetcher_t *prefetcher;
 };  
 
