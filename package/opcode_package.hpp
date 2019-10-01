@@ -1,6 +1,6 @@
 // ============================================================================
 // ============================================================================
-class opcode_package_t {
+class opcode_package_t : public memory_request_client_t {
     public:
         /// TRACE Variables
         char opcode_assembly[TRACE_LINE_SIZE];
@@ -40,18 +40,12 @@ class opcode_package_t {
         // ====================================================================
         /// Status Control
         // ====================================================================
-        package_state_t status;
-        uint64_t readyAt;
         uint64_t opcode_number;
         // ====================================================================
         /// Methods
         // ====================================================================
         opcode_package_t();
         void package_clean();
-        void updatePackageUntrated(uint32_t stallTime);
-        void updatePackageReady(uint32_t stallTime);
-        void updatePackageWait(uint32_t stallTime);
-        void updatePackageFree(uint32_t stallTime);
         std::string content_to_string();
         std::string content_to_string2();
        
