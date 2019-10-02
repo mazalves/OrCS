@@ -74,9 +74,15 @@ class cacheSet_t;
 class cache_t;
 class cache_manager_t;
 class mshr_entry_t;
-class directory_line_t;
-class directory_t;
 
+//  =========================================//
+// Directory Classes
+//  =========================================//
+
+class directory_line_t;
+class directory_set_t;
+class directory_t;
+class directory_manager_t
 //  =========================================//
 // Usefull Classes
 //  =========================================//
@@ -183,9 +189,14 @@ extern orcs_engine_t orcs_engine;
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
 #include "./cache/mshr_entry.hpp"
-
+//  =========================================//
+// Directory Classes
+//  =========================================//
+// // DIRECTORY INCLUDES
 #include "./directory/directory.hpp"
 #include "./directory/directory_line.hpp"
+#include "./directory/directory_set.hpp"
+#include "./directory/directory_manager.hpp"
 //  =========================================//
 // // Prefetcher INCLUDES
 #include "./prefetcher/prefetcher.hpp"
