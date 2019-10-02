@@ -2,9 +2,10 @@ class directory_set_t {
     
     public:
         uint32_t n_lines;
-        directory_line_t *lines;
+        directory_line_t **lines;
 
         directory_set_t () {
+            // printf("%s\n", "directory_set_t allocate");
             this->n_lines = 0;
             this->lines = NULL;
         }

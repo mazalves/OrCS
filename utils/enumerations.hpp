@@ -43,7 +43,7 @@ enum directoryStatus_t {
     OWNED = 1,
     EXCLUSIVE = 2,
     SHARED = 3,
-    INVALID = 4
+    INVALIDO = 4
 };
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type

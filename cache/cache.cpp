@@ -21,7 +21,7 @@ cache_t::cache_t() {
 }
 
 cache_t::~cache_t(){
-	delete[] sets;
+	// delete[] sets;
 }
 
 // Allocate each cache type

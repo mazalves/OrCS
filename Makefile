@@ -15,6 +15,7 @@ FD_PROCESSOR = processor
 FD_BRANCH_PREDICTOR = branch_predictor
 FD_OTHER = utils
 FD_CACHE = cache
+FD_DIRECTORY = directory
 FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
 FD_EMC = emc
@@ -41,6 +42,9 @@ SRC_CACHE = $(FD_CACHE)/cache.cpp\
 			$(FD_CACHE)/cache_manager.cpp\
 			$(FD_CACHE)/mshr_entry.cpp
 
+SRC_DIRECTORY = $(FD_DIRECTORY)/directory.cpp\
+				$(FD_DIRECTORY)/directory_manager.cpp
+
 SRC_OTHER = $(FD_OTHER)/utils.cpp\
 			$(FD_OTHER)/enumerations.cpp
 
@@ -60,6 +64,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_OTHER)\
 			$(SRC_BRANCH_PREDICTOR)\
 			$(SRC_CACHE)\
+			$(SRC_DIRECTORY)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\
 			$(SRC_MEMORY)\

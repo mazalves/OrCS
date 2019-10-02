@@ -9,6 +9,7 @@ cache_manager_t::~cache_manager_t() {
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
     delete[] data_cache;
     delete[] instruction_cache;
+    delete[] directory;
 }
 
 void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
@@ -145,6 +146,13 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
         }
     }
 
+    // coloca as LLC numa lista, dai pega o tamanho da lista e passa a lista por parametro para criação dos diretorios
+    set_LLC_CACHES(1);
+    this->directory = new directory_t[LLC_CACHES];
+    for (uint32_t i = 0; i < LLC_CACHES; i++) {
+        this->directory[i].allocate(this->data_cache[2][0]);
+    }
+
     //Read/Write counters
     this->set_read_hit(0);
     this->set_read_miss(0);
@@ -187,6 +195,20 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     for (; i < POINTER_LEVELS; i++) {
         line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request);
     }
+
+    uint32_t get_bits = (data_cache[2][0].n_sets) - 1;
+    uint64_t tag = instructionAddress >> data_cache[2][0].offset;
+    uint32_t idx = tag & get_bits;
+    for (size_t i = 0; i < LLC_CACHES; i++) {
+        printf("%u\n", this->directory[i].sets[idx].n_lines);
+        // aqui deve ser o número de caches na arquitetura, exceto as LLCs
+        // for (size_t j = 0; j < 2; j++) {
+        //     if (directory[i].sets[idx].lines[tag][j].status == INVALIDO) {
+        //         break;
+        //     }
+        // }
+    }
+
     for (i = 0; i < POINTER_LEVELS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             if (i == j) {
