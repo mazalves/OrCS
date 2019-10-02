@@ -1,4 +1,4 @@
-class memory_order_buffer_line_t {
+class memory_order_buffer_line_t : public memory_request_client_t {
     public:
         uint64_t opcode_address;
         uint64_t memory_address;
@@ -10,14 +10,11 @@ class memory_order_buffer_line_t {
         uint64_t read2_address;
         uint64_t write_address;
          
-        opcode_package_t* opcode_ptr; //USED FOR INSTRUCTION FETCH
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control
         bool uop_executed; //*
         uint64_t uop_number;
-        uint64_t readyAt;     //*                          // operation ready cycle time
         uint64_t cycle_send_request;                       // Cycle of send request
-        package_state_t status; //*
         memory_operation_t memory_operation;
         uint64_t readyToGo;                                 /// Cycles of waiting
         uint32_t wait_mem_deps_number;                      /// Must wait BEFORE execution
@@ -44,12 +41,4 @@ class memory_order_buffer_line_t {
         static int32_t find_free(memory_order_buffer_line_t *input_array, uint32_t size_array);
         static int32_t find_old_request_state_ready(memory_order_buffer_line_t *input_array, uint32_t size_array, package_state_t state);
         static void printAllOrder(memory_order_buffer_line_t* input_array, uint32_t size_array,uint32_t start,uint32_t end);
-
-        // =====================================================================
-        // Update status
-        // =====================================================================
-        void updatePackageUntrated(uint32_t stallTime);
-        void updatePackageReady(uint32_t stallTime);
-        void updatePackageWait(uint32_t stallTime);
-        void updatePackageFree(uint32_t stallTime);
 };

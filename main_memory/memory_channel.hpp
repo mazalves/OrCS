@@ -27,8 +27,8 @@ class memory_channel_t {
         uint64_t bank_last_transmission;
         uint64_t **bank_last_command_cycle;      /// Cycle of the Last command sent to each bank
         uint64_t *channel_last_command_cycle;      /// Cycle of the last command type
-        std::vector<mshr_entry_t*> *bank_read_requests;
-        std::vector<mshr_entry_t*> *bank_write_requests;
+        std::vector<memory_package_t*> *bank_read_requests;
+        std::vector<memory_package_t*> *bank_write_requests;
 
         uint32_t last_bank_selected;
 
@@ -81,10 +81,10 @@ class memory_channel_t {
 
         uint64_t latencyCalc (memory_operation_t op, uint64_t address);
         uint64_t get_minimum_latency(uint32_t bank, memory_controller_command_t next_command);
-        mshr_entry_t* findNext (uint32_t bank);
-        mshr_entry_t* findNextRead (uint32_t bank);
-        mshr_entry_t* findNextWrite (uint32_t bank);
-        void addRequest (mshr_entry_t* request);
+        memory_package_t* findNext (uint32_t bank);
+        memory_package_t* findNextRead (uint32_t bank);
+        memory_package_t* findNextWrite (uint32_t bank);
+        void addRequest (memory_package_t* request);
         void set_masks();
         void clock();
 

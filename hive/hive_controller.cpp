@@ -12,17 +12,17 @@ hive_controller_t::~hive_controller_t(){
 void hive_controller_t::clock(){
     if (hive_instructions.size() == 0) return;
 
-    mshr_entry_t* current_entry = NULL;
+    memory_package_t* current_entry = NULL;
     if (hive_lock){
         for (size_t i = 0; i < hive_instructions.size(); i++){
-            if (hive_instructions[i]->requests[0]->uop_number == last_instruction+1){
+            if (hive_instructions[i]->uop_number == last_instruction+1){
                 current_entry = hive_instructions[i];
                 break;
             }
         }
     } else {
         for (size_t i = 0; i < hive_instructions.size(); i++){
-            if (hive_instructions[i]->requests[0]->memory_operation == MEMORY_OPERATION_HIVE_LOCK && !hive_instructions[i]->valid){
+            if (hive_instructions[i]->memory_operation == MEMORY_OPERATION_HIVE_LOCK && hive_instructions[i]->status != PACKAGE_STATE_READY){
                 this->hive_lock = true;
                 current_entry = hive_instructions[i];
                 break;
@@ -31,9 +31,9 @@ void hive_controller_t::clock(){
     }
 
     if (current_entry != NULL){
-        if (current_entry->requests[0]->memory_operation == MEMORY_OPERATION_HIVE_UNLOCK) this->hive_lock = false;
-        this->last_instruction = current_entry->requests[0]->uop_number;
-        current_entry->valid = true;
+        if (current_entry->memory_operation == MEMORY_OPERATION_HIVE_UNLOCK) this->hive_lock = false;
+        this->last_instruction = current_entry->uop_number;
+        current_entry->status = PACKAGE_STATE_READY;
         hive_instructions.erase (std::remove (hive_instructions.begin(), hive_instructions.end(), current_entry), hive_instructions.end());
     }
 }
@@ -49,7 +49,6 @@ void hive_controller_t::allocate(){
     this->hive_register_ready = utils_t::template_allocate_initialize_matrix<bool>(this->HIVE_REGISTERS, HIVE_REGISTER_SIZE/LINE_SIZE, 0);
 }
 
-void hive_controller_t::addRequest (mshr_entry_t* request){
+void hive_controller_t::addRequest (memory_package_t* request){
     hive_instructions.push_back (request);
-    ORCS_PRINTF ("%s %lu\n", get_enum_memory_operation_char (request->requests[0]->memory_operation), request->requests[0]->uop_number)
 }

@@ -91,7 +91,7 @@ void memory_controller_t::set_masks(){
     }
 }
 //=====================================================================
-uint64_t memory_controller_t::requestDRAM (mshr_entry_t* request, uint64_t address){
+uint64_t memory_controller_t::requestDRAM (memory_package_t* request, uint64_t address){
     this->add_requests_made();
     if (request != NULL) {
         this->channels[get_channel (address)].addRequest (request);

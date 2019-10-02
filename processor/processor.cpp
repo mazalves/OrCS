@@ -603,17 +603,17 @@ void processor_t::fetch(){
 		}
 		if (!updated)
 		{
-			memory_order_buffer_line_t* mob_line = new memory_order_buffer_line_t;
+			memory_package_t* mob_line = new memory_package_t;
 			
-			mob_line->opcode_ptr = fetchBuffer.back();
+			mob_line->clients.push_back (fetchBuffer.back());
+			mob_line->processor_id = this->processor_id;
 			mob_line->opcode_address = fetchBuffer.back()->opcode_address;
+			mob_line->opcode_number = fetchBuffer.back()->opcode_number;
 			mob_line->memory_address = fetchBuffer.back()->opcode_address;
 			mob_line->memory_size = fetchBuffer.back()->opcode_size;
 			mob_line->memory_operation = MEMORY_OPERATION_INST;
-			mob_line->status = PACKAGE_STATE_WAIT;
-			mob_line->readyToGo = orcs_engine.get_global_cycle() + FETCH_LATENCY;
-			mob_line->uop_number = fetchBuffer.back()->opcode_number;
-			mob_line->processor_id = this->processor_id;
+			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 
 			orcs_engine.cacheManager->searchData(mob_line);
 		}
@@ -659,6 +659,7 @@ void processor_t::decode(){
 			this->fetchBuffer.front()->status != PACKAGE_STATE_READY ||
 			this->fetchBuffer.front()->readyAt > orcs_engine.get_global_cycle())
 		{
+			//ORCS_PRINTF ("%s %u %lu\n", get_enum_package_state_char (this->fetchBuffer.front()->status), this->fetchBuffer.front()->readyAt, orcs_engine.get_global_cycle())
 			break;
 		}
 		if (this->decodeBuffer.get_capacity() - this->decodeBuffer.get_size() < MAX_UOP_DECODED)
@@ -1798,7 +1799,19 @@ uint32_t processor_t::mob_read(){
 		}
 		
 		if (!oldest_read_to_send->sent){
-			orcs_engine.cacheManager->searchData(this->oldest_read_to_send);
+			memory_package_t* mob_line = new memory_package_t;
+			
+			mob_line->clients.push_back (oldest_read_to_send);
+			mob_line->opcode_address = oldest_read_to_send->opcode_address;
+			mob_line->memory_address = oldest_read_to_send->memory_address;
+			mob_line->memory_size = oldest_read_to_send->memory_size;
+			mob_line->memory_operation = oldest_read_to_send->memory_operation;
+			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->readyAt = orcs_engine.get_global_cycle();
+			mob_line->uop_number = oldest_read_to_send->uop_number;
+			mob_line->processor_id = this->processor_id;
+
+			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_read_to_send->sent=true;
 			this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
@@ -1835,7 +1848,20 @@ uint32_t processor_t::mob_hive(){
 	}
 	if (this->oldest_hive_to_send != NULL){
 		if (!this->oldest_hive_to_send->sent){
-			orcs_engine.cacheManager->searchData(oldest_hive_to_send);
+			memory_package_t* mob_line = new memory_package_t;
+			
+			mob_line->clients.push_back (oldest_hive_to_send);
+			mob_line->opcode_address = oldest_hive_to_send->opcode_address;
+			mob_line->memory_address = oldest_hive_to_send->memory_address;
+			mob_line->memory_size = oldest_hive_to_send->memory_size;
+			mob_line->memory_operation = oldest_hive_to_send->memory_operation;
+			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->readyAt = orcs_engine.get_global_cycle();
+			mob_line->uop_number = oldest_hive_to_send->uop_number;
+			mob_line->processor_id = this->processor_id;
+
+			orcs_engine.cacheManager->searchData(mob_line);
+
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent=true;
 			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
@@ -1912,7 +1938,19 @@ uint32_t processor_t::mob_write(){
 
 		//sendind to write data
 		if (!this->oldest_write_to_send->sent){
-			orcs_engine.cacheManager->searchData(oldest_write_to_send);
+			memory_package_t* mob_line = new memory_package_t;
+			
+			mob_line->clients.push_back (oldest_write_to_send);
+			mob_line->opcode_address = oldest_write_to_send->opcode_address;
+			mob_line->memory_address = oldest_write_to_send->memory_address;
+			mob_line->memory_size = oldest_write_to_send->memory_size;
+			mob_line->memory_operation = oldest_write_to_send->memory_operation;
+			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->readyAt = orcs_engine.get_global_cycle();
+			mob_line->uop_number = oldest_write_to_send->uop_number;
+			mob_line->processor_id = this->processor_id;
+
+			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_write_to_send->sent=true;
 			this->oldest_write_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit

@@ -10,9 +10,10 @@ class memory_package_t {
         package_state_t status;                  /// package state
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package create time
+        uint64_t latency;
 
         memory_operation_t memory_operation;    /// memory operation
-        memory_request_client_t* client; ///update this
+        std::vector<memory_request_client_t*> clients; ///update these
 
         memory_package_t();
         ~memory_package_t();
