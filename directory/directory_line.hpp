@@ -11,20 +11,20 @@ class directory_line_t {
         uint32_t id;
 
         directory_line_t() {
-            this->cache_lines = NULL;
-            this->shared = 0;
-            this->status = INVALIDO;
-            this->level = 0;
-            this->id = 0;
+            this->clean_line();
         }
 
         ~directory_line_t() {
             delete[] cache_lines;
         }
 
-        // void allocate(uint32_t n_caches) {
-        //     this->cache_lines = new line_t[n_caches];
-        // }
+        void clean_line() {
+            this->cache_lines = NULL;
+            this->shared = 0;
+            this->status = INVALIDO;
+            this->level = 0;
+            this->id = 0;
+        }
 
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
 };

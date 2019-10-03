@@ -6,5 +6,5 @@ class directory_t {
 
         directory_t();
         ~directory_t();
-        void allocate(cache_t llc);
+        void allocate(cache_t llc, uint32_t POINTER_LEVELS);
 };

@@ -145,12 +145,13 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
             this->data_cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
+    set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
     // coloca as LLC numa lista, dai pega o tamanho da lista e passa a lista por parametro para criação dos diretorios
     set_LLC_CACHES(1);
     this->directory = new directory_t[LLC_CACHES];
     for (uint32_t i = 0; i < LLC_CACHES; i++) {
-        this->directory[i].allocate(this->data_cache[2][0]);
+        this->directory[i].allocate(this->data_cache[2][0], POINTER_LEVELS);
     }
 
     //Read/Write counters
@@ -176,7 +177,7 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
-    uint32_t i, j;
+    uint32_t i, j, llc_idx, llc_line;
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         line[i] = new line_t*[POINTER_LEVELS];
@@ -187,26 +188,24 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
 
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request);
+            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request);
+        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
     }
 
-    uint32_t get_bits = (data_cache[2][0].n_sets) - 1;
-    uint64_t tag = instructionAddress >> data_cache[2][0].offset;
-    uint32_t idx = tag & get_bits;
     for (size_t i = 0; i < LLC_CACHES; i++) {
-        printf("%u\n", this->directory[i].sets[idx].n_lines);
         // aqui deve ser o número de caches na arquitetura, exceto as LLCs
-        // for (size_t j = 0; j < 2; j++) {
-        //     if (directory[i].sets[idx].lines[tag][j].status == INVALIDO) {
-        //         break;
-        //     }
-        // }
+        for (size_t j = 0; j < 2; j++) {
+            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_lines = line[0][j];
+            this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
+            this->directory[i].sets[llc_idx].lines[llc_line][j].status = SHARED;
+            this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
+            this->directory[i].sets[llc_idx].lines[llc_line][j].level = j;
+        }
     }
 
     for (i = 0; i < POINTER_LEVELS; i++) {
@@ -262,10 +261,10 @@ void cache_manager_t::clock() {
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]]);
+                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
                     this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                 }
-                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address);
+                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address, &this->directory[0]);
             }
             for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++) {
                 mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
@@ -309,7 +308,7 @@ uint32_t cache_manager_t::recursiveInstructionSearch(uint64_t instructionAddress
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
             }
         }
         return latency_request;
@@ -340,7 +339,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
         if (mob_line != NULL) {
@@ -387,9 +386,9 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
         }
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
+        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
         mob_line->updatePackageReady(latency_request);
         return latency_request;
     }
