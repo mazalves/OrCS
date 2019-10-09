@@ -147,10 +147,8 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     }
     set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
-    // coloca as LLC numa lista, dai pega o tamanho da lista e passa a lista por parametro para criação dos diretorios
-    set_LLC_CACHES(1);
-    this->directory = new directory_t[LLC_CACHES];
-    for (uint32_t i = 0; i < LLC_CACHES; i++) {
+    this->directory = new directory_t[POINTER_LEVELS];
+    for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
         this->directory[i].allocate(this->data_cache[2][0], POINTER_LEVELS);
     }
 
@@ -197,9 +195,9 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
         line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
     }
 
-    for (size_t i = 0; i < LLC_CACHES; i++) {
-        // aqui deve ser o número de caches na arquitetura, exceto as LLCs
-        for (size_t j = 0; j < 2; j++) {
+    // aqui deve ser o número de caches na arquitetura, exceto as LLCs
+    for (size_t i = 0; i < 1; i++) {
+        for (size_t j = 0; j < POINTER_LEVELS; j++) {
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_lines = line[0][j];
             this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
             this->directory[i].sets[llc_idx].lines[llc_line][j].status = SHARED;
@@ -207,6 +205,10 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
             this->directory[i].sets[llc_idx].lines[llc_line][j].level = j;
         }
     }
+    for (size_t i = 0; i < POINTER_LEVELS; i++) {
+        line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
+    }
+    // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_lines->tag, line[0][2]->directory_line->cache_lines->tag);
 
     for (i = 0; i < POINTER_LEVELS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {

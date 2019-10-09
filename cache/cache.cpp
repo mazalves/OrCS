@@ -69,6 +69,7 @@ inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint6
 	uint32_t get_bits = (this->n_sets) - 1;
 	*tag = (address >> this->offset);
 	*idx = *tag & get_bits;
+	*tag >>= utils_t::get_power_of_two(this->n_sets);
 }
 
 // Reads a cache, updates cycles and return HIT or MISS status
@@ -243,6 +244,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 		line_t *line_return = NULL;
 		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding);
 
+		// line_return->directory_line->status = SHARED;
 		// estamos usando o endereço da L2 e não da LLC
 		directory->sets[idx].lines[line][cache->level].cache_lines = line_return;
 		directory->sets[idx].lines[line][cache->level].shared = 1;
