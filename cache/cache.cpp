@@ -243,7 +243,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 	if (this->level > 0) {
 		line_t *line_return = NULL;
 		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding);
-
+		// printf("DIRETORIO: %u\n", line_return->directory_line->level);
 		// line_return->directory_line->status = SHARED;
 		// estamos usando o endereço da L2 e não da LLC
 		directory->sets[idx].lines[line][cache->level].cache_lines = line_return;

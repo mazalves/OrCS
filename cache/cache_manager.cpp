@@ -9,7 +9,10 @@ cache_manager_t::~cache_manager_t() {
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
     delete[] data_cache;
     delete[] instruction_cache;
+    delete[] DCACHE_AMOUNT;
+    delete[] ICACHE_AMOUNT;
     delete[] directory;
+    std::vector<mshr_entry_t *>().swap(mshr_table);
 }
 
 void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
@@ -86,7 +89,7 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
 
     // Get the amount of caches in each level
     vector<uint32_t> cache_levels;
-    
+
     if (cache_type == 0) {
         ICACHE_AMOUNT = this->get_cache_levels(cache_levels, caches, *N_CACHES);
         set_INSTRUCTION_LEVELS(cache_levels.size());
@@ -95,6 +98,7 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
         set_DATA_LEVELS(cache_levels.size());
         POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
+    vector<uint32_t>().swap(cache_levels);
     return caches;
 }
 
@@ -130,6 +134,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
             this->instruction_cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
+    delete[] instruction_caches;
 
     // Get the list of data caches
     uint32_t DATA_CACHES;
@@ -145,6 +150,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
             this->data_cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
+    delete[] data_caches;
     set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
     this->directory = new directory_t[POINTER_LEVELS];
@@ -206,8 +212,9 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
         }
     }
     for (size_t i = 0; i < POINTER_LEVELS; i++) {
-        line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
+        line[0][i]->directory_line = this->directory[0].sets[llc_idx].lines[llc_line][i];
     }
+    // printf("DIRETORIO: %u\n", line[0][1]->directory_line[1].level);
     // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_lines->tag, line[0][2]->directory_line->cache_lines->tag);
 
     for (i = 0; i < POINTER_LEVELS; i++) {
@@ -272,6 +279,7 @@ void cache_manager_t::clock() {
                 mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
             }
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
+            delete[] cache_indexes;
         }
         else {
             if (!mshr_table[mshr_index]->issued) {
