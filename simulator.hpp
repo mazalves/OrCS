@@ -96,6 +96,7 @@ class memory_controller_t;
 // HIVE Classes
 //  =========================================//
 class hive_controller_t;
+class hive_register_t;
 //  =========================================//
 // DATA Types
 // ====================================
@@ -200,5 +201,6 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 // // HIVE INCLUDES
 #include "./hive/hive_controller.hpp"
+#include "./hive/hive_register.hpp"
 //  =========================================//
 #endif  // _ORCS_ORCS_HPP_

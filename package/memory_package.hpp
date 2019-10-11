@@ -11,6 +11,11 @@ class memory_package_t {
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package create time
         uint64_t latency;
+        
+        bool is_hive;
+        uint64_t read_address;
+        uint64_t read2_address;
+        uint64_t write_address;
 
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these

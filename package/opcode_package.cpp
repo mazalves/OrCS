@@ -39,6 +39,10 @@ opcode_package_t::opcode_package_t() {
     this->readyAt = orcs_engine.get_global_cycle();
 }
 
+opcode_package_t::~opcode_package_t() {
+    
+}
+
 // =============================================================================
 void opcode_package_t::package_clean() {
     /// TRACE Variables

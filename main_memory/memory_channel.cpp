@@ -60,6 +60,15 @@ memory_channel_t::~memory_channel_t(){
     utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
     utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
     utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
+    utils_t::template_delete_array<bool>(this->bank_is_ready);
+    utils_t::template_delete_array<bool>(this->bank_is_drain_write);
+
+    for (size_t i = 0; i < this->BANK; i++){
+        vector<memory_package_t*>().swap(this->bank_read_requests[i]);  
+        vector<memory_package_t*>().swap(this->bank_write_requests[i]);  
+    }
+    free (this->bank_read_requests);
+    free (this->bank_write_requests);
 }
 
 void memory_channel_t::set_masks(){       

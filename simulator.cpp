@@ -277,6 +277,6 @@ int main(int argc, char **argv) {
     ORCS_PRINTF("Deleting Cache manager\n")
     delete orcs_engine.cacheManager;
     ORCS_PRINTF("Deleting Memory Controller\n")
+    delete orcs_engine.hive_controller;
     delete orcs_engine.memory_controller; 
-    delete orcs_engine.configuration;
 }

@@ -54,7 +54,8 @@ SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
 			 $(FD_MEMORY)/memory_controller.cpp\
 			 $(FD_MEMORY)/memory_request_client.cpp
 
-SRC_HIVE = $(FD_HIVE)/hive_controller.cpp
+SRC_HIVE = $(FD_HIVE)/hive_controller.cpp\
+		   $(FD_HIVE)/hive_register.cpp
 
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 

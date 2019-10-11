@@ -45,6 +45,7 @@ class opcode_package_t : public memory_request_client_t {
         /// Methods
         // ====================================================================
         opcode_package_t();
+        ~opcode_package_t();
         void package_clean();
         std::string content_to_string();
         std::string content_to_string2();

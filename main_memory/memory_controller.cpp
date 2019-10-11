@@ -11,7 +11,7 @@ memory_controller_t::memory_controller_t(){
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
-    
+    delete[] this->channels;
 }
 // ============================================================================
 

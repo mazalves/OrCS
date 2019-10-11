@@ -64,7 +64,20 @@ processor_t::~processor_t()
 	//deleting fus memory
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_load);
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_store);
+	utils_t::template_delete_array<uint64_t>(this->fu_mem_hive);
 	// =====================================================================
+
+	delete[] INST_ASSOCIATIVITY;
+	delete[] INST_LATENCY;
+	delete[] INST_SIZE;
+	delete[] INST_SETS;
+	delete[] INST_LEVEL;
+
+	delete[] DATA_ASSOCIATIVITY;
+	delete[] DATA_LATENCY;
+	delete[] DATA_SIZE;
+	delete[] DATA_SETS;
+	delete[] DATA_LEVEL;
 }
 // =====================================================================
 void processor_t::allocate()
@@ -709,8 +722,11 @@ void processor_t::decode(){
 			
 			new_uop.is_hive = this->fetchBuffer.front()->is_hive;
 			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
+			new_uop.read_address = this->fetchBuffer.front()->read_address;
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
+			new_uop.read2_address = this->fetchBuffer.front()->read2_address;
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
+			new_uop.write_address = this->fetchBuffer.front()->write_address;
 
 			new_uop.updatePackageReady (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
@@ -730,8 +746,11 @@ void processor_t::decode(){
 			
 			new_uop.is_hive = this->fetchBuffer.front()->is_hive;
 			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
+			new_uop.read_address = this->fetchBuffer.front()->read_address;
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
+			new_uop.read2_address = this->fetchBuffer.front()->read2_address;
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
+			new_uop.write_address = this->fetchBuffer.front()->write_address;
 
 			new_uop.updatePackageReady (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
@@ -1807,6 +1826,7 @@ uint32_t processor_t::mob_read(){
 			mob_line->memory_size = oldest_read_to_send->memory_size;
 			mob_line->memory_operation = oldest_read_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->is_hive = false;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_read_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
@@ -1852,16 +1872,18 @@ uint32_t processor_t::mob_hive(){
 			
 			mob_line->clients.push_back (oldest_hive_to_send);
 			mob_line->opcode_address = oldest_hive_to_send->opcode_address;
-			mob_line->memory_address = oldest_hive_to_send->memory_address;
+			mob_line->read_address = oldest_hive_to_send->read_address;
+			mob_line->read2_address = oldest_hive_to_send->read2_address;
+			mob_line->write_address = oldest_hive_to_send->write_address;
 			mob_line->memory_size = oldest_hive_to_send->memory_size;
 			mob_line->memory_operation = oldest_hive_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->is_hive = true;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_hive_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
 
 			orcs_engine.cacheManager->searchData(mob_line);
-
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent=true;
 			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
@@ -1946,6 +1968,7 @@ uint32_t processor_t::mob_write(){
 			mob_line->memory_size = oldest_write_to_send->memory_size;
 			mob_line->memory_operation = oldest_write_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
+			mob_line->is_hive = false;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_write_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
