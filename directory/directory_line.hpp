@@ -21,7 +21,7 @@ class directory_line_t {
         void clean_line() {
             this->cache_lines = NULL;
             this->shared = 0;
-            this->status = INVALIDO;
+            this->status = UNCACHED;
             this->level = 0;
             this->id = 0;
         }

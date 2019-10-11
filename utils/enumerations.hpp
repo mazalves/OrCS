@@ -39,11 +39,8 @@ enum cacheId_t {
 };
 
 enum directoryStatus_t {
-    MODIFIED = 0,
-    OWNED = 1,
-    EXCLUSIVE = 2,
-    SHARED = 3,
-    INVALIDO = 4
+    CACHED,
+    UNCACHED
 };
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type

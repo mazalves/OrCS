@@ -52,7 +52,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
                 }
 				this->sets[i].lines[j].directory_line = new directory_line_t;
-            }
+			}
             this->sets[i].lines[j].clean_line();
         }
     }
@@ -152,7 +152,8 @@ inline void cache_t::writeBack(line_t *line, directory_t *directory, uint32_t id
     }
 	// L1 writeBack issues
 	if (this->level == 0) {
-		directory->sets[idx].lines[access_line][this->level].clean_line();
+		// printf("LVL1 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
+		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
 		for (uint32_t i = 1; i < DATA_LEVELS; i++) {
 			this->copyNextLevels(line, i);
 			line->line_ptr_caches[0][i]->line_ptr_caches[0][this->level] = NULL;//Pointer to Lower Level
@@ -160,7 +161,9 @@ inline void cache_t::writeBack(line_t *line, directory_t *directory, uint32_t id
 		line->clean_line();
 	// LLC writeBack issues
     } else if (this->level == DATA_LEVELS - 1) {
-		for (uint32_t i = 0; i < 2; i++) {
+		// printf("LVL3 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
+		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
+		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
 			directory->sets[idx].lines[access_line][i].clean_line();
 		}
 		for (uint32_t i = 0; i < DATA_LEVELS - 1; i++) {
@@ -170,9 +173,8 @@ inline void cache_t::writeBack(line_t *line, directory_t *directory, uint32_t id
 		}
 	// Intermediate cache levels issues
 	} else {
-		for (uint32_t i = this->level; i <= 0; i--) {
-			directory->sets[idx].lines[access_line][i].clean_line();
-		}
+		// printf("LVL2 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
+		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
 		uint32_t i = 0;
 		// for (i = 0; i < this->level - 1; i++) {
         //     // printf("%s\n", "for");
@@ -244,15 +246,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 	if (this->level > 0) {
 		line_t *line_return = NULL;
 		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding);
-		if (this->level == 2)
-		printf("DIRETORIO: %u\n", line_return->directory_line->level);
-		// line_return->directory_line->status = SHARED;
-		// estamos usando o endereço da L2 e não da LLC
-		directory->sets[idx].lines[line][cache->level].cache_lines = line_return;
-		directory->sets[idx].lines[line][cache->level].shared = 1;
-		directory->sets[idx].lines[line][cache->level].status = SHARED;
-		directory->sets[idx].lines[line][cache->level].level = cache->level;
-		directory->sets[idx].lines[line][cache->level].id = cache->id;
+		line_return->directory_line->status = CACHED;
 
 		this->sets[idx].lines[line].line_ptr_caches[0][cache->level] = line_return;
 		for (uint32_t i = this->level + 1; i < POINTER_LEVELS; i++) {
