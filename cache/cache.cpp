@@ -51,6 +51,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
                 for (uint32_t l = 0; l < POINTER_LEVELS; l++) {
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
                 }
+				this->sets[i].lines[j].directory_line = new directory_line_t;
             }
             this->sets[i].lines[j].clean_line();
         }
@@ -243,7 +244,8 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 	if (this->level > 0) {
 		line_t *line_return = NULL;
 		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding);
-		// printf("DIRETORIO: %u\n", line_return->directory_line->level);
+		if (this->level == 2)
+		printf("DIRETORIO: %u\n", line_return->directory_line->level);
 		// line_return->directory_line->status = SHARED;
 		// estamos usando o endereço da L2 e não da LLC
 		directory->sets[idx].lines[line][cache->level].cache_lines = line_return;

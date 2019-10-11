@@ -71,8 +71,8 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
 
     // Get information of each cache
     for (uint32_t i = 0; i < *N_CACHES; i++) {
-        libconfig::Setting &cfg_cache = cfg_caches[i];
         try {
+            libconfig::Setting &cfg_cache = cfg_caches[i];
             caches[i].id = cache_type;
             caches[i].size = cfg_cache["SIZE"];
             caches[i].level = cfg_cache["LEVEL"];
@@ -212,9 +212,9 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
         }
     }
     for (size_t i = 0; i < POINTER_LEVELS; i++) {
-        line[0][i]->directory_line = this->directory[0].sets[llc_idx].lines[llc_line][i];
+        line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
     }
-    // printf("DIRETORIO: %u\n", line[0][1]->directory_line[1].level);
+    // printf("DIRETORIO2: %u\n", line[0][1]->directory_line[1].level);
     // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_lines->tag, line[0][2]->directory_line->cache_lines->tag);
 
     for (i = 0; i < POINTER_LEVELS; i++) {
