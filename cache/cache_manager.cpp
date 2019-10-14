@@ -5,6 +5,16 @@ cache_manager_t::cache_manager_t() {}
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
+    for (size_t i = 0; i < mshr_table.size(); i++){
+        for (size_t j = 0; j < mshr_table[i]->requests.size(); j++){
+            delete mshr_table[i]->requests[j];
+        }
+        delete mshr_table[i];
+    }
+
+    delete[] ICACHE_AMOUNT;
+    delete[] DCACHE_AMOUNT;
+
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
     delete[] data_cache;
@@ -94,6 +104,7 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
         set_DATA_LEVELS(cache_levels.size());
         POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
+    vector<uint32_t>().swap (cache_levels);
     return caches;
 }
 
@@ -157,6 +168,9 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
         this->prefetcher = new prefetcher_t;
         this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     }
+
+    delete[] instruction_caches;
+    delete[] data_caches;
 }
 
 // Dependending on processor_id, returns its correspondent cache
@@ -249,7 +263,12 @@ void cache_manager_t::clock() {
             }
             for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++) {
                 mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
+                if (mshr_table[mshr_index]->requests[j]->memory_operation == MEMORY_OPERATION_INST) {
+                    delete mshr_table[mshr_index]->requests[j];
+                }
             }
+            delete[] cache_indexes;
+            delete mshr_table[mshr_index];
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
         }
         else {
@@ -286,6 +305,7 @@ uint32_t cache_manager_t::recursiveInstructionSearch(memory_order_buffer_line_t*
             }
         }
         mob_line->updatePackageReady (latency_request);
+        delete mob_line;
         return 0;
     }
     this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
@@ -308,6 +328,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
         mob_line->updatePackageReady(latency_request);
+        if (mob_line->memory_operation == MEMORY_OPERATION_INST) delete mob_line;
         return latency_request;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
@@ -349,6 +370,7 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address);
         mob_line->updatePackageReady(latency_request);
+        
         return latency_request;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();

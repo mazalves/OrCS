@@ -9,7 +9,9 @@ memory_controller_t::memory_controller_t() {
     this->row_buffer_hit = 0;
 }
 
-memory_controller_t::~memory_controller_t() {}
+memory_controller_t::~memory_controller_t() {
+    delete[] this->channels;
+}
 
 void memory_controller_t::allocate() {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();

@@ -96,6 +96,12 @@ uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &c
             ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
         }
 	}
+
+	delete[] ASSOCIATIVITY;
+	delete[] LATENCY;
+	delete[] SIZE;
+	delete[] SETS;
+	delete[] LEVEL;
 	return N_CACHES;
 }
 
