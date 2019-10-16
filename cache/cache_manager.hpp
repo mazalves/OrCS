@@ -17,6 +17,7 @@ class cache_manager_t {
         uint32_t DATA_LEVELS;
         uint32_t INSTRUCTION_LEVELS;
         uint32_t POINTER_LEVELS;
+        uint32_t LLC_CACHES;
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
         uint32_t NUMBER_OF_PROCESSORS;
@@ -41,6 +42,7 @@ class cache_manager_t {
         // instruction and data caches dynamically allocated
         cache_t **data_cache;
         cache_t **instruction_cache;
+        directory_t *directory;
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
 
@@ -65,6 +67,7 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t, INSTRUCTION_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, LLC_CACHES)
         INSTANTIATE_GET_SET_ADD(uint32_t, CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
 
