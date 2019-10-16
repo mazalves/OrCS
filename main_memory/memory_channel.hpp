@@ -79,7 +79,6 @@ class memory_channel_t {
         memory_channel_t();
         ~memory_channel_t();
 
-        uint64_t latencyCalc (memory_operation_t op, uint64_t address);
         uint64_t get_minimum_latency(uint32_t bank, memory_controller_command_t next_command);
         memory_package_t* findNext (uint32_t bank);
         memory_package_t* findNextRead (uint32_t bank);

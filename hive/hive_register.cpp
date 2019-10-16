@@ -10,32 +10,30 @@ hive_register_t::~hive_register_t(){
 
 void hive_register_t::clock(){
     if (locked){
-        if (this->ready_count == 128) ready = true;
-        else if (request != NULL && request->status != PACKAGE_STATE_WAIT){
+        if (request != NULL && request->status != PACKAGE_STATE_WAIT){
             uint64_t memory_address = 0;
             if (request->memory_operation == MEMORY_OPERATION_HIVE_LOAD) memory_address = request->read_address;
             else if (request->memory_operation == MEMORY_OPERATION_HIVE_STORE) memory_address = request->write_address;
 
             memory_address = memory_address >> this->offset;
 
-            ORCS_PRINTF ("memory address minus offset: %lu\n", memory_address)
-
             for (int i = 0; i < this->nano_requests_number; i++){
                 memory_package_t* new_nano = new memory_package_t;
 
-                //ORCS_PRINTF ("| Sub-request %d: %lu | \n", i, ((memory_address + i) << this->offset))
-
+                new_nano->clients.push_back (this);
                 new_nano->opcode_address = request->opcode_address;
                 if (request->memory_operation == MEMORY_OPERATION_HIVE_LOAD) new_nano->memory_operation = MEMORY_OPERATION_READ;
                 else if (request->memory_operation == MEMORY_OPERATION_HIVE_STORE) new_nano->memory_operation = MEMORY_OPERATION_WRITE;
                 new_nano->memory_size = request->memory_size;
+                new_nano->memory_address = memory_address << this->offset;
                 new_nano->status = PACKAGE_STATE_UNTREATED;
                 new_nano->is_hive = true;
                 new_nano->readyAt = orcs_engine.get_global_cycle();
                 new_nano->uop_number = request->uop_number;
                 new_nano->processor_id = request->processor_id;
-                new_nano->clients.push_back (this);
                 nano_memory_requests.push_back (new_nano);
+
+                memory_address += 1;
             }
 
             request->status = PACKAGE_STATE_WAIT;
@@ -45,6 +43,24 @@ void hive_register_t::clock(){
                     orcs_engine.memory_controller->requestDRAM (nano_memory_requests[i], nano_memory_requests[i]->memory_address);
                 }
                 this->issued = true;
+            }
+            else {
+                for (size_t i = 0; i < nano_memory_requests.size(); i++){
+                    if (this->nano_memory_requests[i]->status == PACKAGE_STATE_READY) {
+                        this->ready_count++;
+                        this->nano_memory_requests[i]->status = PACKAGE_STATE_FREE;
+                        this->nano_memory_requests.erase (std::remove (nano_memory_requests.begin(), nano_memory_requests.end(), nano_memory_requests[i]), nano_memory_requests.end());
+                        //delete nano_memory_requests[i];
+                    }
+                }
+                if (ready_count == 128) {
+                    this->locked = false;
+                    this->ready = false;
+                    this->issued = false;
+                    this->ready_count = 0;
+                    this->request->status = PACKAGE_STATE_READY;
+                    ORCS_PRINTF ("READY!\n")
+                }
             }
         }
     }
@@ -86,8 +102,7 @@ void hive_register_t::updatePackageReady (uint32_t stallTime){
     this->ready_count++;
     ORCS_PRINTF ("%d sub-requisições prontas!\n", this->ready_count)
     if (ready_count == 128){
-        this->status = PACKAGE_STATE_READY;
-        this->readyAt = orcs_engine.get_global_cycle()+stallTime;
+        memory_request_client_t::updatePackageReady (stallTime);
     }
 }
 

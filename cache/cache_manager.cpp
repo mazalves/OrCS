@@ -278,7 +278,6 @@ void cache_manager_t::clock() {
                 case MEMORY_OPERATION_FREE:
                     break;
             }
-            
             mshr_table[mshr_index]->updatePackageReady (mshr_table[mshr_index]->latency);
             delete mshr_table[mshr_index];
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());

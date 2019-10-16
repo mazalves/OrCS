@@ -47,21 +47,21 @@ void hive_controller_t::clock(){
             if (this->installInstruction (current_entry)) {
                 current_entry->status = PACKAGE_STATE_UNTREATED;
             }
-        }
-        else {
+        } else {
             current_entry->status = PACKAGE_STATE_READY;
         }
     } else return;
 
     if (current_entry->status == PACKAGE_STATE_READY){
         hive_instructions.erase (std::remove (hive_instructions.begin(), hive_instructions.end(), current_entry), hive_instructions.end());
+        ORCS_PRINTF ("REMOVIDO!\n")
     }
 }
 
 bool hive_controller_t::installInstruction (memory_package_t* memory_instruction){
     for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
         if (hive_registers[i].installRequest (memory_instruction)) {
-            ORCS_PRINTF ("instalado no registrador %lu\n", i)
+            ORCS_PRINTF ("Instalado no registrador %lu!\n", i)
             return true;
         }
     }
@@ -77,6 +77,7 @@ void hive_controller_t::allocate(){
     
     this->hive_register_free = utils_t::template_allocate_initialize_array<bool>(this->HIVE_REGISTERS, 0);
     this->hive_registers = (hive_register_t*) malloc (this->HIVE_REGISTERS*sizeof (hive_register_t));
+    std::memset(this->hive_registers,0,(this->HIVE_REGISTERS*sizeof(hive_register_t*)));
     for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++) {
         this->hive_registers[i].allocate();
     }
@@ -84,5 +85,5 @@ void hive_controller_t::allocate(){
 
 void hive_controller_t::addRequest (memory_package_t* request){
     hive_instructions.push_back (request);
-    ORCS_PRINTF ("%s %lu\n", get_enum_memory_operation_char (request->memory_operation), request->uop_number)
+    ORCS_PRINTF ("%s %lu boop\n", get_enum_memory_operation_char (request->memory_operation), request->uop_number)
 }
