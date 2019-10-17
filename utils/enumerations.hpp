@@ -38,6 +38,10 @@ enum cacheId_t {
     DATA
 };
 
+enum directoryStatus_t {
+    CACHED,
+    UNCACHED
+};
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type
 enum instruction_operation_t {
