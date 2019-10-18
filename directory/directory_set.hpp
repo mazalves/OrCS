@@ -10,10 +10,6 @@ class directory_set_t {
         }
 
         ~directory_set_t () {
-            for (uint32_t i = 0; i < this->n_lines; i++) {
-                delete[] this->lines[i];
-            }
             delete[] this->lines;
-            // }
         }
 };

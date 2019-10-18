@@ -5,6 +5,12 @@ cache_manager_t::cache_manager_t() {}
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
+    for (size_t i = 0; i < mshr_table.size(); i++){
+        for (size_t j = 0; j < mshr_table[i]->requests.size(); j++){
+            delete mshr_table[i]->requests[j];
+        }
+        delete mshr_table[i];
+    }
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
     delete[] data_cache;
@@ -24,39 +30,7 @@ void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
     }
 }
 
-uint32_t *cache_manager_t::get_cache_levels(vector<uint32_t> &v_levels, cache_t *cache, uint32_t cache_amount) {
-    // Creates a vector containing the cache levels
-    for (uint32_t i = 0; i < cache_amount; i++) {
-        if (find(v_levels.begin(), v_levels.end(), cache[i].level) == v_levels.end()) {
-            v_levels.push_back(cache[i].level);
-        }
-    }
-
-    // Creates a vector containing the number of caches in each level
-    uint32_t *level_amount = new uint32_t[v_levels.size()];
-    for (uint32_t i = 0; i < v_levels.size(); i++) {
-        level_amount[i] = 0;
-    }
-    for (uint32_t i = 0; i < cache_amount; i++) {
-        level_amount[cache[i].level]++;
-    }
-    return level_amount;
-}
-
-void cache_manager_t::copy_cache(cache_t **cache, cache_t *aux_cache, uint32_t n_levels, uint32_t *v_levels, uint32_t cache_amount) {
-    for (uint32_t i = 0; i < n_levels; i++) {
-        for (uint32_t j = 0, k = 0; k < cache_amount; k++) {
-            if (aux_cache[k].level == i) {
-                cache[i][j] = aux_cache[k];
-                if (j < v_levels[i]) {
-                    j++;
-                }
-            }
-        }
-    }
-}
-
-cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *N_CACHES) {
+void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs) {
     const char *string_cache_type;
     if (cache_type == 0) {
         string_cache_type = "INSTRUCTION";
@@ -64,42 +38,106 @@ cache_t *cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Settin
         string_cache_type = "DATA";
     }
 
-    // Get the list of caches
+    vector<uint32_t> clevels, camount;
     libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
-    *N_CACHES = cfg_caches.getLength();
-    cache_t *caches = new cache_t[*N_CACHES];
-
-    // Get information of each cache
-    for (uint32_t i = 0; i < *N_CACHES; i++) {
+    uint32_t N_CACHES = cfg_caches.getLength();
+    for (uint32_t i = 0; i < N_CACHES; i++) {
         try {
             libconfig::Setting &cfg_cache = cfg_caches[i];
-            caches[i].id = cache_type;
-            caches[i].size = cfg_cache["SIZE"];
-            caches[i].level = cfg_cache["LEVEL"];
-            caches[i].offset = utils_t::get_power_of_two(LINE_SIZE);
-            caches[i].latency = cfg_cache["LATENCY"];
-            caches[i].associativity = cfg_cache["ASSOCIATIVITY"];
-            caches[i].n_sets = (caches[i].size / LINE_SIZE) / caches[i].associativity;
+            clevels.push_back(cfg_cache["LEVEL"]);
         } catch (libconfig::SettingNotFoundException const(&nfex)) {
             ERROR_PRINTF("MISSING CACHE PARAMETERS");
         } catch (libconfig::SettingTypeException const(&tex)) {
             ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
         }
     }
+    camount = clevels;
 
-    // Get the amount of caches in each level
-    vector<uint32_t> cache_levels;
+    std::sort(clevels.begin(), clevels.end());
+    clevels.erase(std::unique(clevels.begin(), clevels.end()), clevels.end());
 
     if (cache_type == 0) {
-        ICACHE_AMOUNT = this->get_cache_levels(cache_levels, caches, *N_CACHES);
-        set_INSTRUCTION_LEVELS(cache_levels.size());
+        set_INSTRUCTION_LEVELS(clevels.size());
+        ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS];
+        for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
+            ICACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
+        }
     } else {
-        DCACHE_AMOUNT = this->get_cache_levels(cache_levels, caches, *N_CACHES);
-        set_DATA_LEVELS(cache_levels.size());
+        set_DATA_LEVELS(clevels.size());
+        DCACHE_AMOUNT = new uint32_t[DATA_LEVELS];
+        for (uint32_t i = 0; i < DATA_LEVELS; i++) {
+            DCACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
+        }
         POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
-    vector<uint32_t>().swap(cache_levels);
-    return caches;
+    std::vector<uint32_t>().swap(clevels);
+    std::vector<uint32_t>().swap(camount);
+}
+
+void cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, cache_t *cache, uint32_t cache_level, uint32_t CACHE_AMOUNT) {
+    const char *string_cache_type;
+    if (cache_type == 0) {
+        string_cache_type = "INSTRUCTION";
+    } else {
+        string_cache_type = "DATA";
+    }
+
+    libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
+
+    // Get information of each cache
+    for (uint32_t j = 0; j < CACHE_AMOUNT; j ++) {
+        for (int32_t i = 0; i < cfg_caches.getLength(); i++) {
+            try {
+                libconfig::Setting &cfg_cache = cfg_caches[i];
+                if ((uint32_t)cfg_cache["LEVEL"] == cache_level) {
+                    cache[j].id = cache_type;
+                    cache[j].size = cfg_cache["SIZE"];
+                    cache[j].level = cfg_cache["LEVEL"];
+                    cache[j].offset = utils_t::get_power_of_two(LINE_SIZE);
+                    cache[j].latency = cfg_cache["LATENCY"];
+                    cache[j].associativity = cfg_cache["ASSOCIATIVITY"];
+                    cache[j].n_sets = (cache[j].size / LINE_SIZE) / cache[j].associativity;
+                }
+                
+            } catch (libconfig::SettingNotFoundException const(&nfex)) {
+                ERROR_PRINTF("MISSING CACHE PARAMETERS");
+            } catch (libconfig::SettingTypeException const(&tex)) {
+                ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
+            }
+        }
+    }
+}
+
+cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs) {
+    this->get_cache_levels(cache_type, cfg_cache_defs);
+
+    uint32_t CACHE_LEVELS, *CACHE_AMOUNT;
+    if (cache_type == INSTRUCTION) {
+        set_INSTRUCTION_LEVELS(INSTRUCTION_LEVELS);
+        CACHE_LEVELS = INSTRUCTION_LEVELS;
+        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
+        for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
+            CACHE_AMOUNT[i] = ICACHE_AMOUNT[i];
+        }
+    } else {
+        set_DATA_LEVELS(DATA_LEVELS);
+        CACHE_LEVELS = DATA_LEVELS;
+        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
+        for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
+            CACHE_AMOUNT[i] = DCACHE_AMOUNT[i];
+        }
+    }
+
+    cache_t **cache = new cache_t *[CACHE_LEVELS];
+    for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
+        cache[i] = new cache_t[CACHE_AMOUNT[i]];
+        this->get_cache_info(cache_type, cfg_cache_defs, cache[i], i, CACHE_AMOUNT[i]);
+        this->check_cache(CACHE_AMOUNT[i], i);
+        for (uint32_t j = 0; j < CACHE_AMOUNT[i]; j++) {
+            cache[i][j].allocate(INSTRUCTION_LEVELS, DATA_LEVELS);
+        }
+    }
+    return cache;
 }
 
 void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
@@ -118,39 +156,11 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_WAIT_CYCLE(cfg_cache_defs["CONFIG"]["WAIT_CYCLE"]);
 
-    set_MAX_PARALLEL_REQUESTS_CORE (cfg_root["MEMORY_CONTROLLER"]["MAX_PARALLEL_REQUESTS_CORE"]);
+    set_MAX_PARALLEL_REQUESTS_CORE(cfg_root["MEMORY_CONTROLLER"]["MAX_PARALLEL_REQUESTS_CORE"]);
 
-    // Get the list of instruction caches
-    uint32_t INSTRUCTION_CACHES;
-    cache_t *instruction_caches = get_cache_info(INSTRUCTION, cfg_cache_defs, &INSTRUCTION_CACHES);
-    instruction_cache = new cache_t *[INSTRUCTION_LEVELS];
-    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
-        this->instruction_cache[i] = new cache_t[ICACHE_AMOUNT[i]];
-        check_cache(ICACHE_AMOUNT[i], i);
-    }
-    copy_cache(this->instruction_cache, instruction_caches, INSTRUCTION_LEVELS, ICACHE_AMOUNT, INSTRUCTION_CACHES);
-    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
-        for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
-            this->instruction_cache[i][j].allocate(INSTRUCTION_LEVELS, DATA_LEVELS);
-        }
-    }
-    delete[] instruction_caches;
+    this->instruction_cache = this->instantiate_cache(INSTRUCTION, cfg_cache_defs);
+    this->data_cache = this->instantiate_cache(DATA, cfg_cache_defs);
 
-    // Get the list of data caches
-    uint32_t DATA_CACHES;
-    cache_t *data_caches = get_cache_info(DATA, cfg_cache_defs, &DATA_CACHES);
-    data_cache = new cache_t *[DATA_LEVELS];
-    for (uint32_t i = 0; i < DATA_LEVELS; i++) {
-        this->data_cache[i] = new cache_t[DCACHE_AMOUNT[i]];
-        check_cache(DCACHE_AMOUNT[i], i);
-    }
-    copy_cache(this->data_cache, data_caches, DATA_LEVELS, DCACHE_AMOUNT, DATA_CACHES);
-    for (uint32_t i = 0; i < DATA_LEVELS; i++) {
-        for (uint32_t j = 0; j < DCACHE_AMOUNT[i]; j++) {
-            this->data_cache[i][j].allocate(INSTRUCTION_LEVELS, DATA_LEVELS);
-        }
-    }
-    delete[] data_caches;
     set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
     this->directory = new directory_t[NUMBER_OF_PROCESSORS];
@@ -181,7 +191,6 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
-    // printf("Install in every cache\n");
     uint32_t i, j, llc_idx, llc_line;
     uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
@@ -191,7 +200,6 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
             line[i][j] = NULL;
         }
     }
-
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
             line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
@@ -215,26 +223,8 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     for (size_t i = 0; i < POINTER_LEVELS; i++) {
         line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
-        // printf("level: %u, line_tag: %lu\n", line[0][i]->directory_line->level, line[0][i]->directory_line->tag);
     }
 
-    for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            printf("set: %u, line: %u, line_tag: %lu\n", llc_idx, llc_line, line[0][j]->directory_line->tag);
-            printf("set: %u, line: %u, dire_tag: %lu\n", llc_idx, llc_line, this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->tag);
-        }
-    }
-    // printf("DIRETORIO2: %u\n", line[0][0]->directory_line->id);
-    // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_line->tag, line[0][2]->directory_line->cache_line->tag);
-
-    // for (i = 0; i < POINTER_LEVELS; i++) {
-    //     for (j = 0; j < POINTER_LEVELS; j++) {
-    //         if (i == j) {
-    //             continue;
-    //         }
-    //         line[0][i]->line_ptr_caches[0][j] = line[0][j];
-    //     }
-    // }
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             line[i][j] = NULL;
@@ -244,7 +234,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] line;
 }
 
-void cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint64_t latency_request) {
+void cache_manager_t::add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request) {
     uint64_t tag = (mob_line->memory_address >> this->offset);
     mshr_entry_t* new_entry = new mshr_entry_t;
     new_entry->tag = tag;
@@ -253,16 +243,16 @@ void cache_manager_t::add_mshr_entry (memory_order_buffer_line_t* mob_line, uint
     new_entry->issued = false;
     new_entry->treated = false;
     new_entry->cycle_created = orcs_engine.get_global_cycle();
-    new_entry->requests.push_back (mob_line);
+    new_entry->requests.push_back(mob_line);
     mshr_table.push_back (new_entry);
     orcs_engine.memory_controller->add_requests_llc();
 }
 
-bool cache_manager_t::isInMSHR (memory_order_buffer_line_t* mob_line) {
+bool cache_manager_t::isInMSHR(memory_order_buffer_line_t* mob_line) {
     uint64_t tag = (mob_line->memory_address >> this->offset);
-    for (std::size_t i = 0; i < mshr_table.size(); i++){
+    for (std::size_t i = 0; i < mshr_table.size(); i++) {
         if (mshr_table[i]->tag == tag) {
-            mshr_table[i]->requests.push_back (mob_line);
+            mshr_table[i]->requests.push_back(mob_line);
             return true;
         }
     }
@@ -270,29 +260,36 @@ bool cache_manager_t::isInMSHR (memory_order_buffer_line_t* mob_line) {
 }
 
 void cache_manager_t::clock() {
-    // printf("clock\n");
     if (mshr_table.size() > 0) {
         mshr_index += 1;
-        if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
+        if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) {
+            mshr_index = 0;
+        } 
         if (mshr_table[mshr_index]->valid) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->requests[0]->processor_id, cache_indexes);
-            this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+            if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_INST) {
+                this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
+            } else {
+                this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+            }
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    // this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
                     this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                 }
                 this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address, &this->directory[0]);
             }
             for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++) {
                 mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
+                if (mshr_table[mshr_index]->requests[j]->memory_operation == MEMORY_OPERATION_INST) {
+                    delete mshr_table[mshr_index]->requests[j];
+                }
             }
-            mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
             delete[] cache_indexes;
-        }
-        else {
+            delete mshr_table[mshr_index];
+            mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
+        } else {
             if (!mshr_table[mshr_index]->issued) {
                 orcs_engine.memory_controller->requestDRAM(mshr_table[mshr_index], mshr_table[mshr_index]->requests[0]->memory_address);
                 mshr_table[mshr_index]->issued = true;
@@ -308,95 +305,73 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
     return cache_status;
 }
 
-uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, cacheId_t cache_type) {
-    std::ignore = ttc;
-    if (mob_line != NULL) {
-        this->add_mshr_entry (mob_line, latency_request);
-    } else {
-        latency_request += orcs_engine.memory_controller->requestDRAM(NULL, instructionAddress);
-        this->installCacheLines(instructionAddress, cache_indexes, latency_request, cache_type); //instruction, not data
-        orcs_engine.memory_controller->add_requests_llc();
-    }
+uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint32_t latency_request) {
+    this->add_mshr_entry(mob_line, latency_request);
     return latency_request;
 }
 
 // Searches an instruction in cache levels
-uint32_t cache_manager_t::recursiveInstructionSearch(uint64_t instructionAddress, int32_t *cache_indexes,
+uint32_t cache_manager_t::recursiveInstructionSearch(memory_order_buffer_line_t* mob_line, int32_t *cache_indexes,
                                                      uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
-    // printf("Isearch\n");
-    uint32_t cache_status = this->searchAddress(instructionAddress, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
+    uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(instructionAddress, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
             }
         }
-        return latency_request;
+        mob_line->updatePackageReady(latency_request);
+        delete mob_line;
+        return 0;
     }
     this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == INSTRUCTION_LEVELS - 1) {
-        return recursiveDataSearch(NULL, instructionAddress, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
+        return recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
     }
-    return recursiveInstructionSearch(instructionAddress, cache_indexes, latency_request, ttc, cache_level + 1);
+    return recursiveInstructionSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1);
 }
 
-// Searches an address in instruction cache, and lower data caches
-uint32_t cache_manager_t::searchInstruction(uint32_t processor_id, uint64_t instructionAddress) {
-    uint32_t ttc = 0, latency_request = 0, result = 0;
-    int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
-    this->generateIndexArray(processor_id, cache_indexes);
-    result = recursiveInstructionSearch(instructionAddress, cache_indexes, latency_request, ttc, 0);
-    delete[] cache_indexes;
-    return result;
-}
-
-uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_line, uint64_t instructionAddress,
+uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_line,
                                               int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc,
                                               uint32_t cache_level, cacheId_t cache_type) {
-    // printf("Dsearch\n");
-    uint32_t cache_status = this->searchAddress(instructionAddress, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
+    uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(instructionAddress, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
-        if (mob_line != NULL) {
-            mob_line->updatePackageReady(latency_request);
-        }
+        mob_line->updatePackageReady(latency_request);
+        if (mob_line->memory_operation == MEMORY_OPERATION_INST) delete mob_line;
         return latency_request;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
         if (cache_type == DATA) {
-            // orcs_engine.processor[mob_line->processor_id].has_llc_miss = true; // setting llc miss
-            // mob_line->is_llc_miss = true;
             mob_line->waiting_DRAM = true;
             orcs_engine.processor[mob_line->processor_id].request_DRAM++;
-            // #if PREFETCHER_ACTIVE
-            //     this->prefetcher->prefecht(mob_line, &this->data_cache[cache_level][cache_indexes[cache_level]]);
-            // #endif
         }
-        return llcMiss(mob_line, instructionAddress, cache_indexes, latency_request, ttc, cache_type);
+        return llcMiss(mob_line, latency_request);
     }
-    return recursiveDataSearch(mob_line, instructionAddress, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
+    return recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
 }
 
 uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
     uint32_t ttc = 0, latency_request = 0;
-    if (!isInMSHR (mob_line)){
+    if (!isInMSHR(mob_line)){
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(mob_line->processor_id, cache_indexes);
         if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
-            recursiveDataSearch(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, 0, DATA);
-        }
-        else if (mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
+            recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
+        } else if (mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
             recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0, DATA);
+        } else if (mob_line->memory_operation == MEMORY_OPERATION_INST) {
+            recursiveInstructionSearch (mob_line, cache_indexes, latency_request, ttc, 0);
         }
         delete[] cache_indexes;
     }
@@ -405,7 +380,6 @@ uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
 
 uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes,
                                              uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
-    // printf("Dwrite\n");
     uint32_t cache_status = this->searchAddress(mob_line->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
@@ -414,12 +388,13 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
         mob_line->updatePackageReady(latency_request);
+        
         return latency_request;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
-        latency_request = llcMiss(mob_line, mob_line->memory_address, cache_indexes, latency_request, ttc, cache_type);
+        latency_request = llcMiss(mob_line, latency_request);
         return latency_request;
     }
     return recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);

@@ -54,7 +54,7 @@ void disambiguation_hashed_t::allocate() {
     this->set_stat_address_to_address(0);
 }
 
-void disambiguation_hashed_t::make_memory_dependencies(memory_order_buffer_line_t *new_mob_line) {
+void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t *new_mob_line) {
 	uint64_t load_hash = new_mob_line->memory_address & this->disambiguation_load_hash_bits_mask;
 	uint64_t store_hash = new_mob_line->memory_address & this->disambiguation_store_hash_bits_mask;
 	load_hash >>= this->disambiguation_load_hash_bits_shift;
@@ -101,7 +101,7 @@ void disambiguation_hashed_t::make_memory_dependencies(memory_order_buffer_line_
 	}
 }
 
-void disambiguation_hashed_t::solve_memory_dependencies(memory_order_buffer_line_t *mob_line) {
+void disambiguation_hashed_t::solve_memory_dependences(memory_order_buffer_line_t *mob_line) {
 	/// Remove pointers from disambiguation_hash
 	/// Add the new entry into LOAD or STORE hash
 	if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
@@ -174,8 +174,8 @@ void disambiguation_hashed_t::statistics() {
 		output = fopen(orcs_engine.output_file_name,"a+");
 		close=true;
 	}
-	if (output != NULL) {
-            utils_t::largeSeparator(output);
+	if (output != NULL){
+			utils_t::largeSeparator(output);
             fprintf(output,"Total_Read_false_Positives: %lu\n", this->get_stat_disambiguation_read_false_positive());
             fprintf(output,"Total_Write_false_Positives: %lu\n", this->get_stat_disambiguation_write_false_positive());
             fprintf(output,"Total_Resolve_Address_to_Address: %lu\n",this->get_stat_address_to_address());

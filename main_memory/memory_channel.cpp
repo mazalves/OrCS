@@ -50,7 +50,9 @@ memory_channel_t::memory_channel_t() {
     this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
 
     this->bank_read_requests = (std::vector<mshr_entry_t*>*) malloc (this->BANK*sizeof (std::vector<mshr_entry_t*>));
+    std::memset(this->bank_read_requests,0,(this->BANK*sizeof(std::vector<mshr_entry_t*>)));
     this->bank_write_requests = (std::vector<mshr_entry_t*>*) malloc (this->BANK*sizeof (std::vector<mshr_entry_t*>));
+    std::memset(this->bank_write_requests,0,(this->BANK*sizeof(std::vector<mshr_entry_t*>)));
 
     this->set_masks();
 }
@@ -60,6 +62,17 @@ memory_channel_t::~memory_channel_t() {
     utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
     utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
     utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
+    utils_t::template_delete_array<bool>(this->bank_is_ready);
+    utils_t::template_delete_array<uint64_t>(this->bank_last_row);
+    utils_t::template_delete_array<bool>(this->bank_is_drain_write);
+
+    for (uint32_t i = 0; i < this->BANK; i++){
+        vector<mshr_entry_t*>().swap (this->bank_read_requests[i]);
+        vector<mshr_entry_t*>().swap (this->bank_write_requests[i]);
+    }
+
+    free (this->bank_read_requests);
+    free (this->bank_write_requests);
 }
 
 void memory_channel_t::set_masks() {       
@@ -121,7 +134,7 @@ void memory_channel_t::set_masks() {
 
 void memory_channel_t::addRequest (mshr_entry_t* request) {
     uint64_t bank = this->get_bank(request->requests[0]->memory_address);
-    if (request->requests[0]->memory_operation == MEMORY_OPERATION_READ) {
+    if (request->requests[0]->memory_operation == MEMORY_OPERATION_READ || request->requests[0]->memory_operation == MEMORY_OPERATION_INST){
         bank_read_requests[bank].push_back (request);
     } else if (request->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
         bank_write_requests[bank].push_back (request);
@@ -223,9 +236,10 @@ void memory_channel_t::clock() {
                 }
                 case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
                 case MEMORY_CONTROLLER_COMMAND_COLUMN_READ:
-                case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE: {
-                    if (bank_last_row[bank] == row) {
-                        switch (current_entry->requests[0]->memory_operation) {
+                case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:{
+                    if (bank_last_row[bank] == row){
+                        switch (current_entry->requests[0]->memory_operation){
+                            case MEMORY_OPERATION_INST:
                             case MEMORY_OPERATION_READ: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ) > orcs_engine.get_global_cycle()) break;
                                 if (!current_entry->treated) {
@@ -273,7 +287,8 @@ void memory_channel_t::clock() {
         if (this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] > orcs_engine.get_global_cycle() ||
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
 
-        switch (current_entry->requests[0]->memory_operation) {
+        switch (current_entry->requests[0]->memory_operation){
+            case MEMORY_OPERATION_INST:
             case MEMORY_OPERATION_READ:{
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
@@ -320,9 +335,10 @@ uint64_t memory_channel_t::latencyCalc (memory_operation_t op, uint64_t address)
         }
         case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
         case MEMORY_CONTROLLER_COMMAND_COLUMN_READ:
-        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE: {
-            if (bank_last_row[bank] == row) {
-                switch (op) {
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:{
+            if (bank_last_row[bank] == row){
+                switch (op){
+                    case MEMORY_OPERATION_INST:
                     case MEMORY_OPERATION_READ: {
                         this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                         this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;

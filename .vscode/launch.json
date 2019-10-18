@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/orcs",
             "args": [
                 "-t", "~/Desktop/traces/output_trace.out",
-                "-c", "sandyBridge.cfg"
+                "-c", "sandy_bridge/sandy_bridge.cfg"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

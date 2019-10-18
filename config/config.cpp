@@ -4,7 +4,7 @@ configure_t::configure_t(){
     loadConfig();
 }
 
-configure_t::~configure_t()=default;
+configure_t::~configure_t(){}
 
 void configure_t::loadConfig(){
     try {

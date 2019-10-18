@@ -113,7 +113,7 @@ enum memory_operation_t {
     MEMORY_OPERATION_READ,
     MEMORY_OPERATION_WRITE,
     MEMORY_OPERATION_FREE,
-
+    MEMORY_OPERATION_INST
 };
 const char *get_enum_memory_operation_char(memory_operation_t type);
 // ============================================================================
