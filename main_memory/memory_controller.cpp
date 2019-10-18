@@ -18,12 +18,26 @@ memory_controller_t::~memory_controller_t(){
 // ============================================================================
 // @allocate objects to EMC
 void memory_controller_t::allocate(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_memory_ctrl = cfg_root[0]["MEMORY_CONTROLLER"];
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
+
+    set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
+    set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
+    set_TIMING_CCD (cfg_memory_ctrl["TIMING_CCD"]);    // Column to Column Delay
+    set_TIMING_CWD (cfg_memory_ctrl["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
+    set_TIMING_FAW (cfg_memory_ctrl["TIMING_FAW"]);   // Four (row]) Activation Window
+    set_TIMING_RAS (cfg_memory_ctrl["TIMING_RAS"]);   // Row Access Strobe
+    set_TIMING_RC (cfg_memory_ctrl["TIMING_RC"]);    // Row Cycle
+    set_TIMING_RCD (cfg_memory_ctrl["TIMING_RCD"]);    // Row to Column comand Delay
+    set_TIMING_RP (cfg_memory_ctrl["TIMING_RP"]);     // Row Precharge
+    set_TIMING_RRD (cfg_memory_ctrl["TIMING_RRD"]);    // Row activation to Row activation Delay
+    set_TIMING_RTP (cfg_memory_ctrl["TIMING_RTP"]);    // Read To Precharge
+    set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
+    set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
     
     this->channels = new memory_channel_t[CHANNEL];
     for (size_t i = 0; i < CHANNEL; i++){

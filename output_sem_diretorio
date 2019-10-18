@@ -1,0 +1,130 @@
+==========================================================================
+Active Cores: 1 of 1
+Opcodes Processed: 0 of 550133
+Total Progress   0.0000%
+Global IPC(-nan)
+Global ETC(-nan:-nan:-nan)
+==========================================================================
+==========================================================================
+Benchmark output_trace.out
+Actual Cycle 0
+Opcodes Processed: 0 of 550133
+Uops Fetched/Uops Total: 0 of 550132
+Uops Completed/uops decoded: 0 of 1
+Total Progress   0.0000%
+IPC(-nan)
+ETC(-nan:-nan:-nan)
+==========================================================================
+
+End of dynamic simulation trace
+End of Simulation
+Writting FILE
+Global_Statistics
+#===============================================#
+Global_Cycle: 841359
+Global_IPC: 0.653862
+#===============================================#
+#===============================================#
+Statistics of Core 0
+#========================================================================#
+trace_reader_t
+fetch_instructions: 550132
+#========================================================================#
+#========================================================================#
+Total_Cycle: 841358
+#===============================================#
+Stage_Opcode_and_Uop_Counters
+#===============================================#
+Stage_Fetch: 550133
+Stage_Decode: 550133
+Stage_Rename: 587797
+Stage_Commit: 587796
+#========================================================================#
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_READ: 7633
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: 2867
+#========================================================================#
+Instruction_Per_Cycle: 0.653863
+MPKI: 10.859192
+Average_wait_cycles_wait_mem_req: 16.002829
+Core_Request_RAM_AVG_Cycle: 42.082443
+#========================================================================#
+#===============================================#
+Total_Read_false_Positives: 0
+Total_Write_false_Positives: 0
+Total_Resolve_Address_to_Address: 0
+#===============================================#
+#========================================================================#
+BTB Hits: 114741
+BTB Miss: 3486
+Total Branchs: 118227
+Total Branchs Taken: 40416
+Total Branchs Not Taken: 77811
+Correct Branchs Taken: 36297
+Incorrect Branchs Taken: 4119
+Correct Branchs Not Taken: 38437
+Incorrect Branchs Not Taken: 39374
+#========================================================================#
+#========================================================================#
+##############  Cache Memories ##################
+#========================================================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 0
+0_Cache_Access: 550132
+0_Cache_Hits: 537243
+0_Cache_Miss: 12889
+0_Cache_Eviction: 1714
+0_Cache_Read: 537243
+0_Cache_Write: 0
+#===============================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 1
+0_Cache_Access: 178499
+0_Cache_Hits: 171621
+0_Cache_Miss: 6878
+0_Cache_Eviction: 19123
+0_Cache_Read: 133957
+0_Cache_Write: 44542
+0_Cache_WriteBack: 2420
+#===============================================#
+#===============================================#
+Cache_Level: 1 - Cache_Type: 1
+1_Cache_Access: 19767
+1_Cache_Hits: 13729
+1_Cache_Miss: 6038
+1_Cache_Eviction: 7108
+1_Cache_Read: 18438
+1_Cache_Write: 14604
+1_Cache_WriteBack: 347
+#===============================================#
+#===============================================#
+Cache_Level: 2 - Cache_Type: 1
+2_Cache_Access: 6038
+2_Cache_Hits: 64
+2_Cache_Miss: 5974
+2_Cache_Eviction: 5974
+2_Cache_Read: 4963
+2_Cache_Write: 1129
+2_Cache_WriteBack: 752
+#===============================================#
+#===============================================#
+#========================================================================#
+#Memory Controller
+#========================================================================#
+Requests_Made:              5974
+Requests_from_Prefetcher:   0
+Requests_from_LLC:          5974
+Row_Buffer_Hit, Channel 0:  1186
+Row_Buffer_Miss, Channel 0: 277
+Row_Buffer_Hit, Channel 1:  1176
+Row_Buffer_Miss, Channel 1: 261
+Row_Buffer_Hit, Channel 2:  1213
+Row_Buffer_Miss, Channel 2: 253
+Row_Buffer_Hit, Channel 3:  1198
+Row_Buffer_Miss, Channel 3: 270
+#========================================================================#
+Writed FILE
+Deleting Trace Reader
+Deleting Processor
+Deleting Branch predictor
+Deleting Cache manager
+Deleting Memory Controller

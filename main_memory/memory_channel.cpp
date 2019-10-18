@@ -1,8 +1,8 @@
 #include "../simulator.hpp"
 
 memory_channel_t::memory_channel_t(){
-    libconfig::Setting *cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_memory_ctrl = cfg_root[0]["MEMORY_CONTROLLER"];
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
 
     set_RANK (cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
@@ -12,20 +12,6 @@ memory_channel_t::memory_channel_t(){
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_BURST_WIDTH (cfg_memory_ctrl["BURST_WIDTH"]);
     set_ROW_BUFFER ((RANK*BANK)*1024);
-    // =====================Parametes Comandd=======================
-    set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
-    set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
-    set_TIMING_CCD (cfg_memory_ctrl["TIMING_CCD"]);    // Column to Column Delay
-    set_TIMING_CWD (cfg_memory_ctrl["TIMING_CWD"]);    // Column Write Delay (CWL]) or simply WL
-    set_TIMING_FAW (cfg_memory_ctrl["TIMING_FAW"]);   // Four (row]) Activation Window
-    set_TIMING_RAS (cfg_memory_ctrl["TIMING_RAS"]);   // Row Access Strobe
-    set_TIMING_RC (cfg_memory_ctrl["TIMING_RC"]);    // Row Cycle
-    set_TIMING_RCD (cfg_memory_ctrl["TIMING_RCD"]);    // Row to Column comand Delay
-    set_TIMING_RP (cfg_memory_ctrl["TIMING_RP"]);     // Row Precharge
-    set_TIMING_RRD (cfg_memory_ctrl["TIMING_RRD"]);    // Row activation to Row activation Delay
-    set_TIMING_RTP (cfg_memory_ctrl["TIMING_RTP"]);    // Read To Precharge
-    set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
-    set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
 
     if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
@@ -46,7 +32,7 @@ memory_channel_t::memory_channel_t(){
     this->bank_last_row = utils_t::template_allocate_initialize_array<uint64_t>(this->BANK, 0);
     this->bank_is_drain_write = utils_t::template_allocate_initialize_array<bool>(this->BANK, 0);
     this->bank_last_command = utils_t::template_allocate_initialize_array<memory_controller_command_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
-    this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
+    this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, 5, 0);
     this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
 
     this->bank_read_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
@@ -376,7 +362,6 @@ uint64_t memory_channel_t::get_minimum_latency(uint32_t bank, memory_controller_
             }
             /// 4th RAS + FAW window
             d += this->TIMING_FAW;
-
             a = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] + this->TIMING_RP;
             b = this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RC;
             c = this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_RRD;

@@ -69,8 +69,8 @@ bool hive_controller_t::installInstruction (memory_package_t* memory_instruction
 }
 
 void hive_controller_t::allocate(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     set_HIVE_REGISTERS (cfg_processor["HIVE_REGISTERS"]);
 
     this->hive_lock = false;

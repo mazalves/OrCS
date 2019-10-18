@@ -144,3 +144,14 @@ const char *get_enum_request_priority_char (request_priority_t type){
     ERROR_PRINTF("Wrong REQUEST_PRIORITY\n");
     return "FAIL";
 }
+
+const char *get_enum_memory_controller_command_char(memory_controller_command_t type){
+    switch (type){
+        case MEMORY_CONTROLLER_COMMAND_NUMBER: return "NUMBER"; break;
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE: return "PRECHARGE"; break;
+        case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS: return "ROW_ACCESS"; break;
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE: return "COLUMN_WRITE"; break;
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_READ: return "COLUMN_READ"; break;
+    }
+    return "FAIL";
+}

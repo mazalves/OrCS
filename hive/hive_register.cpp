@@ -72,9 +72,9 @@ void hive_register_t::clock(){
 }
 
 void hive_register_t::allocate(){
-    libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];
-    libconfig::Setting &cfg_cache_defs = cfg_root[0]["CACHE_MEMORY"];
+    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_HIVE_REGISTER_SIZE (cfg_processor["HIVE_REGISTER_SIZE"]);
     this->nano_requests_number = this->HIVE_REGISTER_SIZE/this->LINE_SIZE;

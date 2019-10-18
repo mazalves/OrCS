@@ -4,7 +4,7 @@ configure_t::configure_t(){
     loadConfig();
 }
 
-configure_t::~configure_t()=default;
+configure_t::~configure_t(){}
 
 void configure_t::loadConfig(){
     try {
@@ -16,7 +16,7 @@ void configure_t::loadConfig(){
     }
 }
 
-libconfig::Setting* configure_t::getConfig(){
-    libconfig::Setting* cfg_root = &cfg.getRoot();
+libconfig::Setting &configure_t::getConfig(){
+    libconfig::Setting &cfg_root = cfg.getRoot();
     return cfg_root;
 }

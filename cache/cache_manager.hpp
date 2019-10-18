@@ -1,7 +1,9 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
+using namespace std;
 
 class cache_manager_t {
+
     private:
         uint64_t read_miss;
         uint64_t read_hit;
@@ -10,16 +12,12 @@ class cache_manager_t {
         uint64_t offset;
         uint64_t mshr_index;
 
-        // uint32_t LATENCY_L1D;
-        // uint32_t LATENCY_L2D;
-        // uint32_t LATENCY_LLCD;
         uint32_t LINE_SIZE;
-
         uint32_t PREFETCHER_ACTIVE;
-
         uint32_t DATA_LEVELS;
         uint32_t INSTRUCTION_LEVELS;
         uint32_t POINTER_LEVELS;
+        uint32_t LLC_CACHES;
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
 
@@ -45,15 +43,12 @@ class cache_manager_t {
         // instruction and data caches dynamically allocated
         cache_t **data_cache;
         cache_t **instruction_cache;
-
+        directory_t *directory;
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
-        // Constructor
+
         cache_manager_t();
-
-        // Desctructor
         ~cache_manager_t();
-
         void allocate(uint32_t NUMBER_OF_PROCESSORS);
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
@@ -67,19 +62,19 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
-        INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
-        INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
-        INSTANTIATE_GET_SET_ADD(uint32_t,DATA_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,POINTER_LEVELS)
-        INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_MANAGER_DEBUG)
+        INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
+        INSTANTIATE_GET_SET_ADD(uint32_t, PREFETCHER_ACTIVE)
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, DATA_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, INSTRUCTION_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
+        INSTANTIATE_GET_SET_ADD(uint32_t, LLC_CACHES)
+        INSTANTIATE_GET_SET_ADD(uint32_t, CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
         INSTANTIATE_GET_SET_ADD(uint32_t, MAX_PARALLEL_REQUESTS_CORE)
 
-        // Prefetcher
-        // ==========================================
         prefetcher_t *prefetcher;
 };  
 

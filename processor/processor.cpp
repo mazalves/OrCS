@@ -79,13 +79,55 @@ processor_t::~processor_t()
 	delete[] DATA_SETS;
 	delete[] DATA_LEVEL;
 }
+
+uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {
+	const char *string_cache_type;
+    if (cache_type == 0) {
+        string_cache_type = "INSTRUCTION";
+    } else {
+        string_cache_type = "DATA";
+    }
+
+	// Get the list of caches
+    libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
+    uint32_t N_CACHES = cfg_caches.getLength();
+
+	ASSOCIATIVITY = new uint32_t[N_CACHES];
+	LATENCY = new uint32_t[N_CACHES];
+	SIZE = new uint32_t[N_CACHES];
+	SETS = new uint32_t[N_CACHES];
+	LEVEL = new uint32_t[N_CACHES];
+
+	// Get information of each instruction cache
+	for (uint32_t i = 0; i < N_CACHES; i++) {
+		libconfig::Setting &cfg_cache = cfg_caches[i];
+		try {
+			ASSOCIATIVITY[i] = cfg_cache["ASSOCIATIVITY"];
+			LATENCY[i] = cfg_cache["LATENCY"];
+			SIZE[i] = cfg_cache["SIZE"];
+			SETS[i] = ((SIZE[i]/ LINE_SIZE) / ASSOCIATIVITY[i]);
+			LEVEL[i] = cfg_cache["LEVEL"];
+		} catch (libconfig::SettingNotFoundException const(&nfex)) {
+            ERROR_PRINTF("MISSING CACHE PARAMETERS");
+        } catch (libconfig::SettingTypeException const(&tex)) {
+            ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
+        }
+	}
+
+	delete[] ASSOCIATIVITY;
+	delete[] LATENCY;
+	delete[] SIZE;
+	delete[] SETS;
+	delete[] LEVEL;
+	return N_CACHES;
+}
+
 // =====================================================================
-void processor_t::allocate()
-{
-	libconfig::Setting* cfg_root = orcs_engine.configuration->getConfig();
+void processor_t::allocate() {
+	libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 
 	// Processor defaults
-	libconfig::Setting &cfg_processor = cfg_root[0]["PROCESSOR"];
+	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
 
 	set_FETCH_WIDTH (cfg_processor["FETCH_WIDTH"]);
 	set_DECODE_WIDTH (cfg_processor["DECODE_WIDTH"]);
@@ -174,66 +216,27 @@ void processor_t::allocate()
 	else if (!strcmp(cfg_processor["DISAMBIGUATION_METHOD"], "PERFECT")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_PERFECT;
 
 	// Cache memory defaults
-	libconfig::Setting &cfg_cache_mem = cfg_root[0]["CACHE_MEMORY"];
-	set_LINE_SIZE(cfg_cache_mem[0]["LINE_SIZE"]);
+	libconfig::Setting &cfg_cache_mem = cfg_root["CACHE_MEMORY"];
+	set_LINE_SIZE(cfg_cache_mem["CONFIG"]["LINE_SIZE"]);
 
-	// Get the list of intruction caches
-	libconfig::Setting &cfg_inst_caches = cfg_cache_mem["INSTRUCTION"];
-	uint32_t INSTRUCTION_CACHES = cfg_inst_caches.getLength();
-	INST_ASSOCIATIVITY = new uint32_t[INSTRUCTION_CACHES];
-	INST_LATENCY = new uint32_t[INSTRUCTION_CACHES];
-	INST_SIZE = new uint32_t[INSTRUCTION_CACHES];
-	INST_SETS = new uint32_t[INSTRUCTION_CACHES];
-	INST_LEVEL = new uint32_t[INSTRUCTION_CACHES];
+	uint32_t n_caches = get_cache_list(INSTRUCTION, cfg_cache_mem, INST_ASSOCIATIVITY, INST_LATENCY, INST_SIZE, INST_SETS, INST_LEVEL);
+	set_INSTRUCTION_CACHES(n_caches);
 
-	// Get information of each instruction cache
-	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++) {
-		libconfig::Setting &cfg_inst_cache = cfg_inst_caches[i];
-		try {
-			INST_ASSOCIATIVITY[i] = cfg_inst_cache["ASSOCIATIVITY"];
-			INST_LATENCY[i] = cfg_inst_cache["LATENCY"];
-			INST_SIZE[i] = cfg_inst_cache["SIZE"];
-			INST_SETS[i] = ((INST_SIZE[i]/ LINE_SIZE) / INST_ASSOCIATIVITY[i]);
-			INST_LEVEL[i] = cfg_inst_cache["LEVEL"];
-		}
-		catch (int e) {
-			cout << "An exception occurred. Exception Nr. " << e << '\n';
-		}
-	}
-
-	libconfig::Setting &cfg_data_caches = cfg_cache_mem["DATA"];
-	uint32_t DATA_CACHES = cfg_data_caches.getLength();
-	DATA_ASSOCIATIVITY = new uint32_t[DATA_CACHES];
-	DATA_LATENCY = new uint32_t[DATA_CACHES];
-	DATA_SIZE = new uint32_t[DATA_CACHES];
-	DATA_SETS = new uint32_t[DATA_CACHES];
-	DATA_LEVEL = new uint32_t[DATA_CACHES];
-
-	// Get information of each instruction cache
-	for (uint32_t i = 0; i < DATA_CACHES; i++) {
-		libconfig::Setting &cfg_data_cache = cfg_data_caches[i];
-		try {
-			DATA_ASSOCIATIVITY[i] = cfg_data_cache["ASSOCIATIVITY"];
-			DATA_LATENCY[i] = cfg_data_cache["LATENCY"];
-			DATA_SIZE[i] = cfg_data_cache["SIZE"];
-			DATA_SETS[i] = ((DATA_SIZE[i] / LINE_SIZE) / DATA_ASSOCIATIVITY[i]);
-			DATA_LEVEL[i] = cfg_data_cache["LEVEL"];
-		}
-		catch (int e) {
-			cout << "An exception occurred. Exception Nr. " << e << '\n';
-		}
-	}
+	n_caches = get_cache_list(DATA, cfg_cache_mem, DATA_ASSOCIATIVITY, DATA_LATENCY, DATA_SIZE, DATA_SETS, DATA_LEVEL);
+	set_DATA_CACHES(n_caches);
 
 	// Memory controller defaults
-	libconfig::Setting &cfg_memory = cfg_root[0]["MEMORY_CONTROLLER"];
+	libconfig::Setting &cfg_memory = cfg_root["MEMORY_CONTROLLER"];
 
 	set_RAM_LATENCY(cfg_memory["RAM_LATENCY"]);
 	set_PARALLEL_LIM_ACTIVE(cfg_memory["PARALLEL_LIM_ACTIVE"]);
 	set_MAX_PARALLEL_REQUESTS_CORE(cfg_memory["MAX_PARALLEL_REQUESTS_CORE"]);
 
 	// Prefetcher defaults
-	libconfig::Setting &cfg_prefetcher = cfg_root[0]["PREFETCHER"];
+	libconfig::Setting &cfg_prefetcher = cfg_root["PREFETCHER"];
+
 	set_PREFETCHER_ACTIVE(cfg_prefetcher["PREFETCHER_ACTIVE"]);
+
 	//======================================================================
 	// Initializating variables
 	//======================================================================
