@@ -5,7 +5,13 @@ hive_register_t::hive_register_t(){
 }
 
 hive_register_t::~hive_register_t(){
+    
+}
 
+void hive_register_t::del(){
+    for (size_t i = 0; i < this->nano_memory_requests.size(); i++){
+        delete nano_memory_requests[i];
+    }
 }
 
 void hive_register_t::clock(){
@@ -26,7 +32,7 @@ void hive_register_t::clock(){
                 else if (request->memory_operation == MEMORY_OPERATION_HIVE_STORE) new_nano->memory_operation = MEMORY_OPERATION_WRITE;
                 new_nano->memory_size = request->memory_size;
                 new_nano->memory_address = memory_address << this->offset;
-                new_nano->status = PACKAGE_STATE_UNTREATED;
+                new_nano->status = PACKAGE_STATE_TRANSMIT;
                 new_nano->is_hive = true;
                 new_nano->readyAt = orcs_engine.get_global_cycle();
                 new_nano->uop_number = request->uop_number;
@@ -49,17 +55,16 @@ void hive_register_t::clock(){
                     if (this->nano_memory_requests[i]->status == PACKAGE_STATE_READY) {
                         this->ready_count++;
                         this->nano_memory_requests[i]->status = PACKAGE_STATE_FREE;
+                        //como liberar a memória? não sei. já tentei de tudo.
                         this->nano_memory_requests.erase (std::remove (nano_memory_requests.begin(), nano_memory_requests.end(), nano_memory_requests[i]), nano_memory_requests.end());
-                        //delete nano_memory_requests[i];
                     }
                 }
-                if (ready_count == 128) {
+                if (this->ready_count == 128) {
                     this->locked = false;
                     this->ready = false;
                     this->issued = false;
                     this->ready_count = 0;
                     this->request->status = PACKAGE_STATE_READY;
-                    ORCS_PRINTF ("READY!\n")
                 }
             }
         }
@@ -88,30 +93,7 @@ bool hive_register_t::installRequest (memory_package_t* request){
         this->ready = false;
 
         this->request = request;
-        request->status = PACKAGE_STATE_UNTREATED;
+        //request->status = PACKAGE_STATE_UNTREATED;
         return true;
     } else return false;
-}
-
-void hive_register_t::updatePackageUntreated (uint32_t stallTime){
-    this->status = PACKAGE_STATE_UNTREATED;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
-
-void hive_register_t::updatePackageReady (uint32_t stallTime){
-    this->ready_count++;
-    ORCS_PRINTF ("%d sub-requisições prontas!\n", this->ready_count)
-    if (ready_count == 128){
-        memory_request_client_t::updatePackageReady (stallTime);
-    }
-}
-
-void hive_register_t::updatePackageWait (uint32_t stallTime){
-    this->status = PACKAGE_STATE_WAIT;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
-
-void hive_register_t::updatePackageFree (uint32_t stallTime){
-    this->status = PACKAGE_STATE_FREE;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
 }

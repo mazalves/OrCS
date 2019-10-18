@@ -18,12 +18,9 @@ class hive_register_t : public memory_request_client_t {
         void clock();
         void allocate();
         bool installRequest (memory_package_t* request);
+        void del();
 
         INSTANTIATE_GET_SET_ADD (uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, HIVE_REGISTER_SIZE)
-        
-        void updatePackageUntreated(uint32_t stallTime);
-        void updatePackageReady(uint32_t stallTime);
-        void updatePackageWait(uint32_t stallTime);
-        void updatePackageFree(uint32_t stallTime);
+    
 };

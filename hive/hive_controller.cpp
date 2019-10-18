@@ -7,8 +7,10 @@ hive_controller_t::hive_controller_t(){
 
 hive_controller_t::~hive_controller_t(){
     utils_t::template_delete_array(this->hive_register_free);
+    for (size_t i = 0; i< this->HIVE_REGISTERS; i++){
+        this->hive_registers[i].del();
+    }
     free (this->hive_registers);
-    
 }
 
 void hive_controller_t::clock(){
@@ -28,7 +30,6 @@ void hive_controller_t::clock(){
         }
     } else {
         for (size_t i = 0; i < hive_instructions.size(); i++){
-            ORCS_PRINTF ("%s\n", get_enum_package_state_char (hive_instructions[i]->status))
             if (hive_instructions[i]->memory_operation == MEMORY_OPERATION_HIVE_LOCK && hive_instructions[i]->status != PACKAGE_STATE_READY){
                 this->hive_lock = true;
                 current_entry = hive_instructions[i];
@@ -44,8 +45,8 @@ void hive_controller_t::clock(){
             current_entry->status = PACKAGE_STATE_READY;
         }
         else if (current_entry->memory_operation == MEMORY_OPERATION_HIVE_LOAD || current_entry->memory_operation == MEMORY_OPERATION_HIVE_STORE){
-            if (this->installInstruction (current_entry)) {
-                current_entry->status = PACKAGE_STATE_UNTREATED;
+            if (!this->installInstruction (current_entry)) {
+                ORCS_PRINTF ("ALL HIVE REGISTERS BUSY\n")
             }
         } else {
             current_entry->status = PACKAGE_STATE_READY;
@@ -54,7 +55,6 @@ void hive_controller_t::clock(){
 
     if (current_entry->status == PACKAGE_STATE_READY){
         hive_instructions.erase (std::remove (hive_instructions.begin(), hive_instructions.end(), current_entry), hive_instructions.end());
-        ORCS_PRINTF ("REMOVIDO!\n")
     }
 }
 

@@ -238,9 +238,9 @@ void memory_channel_t::clock(){
                 break;
                 case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
                     if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS) > orcs_engine.get_global_cycle()) break;
-                    if (current_entry->status == PACKAGE_STATE_TRANSMIT) {
+                    if (current_entry->status != PACKAGE_STATE_WAIT) {
                         this->add_stat_row_buffer_miss();
-                        current_entry->updatePackageWait(0);
+                        current_entry->status = PACKAGE_STATE_WAIT;
                     }
                     this->bank_last_row[bank] = row;
                     this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
@@ -256,18 +256,18 @@ void memory_channel_t::clock(){
                             case MEMORY_OPERATION_INST:
                             case MEMORY_OPERATION_READ: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ) > orcs_engine.get_global_cycle()) break;
-                                if (current_entry->status == PACKAGE_STATE_TRANSMIT) {
+                                if (current_entry->status != PACKAGE_STATE_WAIT) {
                                     this->add_stat_row_buffer_hit();
-                                    current_entry->updatePackageWait(0);
+                                    current_entry->status = PACKAGE_STATE_WAIT;
                                 }
                                 this->bank_is_ready[bank] = true;
                                 break;
                             }
                             case MEMORY_OPERATION_WRITE: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE) > orcs_engine.get_global_cycle()) break;
-                                if (current_entry->status == PACKAGE_STATE_TRANSMIT) {
+                                if (current_entry->status != PACKAGE_STATE_WAIT) {
                                     this->add_stat_row_buffer_hit();
-                                    current_entry->updatePackageWait(0);
+                                    current_entry->status = PACKAGE_STATE_WAIT;
                                 }
                                 this->bank_is_ready[bank] = true;
                                 break;
@@ -319,7 +319,6 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CAS + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
-                //current_entry->updatePackageReady (this->TIMING_CAS + this->latency_burst);
                 break;
             }
             case MEMORY_OPERATION_WRITE:{
@@ -328,7 +327,6 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CWD + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
-                //current_entry->updatePackageReady (this->TIMING_CWD + this->latency_burst);
                 break;
             }
             case MEMORY_OPERATION_HIVE_LOCK:
