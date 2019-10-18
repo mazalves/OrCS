@@ -14,8 +14,8 @@ class cache_t {
         uint64_t cache_writeback;
         uint64_t change_line;
 
-        void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
-        void copyNextLevels(line_t *line, uint32_t idx);
+        // void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
+        // void copyNextLevels(line_t *line, uint32_t idx);
 
         uint64_t cacheHit;
         uint64_t cacheMiss;
@@ -47,14 +47,14 @@ class cache_t {
         uint32_t offset;
 
         void statistics();
-        void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
-        void writeBack(line_t *line, directory_t *directory, uint32_t idx, uint32_t access_line);       //makes writeback of line
+        void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
+        void writeBack(directory_t *directory, uint32_t idx, uint32_t line);       //makes writeback of line
         void returnLine(uint64_t address, cache_t *cache, directory_t *directory);//return line from lower cache level
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
         uint32_t read(uint64_t address, uint32_t &ttc);
         uint32_t write(uint64_t address, directory_t *directory);
-        line_t *installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line); //install line of cache |mem_controller -> caches|
+        line_t *installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line, uint64_t &tag); //install line of cache |mem_controller -> caches|
 
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)

@@ -131,7 +131,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     copy_cache(this->instruction_cache, instruction_caches, INSTRUCTION_LEVELS, ICACHE_AMOUNT, INSTRUCTION_CACHES);
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
         for (uint32_t j = 0; j < ICACHE_AMOUNT[i]; j++) {
-            this->instruction_cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
+            this->instruction_cache[i][j].allocate(INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
     delete[] instruction_caches;
@@ -147,14 +147,14 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     copy_cache(this->data_cache, data_caches, DATA_LEVELS, DCACHE_AMOUNT, DATA_CACHES);
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
         for (uint32_t j = 0; j < DCACHE_AMOUNT[i]; j++) {
-            this->data_cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
+            this->data_cache[i][j].allocate(INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
     delete[] data_caches;
     set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
-    this->directory = new directory_t[POINTER_LEVELS];
-    for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
+    this->directory = new directory_t[NUMBER_OF_PROCESSORS];
+    for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         this->directory[i].allocate(this->data_cache[2][0], POINTER_LEVELS);
     }
 
@@ -181,7 +181,9 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
+    // printf("Install in every cache\n");
     uint32_t i, j, llc_idx, llc_line;
+    uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         line[i] = new line_t*[POINTER_LEVELS];
@@ -192,38 +194,47 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
 
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
+            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
+        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
     }
 
     // aqui deve ser o número de caches na arquitetura, exceto as LLCs
     for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_lines = line[0][j];
+            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[0][j];
             this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].status = CACHED;
+            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
             this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
+            this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
         }
     }
     for (size_t i = 0; i < POINTER_LEVELS; i++) {
         line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
+        // printf("level: %u, line_tag: %lu\n", line[0][i]->directory_line->level, line[0][i]->directory_line->tag);
     }
-    // printf("DIRETORIO2: %u\n", line[0][0]->directory_line->id);
-    // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_lines->tag, line[0][2]->directory_line->cache_lines->tag);
 
-    for (i = 0; i < POINTER_LEVELS; i++) {
-        for (j = 0; j < POINTER_LEVELS; j++) {
-            if (i == j) {
-                continue;
-            }
-            line[0][i]->line_ptr_caches[0][j] = line[0][j];
+    for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+        for (size_t j = 0; j < POINTER_LEVELS; j++) {
+            printf("set: %u, line: %u, line_tag: %lu\n", llc_idx, llc_line, line[0][j]->directory_line->tag);
+            printf("set: %u, line: %u, dire_tag: %lu\n", llc_idx, llc_line, this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->tag);
         }
     }
+    // printf("DIRETORIO2: %u\n", line[0][0]->directory_line->id);
+    // printf("cache_level: %u return_addr: %lu directory: %lu line: %lu\n", this->data_cache[2][cache_indexes[2]].level, line[0][2]->tag, this->directory[0].sets[llc_idx].lines[llc_line][2].cache_line->tag, line[0][2]->directory_line->cache_line->tag);
+
+    // for (i = 0; i < POINTER_LEVELS; i++) {
+    //     for (j = 0; j < POINTER_LEVELS; j++) {
+    //         if (i == j) {
+    //             continue;
+    //         }
+    //         line[0][i]->line_ptr_caches[0][j] = line[0][j];
+    //     }
+    // }
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             line[i][j] = NULL;
@@ -259,6 +270,7 @@ bool cache_manager_t::isInMSHR (memory_order_buffer_line_t* mob_line) {
 }
 
 void cache_manager_t::clock() {
+    // printf("clock\n");
     if (mshr_table.size() > 0) {
         mshr_index += 1;
         if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
@@ -269,7 +281,7 @@ void cache_manager_t::clock() {
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
+                    // this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->requests[0]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
                     this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                 }
                 this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address, &this->directory[0]);
@@ -311,6 +323,7 @@ uint32_t cache_manager_t::llcMiss(memory_order_buffer_line_t* mob_line, uint64_t
 // Searches an instruction in cache levels
 uint32_t cache_manager_t::recursiveInstructionSearch(uint64_t instructionAddress, int32_t *cache_indexes,
                                                      uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
+    // printf("Isearch\n");
     uint32_t cache_status = this->searchAddress(instructionAddress, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
@@ -343,6 +356,7 @@ uint32_t cache_manager_t::searchInstruction(uint32_t processor_id, uint64_t inst
 uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_line, uint64_t instructionAddress,
                                               int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc,
                                               uint32_t cache_level, cacheId_t cache_type) {
+    // printf("Dsearch\n");
     uint32_t cache_status = this->searchAddress(instructionAddress, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     if (cache_status == HIT) {
@@ -391,6 +405,7 @@ uint32_t cache_manager_t::searchData(memory_order_buffer_line_t *mob_line) {
 
 uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes,
                                              uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
+    // printf("Dwrite\n");
     uint32_t cache_status = this->searchAddress(mob_line->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();

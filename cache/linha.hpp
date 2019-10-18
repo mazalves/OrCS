@@ -14,7 +14,7 @@ class line_t {
         uint32_t valid;
         uint64_t ready_at;
         directory_line_t *directory_line;
-        line_t ***line_ptr_caches;
+        // line_t ***line_ptr_caches;
 
         uint32_t NUMBER_OF_PROCESSORS;
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
@@ -39,13 +39,13 @@ class line_t {
             // delete[] directory_line;
         }
 
-        void allocate(uint32_t POINTER_LEVELS) {
-            set_POINTER_LEVELS(POINTER_LEVELS);
-            this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS];
-            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-                this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS];
-            }
-        }
+        // void allocate(uint32_t POINTER_LEVELS) {
+        //     set_POINTER_LEVELS(POINTER_LEVELS);
+        //     this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS];
+        //     for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+        //         this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS];
+        //     }
+        // }
 
         void clean_line() {
             this->tag = 0;

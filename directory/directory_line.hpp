@@ -4,26 +4,28 @@ class directory_line_t {
         uint32_t POINTER_LEVELS;
 
     public:
-        line_t *cache_lines;
-        uint32_t shared;
-        uint32_t status;
-        uint32_t level;
         uint32_t id;
+        uint64_t tag; 
+        uint32_t level;
+        uint32_t shared;
+        line_t *cache_line;
+        uint32_t cache_status;
 
         directory_line_t() {
             this->clean_line();
         }
 
         ~directory_line_t() {
-            delete[] cache_lines;
+            delete[] cache_line;
         }
 
         void clean_line() {
-            this->cache_lines = NULL;
-            this->shared = 0;
-            this->status = UNCACHED;
-            this->level = 0;
             this->id = 0;
+            this->tag = 0;
+            this->level = 0;
+            this->shared = 0;
+            this->cache_line = NULL;
+            this->cache_status = UNCACHED;
         }
 
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)

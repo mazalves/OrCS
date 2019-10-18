@@ -25,7 +25,7 @@ cache_t::~cache_t(){
 }
 
 // Allocate each cache type
-void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
+void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
     // Access configure file
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 
@@ -46,14 +46,8 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 		this->sets[i].lines = new line_t[this->associativity];
 		this->sets[i].n_lines = this->associativity;
         for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
-            this->sets[i].lines[j].allocate(POINTER_LEVELS);
-            for (uint32_t k = 0; k < NUMBER_OF_PROCESSORS; k++) {
-                for (uint32_t l = 0; l < POINTER_LEVELS; l++) {
-                    this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
-                }
-				this->sets[i].lines[j].directory_line = new directory_line_t;
-			}
-            this->sets[i].lines[j].clean_line();
+			this->sets[i].lines[j].directory_line = new directory_line_t;
+	        this->sets[i].lines[j].clean_line();
         }
     }
     this->set_cache_access(0);
@@ -128,81 +122,25 @@ inline uint32_t cache_t::searchLru(cacheSet_t *set) {
 	return index;
 }
 
-// Copy data information to lower cache levels when data addresses are valid
-void cache_t::copyLevels(line_t *line, uint32_t idxa, uint32_t idxb) {
-	if (line->line_ptr_caches[0][idxa]->dirty == 1) {
-		line->line_ptr_caches[0][idxa]->line_ptr_caches[0][idxb]->dirty = line->line_ptr_caches[0][idxa]->dirty;
-		line->line_ptr_caches[0][idxa]->line_ptr_caches[0][idxb]->lru = orcs_engine.get_global_cycle();
-		line->line_ptr_caches[0][idxa]->line_ptr_caches[0][idxb]->ready_at = line->line_ptr_caches[0][idxa]->ready_at;
-	}
-	line->line_ptr_caches[0][idxa]->clean_line();
-}
-
-// Copy data information to lower cache levels when data addresses are invalid
-void cache_t::copyNextLevels(line_t *line, uint32_t idx) {
-	line->line_ptr_caches[0][idx]->dirty = line->dirty;
-	line->line_ptr_caches[0][idx]->lru = orcs_engine.get_global_cycle();
-	line->line_ptr_caches[0][idx]->ready_at = line->ready_at;
-}
-
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(line_t *line, directory_t *directory, uint32_t idx, uint32_t access_line) {
-    for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
-        ERROR_ASSERT_PRINTF(line->line_ptr_caches[0][i] != NULL, "Error, no line reference in next levels.")
-    }
-	// L1 writeBack issues
-	if (this->level == 0) {
-		// printf("LVL1 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
-		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
-		for (uint32_t i = 1; i < DATA_LEVELS; i++) {
-			this->copyNextLevels(line, i);
-			line->line_ptr_caches[0][i]->line_ptr_caches[0][this->level] = NULL;//Pointer to Lower Level
-		}
-		line->clean_line();
-	// LLC writeBack issues
-    } else if (this->level == DATA_LEVELS - 1) {
-		// printf("LVL3 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
-		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
+inline void cache_t::writeBack(directory_t *directory, uint32_t idx, uint32_t line) {
+	// printf("WB in level %u\n", this->level);
+	// if (this->level == 1)
+	// printf("WB cache_tag: %lu  directory_tag: %lu\n", this->sets[idx].lines[idx].tag, this->sets[idx].lines[line].directory_line->tag);
+	this->sets[idx].lines[line].directory_line->cache_status = UNCACHED;
+	printf("WB tag: %lu level: %u\n", this->sets[idx].lines[line].directory_line->tag, this->sets[idx].lines[line].directory_line->level);
+	if (this->level == 2) {
 		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
-			directory->sets[idx].lines[access_line][i].clean_line();
+			directory->sets[idx].lines[line][i].clean_line();
 		}
-		for (uint32_t i = 0; i < DATA_LEVELS - 1; i++) {
-			if (line->line_ptr_caches[0][i] != NULL) {
-				line->line_ptr_caches[0][i]->clean_line();
-			}
-		}
-	// Intermediate cache levels issues
-	} else {
-		// printf("LVL2 WB DIR: %u\n", this->sets[idx].lines[access_line].directory_line->level);
-		this->sets[idx].lines[access_line].directory_line->status = UNCACHED;
-		uint32_t i = 0;
-		// for (i = 0; i < this->level - 1; i++) {
-        //     // printf("%s\n", "for");
-		// 	if (line->line_ptr_caches[0][i] != NULL) {
-        //         // printf("%s\n", "if");mshr_entry_t* add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
-        
-		// 		copyLevels(line, i, i + 1);
-		// 	}
-		// }
-        if (line->line_ptr_caches[0][i] != NULL) {
-			copyLevels(line, i, i + 2);
-		} else {
-			copyNextLevels(line, i + 2);
-
-		}
-		for (uint32_t i = this->level + 1; i < DATA_LEVELS; i++) {
-			for (uint32_t j = 0; j <= this->level; j++) {
-				line->line_ptr_caches[0][i]->line_ptr_caches[0][j] = NULL;
-			}
-		}
-		line->clean_line();
 	}
+	this->add_cache_writeback();
 }
 
 // Searches for a cache line to write data
-line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line) {
+line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line, uint64_t &tag) {
+	// printf("InstallLine cache_type: %u level: %u\n", this->id, this->level);
 	line = POSITION_FAIL;
-    uint64_t tag;
     this->tagIdxSetCalculation(address, &idx, &tag);
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		if (this->sets[idx].lines[i].valid == 0) {
@@ -214,8 +152,8 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *di
 		line = this->searchLru(&this->sets[idx]);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(&this->sets[idx].lines[line], directory, idx, line);
-			this->add_cache_writeback();
+			printf("INST tag: %lu level: %u\n", this->sets[idx].lines[line].tag, this->level);
+			this->writeBack(directory, idx, line);
 		}
 	}
 	this->sets[idx].lines[line].tag = tag;
@@ -230,8 +168,9 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *di
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *directory) {
+	// printf("installing line in returnLine\n");
 	uint32_t idx, idx_padding, line_padding;
-	uint64_t tag;
+	uint64_t tag, tag_padding;
     this->tagIdxSetCalculation(address, &idx, &tag);
 	int32_t line = POSITION_FAIL;
 	// Selects a line in this cache
@@ -242,22 +181,13 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 			break;
 		}
 	}
-    ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line não encontrada para retorno")
+	// printf("returnLine: tag %lu, real_tag %lu, real_level %u, level %u\n", directory->sets[idx].lines[line]->cache_line->tag, this->sets[idx].lines[line].tag, this->level, directory->sets[idx].lines[line]->level);
+	ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line não encontrada para retorno") 
 	if (this->level > 0) {
 		line_t *line_return = NULL;
-		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding);
-		line_return->directory_line->status = CACHED;
-
-		this->sets[idx].lines[line].line_ptr_caches[0][cache->level] = line_return;
-		for (uint32_t i = this->level + 1; i < POINTER_LEVELS; i++) {
-			line_return->line_ptr_caches[0][i] = this->sets[idx].lines[line].line_ptr_caches[0][i];
-		}
-		line_return->line_ptr_caches[0][this->level] = &this->sets[idx].lines[line];
-		// Copy information
-		line_return->dirty = line_return->line_ptr_caches[0][this->level]->dirty;
-		line_return->lru = line_return->line_ptr_caches[0][this->level]->lru;
-		line_return->prefetched = line_return->line_ptr_caches[0][this->level]->prefetched;
-		line_return->ready_at = orcs_engine.get_global_cycle();
+		line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding, tag_padding);
+		// printf("UNCACHED: %u\n", line_return->directory_line->cache_status);
+		line_return->directory_line->cache_status = CACHED;
 	}
 }
 
@@ -279,8 +209,8 @@ uint32_t cache_t::write(uint64_t address, directory_t *directory){
         line = this->searchLru(&this->sets[idx]);
         this->add_change_line();
         if (this->sets[idx].lines[line].dirty == 1) {
-            this->writeBack(&this->sets[idx].lines[line], directory, idx, line);
-            this->add_cache_writeback();
+			printf("W tag: %lu\n", this->sets[idx].lines[line].tag);
+			this->writeBack(directory, idx, line);
         }
     }
 	ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line didn't find to be written.")
