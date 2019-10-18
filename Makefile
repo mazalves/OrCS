@@ -42,8 +42,7 @@ SRC_CACHE = $(FD_CACHE)/cache.cpp\
 			$(FD_CACHE)/cache_manager.cpp\
 			$(FD_CACHE)/mshr_entry.cpp
 
-SRC_DIRECTORY = $(FD_DIRECTORY)/directory.cpp\
-				$(FD_DIRECTORY)/directory_manager.cpp
+SRC_DIRECTORY = $(FD_DIRECTORY)/directory.cpp
 
 SRC_OTHER = $(FD_OTHER)/utils.cpp\
 			$(FD_OTHER)/enumerations.cpp
