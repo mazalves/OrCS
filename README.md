@@ -1,7 +1,7 @@
 # Ordinary Computer Simulator (OrCS)
 **OrCS** is a cycle-accurate and trace-driven simulator developed to Computer Architecture researches. It simulates a simple architecture containing at least a processor, a main memory and a cache-hierarchy. It is being improved by the researchers every day.
 
-## Geting started
+## Getting started
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
 ### Prerequisites
@@ -32,11 +32,11 @@ $ make clean\; make orcs
 ```
 
 Output:
+```
 rm -f simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o
 rm -f orcs
 OrCS cleaned\!
 
-```
 g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic simulator.cpp -o simulator.o
 g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic orcs_engine.cpp -o orcs_engine.o
 g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic trace_reader.cpp -o trace_reader.o
@@ -82,7 +82,7 @@ $ mv path/to_the/trace/application_name/application_name.tid0.stat.out.gz path/t
 
 To execute OrCS in terminal:
 ```bash
-$ ./orcs -t \<application_name\> -c sandy_bridge/sandy_bridge.cfg
+$ ./orcs -t <application_name> -c sandy_bridge/sandy_bridge.cfg
 ```
 
 The output will contain statistics about the application's execution in OrCS which can be used for architecture evaluation:
