@@ -12,7 +12,7 @@ Download the [libconfig](http://hyperrealm.github.io/libconfig/) library from th
 ```bash
 $ cd libconfig-x.x.x.tar.gz
 $ ./configure
-$ make\; make check
+$ make; make check
 $ make install
 $ make clean
 ```
@@ -28,7 +28,7 @@ Clone or download OrCS
 ```bash
 $ git clone git@github.com:mazalves/OrCS.git
 $ cd OrCS
-$ make clean\; make orcs
+$ make clean; make orcs
 ```
 
 Output:
@@ -68,10 +68,12 @@ Before executing OrCS we must download a simulation trace.
 ### Simulation traces
 Download at least one [simulation trace](https://drive.google.com/drive/folders/1wJIxye5Cm4cRu3pTYrKkWfPF94_9h5uN) because it will be needed during OrCS execution. Simulation traces replicate the computational behavior of a specific application, so these traces will be evaluated in OrCS similarly to the real application execution on a conventional computer. Each application directory has three different compressed files containing the simulation traces:
 
+```
 * application_name
     * application_name.tid0.dyn.out.gz
     * application_name.tid0.mem.out.gz
     * application_name.tid0.stat.out.gz
+```
 
 Move only the compressed files into the OrCS directory:
 ```bash
