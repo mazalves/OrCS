@@ -1,4 +1,4 @@
-ompiled source #
+# compiled source #
 ###################
 *.com
 *.class
@@ -39,3 +39,7 @@ Thumbs.db
 *.ipch
 results_memory_home_txt
 orcs
+
+# frameworks #
+##############
+.vscode
