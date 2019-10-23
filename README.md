@@ -7,8 +7,8 @@ These instructions will get you a copy of the project up and running on your loc
 ### Prerequisites
 To run OrCS, it is necessary to install the following libraries:
 
-#### [libconfig](http://hyperrealm.github.io/libconfig/)
-Download the libconfig library from the website and run the following commands on terminal:
+#### libconfig
+Download the [libconfig](http://hyperrealm.github.io/libconfig/) library from the website and run the following commands on terminal:
 ```bash
 $ cd libconfig-x.x.x.tar.gz
 $ ./configure
@@ -17,8 +17,8 @@ $ make install
 $ make clean
 ```
 
-#### [zlib](https://zlib.net/)
-Download the zlib library by terminal commands only:
+#### zlib
+Download the [zlib](https://zlib.net/) library by terminal commands only:
 ```bash
 $ sudo apt install zlib1g-dev
 ```
@@ -32,39 +32,41 @@ $ make clean\; make orcs
 ```
 
 Output:
-> rm -f simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o
-> rm -f orcs
-> OrCS cleaned\!
+rm -f simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o
+rm -f orcs
+OrCS cleaned\!
 
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic simulator.cpp -o simulator.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic orcs_engine.cpp -o orcs_engine.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic trace_reader.cpp -o trace_reader.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic package/opcode_package.cpp -o package/opcode_package.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic package/uop_package.cpp -o package/uop_package.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/memory_disambiguation/disambiguation_hashed.cpp -o processor/memory_disambiguation/disambiguation_hashed.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/processor.cpp -o processor/processor.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/reorder_buffer_line.cpp -o processor/reorder_buffer_line.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/memory_order_buffer_line.cpp -o processor/memory_order_buffer_line.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic utils/utils.cpp -o utils/utils.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic utils/enumerations.cpp -o utils/enumerations.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic branch_predictor/branch_predictor.cpp -o branch_predictor/branch_predictor.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic branch_predictor/piecewise.cpp -o branch_predictor/piecewise.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/cache.cpp -o cache/cache.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/cache_manager.cpp -o cache/cache_manager.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/mshr_entry.cpp -o cache/mshr_entry.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic directory/directory.cpp -o directory/directory.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic prefetcher/prefetcher.cpp -o prefetcher/prefetcher.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic prefetcher/stride_prefetcher.cpp -o prefetcher/stride_prefetcher.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic config/config.cpp -o config/config.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_memory/memory_channel.cpp -o main_memory/memory_channel.o
-> g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_memory/memory_controller.cpp -o main_memory/memory_controller.o
-> g++ -ggdb3 -o orcs simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o -lz -lconfig++ 
+```
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic simulator.cpp -o simulator.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic orcs_engine.cpp -o orcs_engine.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic trace_reader.cpp -o trace_reader.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic package/opcode_package.cpp -o package/opcode_package.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic package/uop_package.cpp -o package/uop_package.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/memory_disambiguation/disambiguation_hashed.cpp -o processor/memory_disambiguation/disambiguation_hashed.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/processor.cpp -o processor/processor.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/reorder_buffer_line.cpp -o processor/reorder_buffer_line.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic processor/memory_order_buffer_line.cpp -o processor/memory_order_buffer_line.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic utils/utils.cpp -o utils/utils.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic utils/enumerations.cpp -o utils/enumerations.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic branch_predictor/branch_predictor.cpp -o branch_predictor/branch_predictor.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic branch_predictor/piecewise.cpp -o branch_predictor/piecewise.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/cache.cpp -o cache/cache.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/cache_manager.cpp -o cache/cache_manager.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic cache/mshr_entry.cpp -o cache/mshr_entry.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic directory/directory.cpp -o directory/directory.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic prefetcher/prefetcher.cpp -o prefetcher/prefetcher.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic prefetcher/stride_prefetcher.cpp -o prefetcher/stride_prefetcher.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic config/config.cpp -o config/config.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_memory/memory_channel.cpp -o main_memory/memory_channel.o
+g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_memory/memory_controller.cpp -o main_memory/memory_controller.o
+g++ -ggdb3 -o orcs simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o -lz -lconfig++ 
+```
 
 ## Running OrCS
 Before executing OrCS we must download a simulation trace.
 
-### [Simulation traces](https://drive.google.com/drive/folders/1wJIxye5Cm4cRu3pTYrKkWfPF94_9h5uN)
-Download at least one simulation trace because it will be needed during OrCS execution. Simulation traces replicate the computational behavior of a specific application, so these traces will be evaluated in OrCS similarly to the real application execution on a conventional computer. Each application directory has three different compressed files containing the simulation traces:
+### Simulation traces
+Download at least one [simulation trace](https://drive.google.com/drive/folders/1wJIxye5Cm4cRu3pTYrKkWfPF94_9h5uN) because it will be needed during OrCS execution. Simulation traces replicate the computational behavior of a specific application, so these traces will be evaluated in OrCS similarly to the real application execution on a conventional computer. Each application directory has three different compressed files containing the simulation traces:
 
 * application_name
     * application_name.tid0.dyn.out.gz
@@ -80,120 +82,122 @@ $ mv path/to_the/trace/application_name/application_name.tid0.stat.out.gz path/t
 
 To execute OrCS in terminal:
 ```bash
-$ ./orcs -t <application_name> -c sandy_bridge/sandy_bridge.cfg
+$ ./orcs -t \<application_name\> -c sandy_bridge/sandy_bridge.cfg
 ```
 
 The output will contain statistics about the application's execution in OrCS which can be used for architecture evaluation:
 
-> Global_Statistics
-> #===============================================#
-> Global_Cycle: 841359
-> Global_IPC: 0.653862
-> #===============================================#
-> #===============================================#
-> Statistics of Core 0
-> #========================================================================#
-> trace_reader_t
-> fetch_instructions: 550132
-> #========================================================================#
-> #========================================================================#
-> Total_Cycle: 841358
-> #===============================================#
-> Stage_Opcode_and_Uop_Counters
-> #===============================================#
-> Stage_Fetch: 550133
-> Stage_Decode: 550133
-> Stage_Rename: 587797
-> Stage_Commit: 587796
-> #========================================================================#
-> Times_Reach_MAX_PARALLEL_REQUESTS_CORE_READ: 7633
-> Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: 2867
-> #========================================================================#
-> Instruction_Per_Cycle: 0.653863
-> MPKI: 10.859192
-> Average_wait_cycles_wait_mem_req: 16.002829
-> Core_Request_RAM_AVG_Cycle: 42.082443
-> #========================================================================#
-> #===============================================#
-> Total_Read_false_Positives: 0
-> Total_Write_false_Positives: 0
-> Total_Resolve_Address_to_Address: 0
-> #===============================================#
-> #========================================================================#
-> BTB Hits: 114741
-> BTB Miss: 3486
-> Total Branchs: 118227
-> Total Branchs Taken: 40416
-> Total Branchs Not Taken: 77811
-> Correct Branchs Taken: 36297
-> Incorrect Branchs Taken: 4119
-> Correct Branchs Not Taken: 38437
-> Incorrect Branchs Not Taken: 39374
-> #========================================================================#
-> #========================================================================#
-> ##############  Cache Memories ##################
-> #========================================================================#
-> #===============================================#
-> Cache_Level: 0 - Cache_Type: 0
-> 0_Cache_Access: 550132
-> 0_Cache_Hits: 537243
-> 0_Cache_Miss: 12889
-> 0_Cache_Eviction: 1714
-> 0_Cache_Read: 537243
-> 0_Cache_Write: 0
-> #===============================================#
-> #===============================================#
-> Cache_Level: 0 - Cache_Type: 1
-> 0_Cache_Access: 178499
-> 0_Cache_Hits: 171621
-> 0_Cache_Miss: 6878
-> 0_Cache_Eviction: 19123
-> 0_Cache_Read: 133957
-> 0_Cache_Write: 44542
-> 0_Cache_WriteBack: 2420
-> #===============================================#
-> #===============================================#
-> Cache_Level: 1 - Cache_Type: 1
-> 1_Cache_Access: 19767
-> 1_Cache_Hits: 13729
-> 1_Cache_Miss: 6038
-> 1_Cache_Eviction: 7108
-> 1_Cache_Read: 18438
-> 1_Cache_Write: 14604
-> 1_Cache_WriteBack: 347
-> #===============================================#
-> #===============================================#
-> Cache_Level: 2 - Cache_Type: 1
-> 2_Cache_Access: 6038
-> 2_Cache_Hits: 64
-> 2_Cache_Miss: 5974as we executed
-> 2_Cache_Eviction: as we executed
-> 2_Cache_Read: 4963as we executed
-> 2_Cache_Write: 1129
-> 2_Cache_WriteBack: 752
-> #===============================================#
-> #===============================================#
-> #========================================================================#
-> #Memory Controller
-> #========================================================================#
-> Requests_Made:              5974
-> Requests_from_Prefetcher:   0
-> Requests_from_LLC:          5974
-> Row_Buffer_Hit, Channel 0:  1186
-> Row_Buffer_Miss, Channel 0: 277
-> Row_Buffer_Hit, Channel 1:  1176
-> Row_Buffer_Miss, Channel 1: 261
-> Row_Buffer_Hit, Channel 2:  1213
-> Row_Buffer_Miss, Channel 2: 253
-> Row_Buffer_Hit, Channel 3:  1198
-> Row_Buffer_Miss, Channel 3: 270
-> #========================================================================#
-> Writed FILE
-> Deleting Trace Reader
-> Deleting Processor
-> Deleting Branch predictor
-> Deleting Cache manager
-> Deleting Memory Controller
+```
+Global_Statistics
+#===============================================#
+Global_Cycle: 841359
+Global_IPC: 0.653862
+#===============================================#
+#===============================================#
+Statistics of Core 0
+#========================================================================#
+trace_reader_t
+fetch_instructions: 550132
+#========================================================================#
+#========================================================================#
+Total_Cycle: 841358
+#===============================================#
+Stage_Opcode_and_Uop_Counters
+#===============================================#
+Stage_Fetch: 550133
+Stage_Decode: 550133
+Stage_Rename: 587797
+Stage_Commit: 587796
+#========================================================================#
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_READ: 7633
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: 2867
+#========================================================================#
+Instruction_Per_Cycle: 0.653863
+MPKI: 10.859192
+Average_wait_cycles_wait_mem_req: 16.002829
+Core_Request_RAM_AVG_Cycle: 42.082443
+#========================================================================#
+#===============================================#
+Total_Read_false_Positives: 0
+Total_Write_false_Positives: 0
+Total_Resolve_Address_to_Address: 0
+#===============================================#
+#========================================================================#
+BTB Hits: 114741
+BTB Miss: 3486
+Total Branchs: 118227
+Total Branchs Taken: 40416
+Total Branchs Not Taken: 77811
+Correct Branchs Taken: 36297
+Incorrect Branchs Taken: 4119
+Correct Branchs Not Taken: 38437
+Incorrect Branchs Not Taken: 39374
+#========================================================================#
+#========================================================================#
+##############  Cache Memories ##################
+#========================================================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 0
+0_Cache_Access: 550132
+0_Cache_Hits: 537243
+0_Cache_Miss: 12889
+0_Cache_Eviction: 1714
+0_Cache_Read: 537243
+0_Cache_Write: 0
+#===============================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 1
+0_Cache_Access: 178499
+0_Cache_Hits: 171621
+0_Cache_Miss: 6878
+0_Cache_Eviction: 19123
+0_Cache_Read: 133957
+0_Cache_Write: 44542
+0_Cache_WriteBack: 2420
+#===============================================#
+#===============================================#
+Cache_Level: 1 - Cache_Type: 1
+1_Cache_Access: 19767
+1_Cache_Hits: 13729
+1_Cache_Miss: 6038
+1_Cache_Eviction: 7108
+1_Cache_Read: 18438
+1_Cache_Write: 14604
+1_Cache_WriteBack: 347
+#===============================================#
+#===============================================#
+Cache_Level: 2 - Cache_Type: 1
+2_Cache_Access: 6038
+2_Cache_Hits: 64
+2_Cache_Miss: 5974as we executed
+2_Cache_Eviction: as we executed
+2_Cache_Read: 4963as we executed
+2_Cache_Write: 1129
+2_Cache_WriteBack: 752
+#===============================================#
+#===============================================#
+#========================================================================#
+#Memory Controller
+#========================================================================#
+Requests_Made:              5974
+Requests_from_Prefetcher:   0
+Requests_from_LLC:          5974
+Row_Buffer_Hit, Channel 0:  1186
+Row_Buffer_Miss, Channel 0: 277
+Row_Buffer_Hit, Channel 1:  1176
+Row_Buffer_Miss, Channel 1: 261
+Row_Buffer_Hit, Channel 2:  1213
+Row_Buffer_Miss, Channel 2: 253
+Row_Buffer_Hit, Channel 3:  1198
+Row_Buffer_Miss, Channel 3: 270
+#========================================================================#
+Writed FILE
+Deleting Trace Reader
+Deleting Processor
+Deleting Branch predictor
+Deleting Cache manager
+Deleting Memory Controller
+```
 
 ## Deployment
 To keep all branches correct and a functional master, we must follow some versioning rules.
