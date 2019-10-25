@@ -7,6 +7,7 @@ class line_t {
         uint32_t POINTER_LEVELS;
 
     public:
+        uint64_t address;
         uint64_t tag;
         uint32_t dirty;
         uint64_t lru;

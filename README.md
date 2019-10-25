@@ -201,7 +201,7 @@ Deleting Cache manager
 Deleting Memory Controller
 ```
 
-## Deployment
+## Development
 To keep all branches correct and a functional master, we must follow some versioning rules.
 
 ### For direct contributors
@@ -220,26 +220,25 @@ $ git checkout -b your_branch_name develop
 #### Incorporating a finished feature in `develop`
 Every contributor must keep its own branch updated according to the `develop` branch. It is therefore necessary that every contributor updates the `develop` branch frequently following the steps below:
 
-* After modifying the code in your local branch with success (without compiling and execution errors) you may update your remote branch:
+* After modifying the code in your local branch with success (without compiling and execution errors) you may save a temporary copy of it in the stack:
 ```bash
-$ git add directory1/file1 directory1/file2 directory3/file
-$ git commit -m "modifications"
-$ git push
+$ git stash
 ```
 
-* Switch to the local `develop` branch and fetch the remote version:
+* With the modifications of your local branch stacked, switch to the local `develop` branch and fetch the remote version:
 ```bash 
 $ git checkout develop
 $ git pull
 ```
 
-* Switch back to your local branch to merge it with the updated content in `develop`:
+* Switch back to your local branch, pop your saved modification from the stack and merge it with the updated content in `develop`:
 ```bash
 $ git checkout your_branch
+$ git stash pop
 $ git merge develop
 ```
 
-* Test your code and when it is flawless (without compiling, execution, and behavior errors) you can update your remote branch:
+* Test your code in local branch and when it is flawless (without compiling, execution, and behavior errors) you can update your remote branch:
 ```bash
 $ git add directory1/file1 directory1/file2 directory3/file
 $ git commit -m "modifications merged with develop"
@@ -265,10 +264,10 @@ $ git branch -d your_branch
 
 ## Authors
 OrCS was developed in HiPES Lab (High Performance and Efficient Systems) in Federal University of Paraná:
-* Aline Santana Cordeiro
-* Marco Antonio Zanata Alves
-* Ricardo Kohler
-* Sairo Raoní dos Santos
+* [Aline Santana Cordeiro](https://github.com/AlineS)
+* [Marco Antonio Zanata Alves](https://github.com/mazalves/)
+* [Ricardo Kohler](https://github.com/kohlerricardo)
+* [Sairo Raoní dos Santos](https://github.com/sairosantos)
 
 ## Acknowledgments
 OrCS is based on [SiNUCA](https://github.com/mazalves/sinuca) (Simulator of Non Uniform Caches) and was developed with the need of a simple and faster simulator which can be easily modified by the researchers.

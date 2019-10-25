@@ -202,13 +202,21 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+            if (i + 1 == INSTRUCTION_LEVELS) {
+                line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+            } else {
+                line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+            }
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+        if (i + 1 == POINTER_LEVELS) {
+            line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+        } else {
+            line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+        }
     }
 
     // aqui deve ser o número de caches na arquitetura, exceto as LLCs
@@ -232,6 +240,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line[i];
     delete[] line;
+    delete[] CACHE_TAGS;
 }
 
 void cache_manager_t::add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request) {
@@ -342,7 +351,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
         mob_line->updatePackageReady(latency_request);
@@ -384,7 +393,7 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
         mob_line->updatePackageReady(latency_request);

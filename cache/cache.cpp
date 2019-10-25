@@ -60,18 +60,18 @@ void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
 }
 
 // Return address index in cache
-inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag) {
-	uint32_t get_bits = (this->n_sets) - 1;
-	*tag = (address >> this->offset);
+inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset) {
+	uint32_t get_bits = (n_sets) - 1;
+	*tag = (address >> offset);
 	*idx = *tag & get_bits;
-	*tag >>= utils_t::get_power_of_two(this->n_sets);
+	*tag >>= utils_t::get_power_of_two(n_sets);
 }
 
 // Reads a cache, updates cycles and return HIT or MISS status
 uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
     uint32_t idx;
     uint64_t tag;
-	this->tagIdxSetCalculation(address, &idx, &tag);
+	this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		if(this->sets[idx].lines[i].tag == tag) {
 			// Se ready Cycle for menor que o ciclo atual, a latencia é apenas da leitura, sendo um hit.
@@ -114,18 +114,36 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
 }
 
 // Returns the minor LRU line
-inline uint32_t cache_t::searchLru(cacheSet_t *set) {
+inline uint32_t cache_t::searchLru(cacheSet_t *set, uint64_t &old_address) {
 	uint32_t index = 0;
 	for (uint32_t i = 1; i < set->n_lines; i++)	{
 		index = (set->lines[index].lru <= set->lines[i].lru)? index : i;
 	}
+	old_address = set->lines[index].address;
 	return index;
 }
 
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(directory_t *directory, uint32_t idx, uint32_t line) {
+inline void cache_t::writeBack(uint64_t address, directory_t *directory, uint32_t idx, uint32_t line) {
 	this->sets[idx].lines[line].directory_line->cache_status = UNCACHED;
-	if (this->level == 2) {
+	if (this->level < 2) {
+		uint32_t idx_next_level, line_next_level = POSITION_FAIL;
+		uint64_t tag;
+		this->tagIdxSetCalculation(address, &idx_next_level, &tag, 4096, this->offset);
+		printf("idx: %u n_lines: %u level: %u\n", idx_next_level, directory->sets[idx_next_level].n_lines, this->level);
+		for (size_t i = 0; i < directory->sets[idx_next_level].n_lines; i++) {
+			for (size_t j = 0; j < POINTER_LEVELS; j++) {
+				if (directory->sets[idx_next_level].lines[i][j].tag == tag) {
+					line_next_level = i;
+					break;
+				}
+			}
+		}
+		printf("line: %u\n", line_next_level);
+		directory->sets[idx_next_level].lines[line_next_level][this->level + 1].cache_line->dirty = 1;
+		directory->sets[idx_next_level].lines[line_next_level][this->level + 1].cache_line->lru = orcs_engine.get_global_cycle();
+		directory->sets[idx_next_level].lines[line_next_level][this->level + 1].cache_line->ready_at = this->sets[idx].lines[line].ready_at;
+	} else {
 		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
 			directory->sets[idx].lines[line][i].clean_line();
 		}
@@ -136,7 +154,7 @@ inline void cache_t::writeBack(directory_t *directory, uint32_t idx, uint32_t li
 // Searches for a cache line to write data
 line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line, uint64_t &tag) {
 	line = POSITION_FAIL;
-    this->tagIdxSetCalculation(address, &idx, &tag);
+    this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 	for (size_t i = 0; i < this->sets[idx].n_lines; i++) {
 		if (this->sets[idx].lines[i].valid == 0) {
 			line = i;
@@ -144,12 +162,14 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t *di
 		}
 	}
 	if ((int)line == POSITION_FAIL) {
-		line = this->searchLru(&this->sets[idx]);
+		uint64_t old_address;
+		line = this->searchLru(&this->sets[idx], old_address);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(directory, idx, line);
+			this->writeBack(old_address, directory, idx, line);
 		}
 	}
+	this->sets[idx].lines[line].address = address;
 	this->sets[idx].lines[line].tag = tag;
 	this->sets[idx].lines[line].lru = orcs_engine.get_global_cycle() + latency;
 	this->sets[idx].lines[line].valid = 1;
@@ -165,9 +185,8 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 	if (this->level > 0) {
 		uint32_t idx, idx_padding, line_padding;
 		uint64_t tag, tag_padding;
-		this->tagIdxSetCalculation(address, &idx, &tag);
+		this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 		int32_t line = POSITION_FAIL;
-		// Selects a line in this cache
 		for (size_t i = 0; i < this->sets->n_lines; i++) {
 			if (this->sets[idx].lines[i].tag == tag) {
 				this->sets[idx].lines[i].lru = orcs_engine.get_global_cycle();
@@ -184,10 +203,10 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t *director
 
 
 // write address
-uint32_t cache_t::write(uint64_t address, directory_t *directory){
+uint32_t cache_t::write(uint64_t address, directory_t *directory) {
     uint32_t idx;
     uint64_t tag;
-    this->tagIdxSetCalculation(address, &idx, &tag);
+    this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 	int32_t line = POSITION_FAIL;
 	this->add_cache_write();
     for (size_t i = 0; i < this->sets->n_lines; i++) {
@@ -196,12 +215,13 @@ uint32_t cache_t::write(uint64_t address, directory_t *directory){
 			break;
 		}
 	}
-    if (line == POSITION_FAIL) {
-        line = this->searchLru(&this->sets[idx]);
+	if (line == POSITION_FAIL) {
+		uint64_t old_address;
+        line = this->searchLru(&this->sets[idx], old_address);
         this->add_change_line();
         if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(directory, idx, line);
-        }
+			this->writeBack(old_address, directory, idx, line);
+		}
     }
 	ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line didn't find to be written.")
     this->sets[idx].lines[line].dirty = 1;

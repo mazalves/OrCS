@@ -17,13 +17,13 @@ class cache_t {
         // void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
         // void copyNextLevels(line_t *line, uint32_t idx);
 
-        uint64_t cacheHit;
-        uint64_t cacheMiss;
-        uint64_t cacheAccess;
-        uint64_t cacheRead;
-        uint64_t cacheWrite;
-        uint64_t cacheWriteBack;
-        uint64_t changeLine;
+        // uint64_t cacheHit;
+        // uint64_t cacheMiss;
+        // uint64_t cacheAccess;
+        // uint64_t cacheRead;
+        // uint64_t cacheWrite;
+        // uint64_t cacheWriteBack;
+        // uint64_t changeLine;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -47,11 +47,11 @@ class cache_t {
         uint32_t offset;
 
         void statistics();
-        void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
-        void writeBack(directory_t *directory, uint32_t idx, uint32_t line);       //makes writeback of line
+        void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
+        void writeBack(uint64_t address, directory_t *directory, uint32_t idx, uint32_t line);       //makes writeback of line
         void returnLine(uint64_t address, cache_t *cache, directory_t *directory);//return line from lower cache level
-        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
-        uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
+        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset); //calculate index of data, makes tag from address
+        uint32_t searchLru(cacheSet_t *set, uint64_t &old_address);//searh LRU to substitue
         uint32_t read(uint64_t address, uint32_t &ttc);
         uint32_t write(uint64_t address, directory_t *directory);
         line_t *installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line, uint64_t &tag); //install line of cache |mem_controller -> caches|
