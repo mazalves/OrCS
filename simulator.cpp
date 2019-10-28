@@ -267,6 +267,7 @@ int main(int argc, char **argv) {
 
     ORCS_PRINTF("Deleting Trace Reader\n")
     delete[] orcs_engine.trace_reader;
+    delete orcs_engine.configuration;
     ORCS_PRINTF("Deleting Processor\n")
     delete[] orcs_engine.processor;
     ORCS_PRINTF("Deleting Branch predictor\n")
@@ -275,5 +276,5 @@ int main(int argc, char **argv) {
     delete orcs_engine.cacheManager;
     ORCS_PRINTF("Deleting Memory Controller\n")
     delete orcs_engine.hive_controller;
-    delete orcs_engine.memory_controller; 
+    delete orcs_engine.memory_controller;
 }

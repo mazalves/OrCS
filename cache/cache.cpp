@@ -21,13 +21,15 @@ cache_t::cache_t() {
 }
 
 cache_t::~cache_t(){
-	/*for (size_t i = 0; i < this->n_sets; i++) {
+	if (orcs_engine.get_global_cycle() == 0) return;
+	for (size_t i = 0; i < this->n_sets; i++) {
 		for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
             delete this->sets[i].lines[j].directory_line;
 		}
-		//delete[] this->sets[i].lines;
-    }*/
-	//delete[] sets;
+		delete[] this->sets[i].lines;
+    }
+	delete[] sets;
+	//ORCS_PRINTF ("cycle: %lu\n", orcs_engine.get_global_cycle())
 }
 
 // Allocate each cache type

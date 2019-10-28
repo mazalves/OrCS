@@ -5,20 +5,19 @@ cache_manager_t::cache_manager_t() {}
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
-    delete[] ICACHE_AMOUNT;
-    delete[] DCACHE_AMOUNT;
-
-    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
-    for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
-
     for (size_t i = 0; i < this->mshr_table.size(); i++){
         delete mshr_table[i];
     }
+
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
+
+    delete[] ICACHE_AMOUNT;
+    delete[] DCACHE_AMOUNT;
+
     delete[] data_cache;
     delete[] instruction_cache;
-    //delete[] directory;
+    delete[] directory;
     std::vector<memory_package_t *>().swap(mshr_table);
 }
 
@@ -138,6 +137,7 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
             cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
+    delete[] CACHE_AMOUNT;
     return cache;
 }
 
@@ -229,8 +229,8 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
 
     for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            printf("set: %u, line: %u, line_tag: %lu\n", llc_idx, llc_line, line[0][j]->directory_line->tag);
-            printf("set: %u, line: %u, dire_tag: %lu\n", llc_idx, llc_line, this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->tag);
+           // printf("set: %u, line: %u, line_tag: %lu\n", llc_idx, llc_line, line[0][j]->directory_line->tag);
+           // printf("set: %u, line: %u, dire_tag: %lu\n", llc_idx, llc_line, this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->tag);
         }
     }
     for (i = 0; i < POINTER_LEVELS; i++) {
@@ -248,6 +248,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line[i];
     delete[] line;
+    delete[] CACHE_TAGS;
 }
 
 void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t latency_request, bool hive){
