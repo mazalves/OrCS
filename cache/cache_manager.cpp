@@ -203,15 +203,16 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
+        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
     }
 
+    printf("idx_llc: %u  line_llc: %u\n", llc_idx, llc_line);
     for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (size_t j = 0; j < POINTER_LEVELS; j++) {
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[i][j];
@@ -219,7 +220,9 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
             this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
             this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
+            printf("in directory address %lu with tag %lu in level %lu\n", this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->address, this->directory[i].sets[llc_idx].lines[llc_line][j].tag, j);
             line[i][j]->directory_line = &this->directory[i].sets[llc_idx].lines[llc_line][j];
+            printf("in line address %lu with tag %lu in level %lu\n", line[i][j]->address, line[i][j]->tag, j);
         }
     }
 
@@ -278,7 +281,7 @@ void cache_manager_t::clock() {
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
                     this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                 }
-                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address, &this->directory[0]);
+                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->requests[0]->memory_address, *this->directory);
             }
             for (uint32_t j = 0; j < mshr_table[mshr_index]->requests.size(); j++) {
                 mshr_table[mshr_index]->requests[j]->updatePackageReady (mshr_table[mshr_index]->latency);
@@ -320,7 +323,7 @@ uint32_t cache_manager_t::recursiveInstructionSearch(memory_order_buffer_line_t*
         if (cache_level > 0) {
             printf("returnLine in recursive Instruction search\n");
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->opcode_address, &this->instruction_cache[i][cache_indexes[i]], *this->directory);
             }
         }
         mob_line->updatePackageReady(latency_request);
@@ -345,8 +348,8 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
         if (cache_level > 0) {
             printf("returnLine in recursive data search\n");
             for (int32_t i = cache_level - 1; i >= 0; i--) {
-                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
-                this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
+                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], *this->directory);
+                this->data_cache[i + 1][cache_indexes[i + 1]].add_cache_write();
             }
         }
         mob_line->updatePackageReady(latency_request);
@@ -390,10 +393,10 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
         if (cache_level > 0) {
             printf("returnLine in recursive data write\n");
             for (int32_t i = cache_level - 1; i >= 0; i--) {
-                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], *this->directory);
             }
         }
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
+        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, *this->directory);
         mob_line->updatePackageReady(latency_request);
         
         return latency_request;

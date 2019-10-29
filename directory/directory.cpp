@@ -6,7 +6,7 @@ directory_t::directory_t() {
 }
 
 directory_t::~directory_t() {
-    delete[] sets;
+    // delete[] sets;
 }
 
 void directory_t::allocate(cache_t llc, uint32_t POINTER_LEVELS) {
