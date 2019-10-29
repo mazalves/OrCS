@@ -191,6 +191,7 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
+    printf("install lines in caches\n");
     uint32_t i, j, llc_idx, llc_line;
     uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
@@ -202,36 +203,26 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            if (i + 1 == INSTRUCTION_LEVELS) {
-                line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
-            } else {
-                line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
-            }
+            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        if (i + 1 == POINTER_LEVELS) {
-            line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
-        } else {
-            line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
-        }
+        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line, CACHE_TAGS[i]);
     }
 
-    // aqui deve ser o número de caches na arquitetura, exceto as LLCs
     for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[0][j];
+            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[i][j];
             this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
             this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
             this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
+            line[i][j]->directory_line = &this->directory[i].sets[llc_idx].lines[llc_line][j];
         }
     }
-    for (size_t i = 0; i < POINTER_LEVELS; i++) {
-        line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
-    }
+
 
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
@@ -326,7 +317,8 @@ uint32_t cache_manager_t::recursiveInstructionSearch(memory_order_buffer_line_t*
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
-        if (cache_level != 0) {
+        if (cache_level > 0) {
+            printf("returnLine in recursive Instruction search\n");
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
                 this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
             }
@@ -350,9 +342,12 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
-        for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
-            this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
+        if (cache_level > 0) {
+            printf("returnLine in recursive data search\n");
+            for (int32_t i = cache_level - 1; i >= 0; i--) {
+                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
+            }
         }
         mob_line->updatePackageReady(latency_request);
         if (mob_line->memory_operation == MEMORY_OPERATION_INST) delete mob_line;
@@ -392,8 +387,11 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_order_buffer_line_t *mob_lin
     uint32_t cache_status = this->searchAddress(mob_line->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
-        for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+        if (cache_level > 0) {
+            printf("returnLine in recursive data write\n");
+            for (int32_t i = cache_level - 1; i >= 0; i--) {
+                this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            }
         }
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
         mob_line->updatePackageReady(latency_request);

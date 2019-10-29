@@ -207,7 +207,9 @@ To keep all branches correct and a functional master, we must follow some versio
 ### For direct contributors
 * The branch `master` must have the stable version;
 * The branch `develop` is the intermediary branch. It must keep a functional version that will be sent to the `master` only when it is stable;
-* The other branches are "personal" branches, they will be used to the contributors individual issues but must be aligned with `develop`.
+* The other branches are "personal" branches, they will be used to the contributors individual features but must be aligned with `develop`;
+* Remember: only merge your branch in `develop` when you already merged the `develop` branch in yours and ensure the results are stable;
+* Keep verifying `develop` branch to keep your branch updated.
 
 #### Creating a new branch
 * To create a new personal branch, you may start from `develop` branch:
@@ -220,28 +222,28 @@ $ git checkout -b your_branch_name develop
 #### Incorporating a finished feature in `develop`
 Every contributor must keep its own branch updated according to the `develop` branch. It is therefore necessary that every contributor updates the `develop` branch frequently following the steps below:
 
-* After modifying the code in your local branch with success (without compiling and execution errors) you may save a temporary copy of it in the stack:
+* After modifying the code in your local branch with success (without compiling and execution errors) you may commit the modified files:
 ```bash
-$ git stash
+$ git add <files>
+$ git commit -m "modifications in my branch"
 ```
 
-* With the modifications of your local branch stacked, switch to the local `develop` branch and fetch the remote version:
+* With the modifications of your local branch commited, switch to the local `develop` branch and fetch the remote version:
 ```bash 
 $ git checkout develop
 $ git pull
 ```
 
-* Switch back to your local branch, pop your saved modification from the stack and merge it with the updated content in `develop`:
+* Switch back to your local branch and merge it with the updated content in `develop`:
 ```bash
 $ git checkout your_branch
-$ git stash pop
 $ git merge develop
 ```
 
-* Test your code in local branch and when it is flawless (without compiling, execution, and behavior errors) you can update your remote branch:
+* Fix the merge conflicts and test your code in local branch. When it is flawless (without compiling, execution, and behavior errors) you can update your remote branch:
 ```bash
-$ git add directory1/file1 directory1/file2 directory3/file
-$ git commit -m "modifications merged with develop"
+$ git add <files>
+$ git commit
 $ git push
 ```
 * Again switch to the local `develop` branch to merge it with your branch modifications:
@@ -252,7 +254,7 @@ $ git merge --no--ff your_branch
 
 * Finally update the `develop` remote branch:
 ```bash
-$ git add directory1/file1 directory1/file2 directory3/file
+$ git add <files>
 $ git commit -m "develop merged with your_branch"
 $ git push
 ```
