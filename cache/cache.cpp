@@ -114,21 +114,20 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
 }
 
 // Returns the minor LRU line
-inline uint32_t cache_t::searchLru(cacheSet_t *set, uint64_t &old_address) {
+inline uint32_t cache_t::searchLru(cacheSet_t *set) {
 	uint32_t index = 0;
 	for (uint32_t i = 1; i < set->n_lines; i++)	{
 		index = (set->lines[index].lru <= set->lines[i].lru)? index : i;
 	}
-	old_address = set->lines[index].address;
 	return index;
 }
 
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(uint64_t address, directory_t directory, uint32_t idx, uint32_t line) {
+inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t line) {
 	printf("writeback\n");
 	uint32_t idx_next_level, line_next_level = POSITION_FAIL;
 	uint64_t tag;
-	this->tagIdxSetCalculation(address, &idx_next_level, &tag, 4096, this->offset);
+	this->tagIdxSetCalculation(this->sets[idx].lines[line].address, &idx_next_level, &tag, 4096, this->offset);
 	for (size_t i = 0; i < directory.sets[idx_next_level].n_lines; i++) {
 		if (directory.sets[idx_next_level].lines[i][2].tag == tag) {
 			line_next_level = i;
@@ -137,12 +136,16 @@ inline void cache_t::writeBack(uint64_t address, directory_t directory, uint32_t
 	}
 	printf("line: %u, level: %u\n", line_next_level, this->level);
 	if (this->level == 0) {
+		printf("%lu dirty no nível %u: %u\n", this->sets[idx].lines[line].address, this->level, this->sets[idx].lines[line].dirty);
 		for (uint32_t i = 1; i < 3; i++) {
+			printf("endereço das outras caches %u: %lu\n", i, directory.sets[idx_next_level].lines[line_next_level][i].cache_line->address);
 			directory.sets[idx_next_level].lines[line_next_level][i].cache_line->dirty = this->sets[idx].lines[line].dirty;
 			directory.sets[idx_next_level].lines[line_next_level][i].cache_line->lru = orcs_engine.get_global_cycle();
 			directory.sets[idx_next_level].lines[line_next_level][i].cache_line->ready_at = this->sets[idx].lines[line].ready_at;
+			printf("dirty nas outras caches %u: %u\n", i, directory.sets[idx_next_level].lines[line_next_level][i].cache_line->dirty);
 		}
 		directory.sets[idx_next_level].lines[line_next_level][this->level].cache_line = NULL;
+		directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
 	} else if (this->level + 1 == POINTER_LEVELS) {
 		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
 			if (directory.sets[idx].lines[line][i].cache_line != NULL) {
@@ -171,6 +174,12 @@ inline void cache_t::writeBack(uint64_t address, directory_t directory, uint32_t
 		directory.sets[idx_next_level].lines[line_next_level][1].cache_line->directory_line = NULL;
 		directory.sets[idx_next_level].lines[line_next_level][1].cache_line->clean_line();
 	}
+	for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
+		if (directory.sets[idx_next_level].lines[line_next_level][i].cache_line != NULL) {
+			printf("address %lu in level %u\n", directory.sets[idx_next_level].lines[line_next_level][i].cache_line->address, i);
+		}
+	}
+
 	this->sets[idx].lines[line].directory_line = NULL;
 	this->sets[idx].lines[line].clean_line();
 	this->add_cache_writeback();
@@ -189,11 +198,10 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
 		}
 	}
 	if ((int)line == POSITION_FAIL) {
-		uint64_t old_address;
-		line = this->searchLru(&this->sets[idx], old_address);
+		line = this->searchLru(&this->sets[idx]);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(old_address, directory, idx, line);
+			this->writeBack(directory, idx, line);
 		} 
 		// else {
 		// 	// this->sets[idx].lines[line].directory_line->cache_line = NULL;
@@ -230,8 +238,7 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory) {
-	printf("returnLine level %u\n", this->level);
-	printf("directory n_sets: %u\n", directory.n_sets);
+	printf("returnLine level %u address: %lu \n", this->level, address);
 	uint32_t idx, idx_padding, line_padding;
 	uint64_t tag, tag_padding;
 	this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
@@ -247,18 +254,22 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	line_t *line_return = NULL;
 	line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding, tag_padding);
 
+	uint32_t idxL2;
+	uint64_t tagL2;
+	this->tagIdxSetCalculation(address, &idxL2, &tagL2, 512, this->offset);
+
 	uint32_t aux_idx, aux_line = POSITION_FAIL;
 	uint64_t aux_tag;
 	this->tagIdxSetCalculation(address, &aux_idx, &aux_tag, 4096, this->offset);
-	printf("idx %u tag_diretorio %lu tag: %lu\n", aux_idx, directory.sets[aux_idx].lines[15][2].cache_line->tag, aux_tag);
 	for (uint32_t i = 0; i < 16; i++) {
-		printf("bo %u\n", i);
+		printf("cache in directory %lu address directory %lu %lu tag original %lu address %lu\n", directory.sets[aux_idx].lines[i][2].cache_line->tag, directory.sets[aux_idx].lines[i][2].cache_line->address, directory.sets[aux_idx].lines[i][2].tag, aux_tag, address);
 		if (directory.sets[aux_idx].lines[i][2].tag == aux_tag) {
+			printf("directory line %u address %lu\n", i, directory.sets[aux_idx].lines[i][2].tag);
 			aux_line = i;
 			break;
 		}
 	}
-
+	printf("line: %u idx: %u\n", aux_line, aux_idx);
 	line_return->dirty = this->sets[idx].lines[line].dirty;
 	line_return->lru = this->sets[idx].lines[line].lru;
 	line_return->prefetched = this->sets[idx].lines[line].prefetched;
@@ -283,11 +294,10 @@ uint32_t cache_t::write(uint64_t address, directory_t directory) {
 		}
 	}
 	if (line == POSITION_FAIL) {
-		uint64_t old_address;
-        line = this->searchLru(&this->sets[idx], old_address);
+        line = this->searchLru(&this->sets[idx]);
         this->add_change_line();
         if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(old_address, directory, idx, line);
+			this->writeBack(directory, idx, line);
 		}
     }
 	ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line didn't found to be written.")

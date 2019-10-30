@@ -344,9 +344,24 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_order_buffer_line_t *mob_li
     uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     if (cache_status == HIT) {
+        printf("recursive data search HIT in level %u: %lu\n", cache_level, mob_line->opcode_address);
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         if (cache_level > 0) {
             printf("returnLine in recursive data search\n");
+            if (mob_line->opcode_address == 94222841520998) {
+                uint32_t get_bits = (this->data_cache[2][cache_indexes[2]].n_sets) - 1;
+                uint64_t aux_tag = (mob_line->opcode_address >> this->data_cache[2][cache_indexes[2]].offset);
+                uint32_t aux_idx = aux_tag & get_bits;
+                aux_tag >>= utils_t::get_power_of_two(this->data_cache[2][cache_indexes[2]].n_sets);
+                // this->data_cache[2][cache_indexes[2]].tagIdxSetCalculation(mob_line->opcode_address, &aux_idx, &aux_tag, this->data_cache[2][cache_indexes[2]].n_sets, this->data_cache[2][cache_indexes[2]].offset);
+                for (uint32_t k = 0; k < this->data_cache[2][cache_indexes[2]].sets[aux_idx].n_lines; k++) {
+                    if (this->data_cache[2][cache_indexes[2]].sets[aux_idx].lines[k].tag == aux_tag) {
+                        printf("achou o endereço misterioso na L3!\n");
+                    } else {
+                        printf("essa porra nem tá na L3\n");
+                    }
+                }
+            }
             for (int32_t i = cache_level - 1; i >= 0; i--) {
                 this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], *this->directory);
                 this->data_cache[i + 1][cache_indexes[i + 1]].add_cache_write();

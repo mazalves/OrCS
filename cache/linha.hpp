@@ -55,6 +55,7 @@ class line_t {
             this->prefetched = 0;
             this->valid = 0;
             this->ready_at = 0;
+            this->address = 0;
         }
 
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
