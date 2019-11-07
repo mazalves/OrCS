@@ -49,7 +49,7 @@ class cache_t {
         void statistics();
         void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
         void writeBack(directory_t directory, uint32_t idx, uint32_t line);       //makes writeback of line
-        void returnLine(uint64_t address, cache_t *cache, directory_t directory);//return line from lower cache level
+        void returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type);//return line from lower cache level
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset); //calculate index of data, makes tag from address
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
         uint32_t read(uint64_t address, uint32_t &ttc);
