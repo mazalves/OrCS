@@ -124,7 +124,7 @@ inline uint32_t cache_t::searchLru(cacheSet_t *set) {
 
 // Writebacks an address from a specific cache to its next lower leveL
 inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t line) {
-	printf("writeback address %lu; dirty: %u\n", this->sets[idx].lines[line].address, this->sets[idx].lines[line].dirty);
+	// printf("writeback address %lu; dirty: %u\n", this->sets[idx].lines[line].address, this->sets[idx].lines[line].dirty);
 	uint32_t idx_next_level, line_next_level = POSITION_FAIL;
 	uint64_t tag;
 	this->tagIdxSetCalculation(this->sets[idx].lines[line].address, &idx_next_level, &tag, 4096, this->offset);
@@ -134,74 +134,62 @@ inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t lin
 			break;
 		}
 	}
-	// this->sets[idx].lines[line].directory_line->cache_line->dirty;
-	// if (this->sets[idx].lines[line].address == 0) {
-	// 	printf("entrou no if do endereço 0\n");
-	// 	printf("aponta para diretório: %lu %lu\n", this->sets[idx].lines[line].directory_line->tag, this->sets[idx].lines[line].directory_line->cache_line->tag);
-	// }
-	printf("tag cache: %lu\n", this->sets[idx].lines[line].tag);
-	if (this->sets[idx].lines[line].directory_line == NULL) 
-		printf("DIRETÓRIO NULO!\n");
-	printf("tag diretorio: %lu\n", this->sets[idx].lines[line].directory_line->cache_line->tag);
+	// printf("line: %u\n", line_next_level);
+
 	if (this->level == 0) {
 		if (this->sets[idx].lines[line].dirty == 1) {
-			// printf("%lu dirty no nível %u: %u\n", this->sets[idx].lines[line].address, this->level, this->sets[idx].lines[line].dirty);
 			for (uint32_t i = 1; i < POINTER_LEVELS; i++) {
-				// printf("endereço das outras caches %u: %lu\n", i, directory.sets[idx_next_level].lines[line_next_level][i].cache_line->address);
+				if (directory.sets[idx_next_level].lines[line_next_level][i].cache_line == NULL) {
+					printf("cache nula! indice %u\n", i);
+				}
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->dirty = this->sets[idx].lines[line].dirty;
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->ready_at = this->sets[idx].lines[line].ready_at;
-				// printf("dirty nas outras caches %u: %u\n", i, directory.sets[idx_next_level].lines[line_next_level][i].cache_line->dirty);
 			}
-			// directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
+			this->add_cache_writeback();
 		}
-		directory.sets[idx_next_level].lines[line_next_level][this->level].cache_line = NULL;
+		directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
 	} else if (this->level == POINTER_LEVELS - 1) {
 		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
 			if (directory.sets[idx_next_level].lines[line_next_level][i].cache_line != NULL) {
-				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->directory_line = NULL;
-				// directory.sets[idx].lines[line][i].cache_line->clean_line();
-				directory.sets[idx_next_level].lines[line_next_level][i].cache_line = NULL;
-				// directory.sets[idx].lines[line][i].clean_line();
+				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->clean_line();
+				directory.sets[idx_next_level].lines[line_next_level][i].clean_line();
 			}
 		}
+		this->add_cache_writeback();
 	} else {
 		if (directory.sets[idx_next_level].lines[line_next_level][0].cache_line != NULL) {
 			if (directory.sets[idx_next_level].lines[line_next_level][0].cache_line->dirty == 1) {
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = directory.sets[idx_next_level].lines[line_next_level][0].cache_line->dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = directory.sets[idx_next_level].lines[line_next_level][0].cache_line->ready_at;
+				this->add_cache_writeback();
 			} 
 			else {
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = directory.sets[idx_next_level].lines[line_next_level][1].cache_line->dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = directory.sets[idx_next_level].lines[line_next_level][1].cache_line->ready_at;
 			}
-			directory.sets[idx_next_level].lines[line_next_level][0].cache_line->directory_line = NULL;
-			// directory.sets[idx_next_level].lines[line_next_level][0].cache_line->clean_line();
-			directory.sets[idx_next_level].lines[line_next_level][0].cache_line = NULL;
-			// directory.sets[idx_next_level].lines[line_next_level][0].clean_line();
+			directory.sets[idx_next_level].lines[line_next_level][0].cache_line->clean_line();
+			directory.sets[idx_next_level].lines[line_next_level][0].clean_line();
 		} else {
 			if (this->sets[idx].lines[line].dirty == 1) {
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = this->sets[idx].lines[line].dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = this->sets[idx].lines[line].ready_at;
+				this->add_cache_writeback();
 			}
 		}
-		directory.sets[idx_next_level].lines[line_next_level][this->level].cache_line = NULL;
-		// directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
+		directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
 	}
 	if (this->sets[idx].lines[line].directory_line != NULL) {
-		this->sets[idx].lines[line].directory_line = NULL;
-		this->sets[idx].lines[line].clean_line();
+		this->sets[idx].lines[line].directory_line->clean_line();
 	}
-	// directory.sets[idx_next_level].lines[line_next_level][this->level].cache_line = NULL;
-	this->add_cache_writeback();
 }
 
 // Searches for a cache line to write data
 line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t directory, uint32_t &idx, uint32_t &line, uint64_t &tag) {
-	printf("install address %lu in cache level %u\n", address, this->level);
+	// printf("install address %lu in cache level %u\n", address, this->level);
 	line = POSITION_FAIL;
 	this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 	for (size_t i = 0; i < this->sets[idx].n_lines; i++) {
@@ -215,7 +203,7 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
 		this->add_change_line();
 		this->writeBack(directory, idx, line);
 	}
-	// printf("address %lu with tag %lu in level %u\n", address, tag, this->level);
+
 	this->sets[idx].lines[line].address = address;
 	this->sets[idx].lines[line].tag = tag;
 	this->sets[idx].lines[line].lru = orcs_engine.get_global_cycle() + latency;
@@ -224,14 +212,13 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
 	this->sets[idx].lines[line].prefetched = 0;
 	this->sets[idx].lines[line].ready_at = orcs_engine.get_global_cycle() + latency;
 	this->add_cache_eviction();
-	printf("install cache line address %lu tag %lu\n", this->sets[idx].lines[line].address, this->sets[idx].lines[line].tag);
 
 	return &this->sets[idx].lines[line];
 }
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type) {
-	printf("returnLine level %u address: %lu \n", this->level, address);
+	// printf("returnLine level %u address: %lu \n", this->level, address);
 	uint32_t idx, idx_padding, line_padding;
 	uint64_t tag, tag_padding;
 	this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
@@ -251,18 +238,15 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	uint64_t aux_tag;
 	this->tagIdxSetCalculation(address, &aux_idx, &aux_tag, 4096, this->offset);
 	for (uint32_t i = 0; i < directory.sets[aux_idx].n_lines; i++) {
-		// printf("cache in directory %lu address directory %lu %lu tag original %lu address %lu\n", directory.sets[aux_idx].lines[i][2].cache_line->tag, directory.sets[aux_idx].lines[i][2].cache_line->address, directory.sets[aux_idx].lines[i][2].tag, aux_tag, address);
 		if (directory.sets[aux_idx].lines[i][2].tag == aux_tag) {
-			// printf("directory line %u address %lu\n", i, directory.sets[aux_idx].lines[i][2].tag);
 			aux_line = i;
 			break;
 		}
 	}
-	printf("Address %lu intalled! accessing directory line: %u idx: %u\n", line_return->address, aux_line, aux_idx);
+
 	line_return->dirty = this->sets[idx].lines[line].dirty;
 	line_return->lru = this->sets[idx].lines[line].lru;
 	line_return->prefetched = this->sets[idx].lines[line].prefetched;
-	// line_return->address = this->sets[idx].lines[line].address;
 	line_return->ready_at = orcs_engine.get_global_cycle();
 
 	directory.sets[aux_idx].lines[aux_line][this->level - 1].cache_line = line_return;
@@ -270,21 +254,18 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
     directory.sets[aux_idx].lines[aux_line][this->level - 1].cache_status = CACHED;
     directory.sets[aux_idx].lines[aux_line][this->level - 1].id = cache_type;
     directory.sets[aux_idx].lines[aux_line][this->level - 1].tag = line_return->tag;
-	// directory.sets[aux_idx].lines[aux_line][this->level - 1].cache_line = line_return;
 	line_return->directory_line = &directory.sets[aux_idx].lines[aux_line][this->level - 1];
-	printf("dir address: %lu tag: %lu || laddress: %lu tag: %lu\n", directory.sets[aux_idx].lines[aux_line][this->level-1].cache_line->address, directory.sets[aux_idx].lines[aux_line][this->level-1].tag, line_return->directory_line->cache_line->address, line_return->directory_line->tag);
 }
 
 // write address
 uint32_t cache_t::write(uint64_t address, directory_t directory) {
-	printf("write address %lu in level %u\n", address, this->level);
+	// printf("write address %lu in level %u\n", address, this->level);
     uint32_t idx;
     uint64_t tag;
     this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
 	int32_t line = POSITION_FAIL;
 	this->add_cache_write();
     for (size_t i = 0; i < this->sets->n_lines; i++) {
-		printf("in set %u line %lu address %lu tag %lu\n", idx, i, this->sets[idx].lines[i].address, this->sets[idx].lines[i].tag);
 		if(this->sets[idx].lines[i].tag == tag){
 			line = i;
 			break;
@@ -292,7 +273,6 @@ uint32_t cache_t::write(uint64_t address, directory_t directory) {
 	}
 	if (line == POSITION_FAIL) {
         line = this->searchLru(&this->sets[idx]);
-		printf("write in address %lu, %u line %u\n", this->sets[idx].lines[line].address, this->sets[idx].lines[line].dirty, line);
         this->add_change_line();
 		this->writeBack(directory, idx, line);
     }

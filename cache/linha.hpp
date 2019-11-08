@@ -56,6 +56,7 @@ class line_t {
             this->valid = 0;
             this->ready_at = 0;
             this->address = 0;
+            this->directory_line = NULL;
         }
 
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
