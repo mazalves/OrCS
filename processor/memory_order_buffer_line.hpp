@@ -6,9 +6,9 @@ class memory_order_buffer_line_t : public memory_request_client_t {
 
         //HIVE
         bool is_hive;
-        uint64_t read_address;
-        uint64_t read2_address;
-        uint64_t write_address;
+        uint64_t hive_read1;
+        uint64_t hive_read2;
+        uint64_t hive_write;
          
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control

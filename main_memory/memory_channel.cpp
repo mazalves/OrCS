@@ -134,8 +134,6 @@ void memory_channel_t::addRequest (memory_package_t* request){
         case MEMORY_OPERATION_HIVE_STORE:
         case MEMORY_OPERATION_HIVE_LOCK:
         case MEMORY_OPERATION_HIVE_UNLOCK:
-            ORCS_PRINTF ("HIVE NO CANAAAAL\n")
-            break;
         case MEMORY_OPERATION_FREE:
             break;
     }

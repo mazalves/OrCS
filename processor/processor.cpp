@@ -909,7 +909,7 @@ void processor_t::decode(){
 		}
 		// =====================
 		//Decode Branch
-		// =====================
+		// =====================https://old.reddit.com/r/rupaulsdragrace/
 		if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_BRANCH)
 		{
 			new_uop.package_clean();
@@ -1119,6 +1119,7 @@ void processor_t::rename(){
 				break;
 			}
 			mob_line = &this->memory_order_buffer_hive[pos_mob];
+			//ORCS_PRINTF ("reservando espaço no MOB para instrução %s %lu\n", get_enum_instruction_operation_char(this->decodeBuffer.front()->opcode_operation), this->decodeBuffer.front()->opcode_number)
 		}
 		
 		//=======================
@@ -1196,10 +1197,11 @@ void processor_t::rename(){
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL){
+			this->reorderBuffer[pos_rob].mob_ptr->is_hive = true;
 			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
-			this->reorderBuffer[pos_rob].mob_ptr->read_address = this->reorderBuffer[pos_rob].uop.read_address;
-			this->reorderBuffer[pos_rob].mob_ptr->read2_address = this->reorderBuffer[pos_rob].uop.read2_address;
-			this->reorderBuffer[pos_rob].mob_ptr->write_address = this->reorderBuffer[pos_rob].uop.write_address;
+			this->reorderBuffer[pos_rob].mob_ptr->hive_read1 = this->reorderBuffer[pos_rob].uop.hive_read1;
+			this->reorderBuffer[pos_rob].mob_ptr->hive_read2 = this->reorderBuffer[pos_rob].uop.hive_read2;
+			this->reorderBuffer[pos_rob].mob_ptr->hive_write = this->reorderBuffer[pos_rob].uop.hive_write;
 			this->reorderBuffer[pos_rob].mob_ptr->memory_size = this->reorderBuffer[pos_rob].uop.memory_size;
 			switch (this->reorderBuffer[pos_rob].uop.uop_operation){
 				case INSTRUCTION_OPERATION_HIVE_LOCK:
@@ -1210,9 +1212,11 @@ void processor_t::rename(){
 					break;
 				case INSTRUCTION_OPERATION_HIVE_LOAD:
                 	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_LOAD;
+					this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.read_address;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_STORE:
                 	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_STORE;
+					this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.write_address;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_INT_ALU:
                 	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_ALU;
@@ -1830,6 +1834,9 @@ uint32_t processor_t::mob_read(){
 			mob_line->memory_operation = oldest_read_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
 			mob_line->is_hive = false;
+			mob_line->hive_read1 = oldest_read_to_send->hive_read1;
+			mob_line->hive_read2 = oldest_read_to_send->hive_read2;
+			mob_line->hive_write = oldest_read_to_send->hive_write;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_read_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
@@ -1875,13 +1882,14 @@ uint32_t processor_t::mob_hive(){
 			
 			mob_line->clients.push_back (oldest_hive_to_send);
 			mob_line->opcode_address = oldest_hive_to_send->opcode_address;
-			mob_line->read_address = oldest_hive_to_send->read_address;
-			mob_line->read2_address = oldest_hive_to_send->read2_address;
-			mob_line->write_address = oldest_hive_to_send->write_address;
+			mob_line->memory_address = oldest_hive_to_send->memory_address;
 			mob_line->memory_size = oldest_hive_to_send->memory_size;
 			mob_line->memory_operation = oldest_hive_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
 			mob_line->is_hive = true;
+			mob_line->hive_read1 = oldest_hive_to_send->hive_read1;
+			mob_line->hive_read2 = oldest_hive_to_send->hive_read2;
+			mob_line->hive_write = oldest_hive_to_send->hive_write;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_hive_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
@@ -1972,6 +1980,9 @@ uint32_t processor_t::mob_write(){
 			mob_line->memory_operation = oldest_write_to_send->memory_operation;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
 			mob_line->is_hive = false;
+			mob_line->hive_read1 = oldest_write_to_send->hive_read1;
+			mob_line->hive_read2 = oldest_write_to_send->hive_read2;
+			mob_line->hive_write = oldest_write_to_send->hive_write;
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_write_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;

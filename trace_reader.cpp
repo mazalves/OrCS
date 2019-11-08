@@ -267,6 +267,7 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     for (i = 0; input_string[i] != '\0'; i++) {
         count += (input_string[i] == ' ');
     }
+
     ERROR_ASSERT_PRINTF(count >= 13, "Error converting Text to Instruction (Wrong  number of fields %d), input_string = %s\n", count, input_string)
 
     sub_string = strtok_r(input_string, " ", &tmp_ptr);
@@ -330,8 +331,19 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     opcode->is_predicated = (sub_string[0] == '1');
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
-    opcode->is_prefetch = (sub_string[0] == '1');
+    opcode->is_hive = (sub_string[0] == '1');
 
+    if (!opcode->is_hive) return OK;
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->hive_read1 = atoi(&sub_string[0]);
+    
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->hive_read2 = atoi(&sub_string[0]);
+    
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->hive_write = atoi(&sub_string[0]);
+    
     return OK;
 }
 

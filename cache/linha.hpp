@@ -29,8 +29,7 @@ class line_t {
         ~line_t() {
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
                 for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
-                    if (line_ptr_caches[i][j] != 0) free (line_ptr_caches[i][j]);
-                    ORCS_PRINTF ("ACONTECE ALGUMAS VEZES \n")
+                    //free (line_ptr_caches[i][j]);
                 }
                 delete[] line_ptr_caches[i];
             }

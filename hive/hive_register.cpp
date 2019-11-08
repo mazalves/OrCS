@@ -15,12 +15,10 @@ void hive_register_t::del(){
 }
 
 void hive_register_t::clock(){
-    if (locked){
+    if (this->status == PACKAGE_STATE_WAIT){
         if (request != NULL && request->status != PACKAGE_STATE_WAIT){
             uint64_t memory_address = 0;
-            if (request->memory_operation == MEMORY_OPERATION_HIVE_LOAD) memory_address = request->read_address;
-            else if (request->memory_operation == MEMORY_OPERATION_HIVE_STORE) memory_address = request->write_address;
-
+            memory_address = request->memory_address;
             memory_address = memory_address >> this->offset;
 
             for (int i = 0; i < this->nano_requests_number; i++){
@@ -41,7 +39,6 @@ void hive_register_t::clock(){
 
                 memory_address += 1;
             }
-
             request->status = PACKAGE_STATE_WAIT;
         } else if (request->status == PACKAGE_STATE_WAIT){
             if (!this->issued){
@@ -55,15 +52,13 @@ void hive_register_t::clock(){
                     if (this->nano_memory_requests[i]->status == PACKAGE_STATE_READY) {
                         this->ready_count++;
                         this->nano_memory_requests[i]->status = PACKAGE_STATE_FREE;
-                        //como liberar a memória? não sei. já tentei de tudo.
                         this->nano_memory_requests.erase (std::remove (nano_memory_requests.begin(), nano_memory_requests.end(), nano_memory_requests[i]), nano_memory_requests.end());
                     }
                 }
                 if (this->ready_count == 128) {
-                    this->locked = false;
-                    this->ready = false;
                     this->issued = false;
                     this->ready_count = 0;
+                    this->status = PACKAGE_STATE_READY;
                     this->request->status = PACKAGE_STATE_READY;
                 }
             }
@@ -79,21 +74,19 @@ void hive_register_t::allocate(){
     set_HIVE_REGISTER_SIZE (cfg_processor["HIVE_REGISTER_SIZE"]);
     this->nano_requests_number = this->HIVE_REGISTER_SIZE/this->LINE_SIZE;
 
-    this->locked = false;
-    this->ready = false;
     this->issued = false;
     this->ready_count = 0;
+    this->status = PACKAGE_STATE_FREE;
     this->offset = utils_t::get_power_of_two(LINE_SIZE);
 }
 
 bool hive_register_t::installRequest (memory_package_t* request){
-    if (!locked){
-        this->locked = true;
-        this->ready_count = 0;
-        this->ready = false;
-
-        this->request = request;
-        //request->status = PACKAGE_STATE_UNTREATED;
-        return true;
-    } else return false;
+    if (this->status != PACKAGE_STATE_FREE) {
+        ORCS_PRINTF ("%d\n", this->status)
+        return false;
+    }
+    this->ready_count = 0;
+    this->status = PACKAGE_STATE_WAIT;
+    this->request = request;
+    return true;
 }

@@ -8,6 +8,7 @@ class memory_controller_t{
         uint64_t requests_made; //Data Requests made
         uint64_t operations_executed; // number of operations executed
         uint64_t requests_llc; //Data Requests made to LLC
+        uint64_t requests_hive;
         uint64_t requests_prefetcher; //Data Requests made by prefetcher
         uint64_t row_buffer_miss; //Counter row buffer misses
         uint64_t row_buffer_hit; //Counter row buffer hits
@@ -61,6 +62,7 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint64_t,requests_made)
         INSTANTIATE_GET_SET_ADD(uint64_t,operations_executed)
         INSTANTIATE_GET_SET_ADD(uint64_t,requests_llc)
+        INSTANTIATE_GET_SET_ADD(uint64_t,requests_hive)
         INSTANTIATE_GET_SET_ADD(uint64_t,requests_prefetcher)
         INSTANTIATE_GET_SET_ADD(uint64_t,row_buffer_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t,row_buffer_hit)

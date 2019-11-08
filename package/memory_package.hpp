@@ -12,10 +12,11 @@ class memory_package_t {
         uint64_t born_cycle;                    /// package create time
         uint64_t latency;
         
+        bool sent_to_channel;
         bool is_hive;
-        uint64_t read_address;
-        uint64_t read2_address;
-        uint64_t write_address;
+        int64_t hive_read1;
+        int64_t hive_read2;
+        int64_t hive_write;
 
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these

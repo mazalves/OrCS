@@ -251,10 +251,10 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] CACHE_TAGS;
 }
 
-void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t latency_request, bool hive){
+void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t latency_request){
     mob_line->latency = latency_request;
     mshr_table.push_back (mob_line);
-    if (!hive) orcs_engine.memory_controller->add_requests_llc();
+    if (!mob_line->is_hive) orcs_engine.memory_controller->add_requests_llc();
 }
 
 bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
@@ -351,27 +351,7 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
 }
 
 uint32_t cache_manager_t::llcMiss(memory_package_t* mob_line, uint32_t latency_request) {
-    bool hive = false;
-    switch (mob_line->memory_operation){
-        case MEMORY_OPERATION_READ:
-        case MEMORY_OPERATION_INST:
-        case MEMORY_OPERATION_WRITE:
-        case MEMORY_OPERATION_FREE:
-            break;
-        case MEMORY_OPERATION_HIVE_FP_ALU:
-        case MEMORY_OPERATION_HIVE_FP_DIV:
-        case MEMORY_OPERATION_HIVE_FP_MUL:
-        case MEMORY_OPERATION_HIVE_INT_ALU:
-        case MEMORY_OPERATION_HIVE_INT_DIV:
-        case MEMORY_OPERATION_HIVE_INT_MUL:
-        case MEMORY_OPERATION_HIVE_LOAD:
-        case MEMORY_OPERATION_HIVE_STORE:
-        case MEMORY_OPERATION_HIVE_LOCK:
-        case MEMORY_OPERATION_HIVE_UNLOCK:
-            hive = true;
-            break;
-    }
-    this->add_mshr_entry (mob_line, latency_request, hive);
+    this->add_mshr_entry (mob_line, latency_request);
     return latency_request;
 }
 

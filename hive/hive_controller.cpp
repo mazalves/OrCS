@@ -15,10 +15,7 @@ hive_controller_t::~hive_controller_t(){
 
 void hive_controller_t::clock(){
     if (hive_instructions.size() == 0) return;
-
-    for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
-        this->hive_registers[i].clock();
-    }
+    for (size_t i = 0; i < this->HIVE_REGISTERS; i++) this->hive_registers[i].clock();
 
     memory_package_t* current_entry = NULL;
     if (hive_lock){
@@ -40,16 +37,39 @@ void hive_controller_t::clock(){
 
     if (current_entry != NULL){
         this->last_instruction = current_entry->uop_number;
-        if (current_entry->memory_operation == MEMORY_OPERATION_HIVE_UNLOCK) {
-            this->hive_lock = false;
-            current_entry->status = PACKAGE_STATE_READY;
-        }
-        else if (current_entry->memory_operation == MEMORY_OPERATION_HIVE_LOAD || current_entry->memory_operation == MEMORY_OPERATION_HIVE_STORE){
-            if (!this->installInstruction (current_entry)) {
-                ORCS_PRINTF ("ALL HIVE REGISTERS BUSY\n")
-            }
-        } else {
-            current_entry->status = PACKAGE_STATE_READY;
+        switch (current_entry->memory_operation){
+            case MEMORY_OPERATION_HIVE_LOAD:
+                if (!hive_registers[current_entry->hive_write].installRequest (current_entry)){
+                    return;
+                }
+                break;
+            case MEMORY_OPERATION_HIVE_STORE:
+                if (!hive_registers[current_entry->hive_read1].installRequest (current_entry)) {
+                    return;
+                }
+                break;
+            case MEMORY_OPERATION_HIVE_INT_ALU:
+            case MEMORY_OPERATION_HIVE_INT_DIV:
+            case MEMORY_OPERATION_HIVE_INT_MUL:
+            case MEMORY_OPERATION_HIVE_FP_ALU:
+            case MEMORY_OPERATION_HIVE_FP_DIV:
+            case MEMORY_OPERATION_HIVE_FP_MUL:
+                if ((current_entry->hive_read2 != -1 && hive_registers[current_entry->hive_read2].status == PACKAGE_STATE_READY) || current_entry->hive_write != -1){
+                    current_entry->latency += this->hive_op_latencies[current_entry->memory_operation];
+                    current_entry->status = PACKAGE_STATE_READY;
+                    hive_registers[current_entry->hive_read2].status = PACKAGE_STATE_FREE;
+                }
+                break;
+            case MEMORY_OPERATION_HIVE_UNLOCK:
+                this->hive_lock = false;
+                current_entry->status = PACKAGE_STATE_READY;
+                for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++) hive_registers[i].status = PACKAGE_STATE_FREE;
+                break;
+            case MEMORY_OPERATION_HIVE_LOCK:
+                current_entry->status = PACKAGE_STATE_READY;
+                break;
+            default:
+                break;
         }
     } else return;
 
@@ -58,32 +78,29 @@ void hive_controller_t::clock(){
     }
 }
 
-bool hive_controller_t::installInstruction (memory_package_t* memory_instruction){
-    for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
-        if (hive_registers[i].installRequest (memory_instruction)) {
-            ORCS_PRINTF ("Instalado no registrador %lu!\n", i)
-            return true;
-        }
-    }
-    return false;
-}
-
 void hive_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     set_HIVE_REGISTERS (cfg_processor["HIVE_REGISTERS"]);
-
-    this->hive_lock = false;
     
+    this->hive_lock = false;
+    this->hive_op_latencies = utils_t::template_allocate_initialize_array<uint32_t>(MEMORY_OPERATION_HIVE_FP_MUL, 0);
     this->hive_register_free = utils_t::template_allocate_initialize_array<bool>(this->HIVE_REGISTERS, 0);
     this->hive_registers = (hive_register_t*) malloc (this->HIVE_REGISTERS*sizeof (hive_register_t));
     std::memset(this->hive_registers,0,(this->HIVE_REGISTERS*sizeof(hive_register_t*)));
     for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++) {
         this->hive_registers[i].allocate();
     }
+
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_ALU] = cfg_processor["HIVE_LATENCY_INT_ALU"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_DIV] = cfg_processor["HIVE_LATENCY_INT_DIV"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_MUL] = cfg_processor["HIVE_LATENCY_INT_MUL"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_ALU] = cfg_processor["HIVE_LATENCY_FP_ALU"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_DIV] = cfg_processor["HIVE_LATENCY_FP_DIV"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_MUL] = cfg_processor["HIVE_LATENCY_FP_MUL"];
+
 }
 
 void hive_controller_t::addRequest (memory_package_t* request){
     hive_instructions.push_back (request);
-    ORCS_PRINTF ("%s %lu boop\n", get_enum_memory_operation_char (request->memory_operation), request->uop_number)
 }
