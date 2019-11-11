@@ -1,6 +1,12 @@
 #include "./../simulator.hpp"
 #include <string>
 
+#ifdef PROCESSOR_DEBUG
+    #define PROCESSOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+    #define PROCESSOR_DEBUG_PRINTF(...)
+#endif
+
 // ============================================================================
 memory_order_buffer_line_t::memory_order_buffer_line_t() {
     this->package_clean();

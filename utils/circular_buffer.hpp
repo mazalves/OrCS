@@ -21,6 +21,12 @@
 #pragma once
 #include "../simulator.hpp"
 
+#ifdef CBUFFER_DEBUG
+#define CBUFFER_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+#define CBUFFER_DEBUG_PRINTF(...)
+#endif
+
 #ifndef _CIRCULAR_BUFFER_HPP_
 #define _CIRCULAR_BUFFER_HPP_
 
@@ -218,7 +224,7 @@ template <class CB_TYPE>
 void circular_buffer_t<CB_TYPE>::print_all() {
     for (size_t i = 0; i < this->size; i++)
     {
-       ORCS_PRINTF("%s\n",this->data[i].content_to_string().c_str())
+       CBUFFER_DEBUG_PRINTF("%s\n",this->data[i].content_to_string().c_str())
     }
 }
 

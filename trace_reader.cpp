@@ -1,5 +1,11 @@
 #include "simulator.hpp"
 
+#ifdef TRACE_READER_DEBUG
+    #define TRACE_READER_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+    #define TRACE_READER_DEBUG_PRINTF(...)
+#endif
+
 // =====================================================================
 trace_reader_t::trace_reader_t() {
     this->line_static = NULL;
@@ -224,14 +230,14 @@ void trace_reader_t::generate_binary_dict() {
             continue;
         }
         else if (file_line[0] == '@') {                       /// If New BBL
-            DEBUG_PRINTF("BBL %u with %u instructions.\n", BBL, opcode); /// Debug from previous BBL
+            TRACE_READER_DEBUG_PRINTF("BBL %u with %u instructions.\n", BBL, opcode); /// Debug from previous BBL
             opcode = 0;
 
             BBL = (uint32_t)strtoul(file_line + 1, NULL, 10);
             ERROR_ASSERT_PRINTF(BBL < this->binary_total_bbls, "Static has more BBLs than previous analyzed static file.\n");
         }
         else {                                                  /// If Inside BBL
-            DEBUG_PRINTF("Opcode %u = %s", opcode, file_line);
+            TRACE_READER_DEBUG_PRINTF("Opcode %u = %s", opcode, file_line);
             this->trace_string_to_opcode(file_line, &this->binary_dict[BBL][opcode]);
             ERROR_ASSERT_PRINTF(this->binary_dict[BBL][opcode].opcode_address != 0, "Static trace file generating opcode address equal to zero.\n")
             opcode++;
@@ -356,17 +362,17 @@ bool trace_reader_t::trace_next_dynamic(uint32_t *next_bbl) {
 
         /// Analyze the trace line
         if (file_line[0] == '\0' || file_line[0] == '#') {
-            DEBUG_PRINTF("Dynamic trace line (empty/comment): %s\n", file_line);
+            TRACE_READER_DEBUG_PRINTF("Dynamic trace line (empty/comment): %s\n", file_line);
             continue;
         }
         else if (file_line[0] == '$') {
-            DEBUG_PRINTF("Dynamic trace line (synchronization): %s\n", file_line);
+            TRACE_READER_DEBUG_PRINTF("Dynamic trace line (synchronization): %s\n", file_line);
             continue;
         }
         else {
             /// BBL is always greater than 0
             /// If strtoul==0 the line could not be converted.
-            DEBUG_PRINTF("Dynamic trace line: %s\n", file_line);
+            TRACE_READER_DEBUG_PRINTF("Dynamic trace line: %s\n", file_line);
 
             *next_bbl = strtoul(file_line, NULL, 10);
             ERROR_ASSERT_PRINTF(*next_bbl != 0, "The BBL from the dynamic trace file should not be zero. Dynamic line %s\n", file_line);
@@ -410,7 +416,7 @@ bool trace_reader_t::trace_next_memory(uint64_t *mem_address, uint32_t *mem_size
 
         /// Analyze the trace line
         if (file_line[0] == '\0' || file_line[0] == '#') {
-            DEBUG_PRINTF("Memory trace line (empty/comment): %s\n", file_line);
+            TRACE_READER_DEBUG_PRINTF("Memory trace line (empty/comment): %s\n", file_line);
             continue;
         }
         else {
@@ -422,8 +428,8 @@ bool trace_reader_t::trace_next_memory(uint64_t *mem_address, uint32_t *mem_size
                 i++;
             }
             ERROR_ASSERT_PRINTF(count == 3, "Error converting Text to Memory (Wrong  number of fields %d)\n", count)
-            DEBUG_PRINTF("Memory trace line: %s\n", file_line);
-            
+            TRACE_READER_DEBUG_PRINTF("Memory trace line: %s\n", file_line);
+
             sub_string = strtok_r(file_line, " ", &tmp_ptr);
             *mem_is_read = strcmp(sub_string, "R") == 0;
 
@@ -466,7 +472,7 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     /// Fetch new INSTRUCTION inside the static file.
     // =================================================================
     NewOpcode = this->binary_dict[this->currect_bbl][this->currect_opcode];
-    DEBUG_PRINTF("BBL:%u  OPCODE:%u = %s\n",this->currect_bbl, this->currect_opcode, NewOpcode.opcode_assembly);
+    TRACE_READER_DEBUG_PRINTF("BBL:%u  OPCODE:%u = %s\n", this->currect_bbl, this->currect_opcode, NewOpcode.opcode_assembly);
 
     this->currect_opcode++;
     if (this->currect_opcode >= this->binary_bbl_size[this->currect_bbl]) {

@@ -1,5 +1,11 @@
 #include "../simulator.hpp"
 
+#ifdef CACHE_DEBUG
+	#define CACHE_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+	#define CACHE_DEBUG_PRINTF(...)
+#endif
+
 // Constructor
 cache_t::cache_t() {
     this->id = 0;
@@ -124,9 +130,10 @@ inline uint32_t cache_t::searchLru(cacheSet_t *set) {
 
 // Writebacks an address from a specific cache to its next lower leveL
 inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t line) {
-	// printf("writeback address %lu; dirty: %u\n", this->sets[idx].lines[line].address, this->sets[idx].lines[line].dirty);
+	CACHE_DEBUG_PRINTF("Writeback in address %lu in cache level %u. DIRTY = %u\n", this->sets[idx].lines[line].address, this->level, this->sets[idx].lines[line].dirty);
 	uint32_t idx_next_level, line_next_level = POSITION_FAIL;
 	uint64_t tag;
+	CACHE_DEBUG_PRINTF("Searching for address in directory... ");
 	this->tagIdxSetCalculation(this->sets[idx].lines[line].address, &idx_next_level, &tag, 4096, this->offset);
 	for (size_t i = 0; i < directory.sets[idx_next_level].n_lines; i++) {
 		if (directory.sets[idx_next_level].lines[i][2].tag == tag) {
@@ -134,13 +141,17 @@ inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t lin
 			break;
 		}
 	}
-	// printf("line: %u\n", line_next_level);
-
+	CACHE_DEBUG_PRINTF("Found in set %u and line %u. TAG = %lu\n", idx_next_level, line_next_level, directory.sets[idx_next_level].lines[line_next_level][2].tag);
+	if (this->sets[idx].lines[line].directory_line == NULL) {
+		CACHE_DEBUG_PRINTF("Cache pointer to directory is NULL. Cache TAG: %lu\n", this->sets[idx].lines[line].tag);
+	}
 	if (this->level == 0) {
+		CACHE_DEBUG_PRINTF("In cache L1:  ");
 		if (this->sets[idx].lines[line].dirty == 1) {
+			CACHE_DEBUG_PRINTF("Dirty, writeback\n");
 			for (uint32_t i = 1; i < POINTER_LEVELS; i++) {
 				if (directory.sets[idx_next_level].lines[line_next_level][i].cache_line == NULL) {
-					printf("cache nula! indice %u\n", i);
+					CACHE_DEBUG_PRINTF("Directory pointer to cache level %u is NULL. Directory TAG: %lu\n", i, directory.sets[idx_next_level].lines[line_next_level][i].tag);
 				}
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->dirty = this->sets[idx].lines[line].dirty;
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->lru = orcs_engine.get_global_cycle();
@@ -148,40 +159,50 @@ inline void cache_t::writeBack(directory_t directory, uint32_t idx, uint32_t lin
 			}
 			this->add_cache_writeback();
 		}
+		CACHE_DEBUG_PRINTF("Cleaning directory line and nulling pointer to cache\n");
 		directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
 	} else if (this->level == POINTER_LEVELS - 1) {
+		CACHE_DEBUG_PRINTF("In cache LLC:  ");
 		for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
 			if (directory.sets[idx_next_level].lines[line_next_level][i].cache_line != NULL) {
+				CACHE_DEBUG_PRINTF("Cleaning directory and cache lines. Nulling pointers.\n");
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->clean_line();
 				directory.sets[idx_next_level].lines[line_next_level][i].clean_line();
 			}
 		}
 		this->add_cache_writeback();
 	} else {
+		CACHE_DEBUG_PRINTF("In cache L2:  ")
 		if (directory.sets[idx_next_level].lines[line_next_level][0].cache_line != NULL) {
 			if (directory.sets[idx_next_level].lines[line_next_level][0].cache_line->dirty == 1) {
+				CACHE_DEBUG_PRINTF("If L1 is dirty -> copy L1 info to LLC ");
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = directory.sets[idx_next_level].lines[line_next_level][0].cache_line->dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = directory.sets[idx_next_level].lines[line_next_level][0].cache_line->ready_at;
 				this->add_cache_writeback();
 			} 
 			else {
+				CACHE_DEBUG_PRINTF("If L1 is not dirty -> copy L2 info to LLC ");
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = directory.sets[idx_next_level].lines[line_next_level][1].cache_line->dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = directory.sets[idx_next_level].lines[line_next_level][1].cache_line->ready_at;
 			}
+			CACHE_DEBUG_PRINTF("and clean directory and cache lines refered to cache L1 ");
 			directory.sets[idx_next_level].lines[line_next_level][0].cache_line->clean_line();
 			directory.sets[idx_next_level].lines[line_next_level][0].clean_line();
 		} else {
 			if (this->sets[idx].lines[line].dirty == 1) {
+				CACHE_DEBUG_PRINTF("If just L2 is dirty, copy L2 info to LLC ");
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->dirty = this->sets[idx].lines[line].dirty;
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->lru = orcs_engine.get_global_cycle();
 				directory.sets[idx_next_level].lines[line_next_level][2].cache_line->ready_at = this->sets[idx].lines[line].ready_at;
 				this->add_cache_writeback();
 			}
 		}
+		CACHE_DEBUG_PRINTF("Then, clean diretory pointer to L2\n");
 		directory.sets[idx_next_level].lines[line_next_level][this->level].clean_line();
 	}
+	CACHE_DEBUG_PRINTF("Clean directory pointer in current cache line\n");
 	if (this->sets[idx].lines[line].directory_line != NULL) {
 		this->sets[idx].lines[line].directory_line->clean_line();
 	}
@@ -198,8 +219,10 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
             break;
 		}
 	}
+	CACHE_DEBUG_PRINTF("address %lu can be installed in index %u and line %u. TAG: %lu\n", address, idx, line, tag);
 	if ((int)line == POSITION_FAIL) {
 		line = this->searchLru(&this->sets[idx]);
+		CACHE_DEBUG_PRINTF("No line found, best LRU in line %u\n", line);
 		this->add_change_line();
 		this->writeBack(directory, idx, line);
 	}
@@ -218,7 +241,7 @@ line_t* cache_t::installLine(uint64_t address, uint32_t latency, directory_t dir
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type) {
-	// printf("returnLine level %u address: %lu \n", this->level, address);
+	CACHE_DEBUG_PRINTF("Return address %lu from cache %u to cache %u\n", address, this->level, cache->level);	
 	uint32_t idx, idx_padding, line_padding;
 	uint64_t tag, tag_padding;
 	this->tagIdxSetCalculation(address, &idx, &tag, this->n_sets, this->offset);
@@ -234,8 +257,12 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	line_t *line_return = NULL;
 	line_return = cache->installLine(address, this->latency, directory, idx_padding, line_padding, tag_padding);
 
+	if (line_return != NULL) {
+		CACHE_DEBUG_PRINTF("Installed address in cache\n");
+	}
 	uint32_t aux_idx, aux_line = POSITION_FAIL;
 	uint64_t aux_tag;
+	CACHE_DEBUG_PRINTF("Searching address %lu in directory... ", address);
 	this->tagIdxSetCalculation(address, &aux_idx, &aux_tag, 4096, this->offset);
 	for (uint32_t i = 0; i < directory.sets[aux_idx].n_lines; i++) {
 		if (directory.sets[aux_idx].lines[i][2].tag == aux_tag) {
@@ -243,7 +270,8 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 			break;
 		}
 	}
-
+	CACHE_DEBUG_PRINTF("Found in set %u and line %u\n", aux_idx, aux_line);
+	CACHE_DEBUG_PRINTF("Updating cache level %u with cache level %u info and setting pointers between cache and directory.\n", cache->level, this->level);
 	line_return->dirty = this->sets[idx].lines[line].dirty;
 	line_return->lru = this->sets[idx].lines[line].lru;
 	line_return->prefetched = this->sets[idx].lines[line].prefetched;

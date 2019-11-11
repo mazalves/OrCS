@@ -2,17 +2,34 @@
 /// It will DEACTIVATE all the other messages below
 #define ORCS_PRINTF(...) printf(__VA_ARGS__);
 
-// ~ #define ORCS_DEBUG
+#define ORCS_DEBUG 1
 #ifdef ORCS_DEBUG
-    #define DEBUG_PRINTF(...) {\
-                                  ORCS_PRINTF("DEBUG: ");\
-                                  ORCS_PRINTF(__VA_ARGS__);\
-                              }
+// #define CBUFFER_DEBUG
+// ~ #define CONFIGURATOR_DEBUG
+// ~ #define TRACE_READER_DEBUG
+// ~ #define TRACE_GENERATOR_DEBUG
+// #define PROCESSOR_DEBUG
+// ~ #define SYNC_DEBUG
+// ~ #define BRANCH_PREDICTOR_DEBUG
+#define CACHE_DEBUG
+// ~ #define PREFETCHER_DEBUG
+// ~ #define LINE_USAGE_PREDICTOR_DEBUG
+// #define MEMORY_CONTROLLER_DEBUG
+// ~ #define ROUTER_DEBUG
+// ~ #define INTERCONNECTION_CTRL_DEBUG
+// ~ #define DIRECTORY_CTRL_DEBUG
+// ~ #define SHOW_FREE_PACKAGE
+#define DEBUG_PRINTF(...)                   \
+    {                                       \
+        if (orcs_engine.get_global_cycle()) \
+        {                                   \
+            ORCS_PRINTF("DEBUG: ");         \
+            ORCS_PRINTF(__VA_ARGS__);       \
+        }                                   \
+    }
 #else
-    #define DEBUG_PRINTF(...)
+#define DEBUG_PRINTF(...)
 #endif
-
-
 
 #define ERROR_INFORMATION() {\
                                 ORCS_PRINTF("ERROR INFORMATION\n");\

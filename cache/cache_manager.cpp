@@ -1,5 +1,11 @@
 #include "./../simulator.hpp"
 
+#ifdef CACHE_DEBUG
+    #define CACHE_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+    #define CACHE_DEBUG_PRINTF(...)
+#endif
+
 // Constructor
 cache_manager_t::cache_manager_t() {}
 
@@ -203,12 +209,14 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
+            CACHE_DEBUG_PRINTF("Installing address %lu in level %u in INSTRUCTION CACHE\n", instructionAddress, i);
             line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
+        CACHE_DEBUG_PRINTF("Installing address %lu in level %u in DATA CACHE\n", instructionAddress, i);
         line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
     }
 
@@ -259,6 +267,7 @@ bool cache_manager_t::isInMSHR(memory_order_buffer_line_t* mob_line) {
 }
 
 void cache_manager_t::clock() {
+    CACHE_DEBUG_PRINTF("\nCLOCK FUNCTION\n");
     if (mshr_table.size() > 0) {
         mshr_index += 1;
         if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) {
@@ -267,9 +276,12 @@ void cache_manager_t::clock() {
         if (mshr_table[mshr_index]->valid) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->requests[0]->processor_id, cache_indexes);
+            CACHE_DEBUG_PRINTF("Memory operation: %lu to be installed in ", mshr_table[mshr_index]->requests[0]->memory_address);
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_INST) {
+                CACHE_DEBUG_PRINTF("INSTRUCTION cache.\n");
                 this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
             } else {
+                CACHE_DEBUG_PRINTF("DATA cache.\n");
                 this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
             }
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {

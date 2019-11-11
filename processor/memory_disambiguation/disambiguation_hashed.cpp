@@ -1,4 +1,11 @@
 #include"../../simulator.hpp"
+
+#ifdef PROCESSOR_DEBUG
+	#define PROCESSOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
+#else
+	#define PROCESSOR_DEBUG_PRINTF(...)
+#endif
+
 // 
 disambiguation_hashed_t::disambiguation_hashed_t(/* args */) {
     // HASHED LOAD/STORE
@@ -157,7 +164,7 @@ void disambiguation_hashed_t::solve_memory_dependences(memory_order_buffer_line_
 				mob_line->mem_deps_ptr_array[j]->forwarded_data=true;
 				if (MOB_DEBUG) {
 					if(orcs_engine.get_global_cycle()>WAIT_CYCLE) {
-						ORCS_PRINTF("Forwarded To : %s\n",mob_line->mem_deps_ptr_array[j]->content_to_string().c_str())
+						PROCESSOR_DEBUG_PRINTF("Forwarded To : %s\n",mob_line->mem_deps_ptr_array[j]->content_to_string().c_str())
 					}
 				}
 			}
