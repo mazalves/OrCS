@@ -146,6 +146,8 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     set_NUMBER_OF_PROCESSORS(NUMBER_OF_PROCESSORS);
 
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
+    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    set_DEBUG (cfg_processor["DEBUG"]);
 
     // Get prefetcher info
     libconfig::Setting &prefetcher_defs = cfg_root["PREFETCHER"];
@@ -258,6 +260,7 @@ void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t laten
 }
 
 bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
+    if (mob_line->is_hive) return false;
     uint64_t tag = (mob_line->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
         if ((mshr_table[i]->memory_address >> this->offset) == tag) {
@@ -335,6 +338,7 @@ void cache_manager_t::clock() {
                 case MEMORY_OPERATION_HIVE_FP_MUL:
                 case MEMORY_OPERATION_HIVE_LOAD:
                 case MEMORY_OPERATION_HIVE_STORE:
+                    if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending HIVE instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
                     orcs_engine.hive_controller->addRequest (mshr_table[mshr_index]);
                     mshr_table[mshr_index]->status = PACKAGE_STATE_TRANSMIT;
                     break;

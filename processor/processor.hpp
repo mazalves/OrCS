@@ -226,6 +226,7 @@ class processor_t {
 		void remove_front_mob_write();
 		// ====================================================================
 		// MOB HIVE RELATED
+		void print_mob_hive();
 		int32_t search_position_mob_hive();
 		void remove_front_mob_hive();
 		// ====================================================================

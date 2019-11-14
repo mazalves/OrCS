@@ -14,7 +14,9 @@ hive_controller_t::~hive_controller_t(){
 }
 
 void hive_controller_t::clock(){
-    if (hive_instructions.size() == 0) return;
+    if (hive_instructions.size() == 0) {
+        return;
+    }
     for (size_t i = 0; i < this->HIVE_REGISTERS; i++) this->hive_registers[i].clock();
 
     memory_package_t* current_entry = NULL;
@@ -36,6 +38,7 @@ void hive_controller_t::clock(){
     }
 
     if (current_entry != NULL){
+        if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): instruction %lu %s!\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
         this->last_instruction = current_entry->uop_number;
         switch (current_entry->memory_operation){
             case MEMORY_OPERATION_HIVE_LOAD:
@@ -58,15 +61,21 @@ void hive_controller_t::clock(){
                     current_entry->latency += this->hive_op_latencies[current_entry->memory_operation];
                     current_entry->status = PACKAGE_STATE_READY;
                     hive_registers[current_entry->hive_read2].status = PACKAGE_STATE_FREE;
+                    if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): instruction %lu %s READY!\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                }
+                else {
+                    if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): %lu %s, register %s\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation), get_enum_package_state_char (hive_registers[current_entry->hive_read2].status))
                 }
                 break;
             case MEMORY_OPERATION_HIVE_UNLOCK:
                 this->hive_lock = false;
                 current_entry->status = PACKAGE_STATE_READY;
+                if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): instruction %lu %s READY!\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++) hive_registers[i].status = PACKAGE_STATE_FREE;
                 break;
             case MEMORY_OPERATION_HIVE_LOCK:
                 current_entry->status = PACKAGE_STATE_READY;
+                if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): instruction %lu %s READY!\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 break;
             default:
                 break;
@@ -75,6 +84,7 @@ void hive_controller_t::clock(){
 
     if (current_entry->status == PACKAGE_STATE_READY){
         hive_instructions.erase (std::remove (hive_instructions.begin(), hive_instructions.end(), current_entry), hive_instructions.end());
+        if (DEBUG) ORCS_PRINTF ("HIVE Controller clock(): removendo instrução %lu, %s. Restam %lu instruções.\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation), hive_instructions.size())
     }
 }
 
@@ -82,6 +92,7 @@ void hive_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     set_HIVE_REGISTERS (cfg_processor["HIVE_REGISTERS"]);
+    set_DEBUG (cfg_processor["DEBUG"]);
     
     this->hive_lock = false;
     this->hive_op_latencies = utils_t::template_allocate_initialize_array<uint32_t>(MEMORY_OPERATION_HIVE_FP_MUL, 0);
@@ -102,5 +113,6 @@ void hive_controller_t::allocate(){
 }
 
 void hive_controller_t::addRequest (memory_package_t* request){
+    if (DEBUG) ORCS_PRINTF ("HIVE Controller addRequest(): received new instruction %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
     hive_instructions.push_back (request);
 }

@@ -8,6 +8,7 @@ class hive_register_t : public memory_request_client_t {
 
         uint32_t HIVE_REGISTER_SIZE;
         uint32_t LINE_SIZE;
+        uint32_t DEBUG;
 
     public:
         memory_package_t* request;
@@ -20,5 +21,6 @@ class hive_register_t : public memory_request_client_t {
         
         INSTANTIATE_GET_SET_ADD (uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, HIVE_REGISTER_SIZE)
+        INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
     
 };

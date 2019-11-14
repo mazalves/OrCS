@@ -3,7 +3,9 @@
 memory_channel_t::memory_channel_t(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
-
+    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    
+    set_DEBUG (cfg_processor["DEBUG"]);
     set_RANK (cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_BUFFER_SIZE (cfg_memory_ctrl["BANK_BUFFER_SIZE"]);
@@ -303,6 +305,7 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CAS + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
+                //if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request from uop %lu, %s.\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 break;
             }
             case MEMORY_OPERATION_WRITE:{
@@ -311,6 +314,7 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CWD + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
+                //if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request from uop %lu, %s.\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 break;
             }
             case MEMORY_OPERATION_HIVE_LOCK:

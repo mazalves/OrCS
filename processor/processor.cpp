@@ -1458,6 +1458,7 @@ void processor_t::dispatch(){
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
 								rob_line->uop.updatePackageReady(LATENCY_MEM_HIVE);
+								if (DEBUG) ORCS_PRINTF ("Processor dispatch(): HIVE instruction %lu dispatched!\n", rob_line->uop.uop_number)
 								break;
 							}
 						}
@@ -1532,19 +1533,25 @@ void processor_t::dispatch(){
 //clean_mob_write() copy!
 void processor_t::clean_mob_hive(){
 	uint32_t pos = this->memory_order_buffer_hive_start;
-	if (this->memory_order_buffer_hive[pos].status == PACKAGE_STATE_READY &&
-		this->memory_order_buffer_hive[pos].readyAt <= orcs_engine.get_global_cycle() &&
-		this->memory_order_buffer_hive[pos].processed == false){
-		uint64_t latency = this->memory_order_buffer_hive[pos].readyAt - this->memory_order_buffer_hive[pos].cycle_send_request;
-		this->memory_order_buffer_hive[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-		this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
-		this->memory_order_buffer_hive[pos].processed=true;
-		this->memory_hive_executed--;
-		this->solve_registers_dependency(this->memory_order_buffer_hive[pos].rob_ptr);
-		if (DISAMBIGUATION_ENABLED){
-			this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_hive[pos]);
+	for (uint8_t i = 0; i < this->memory_order_buffer_hive_used; i++){
+		if (this->memory_order_buffer_hive[pos].status == PACKAGE_STATE_READY &&
+			this->memory_order_buffer_hive[pos].readyAt <= orcs_engine.get_global_cycle() &&
+			this->memory_order_buffer_hive[pos].processed == false){
+			uint64_t latency = this->memory_order_buffer_hive[pos].readyAt - this->memory_order_buffer_hive[pos].cycle_send_request;
+			this->memory_order_buffer_hive[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+			ORCS_PRINTF ("Processor clean_mob_hive(): %lu %s.\n", this->memory_order_buffer_hive[pos].rob_ptr->uop.uop_number, get_enum_instruction_operation_char (this->memory_order_buffer_hive[pos].rob_ptr->uop.uop_operation))
+			this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
+			this->memory_order_buffer_hive[pos].processed=true;
+			this->memory_hive_executed--;
+			this->solve_registers_dependency(this->memory_order_buffer_hive[pos].rob_ptr);
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_hive[pos]);
+			}
+			if (DEBUG) ORCS_PRINTF ("Processor clean_mob_hive(): HIVE instruction %lu %s, %u!\n", this->memory_order_buffer_hive[pos].uop_number, get_enum_processor_stage_char (this->memory_order_buffer_hive[pos].rob_ptr->stage), this->memory_order_buffer_hive[pos].readyAt)
+			this->remove_front_mob_hive();
 		}
-		this->remove_front_mob_hive();
+		pos++;
+		if(pos >= MOB_HIVE) pos = 0;
 	}
 }
 
@@ -1685,6 +1692,8 @@ void processor_t::execute()
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
 					i--;
+					
+					if (DEBUG) ORCS_PRINTF ("Processor execute(): HIVE instruction %lu executed!\n", rob_line->uop.uop_number)
 				}
 				break;
 				case INSTRUCTION_OPERATION_MEM_LOAD:
@@ -1848,6 +1857,7 @@ uint32_t processor_t::mob_read(){
 			if (PARALLEL_LIM_ACTIVE){
 				this->counter_mshr_read++; //numero de req paralelas, add+1
 			}
+			if (DEBUG) ORCS_PRINTF ("Processor mob_read(): sending memory request %lu, %s.\n", mob_line->uop_number, get_enum_memory_operation_char (mob_line->memory_operation))
 		}
 		this->oldest_read_to_send = NULL;
 	} //end if mob_line null
@@ -1858,15 +1868,32 @@ uint32_t processor_t::mob_read(){
 	}
 	return OK;
 } //end method
+
+void processor_t::print_mob_hive(){
+	ORCS_PRINTF ("Cycle: %lu\n", orcs_engine.get_global_cycle())
+	for(uint32_t j = 0; j < this->memory_order_buffer_hive_used; j++){
+		ORCS_PRINTF ("Processor print_mob_hive(): %s %s %lu %u %lu.\n", get_enum_package_state_char (this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].status), get_enum_memory_operation_char (this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].memory_operation), this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].uop_number, this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].wait_mem_deps_number, this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].readyToGo)
+	}
+}
+
 memory_order_buffer_line_t* processor_t::get_next_op_hive(){
-	uint32_t i = this->memory_order_buffer_hive_start;
-	if(this->memory_order_buffer_hive[i].uop_executed &&
-		this->memory_order_buffer_hive[i].status == PACKAGE_STATE_WAIT &&
-		this->memory_order_buffer_hive[i].sent ==false  &&
-       	this->memory_order_buffer_hive[i].wait_mem_deps_number <= 0 &&
-		this->memory_order_buffer_hive[i].readyToGo <= orcs_engine.get_global_cycle())
-	{
-		return &this->memory_order_buffer_hive[i];
+	uint32_t pos = this->memory_order_buffer_hive_start;
+	for(uint32_t i = 0 ; i < this->memory_order_buffer_hive_used; i++){
+		if(this->memory_order_buffer_hive[pos].uop_executed &&
+			this->memory_order_buffer_hive[pos].status == PACKAGE_STATE_WAIT &&
+			this->memory_order_buffer_hive[pos].sent==false &&
+        	this->memory_order_buffer_hive[pos].wait_mem_deps_number == 0 &&
+			this->memory_order_buffer_hive[pos].readyToGo <= orcs_engine.get_global_cycle()){
+				if (DEBUG) {
+					//ORCS_PRINTF ("Processor get_next_op_hive(): fetching next HIVE instruction from MOB.\n")
+					for(uint32_t j = 0; j < this->memory_order_buffer_hive_used; j++){
+						//ORCS_PRINTF ("Processor get_next_op_hive(): %s %s %lu %u %lu.\n", get_enum_package_state_char (this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].status), get_enum_memory_operation_char (this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].memory_operation), this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].uop_number, this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].wait_mem_deps_number, this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].readyToGo)
+					}
+				}
+				return &this->memory_order_buffer_hive[pos];
+		} 
+		pos++;
+		if( pos >= MOB_HIVE) pos=0;
 	}
 	return NULL;
 }
@@ -1898,6 +1925,7 @@ uint32_t processor_t::mob_hive(){
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent=true;
 			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (DEBUG) ORCS_PRINTF ("Processor mob_hive(): sending memory request %lu, %s to cache manager.\n", mob_line->uop_number, get_enum_memory_operation_char (mob_line->memory_operation))
 		}
 		this->oldest_hive_to_send = NULL;
 		// =============================================================
@@ -2070,6 +2098,7 @@ void processor_t::commit(){
                 case INSTRUCTION_OPERATION_HIVE_FP_MUL :
                 case INSTRUCTION_OPERATION_HIVE_FP_DIV :
 					this->add_stat_inst_hive_completed();
+					if (DEBUG) ORCS_PRINTF ("Processor commit(): instruction HIVE %lu, %s committed.\n", this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation))
 					break;
 
 				// MEMORY OPERATIONS - READ
@@ -2131,6 +2160,9 @@ void processor_t::commit(){
 		/// Could not commit the older, then stop looking for ready uops
 		else
 		{
+			for (uint32_t i = 0; i < this->robUsed; i++){
+				ORCS_PRINTF ("COMMIT: %s %s %s %lu %lu\n", get_enum_processor_stage_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].stage), get_enum_instruction_operation_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation), get_enum_package_state_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status), this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number, this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
+			}
 			break;
 		}
 	}

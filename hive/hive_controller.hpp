@@ -1,6 +1,7 @@
 class hive_controller_t {
     private:
         uint32_t HIVE_REGISTERS;
+        uint32_t DEBUG;
         cache_t **data_cache;
         
         uint32_t last_instruction;
@@ -11,6 +12,7 @@ class hive_controller_t {
         hive_register_t* hive_registers;
 
         INSTANTIATE_GET_SET_ADD (uint32_t, HIVE_REGISTERS)
+        INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
         
     public:
         hive_controller_t();

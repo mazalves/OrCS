@@ -20,6 +20,9 @@ memory_controller_t::~memory_controller_t(){
 void memory_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
+    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    
+    set_DEBUG (cfg_processor["DEBUG"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
@@ -111,7 +114,8 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request, uint64_t a
     if (request->is_hive) this->add_requests_hive();
     if (request != NULL) {
         this->channels[get_channel (address)].addRequest (request);
+        //if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;
-    } 
+    }
     return 0;
 }

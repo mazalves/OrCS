@@ -39,11 +39,19 @@ void hive_register_t::clock(){
 
                 memory_address += 1;
             }
+
+            if (DEBUG){
+                ORCS_PRINTF ("HIVE Register clock(): generated sub-requests for instruction %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            }
+
             request->status = PACKAGE_STATE_WAIT;
         } else if (request->status == PACKAGE_STATE_WAIT){
             if (!this->issued){
                 for (size_t i = 0; i < nano_memory_requests.size(); i++){
                     orcs_engine.memory_controller->requestDRAM (nano_memory_requests[i], nano_memory_requests[i]->memory_address);
+                }
+                if (DEBUG){
+                    ORCS_PRINTF ("HIVE Register clock(): issued sub-requests for instruction %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
                 }
                 this->issued = true;
             }
@@ -53,13 +61,19 @@ void hive_register_t::clock(){
                         this->ready_count++;
                         this->nano_memory_requests[i]->status = PACKAGE_STATE_FREE;
                         this->nano_memory_requests.erase (std::remove (nano_memory_requests.begin(), nano_memory_requests.end(), nano_memory_requests[i]), nano_memory_requests.end());
+                        if (DEBUG){
+                            ORCS_PRINTF ("HIVE Register clock(): sub-request %d for instruction %lu, %s finished and removed.\n", this->ready_count, request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+                        }
                     }
                 }
                 if (this->ready_count == 128) {
                     this->issued = false;
                     this->ready_count = 0;
                     this->status = PACKAGE_STATE_READY;
-                    this->request->status = PACKAGE_STATE_READY;
+                    this->request->updatePackageReady (0);
+                    if (DEBUG){
+                        ORCS_PRINTF ("HIVE Register clock(): instruction %lu, %s is READY.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+                    }
                 }
             }
         }
@@ -72,6 +86,7 @@ void hive_register_t::allocate(){
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_HIVE_REGISTER_SIZE (cfg_processor["HIVE_REGISTER_SIZE"]);
+    set_DEBUG (cfg_processor["DEBUG"]);
     this->nano_requests_number = this->HIVE_REGISTER_SIZE/this->LINE_SIZE;
 
     this->issued = false;
@@ -84,6 +99,9 @@ bool hive_register_t::installRequest (memory_package_t* request){
     if (this->status != PACKAGE_STATE_FREE) {
         ORCS_PRINTF ("%d\n", this->status)
         return false;
+    }
+    if (DEBUG){
+        ORCS_PRINTF ("HIVE Register clock(): installed new request, instruction %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
     }
     this->ready_count = 0;
     this->status = PACKAGE_STATE_WAIT;

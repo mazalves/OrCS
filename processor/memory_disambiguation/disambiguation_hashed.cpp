@@ -55,6 +55,7 @@ void disambiguation_hashed_t::allocate() {
 }
 
 void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t *new_mob_line) {
+	//if (new_mob_line->is_hive) return;
 	uint64_t load_hash = new_mob_line->memory_address & this->disambiguation_load_hash_bits_mask;
 	uint64_t store_hash = new_mob_line->memory_address & this->disambiguation_store_hash_bits_mask;
 	load_hash >>= this->disambiguation_load_hash_bits_shift;
@@ -75,6 +76,7 @@ void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t
 			if (old_mob_line->mem_deps_ptr_array[k] == NULL) {
 				old_mob_line->mem_deps_ptr_array[k] = new_mob_line;
 				new_mob_line->wait_mem_deps_number++;
+				if (DEBUG) ORCS_PRINTF ("Disamb make_memory_dependencies(): load %lu -> %lu.\n", old_mob_line->memory_address, new_mob_line->memory_address)
 				break;
 			}
 		}
@@ -87,6 +89,7 @@ void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t
 			if (old_mob_line->mem_deps_ptr_array[k] == NULL) {
 				old_mob_line->mem_deps_ptr_array[k] = new_mob_line;
 				new_mob_line->wait_mem_deps_number++;
+				if (DEBUG) ORCS_PRINTF ("Disamb make_memory_dependencies(): store %lu -> %lu.\n", old_mob_line->memory_address, new_mob_line->memory_address)
 				break;
 			}
 		}
@@ -102,6 +105,7 @@ void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t
 }
 
 void disambiguation_hashed_t::solve_memory_dependences(memory_order_buffer_line_t *mob_line) {
+	//if (mob_line->is_hive) return;
 	/// Remove pointers from disambiguation_hash
 	/// Add the new entry into LOAD or STORE hash
 	if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
