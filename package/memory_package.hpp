@@ -12,7 +12,7 @@ class memory_package_t {
         uint64_t born_cycle;                    /// package create time
         uint64_t latency;
         
-        bool sent_to_channel;
+        bool sent_to_ram;
         bool is_hive;
         int64_t hive_read1;
         int64_t hive_read2;
@@ -28,4 +28,5 @@ class memory_package_t {
         void updatePackageReady(uint32_t stallTime);
         void updatePackageWait(uint32_t stallTime);
         void updatePackageFree(uint32_t stallTime);
+        void printPackage();
 };

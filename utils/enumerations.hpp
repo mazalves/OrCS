@@ -104,7 +104,8 @@ enum package_state_t {
     PACKAGE_STATE_UNTREATED,
     PACKAGE_STATE_READY,
     PACKAGE_STATE_WAIT,
-    PACKAGE_STATE_TRANSMIT
+    PACKAGE_STATE_TRANSMIT,
+    PACKAGE_STATE_HIVE
 };
 const char *get_enum_package_state_char(package_state_t type);
 // ============================================================================

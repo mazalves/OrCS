@@ -494,7 +494,7 @@ void processor_t::remove_front_mob_hive(){
 			ORCS_PRINTF("==========\n")
 		}
 	}
-	ERROR_ASSERT_PRINTF(this->memory_order_buffer_hive_used > 0, "Removendo do MOB_READ sem estar usado\n")
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_hive_used > 0, "Removendo do MOB_HIVE sem estar usado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n",this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
 	this->memory_order_buffer_hive_used--;
 	this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].package_clean();
@@ -1115,7 +1115,7 @@ void processor_t::rename(){
 			if (this->memory_order_buffer_hive_used>=MOB_HIVE || this->robUsed>=ROB_SIZE) break;
 			pos_mob = this->search_position_mob_hive();
 			if (pos_mob == POSITION_FAIL) {
-				//this->add_stall_full_MOB_Read();
+				this->add_stall_full_MOB_Read();
 				break;
 			}
 			mob_line = &this->memory_order_buffer_hive[pos_mob];
@@ -1246,8 +1246,13 @@ void processor_t::rename(){
 		}
 		//linking rob and mob
 		if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		{
+			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
+			}
+		} else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
@@ -1259,9 +1264,6 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL)
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
-			if (DISAMBIGUATION_ENABLED){
-				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
-			}
 		}
 	} //end for
 }
@@ -1539,16 +1541,13 @@ void processor_t::clean_mob_hive(){
 			this->memory_order_buffer_hive[pos].processed == false){
 			uint64_t latency = this->memory_order_buffer_hive[pos].readyAt - this->memory_order_buffer_hive[pos].cycle_send_request;
 			this->memory_order_buffer_hive[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-			ORCS_PRINTF ("Processor clean_mob_hive(): %lu %s.\n", this->memory_order_buffer_hive[pos].rob_ptr->uop.uop_number, get_enum_instruction_operation_char (this->memory_order_buffer_hive[pos].rob_ptr->uop.uop_operation))
 			this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
 			this->memory_order_buffer_hive[pos].processed=true;
 			this->memory_hive_executed--;
-			this->solve_registers_dependency(this->memory_order_buffer_hive[pos].rob_ptr);
-			if (DISAMBIGUATION_ENABLED){
+			/*if (DISAMBIGUATION_ENABLED){
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_hive[pos]);
-			}
+			}*/
 			if (DEBUG) ORCS_PRINTF ("Processor clean_mob_hive(): HIVE instruction %lu %s, %u!\n", this->memory_order_buffer_hive[pos].uop_number, get_enum_processor_stage_char (this->memory_order_buffer_hive[pos].rob_ptr->stage), this->memory_order_buffer_hive[pos].readyAt)
-			this->remove_front_mob_hive();
 		}
 		pos++;
 		if(pos >= MOB_HIVE) pos = 0;
@@ -2149,8 +2148,9 @@ void processor_t::commit(){
 			if(this->reorderBuffer[this->robStart].sent==true){
 				if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_LOAD){
 					this->remove_front_mob_read();
-				}
-				else if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_STORE){
+				} else if (this->reorderBuffer[this->robStart].uop.is_hive){
+					this->remove_front_mob_hive();
+				} else if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_STORE){
 					ERROR_ASSERT_PRINTF(this->counter_mshr_write > 0,"Erro, reduzindo requests paralelos abaixo de 0\n")
 					this->counter_mshr_write--;
 				}
@@ -2158,13 +2158,15 @@ void processor_t::commit(){
 			this->removeFrontROB();
 		}
 		/// Could not commit the older, then stop looking for ready uops
-		else
+		/*else
 		{
-			for (uint32_t i = 0; i < this->robUsed; i++){
-				ORCS_PRINTF ("COMMIT: %s %s %s %lu %lu\n", get_enum_processor_stage_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].stage), get_enum_instruction_operation_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation), get_enum_package_state_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status), this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number, this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
+			if (DEBUG){
+				for (uint32_t i = 0; i < this->robUsed; i++){
+					ORCS_PRINTF ("COMMIT: %s %s %s %lu %lu\n", get_enum_processor_stage_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].stage), get_enum_instruction_operation_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation), get_enum_package_state_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status), this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number, this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
+				}
 			}
 			break;
-		}
+		}*/
 	}
 	if (COMMIT_DEBUG){
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){

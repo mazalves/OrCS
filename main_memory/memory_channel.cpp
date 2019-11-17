@@ -122,9 +122,11 @@ void memory_channel_t::addRequest (memory_package_t* request){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_INST:
             bank_read_requests[bank].push_back (request);
+            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
             break;
         case MEMORY_OPERATION_WRITE:
             bank_write_requests[bank].push_back (request);
+            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
             break;
         case MEMORY_OPERATION_HIVE_FP_ALU:
         case MEMORY_OPERATION_HIVE_FP_DIV:
@@ -143,7 +145,7 @@ void memory_channel_t::addRequest (memory_package_t* request){
 
 memory_package_t* memory_channel_t::findNext (uint32_t bank){
     if (bank_read_requests[bank].empty() && bank_write_requests[bank].empty()) return NULL;
-
+    
     if (this->bank_is_drain_write[bank]){
         if (bank_write_requests[bank].size() > 0) return findNextWrite (bank);
         this->bank_is_drain_write[bank] = false;
@@ -168,7 +170,7 @@ memory_package_t* memory_channel_t::findNext (uint32_t bank){
             }
         }
     }
-    return NULL;
+   return NULL;
 }
 
 memory_package_t* memory_channel_t::findNextRead (uint32_t bank){
@@ -305,7 +307,8 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CAS + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
-                //if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request from uop %lu, %s.\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 break;
             }
             case MEMORY_OPERATION_WRITE:{
@@ -314,25 +317,14 @@ void memory_channel_t::clock(){
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->latency += this->TIMING_CWD + this->latency_burst;
                 current_entry->status = PACKAGE_STATE_READY;
-                //if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request from uop %lu, %s.\n", current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 break;
             }
-            case MEMORY_OPERATION_HIVE_LOCK:
-            case MEMORY_OPERATION_HIVE_UNLOCK:
-            case MEMORY_OPERATION_HIVE_LOAD:
-            case MEMORY_OPERATION_HIVE_STORE:
-            case MEMORY_OPERATION_HIVE_INT_ALU:
-            case MEMORY_OPERATION_HIVE_INT_MUL:
-            case MEMORY_OPERATION_HIVE_INT_DIV:
-            case MEMORY_OPERATION_HIVE_FP_ALU :
-            case MEMORY_OPERATION_HIVE_FP_MUL :
-            case MEMORY_OPERATION_HIVE_FP_DIV :
-            case MEMORY_OPERATION_FREE:{
+            default:{
                 break;
             }
         }
-        bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
-        bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
         bank_is_ready[bank] = false;
     }
 }

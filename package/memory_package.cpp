@@ -27,3 +27,7 @@ void memory_package_t::updatePackageFree (uint32_t stallTime){
     this->status = PACKAGE_STATE_FREE;
     for (size_t i = 0; i < clients.size(); i++) clients[i]->updatePackageFree (stallTime);
 }
+
+void memory_package_t::printPackage(){
+    ORCS_PRINTF ("Memory Package\nAddress: %lu | Status: %s | Uop: %lu | ReadyAt: %lu\n", memory_address, get_enum_package_state_char (status), uop_number, readyAt)
+}

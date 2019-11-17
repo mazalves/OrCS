@@ -274,6 +274,12 @@ bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
     return false;
 }
 
+void cache_manager_t::print_mshr_table(){
+    for (size_t i = 0; i < mshr_table.size(); i++){
+        ORCS_PRINTF ("MSHR Table entry %lu: %s %lu %s.\n", i, get_enum_memory_operation_char (mshr_table[i]->memory_operation), mshr_table[i]->uop_number, get_enum_package_state_char (mshr_table[i]->status))
+    }
+}
+
 void cache_manager_t::clock() {
     if (mshr_table.size() > 0) {
         mshr_index += 1;
@@ -338,9 +344,9 @@ void cache_manager_t::clock() {
                 case MEMORY_OPERATION_HIVE_FP_MUL:
                 case MEMORY_OPERATION_HIVE_LOAD:
                 case MEMORY_OPERATION_HIVE_STORE:
-                    if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending HIVE instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
-                    orcs_engine.hive_controller->addRequest (mshr_table[mshr_index]);
-                    mshr_table[mshr_index]->status = PACKAGE_STATE_TRANSMIT;
+                    if (orcs_engine.hive_controller->addRequest (mshr_table[mshr_index])){
+                        if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending HIVE instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
+                    }                    
                     break;
             }
         }

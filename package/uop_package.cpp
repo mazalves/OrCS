@@ -11,6 +11,11 @@ void uop_package_t::package_clean()
     this->opcode_address = 0;
     this->opcode_size = 0;
 
+    this->is_hive = false;
+    this->hive_read1 = -1;
+    this->hive_read2 = -1;
+    this->hive_write = -1;
+
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
     memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
