@@ -30,7 +30,8 @@ void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
 // @*cache - cache to be instaled line prefetched
 // ================================================================
 void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache){
-    uint32_t idx_padding, line_padding;
+    uint32_t idx_padding;
+    int32_t line_padding;
     uint64_t tag_padding;
     directory_t d;
     uint64_t cycle = orcs_engine.get_global_cycle();
