@@ -219,6 +219,7 @@ void hive_controller_t::clock(){
 void hive_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     set_HIVE_BUFFER (cfg_processor["HIVE_BUFFER"]);
     set_HIVE_REGISTERS (cfg_processor["HIVE_REGISTERS"]);
     set_HIVE_DEBUG (cfg_processor["HIVE_DEBUG"]);
@@ -226,6 +227,7 @@ void hive_controller_t::allocate(){
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_HIVE_REGISTER_SIZE (cfg_processor["HIVE_REGISTER_SIZE"]);
+    set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
     this->nano_requests_number = this->HIVE_REGISTER_SIZE/this->LINE_SIZE;
 
     this->nano_requests_ready = (uint32_t*) malloc (this->HIVE_REGISTERS*sizeof (uint32_t));
@@ -244,11 +246,17 @@ void hive_controller_t::allocate(){
     }
 
     hive_op_latencies[MEMORY_OPERATION_HIVE_INT_ALU] = cfg_processor["HIVE_LATENCY_INT_ALU"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_ALU] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_INT_ALU] * this->CORE_TO_BUS_CLOCK_RATIO);
     hive_op_latencies[MEMORY_OPERATION_HIVE_INT_DIV] = cfg_processor["HIVE_LATENCY_INT_DIV"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_DIV] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_INT_DIV] * this->CORE_TO_BUS_CLOCK_RATIO);
     hive_op_latencies[MEMORY_OPERATION_HIVE_INT_MUL] = cfg_processor["HIVE_LATENCY_INT_MUL"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_INT_MUL] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_INT_MUL] * this->CORE_TO_BUS_CLOCK_RATIO);
     hive_op_latencies[MEMORY_OPERATION_HIVE_FP_ALU] = cfg_processor["HIVE_LATENCY_FP_ALU"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_ALU] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_FP_ALU] * this->CORE_TO_BUS_CLOCK_RATIO);
     hive_op_latencies[MEMORY_OPERATION_HIVE_FP_DIV] = cfg_processor["HIVE_LATENCY_FP_DIV"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_DIV] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_FP_DIV] * this->CORE_TO_BUS_CLOCK_RATIO);
     hive_op_latencies[MEMORY_OPERATION_HIVE_FP_MUL] = cfg_processor["HIVE_LATENCY_FP_MUL"];
+    hive_op_latencies[MEMORY_OPERATION_HIVE_FP_MUL] = ceil (this->hive_op_latencies[MEMORY_OPERATION_HIVE_FP_MUL] * this->CORE_TO_BUS_CLOCK_RATIO);
 
     this->offset = utils_t::get_power_of_two(LINE_SIZE);
     this->hive_lock = false;

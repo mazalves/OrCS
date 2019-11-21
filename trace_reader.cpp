@@ -330,6 +330,8 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->is_predicated = (sub_string[0] == '1');
 
+    if (count < 17) return OK;
+
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->is_hive = (sub_string[0] == '1');
 

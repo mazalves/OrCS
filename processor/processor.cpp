@@ -228,7 +228,6 @@ void processor_t::allocate() {
 	// Memory controller defaults
 	libconfig::Setting &cfg_memory = cfg_root["MEMORY_CONTROLLER"];
 
-	set_RAM_LATENCY(cfg_memory["RAM_LATENCY"]);
 	set_PARALLEL_LIM_ACTIVE(cfg_memory["PARALLEL_LIM_ACTIVE"]);
 	set_MAX_PARALLEL_REQUESTS_CORE(cfg_memory["MAX_PARALLEL_REQUESTS_CORE"]);
 

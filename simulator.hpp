@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <fstream>
 #include <vector>
 #include <list>
 #include <queue>

@@ -40,6 +40,17 @@ class orcs_engine_t {
         // ====================================================================
         /// Time statistics
         struct timeval stat_timer_start, stat_timer_end;
+        /// Memory Usage statistics
+        /// virtual memory
+        double stat_vm_start;
+        double stat_vm_allocate;
+        double stat_vm_end;
+        double stat_vm_max;
+        /// resident set size
+        double stat_rss_start;
+        double stat_rss_allocate;
+        double stat_rss_end;
+        double stat_rss_max;
         // ====================================================================
 		/// Methods
 		// ====================================================================

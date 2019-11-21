@@ -3,6 +3,7 @@ class hive_controller_t {
         uint32_t HIVE_BUFFER;
         uint32_t HIVE_REGISTERS;
         uint32_t HIVE_REGISTER_SIZE;
+        float CORE_TO_BUS_CLOCK_RATIO;
         
         uint32_t LINE_SIZE;
         uint32_t HIVE_DEBUG;
@@ -24,6 +25,7 @@ class hive_controller_t {
         INSTANTIATE_GET_SET_ADD (uint32_t, HIVE_REGISTER_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, HIVE_DEBUG)
+        INSTANTIATE_GET_SET_ADD (float, CORE_TO_BUS_CLOCK_RATIO)
         
         void print_hive_instructions();
         void instruction_ready (size_t index);
