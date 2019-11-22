@@ -44,6 +44,15 @@ class branch_predictor_t{
         void statistics();
         void reset_statistics();
 
+        INSTANTIATE_GET_SET_ADD (uint32_t, btbHits)
+        INSTANTIATE_GET_SET_ADD (uint32_t, btbMiss)
+
+        INSTANTIATE_GET_SET_ADD (uint32_t, branchTaken)
+        INSTANTIATE_GET_SET_ADD (uint32_t, branchNotTaken)
+        INSTANTIATE_GET_SET_ADD (uint32_t, branches)
+        INSTANTIATE_GET_SET_ADD (uint32_t, branchTakenMiss)
+        INSTANTIATE_GET_SET_ADD (uint32_t, branchNotTakenMiss)
+
         INSTANTIATE_GET_SET_ADD (uint32_t, BTB_ENTRIES)
         INSTANTIATE_GET_SET_ADD (uint32_t, BTB_WAYS)
         INSTANTIATE_GET_SET_ADD (uint32_t, BTB_MISS_PENALITY)

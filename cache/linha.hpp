@@ -28,16 +28,14 @@ class line_t {
         }
 
         ~line_t() {
-            // libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-            // set_NUMBER_OF_PROCESSORS(cfg_root["PROCESSOR"].getLength());
             // for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-            //     for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
-            //         delete[] line_ptr_caches[i][j];
+                // for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
+            //         //free (line_ptr_caches[i][j]);
             //     }
             //     delete[] line_ptr_caches[i];
             // }
             // delete[] line_ptr_caches;
-            // delete[] directory_line;
+            // //delete[] directory_line;
         }
 
         // void allocate(uint32_t POINTER_LEVELS) {

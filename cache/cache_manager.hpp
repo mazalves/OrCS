@@ -20,22 +20,25 @@ class cache_manager_t {
         uint32_t LLC_CACHES;
         uint32_t CACHE_MANAGER_DEBUG;
         uint32_t WAIT_CYCLE;
+        uint32_t DEBUG;
+
         uint32_t NUMBER_OF_PROCESSORS;
         uint32_t MAX_PARALLEL_REQUESTS_CORE;
 
-        std::vector<mshr_entry_t*> mshr_table;
+        std::vector<memory_package_t*> mshr_table;
         cache_t **instantiate_cache(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
         void get_cache_levels(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
         void get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, cache_t *cache, uint32_t cache_level, uint32_t CACHE_AMOUNT);
         void check_cache(uint32_t cache_size, uint32_t cache_level);
-        void add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
-        bool isInMSHR (memory_order_buffer_line_t* mob_line);
+        void add_mshr_entry(memory_package_t* mob_line, uint64_t latency_request);
+        void print_mshr_table();
+        bool isInMSHR (memory_package_t* mob_line);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
-        uint32_t llcMiss(memory_order_buffer_line_t* mob_line, uint32_t latency_request);
-        uint32_t recursiveInstructionSearch(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
-        uint32_t recursiveDataSearch(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
-        uint32_t recursiveDataWrite(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        uint32_t llcMiss(memory_package_t* mob_line, uint32_t latency_request);
+        uint32_t recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+        uint32_t recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        uint32_t recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
 
     public:
         // instruction and data caches dynamically allocated
@@ -51,7 +54,7 @@ class cache_manager_t {
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
-        uint32_t searchData(memory_order_buffer_line_t *mob_line);
+        uint32_t searchData(memory_package_t *mob_line);
         
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t, read_miss)
@@ -69,6 +72,7 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, LLC_CACHES)
         INSTANTIATE_GET_SET_ADD(uint32_t, CACHE_MANAGER_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
+        INSTANTIATE_GET_SET_ADD(uint32_t, DEBUG)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
         INSTANTIATE_GET_SET_ADD(uint32_t, MAX_PARALLEL_REQUESTS_CORE)

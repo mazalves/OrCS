@@ -17,6 +17,15 @@ class uop_package_t{
     uint64_t memory_address;
     uint32_t memory_size;
 
+    uint64_t read_address;
+    uint64_t read2_address;
+    uint64_t write_address;
+    
+    bool is_hive;
+    int32_t hive_read1;
+    int32_t hive_read2;
+    int32_t hive_write;
+
     void opcode_to_uop(uint64_t uop_number, instruction_operation_t uop_operation, uint64_t memory_address, uint32_t memory_size, opcode_package_t opcode);
     bool operator==(const uop_package_t &package);
     void package_clean();

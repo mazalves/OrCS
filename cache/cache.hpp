@@ -48,10 +48,12 @@ class cache_t {
 
         void statistics();
         void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
-        inline void eviction(directory_t directory, uint32_t idx, uint32_t line);       //makes writeback of line
-        void returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type);//return line from lower cache level
+        inline void eviction(directory_t directory, uint32_t idx, int32_t line);       //makes writeback of line
+        inline uint32_t is_LLC();
+         void returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type); //return line from lower cache level
+        inline void writeback(uint32_t c_idx, int32_t c_line, uint32_t d_idx, int32_t d_line, directory_t directory);
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset); //calculate index of data, makes tag from address
-        uint32_t searchLru(uint32_t idx);//searh LRU to substitue
+        int32_t searchLru(uint32_t idx);//searh LRU to substitue
         inline int32_t getCacheLine(uint32_t idx, uint64_t tag);
         inline int32_t getInvalidLine(uint32_t idx);
         inline int32_t getDirectoryLine(directory_t directory, uint32_t idx, uint64_t tag);

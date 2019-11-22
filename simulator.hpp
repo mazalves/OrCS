@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <fstream>
 #include <vector>
 #include <list>
 #include <queue>
@@ -100,6 +101,11 @@ class stride_prefetcher_t;
 //  =========================================//
 class memory_controller_t;
 //  =========================================//
+// HIVE Classes
+//  =========================================//
+class hive_controller_t;
+class hive_register_t;
+//  =========================================//
 // DATA Types
 // ====================================
 typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t;
@@ -149,6 +155,7 @@ extern orcs_engine_t orcs_engine;
 #include "./orcs_engine.hpp"
 #include "./config/config.hpp"
 #include "./trace_reader.hpp"
+#include "./main_memory/memory_request_client.hpp"
 #include "./package/opcode_package.hpp"
 
 
@@ -168,6 +175,7 @@ extern orcs_engine_t orcs_engine;
 // Core Includes
 //  =========================================//
 #include "./package/uop_package.hpp"
+#include "./package/memory_package.hpp"
 #include "./processor/reorder_buffer_line.hpp"
 #include "./processor/memory_order_buffer_line.hpp"
 #include "./processor/processor.hpp"
@@ -205,5 +213,9 @@ extern orcs_engine_t orcs_engine;
 // // MemoryController INCLUDES
 #include "./main_memory/memory_channel.hpp"
 #include "./main_memory/memory_controller.hpp"
+//  =========================================//
+// // HIVE INCLUDES
+#include "./hive/hive_controller.hpp"
+#include "./hive/hive_register.hpp"
 //  =========================================//
 #endif  // _ORCS_ORCS_HPP_

@@ -66,7 +66,22 @@ enum instruction_operation_t {
     INSTRUCTION_OPERATION_BARRIER,
     /// HMC
     INSTRUCTION_OPERATION_HMC_ROA,     //#12 READ+OP +Answer
-    INSTRUCTION_OPERATION_HMC_ROWA     //#13 READ+OP+WRITE +Answer
+    INSTRUCTION_OPERATION_HMC_ROWA,     //#13 READ+OP+WRITE +Answer
+
+    /// HIVE
+    INSTRUCTION_OPERATION_HIVE_LOCK,     //14
+    INSTRUCTION_OPERATION_HIVE_UNLOCK,   //15
+
+    INSTRUCTION_OPERATION_HIVE_LOAD,     //16
+    INSTRUCTION_OPERATION_HIVE_STORE,    //17
+
+    INSTRUCTION_OPERATION_HIVE_INT_ALU,  //18
+    INSTRUCTION_OPERATION_HIVE_INT_MUL,  //19
+    INSTRUCTION_OPERATION_HIVE_INT_DIV,  //20
+
+    INSTRUCTION_OPERATION_HIVE_FP_ALU,   //21
+    INSTRUCTION_OPERATION_HIVE_FP_MUL,   //22
+    INSTRUCTION_OPERATION_HIVE_FP_DIV    //23
 };
 
 // ============================================================================
@@ -89,7 +104,8 @@ enum package_state_t {
     PACKAGE_STATE_UNTREATED,
     PACKAGE_STATE_READY,
     PACKAGE_STATE_WAIT,
-    PACKAGE_STATE_TRANSMIT
+    PACKAGE_STATE_TRANSMIT,
+    PACKAGE_STATE_HIVE
 };
 const char *get_enum_package_state_char(package_state_t type);
 // ============================================================================
@@ -113,7 +129,17 @@ enum memory_operation_t {
     MEMORY_OPERATION_READ,
     MEMORY_OPERATION_WRITE,
     MEMORY_OPERATION_FREE,
-    MEMORY_OPERATION_INST
+    MEMORY_OPERATION_INST,
+    MEMORY_OPERATION_HIVE_LOCK,
+    MEMORY_OPERATION_HIVE_UNLOCK,
+    MEMORY_OPERATION_HIVE_LOAD,
+    MEMORY_OPERATION_HIVE_STORE,
+    MEMORY_OPERATION_HIVE_INT_ALU,
+    MEMORY_OPERATION_HIVE_INT_MUL,
+    MEMORY_OPERATION_HIVE_INT_DIV,
+    MEMORY_OPERATION_HIVE_FP_ALU,
+    MEMORY_OPERATION_HIVE_FP_MUL,
+    MEMORY_OPERATION_HIVE_FP_DIV
 };
 const char *get_enum_memory_operation_char(memory_operation_t type);
 // ============================================================================

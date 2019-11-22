@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/orcs",
             "args": [
-                "-t", "~/Desktop/traces/output_trace.out",
+                "-t", "~/Desktop/traces/unroll_memset.1MB.1t",
                 "-c", "sandy_bridge/sandy_bridge.cfg"
             ],
             "stopAtEntry": false,

@@ -15,9 +15,7 @@ class directory_line_t {
             this->clean_line();
         }
 
-        ~directory_line_t() {
-            delete[] cache_line;
-        }
+        ~directory_line_t()=default;
 
         void clean_line() {
             this->id = 0;

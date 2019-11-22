@@ -18,6 +18,7 @@ FD_CACHE = cache
 FD_DIRECTORY = directory
 FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
+FD_HIVE = hive
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
@@ -26,7 +27,9 @@ FD_DISAMBIGUATION = memory_disambiguation
 ###
 LIBRARY = -lz -lconfig++
 
-SRC_PACKAGE = 		$(FD_PACKAGE)/opcode_package.cpp $(FD_PACKAGE)/uop_package.cpp
+SRC_PACKAGE = 		$(FD_PACKAGE)/opcode_package.cpp\
+					$(FD_PACKAGE)/uop_package.cpp\
+					$(FD_PACKAGE)/memory_package.cpp
 
 SRC_TRACE_READER = 	trace_reader.cpp
 
@@ -51,7 +54,11 @@ SRC_PREFETCHER = $(FD_PREFETCHER)/prefetcher.cpp\
 				 $(FD_PREFETCHER)/stride_prefetcher.cpp
 
 SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
-			 $(FD_MEMORY)/memory_controller.cpp
+			 $(FD_MEMORY)/memory_controller.cpp\
+			 $(FD_MEMORY)/memory_request_client.cpp
+
+SRC_HIVE = $(FD_HIVE)/hive_controller.cpp\
+		   $(FD_HIVE)/hive_register.cpp
 
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 
@@ -63,6 +70,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_OTHER)\
 			$(SRC_BRANCH_PREDICTOR)\
 			$(SRC_CACHE)\
+			$(SRC_HIVE)\
 			$(SRC_DIRECTORY)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\

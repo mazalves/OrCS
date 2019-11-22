@@ -29,7 +29,21 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         // ====================================================================
         /// HMC
         case INSTRUCTION_OPERATION_HMC_ROA:     return "HMC_ROA"; break;
-        case INSTRUCTION_OPERATION_HMC_ROWA:     return "HMC_ROWA"; break;
+        case INSTRUCTION_OPERATION_HMC_ROWA:    return "HMC_ROWA"; break;
+        ///HIVE
+        case INSTRUCTION_OPERATION_HIVE_FP_MUL: return "HIVE_FP_MUL"; break;
+        case INSTRUCTION_OPERATION_HIVE_FP_DIV: return "HIVE_FP_DIV"; break;
+        case INSTRUCTION_OPERATION_HIVE_FP_ALU: return "HIVE_FP_ALU"; break;
+        case INSTRUCTION_OPERATION_HIVE_INT_ALU: return "HIVE_INT_ALU"; break;
+        case INSTRUCTION_OPERATION_HIVE_INT_DIV: return "HIVE_INT_DIV"; break;
+        case INSTRUCTION_OPERATION_HIVE_INT_MUL: return "HIVE_INT_MUL"; break;
+        case INSTRUCTION_OPERATION_HIVE_LOAD:    return "HIVE_LOAD"; break;
+        case INSTRUCTION_OPERATION_HIVE_STORE:  return "HIVE_STORE"; break;
+        case INSTRUCTION_OPERATION_HIVE_LOCK: return "HIVE_LOCK"; break;
+        case INSTRUCTION_OPERATION_HIVE_UNLOCK: return "HIVE_UNLOCK"; break;
+
+        
+        
     }
     ERROR_PRINTF("Wrong INSTRUCTION_OPERATION\n");
     return "FAIL";
@@ -52,10 +66,21 @@ const char *get_enum_processor_stage_char(processor_stage_t type) {
 /// Enumerates the MEMORY OPERATION OF MOB,debug only
 const char *get_enum_memory_operation_char(memory_operation_t type) {
     switch (type) {
-        case MEMORY_OPERATION_READ:     return "MEMORY_OPERATION_READ "; break;
-        case MEMORY_OPERATION_WRITE:    return "MEMORY_OPERATION_WRITE "; break;
-        case MEMORY_OPERATION_FREE:    return "MEMORY_OPERATION_FREE "; break;
-        case MEMORY_OPERATION_INST:     return "MEMORY_OPERATION_INST "; break;
+        case MEMORY_OPERATION_READ:     return "READ"; break;
+        case MEMORY_OPERATION_WRITE:    return "WRITE"; break;
+        case MEMORY_OPERATION_FREE:    return "FREE"; break;
+        case MEMORY_OPERATION_INST:     return "INST"; break;
+        case MEMORY_OPERATION_HIVE_UNLOCK:  return "HIVE_UNLOCK"; break;
+        case MEMORY_OPERATION_HIVE_LOCK:    return "HIVE_LOCK"; break;
+        case MEMORY_OPERATION_HIVE_LOAD:    return "HIVE_LOAD"; break;
+        case MEMORY_OPERATION_HIVE_STORE:   return "HIVE_STORE"; break;
+        case MEMORY_OPERATION_HIVE_INT_ALU: return "HIVE_INT_ALU"; break;
+        case MEMORY_OPERATION_HIVE_INT_DIV: return "HIVE_INT_DIV"; break;
+        case MEMORY_OPERATION_HIVE_INT_MUL: return "HIVE_INT_MUL"; break;
+        case MEMORY_OPERATION_HIVE_FP_ALU:  return "HIVE_FP_ALU"; break;
+        case MEMORY_OPERATION_HIVE_FP_DIV:  return "HIVE_FP_DIV"; break;
+        case MEMORY_OPERATION_HIVE_FP_MUL:  return "HIVE_FP_MUL"; break;
+        
     }
     ERROR_PRINTF("Wrong MEMORY_OPERATION\n");
     return "FAIL";
@@ -64,11 +89,12 @@ const char *get_enum_memory_operation_char(memory_operation_t type) {
 /// Enumerates the package state, 
 const char *get_enum_package_state_char(package_state_t type) {
     switch (type) {
-        case PACKAGE_STATE_FREE:     return "FREE "; break;
-        case PACKAGE_STATE_READY:     return "READY "; break;
-        case PACKAGE_STATE_TRANSMIT:     return "TRANSMIT "; break;
-        case PACKAGE_STATE_UNTREATED:     return "UNTRATED "; break;
-        case PACKAGE_STATE_WAIT:     return "WAIT "; break;
+        case PACKAGE_STATE_FREE:     return "FREE"; break;
+        case PACKAGE_STATE_READY:     return "READY"; break;
+        case PACKAGE_STATE_TRANSMIT:     return "TRANSMIT"; break;
+        case PACKAGE_STATE_UNTREATED:     return "UNTREATED"; break;
+        case PACKAGE_STATE_WAIT:     return "WAIT"; break;
+        case PACKAGE_STATE_HIVE:    return "HIVE"; break;
     }
     ERROR_PRINTF("Wrong PACKAGE_STATE\n");
     return "FAIL";
@@ -117,5 +143,16 @@ const char *get_enum_request_priority_char (request_priority_t type){
         case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST: return "ROW_BUFFER_HITS_FIRST"; break;
     }
     ERROR_PRINTF("Wrong REQUEST_PRIORITY\n");
+    return "FAIL";
+}
+
+const char *get_enum_memory_controller_command_char(memory_controller_command_t type){
+    switch (type){
+        case MEMORY_CONTROLLER_COMMAND_NUMBER: return "NUMBER"; break;
+        case MEMORY_CONTROLLER_COMMAND_PRECHARGE: return "PRECHARGE"; break;
+        case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS: return "ROW_ACCESS"; break;
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE: return "COLUMN_WRITE"; break;
+        case MEMORY_CONTROLLER_COMMAND_COLUMN_READ: return "COLUMN_READ"; break;
+    }
     return "FAIL";
 }

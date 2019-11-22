@@ -102,28 +102,6 @@ int32_t memory_order_buffer_line_t::find_old_request_state_ready(memory_order_bu
     return old_pos;
 }
 
-// ============================================================================
-// Update status package
-// ============================================================================
-void memory_order_buffer_line_t::updatePackageUntrated(uint32_t stallTime){
-    this->status = PACKAGE_STATE_UNTREATED;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
-void memory_order_buffer_line_t::updatePackageReady(uint32_t stallTime){
-    this->status = PACKAGE_STATE_READY;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-    if (this->opcode_ptr != NULL){
-        this->opcode_ptr->updatePackageReady (stallTime);
-    }
-}
-void memory_order_buffer_line_t::updatePackageWait(uint32_t stallTime){
-    this->status = PACKAGE_STATE_WAIT;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
-void memory_order_buffer_line_t::updatePackageFree(uint32_t stallTime){
-    this->status = PACKAGE_STATE_FREE;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
 // =========================================================================
 // Print all strutcure of mob array
 // =========================================================================

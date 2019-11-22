@@ -70,6 +70,8 @@ static uint32_t process_argv(int argc, char **argv) {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     uint32_t NUMBER_OF_PROCESSORS = cfg_root["PROCESSOR"].getLength();
 
+    utils_t::process_mem_usage(&orcs_engine.stat_vm_start, &orcs_engine.stat_rss_start);
+
     ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
     if (orcs_engine.arg_trace_file_name.empty()) {
         ORCS_PRINTF("Trace file not defined.\n");
@@ -92,6 +94,9 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     final_report+=report;
     gettimeofday(&orcs_engine.stat_timer_end, NULL);
     double seconds_spent = orcs_engine.stat_timer_end.tv_sec - orcs_engine.stat_timer_start.tv_sec;
+    
+    utils_t::process_mem_usage(&orcs_engine.stat_vm_allocate, &orcs_engine.stat_rss_allocate);
+    
     /// Get global statistics from all the cores
     for (uint32_t cpu = 0 ; cpu < NUMBER_OF_PROCESSORS ; cpu++) {
         ActualLength += orcs_engine.trace_reader[cpu].get_fetch_instructions();
@@ -122,12 +127,17 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     final_report+=report;
     // Get statistics from each core
 
+    double kilo_instructions_simulated = 0;
     for (uint32_t cpu = 0 ; cpu < NUMBER_OF_PROCESSORS ; cpu++) {
         snprintf(report,sizeof(report),"%s","==========================================================================\n");
         final_report+=report;
         // Get benchmark name 
         snprintf(report,sizeof(report),"Benchmark %s\n",orcs_engine.arg_trace_file_name[cpu].c_str());
         final_report+=report;
+
+        for (uint32_t i = 0 ; i < NUMBER_OF_PROCESSORS; i++) {
+            kilo_instructions_simulated += orcs_engine.trace_reader->get_fetch_instructions() / 1000.0;
+        }
 
         ActualLength = orcs_engine.trace_reader[cpu].get_fetch_instructions();
         FullLength = orcs_engine.trace_reader[cpu].get_trace_opcode_max() + 1;
@@ -160,10 +170,16 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
                                                 floor(fmod(seconds_remaining, 3600.0) / 60.0),
                                                 fmod(seconds_remaining, 60.0));
         final_report+=report;
-
-        snprintf(report,sizeof(report),"%s","==========================================================================\n");
-        final_report+=report;
     }
+    snprintf (report, sizeof(report), "KIPS(%lf)\n", static_cast<double> (kilo_instructions_simulated/seconds_spent));
+    final_report+=report;
+    snprintf(report,sizeof(report), "Elapsed Time (%02.0f:%02.0f:%02.0f)\n",
+                                                floor(seconds_spent / 3600.0),
+                                                floor(fmod(seconds_spent, 3600.0) / 60.0),
+                                                fmod(seconds_spent, 60.0));
+    final_report+=report;
+    snprintf(report,sizeof(report),"%s","==========================================================================\n");
+    final_report+=report;
     return final_report;
 }
 
@@ -184,6 +200,7 @@ int main(int argc, char **argv) {
     //Memory Controller
     //==================
     orcs_engine.memory_controller->allocate();
+    orcs_engine.hive_controller->allocate();
 
     for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++){
         //==================
@@ -210,6 +227,7 @@ int main(int argc, char **argv) {
     while (orcs_engine.get_simulation_alive(NUMBER_OF_PROCESSORS)) {
         #if HEARTBEAT
             if(orcs_engine.get_global_cycle()%HEARTBEAT_CLOCKS==0){
+                gettimeofday(&orcs_engine.stat_timer_end, NULL);
                 ORCS_PRINTF("%s\n",get_status_execution(NUMBER_OF_PROCESSORS).c_str())
             }
         #endif
@@ -225,9 +243,19 @@ int main(int argc, char **argv) {
 	ORCS_PRINTF("End of Simulation\n")
 	ORCS_PRINTF("Writting FILE\n")
     uint64_t FullLength = 0;
+    gettimeofday(&orcs_engine.stat_timer_end, NULL);
+    bool memory_leak_warning = false;
+    double kilo_instructions_simulated = 0;
+    double seconds_spent = orcs_engine.stat_timer_end.tv_sec - orcs_engine.stat_timer_start.tv_sec;
+    utils_t::process_mem_usage(&orcs_engine.stat_vm_end, &orcs_engine.stat_rss_end);
+    if (orcs_engine.stat_vm_end > orcs_engine.stat_vm_allocate + 10) {
+        memory_leak_warning = true;
+    }
     for (uint32_t cpu = 0; cpu < NUMBER_OF_PROCESSORS; cpu++){
         FullLength += orcs_engine.trace_reader[cpu].get_trace_opcode_max() + 1; 
+        kilo_instructions_simulated += orcs_engine.trace_reader->get_fetch_instructions() / 1000.0;
     }
+    
     FILE *output = stdout;
     bool close = false;
     if(orcs_engine.output_file_name != NULL){
@@ -239,6 +267,12 @@ int main(int argc, char **argv) {
         utils_t::largeSeparator(output);
         fprintf(output,"Global_Cycle: %lu\n",orcs_engine.get_global_cycle());
         fprintf(output,"Global_IPC: %2.6lf\n", static_cast<double>(FullLength) / static_cast<double>(orcs_engine.get_global_cycle()));
+        fprintf(output,"Elapsed Time (%02.0f:%02.0f:%02.0f)\n",
+                                                floor(seconds_spent / 3600.0),
+                                                floor(fmod(seconds_spent, 3600.0) / 60.0),
+                                                fmod(seconds_spent, 60.0));
+        fprintf(output,"KIPS: %lf\n", static_cast<double> (kilo_instructions_simulated/seconds_spent));   
+        if (memory_leak_warning) fprintf(output,"Check for Memory Leak!\n");   
         utils_t::largeSeparator(output);
     }
     if(close) fclose(output);
@@ -266,6 +300,7 @@ int main(int argc, char **argv) {
 
     ORCS_PRINTF("Deleting Trace Reader\n")
     delete[] orcs_engine.trace_reader;
+    delete orcs_engine.configuration;
     ORCS_PRINTF("Deleting Processor\n")
     delete[] orcs_engine.processor;
     ORCS_PRINTF("Deleting Branch predictor\n")
@@ -273,6 +308,6 @@ int main(int argc, char **argv) {
     ORCS_PRINTF("Deleting Cache manager\n")
     delete orcs_engine.cacheManager;
     ORCS_PRINTF("Deleting Memory Controller\n")
-    delete orcs_engine.memory_controller; 
-    delete orcs_engine.configuration;
+    delete orcs_engine.hive_controller;
+    delete orcs_engine.memory_controller;
 }

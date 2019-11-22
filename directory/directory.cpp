@@ -6,6 +6,11 @@ directory_t::directory_t() {
 }
 
 directory_t::~directory_t() {
+    // for (uint32_t i = 0; i < this->n_sets; i++) {
+    //     for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
+    //         delete[] this->sets[i].lines[j];
+    //     }
+    // }
     // delete[] sets;
 }
 

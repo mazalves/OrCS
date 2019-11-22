@@ -14,7 +14,7 @@ class cacheSet_t {
 
         // Desctructor
         ~cacheSet_t() {
-            delete[] lines;
+            //delete[] lines;
         }
 };
 
