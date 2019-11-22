@@ -29,5 +29,5 @@ void memory_package_t::updatePackageFree (uint32_t stallTime){
 }
 
 void memory_package_t::printPackage(){
-    ORCS_PRINTF ("Memory Package\nAddress: %lu | Status: %s | Uop: %lu | ReadyAt: %lu\n", memory_address, get_enum_package_state_char (status), uop_number, readyAt)
+    ORCS_PRINTF ("Memory Package\nAddress: %lu | Operation: %s | Status: %s | Uop: %lu | ReadyAt: %lu\n", memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status), uop_number, readyAt)
 }

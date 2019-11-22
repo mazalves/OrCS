@@ -627,6 +627,7 @@ void processor_t::fetch(){
 			mob_line->memory_address = fetchBuffer.back()->opcode_address;
 			mob_line->memory_size = fetchBuffer.back()->opcode_size;
 			mob_line->memory_operation = MEMORY_OPERATION_INST;
+			mob_line->is_hive = false;
 			mob_line->status = PACKAGE_STATE_UNTREATED;
 			mob_line->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 
@@ -701,7 +702,7 @@ void processor_t::decode(){
 									1,
 									*this->fetchBuffer.front());
 			
-			new_uop.is_hive = this->fetchBuffer.front()->is_hive;
+			new_uop.is_hive = true;
 			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
@@ -722,7 +723,7 @@ void processor_t::decode(){
 									this->fetchBuffer.front()->read_size,
 									*this->fetchBuffer.front());
 			
-			new_uop.is_hive = this->fetchBuffer.front()->is_hive;
+			new_uop.is_hive = true;
 			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
 			new_uop.read_address = this->fetchBuffer.front()->read_address;
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
@@ -746,7 +747,7 @@ void processor_t::decode(){
 									this->fetchBuffer.front()->write_size,
 									*this->fetchBuffer.front());
 			
-			new_uop.is_hive = this->fetchBuffer.front()->is_hive;
+			new_uop.is_hive = true;
 			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
 			new_uop.read_address = this->fetchBuffer.front()->read_address;
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
