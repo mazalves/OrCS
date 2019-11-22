@@ -95,7 +95,7 @@ inline int32_t cache_t::getInvalidLine(uint32_t idx) {
 	return line;
 }
 
-inline int32_t cache_t::getCacheLine(uint32_t idx, uint64_t tag) { //TODO line as int32_t
+inline int32_t cache_t::getCacheLine(uint32_t idx, uint64_t tag) {
 	int32_t line = POSITION_FAIL;
 	for (size_t i = 0; i < this->sets[idx].n_lines; i++) {
 		if (this->sets[idx].lines[i].tag == tag) {
@@ -177,6 +177,7 @@ inline void cache_t::eviction(directory_t directory, uint32_t idx, uint32_t line
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line->directory_line = NULL;
 				// directory.sets[idx_next_level].lines[line_next_level][i].clean_line();
 				directory.sets[idx_next_level].lines[line_next_level][i].cache_line = NULL;
+				
 			}
 			this->add_cache_writeback();
 		}

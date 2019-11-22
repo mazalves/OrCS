@@ -30,7 +30,7 @@ class cache_manager_t {
         void check_cache(uint32_t cache_size, uint32_t cache_level);
         void add_mshr_entry(memory_order_buffer_line_t* mob_line, uint64_t latency_request);
         bool isInMSHR (memory_order_buffer_line_t* mob_line);
-        void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
+        void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
         uint32_t llcMiss(memory_order_buffer_line_t* mob_line, uint32_t latency_request);
         uint32_t recursiveInstructionSearch(memory_order_buffer_line_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);

@@ -196,7 +196,7 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 }
 
 // Install an address in every cache using pointers
-void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
+void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op) {
     // printf("install lines in caches\n");
     uint32_t i, j, llc_idx; 
     int32_t llc_line;
@@ -208,8 +208,8 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
             line[i][j] = NULL;
         }
     }
-    
-    if (cache_type == INSTRUCTION) {
+
+    if (mem_op == MEMORY_OPERATION_INST) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
             CACHE_DEBUG_PRINTF("Installing address %lu in level %u in INSTRUCTION CACHE\n", instructionAddress, i);
             line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
@@ -227,7 +227,11 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[i][j];
             this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
             this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
+            if (mem_op == MEMORY_OPERATION_INST) {
+                this->directory[i].sets[llc_idx].lines[llc_line][j].id = INSTRUCTION;
+            } else {
+                this->directory[i].sets[llc_idx].lines[llc_line][j].id = DATA;
+            }
             this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
             line[i][j]->directory_line = &this->directory[i].sets[llc_idx].lines[llc_line][j];
         }
@@ -278,13 +282,7 @@ void cache_manager_t::clock() {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->requests[0]->processor_id, cache_indexes);
             // CACHE_DEBUG_PRINTF("Memory operation: %lu to be installed in ", mshr_table[mshr_index]->requests[0]->memory_address);
-            if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_INST) {  //TODO tratar o tipo de instrução dentro do install cache line?!?!?!
-                // CACHE_DEBUG_PRINTF("INSTRUCTION cache.\n");
-                this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
-            } else {
-                // CACHE_DEBUG_PRINTF("DATA cache.\n");
-                this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
-            }
+            this->installCacheLines(mshr_table[mshr_index]->requests[0]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, mshr_table[mshr_index]->requests[0]->memory_operation);
             if (mshr_table[mshr_index]->requests[0]->memory_operation == MEMORY_OPERATION_WRITE) {
                 int cache_level = DATA_LEVELS - 1;
                 for (int32_t k = cache_level - 1; k >= 0; k--) {
