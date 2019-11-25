@@ -14,17 +14,6 @@ class cache_t {
         uint64_t cache_writeback;
         uint64_t change_line;
 
-        // void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
-        // void copyNextLevels(line_t *line, uint32_t idx);
-
-        // uint64_t cacheHit;
-        // uint64_t cacheMiss;
-        // uint64_t cacheAccess;
-        // uint64_t cacheRead;
-        // uint64_t cacheWrite;
-        // uint64_t cacheWriteBack;
-        // uint64_t changeLine;
-
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
         uint32_t INSTRUCTION_LEVELS;
@@ -48,18 +37,19 @@ class cache_t {
 
         void statistics();
         void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
-        inline void eviction(directory_t directory, uint32_t idx, int32_t line);       //makes writeback of line
+        inline void eviction(directory_t directory, uint32_t idx, int32_t line, memory_operation_t mem_op); //makes writeback of line
         inline uint32_t is_LLC();
-         void returnLine(uint64_t address, cache_t *cache, directory_t directory, cacheId_t cache_type); //return line from lower cache level
-        inline void writeback(uint32_t c_idx, int32_t c_line, uint32_t d_idx, int32_t d_line, directory_t directory);
+        void sendMemoryRequest(uint64_t address, memory_operation_t mem_op);
+        void returnLine(uint64_t address, cache_t *cache, directory_t directory, memory_operation_t mem_op); //return line from lower cache level
+        inline void writeback(uint32_t c_idx, int32_t c_line, uint32_t d_idx, int32_t d_line, directory_t directory, memory_operation_t mem_op);
         void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset); //calculate index of data, makes tag from address
         int32_t searchLru(uint32_t idx);//searh LRU to substitue
         inline int32_t getCacheLine(uint32_t idx, uint64_t tag);
         inline int32_t getInvalidLine(uint32_t idx);
         inline int32_t getDirectoryLine(directory_t directory, uint32_t idx, uint64_t tag);
         uint32_t read(uint64_t address, uint32_t &ttc);
-        uint32_t write(uint64_t address, directory_t directory);
-        line_t *installLine(uint64_t address, uint32_t latency, directory_t directory, uint32_t &idx, int32_t &line, uint64_t &tag); //install line of cache |mem_controller -> caches|
+        uint32_t write(uint64_t address, memory_operation_t mem_op, directory_t directory);
+        line_t *installLine(uint64_t address, uint32_t latency, directory_t directory, uint32_t &idx, int32_t &line, uint64_t &tag, memory_operation_t mem_op); //install line of cache |mem_controller -> caches|
 
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)
