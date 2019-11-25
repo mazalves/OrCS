@@ -222,27 +222,16 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
         line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i]);
     }
 
-    for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[i][j];
-            this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
-            if (mem_op == MEMORY_OPERATION_INST) {
-                this->directory[i].sets[llc_idx].lines[llc_line][j].id = INSTRUCTION;
-            } else {
-                this->directory[i].sets[llc_idx].lines[llc_line][j].id = DATA;
-            }
-            this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
-            line[i][j]->directory_line = &this->directory[i].sets[llc_idx].lines[llc_line][j];
-        }
-    }
-
+    directory->setPointers(line, NUMBER_OF_PROCESSORS, POINTER_LEVELS, llc_idx, llc_line, mem_op, CACHE_TAGS);
+ 
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             line[i][j] = NULL;
         }
     }
-    for (i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] line[i];
+    for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
+        delete[] line[i];
+    }
     delete[] line;
     delete[] CACHE_TAGS;
 }

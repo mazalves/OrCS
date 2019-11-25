@@ -29,3 +29,20 @@ void directory_t::allocate(cache_t llc, uint32_t POINTER_LEVELS) {
         }
     }
 }
+
+void directory_t::setPointers(line_t ***cache_lines, uint32_t n_processors, uint32_t cache_levels, uint32_t idx, int32_t line, memory_operation_t mem_op, uint64_t *cache_tags) {
+    for (uint32_t i = 0; i < n_processors; i++) {
+        for (uint32_t j = 0; j < cache_levels; j++) {
+            this->sets[idx].lines[line][j].cache_line = cache_lines[i][j];
+            this->sets[idx].lines[line][j].shared = 1;
+            this->sets[idx].lines[line][j].cache_status = CACHED;
+            if (mem_op == MEMORY_OPERATION_INST) {
+                this->sets[idx].lines[line][j].id = INSTRUCTION;
+            } else {
+                this->sets[idx].lines[line][j].id = DATA;
+            }
+            this->sets[idx].lines[line][j].tag = cache_tags[j];
+            cache_lines[i][j]->directory_line = &this->sets[idx].lines[line][j];
+        }
+    }
+}
