@@ -3,18 +3,18 @@
 
 class cacheSet_t {
     public:
-        uint32_t n_lines;
-        line_t *lines;
+        uint32_t n_ways;
+        way_t *ways;
 
         // Constructor
         cacheSet_t() {
-            this->n_lines = 0;
-            this->lines = NULL;
+            this->n_ways = 0;
+            this->ways = NULL;
         }
 
         // Desctructor
         ~cacheSet_t() {
-            //delete[] lines;
+            //delete[] ways;
         }
 };
 

@@ -32,7 +32,6 @@ void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
 void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache){
     uint32_t idx_padding;
     int32_t line_padding;
-    uint64_t tag_padding;
     directory_t d;
     uint64_t cycle = orcs_engine.get_global_cycle();
     if((this->prefetch_waiting_complete.front() <= cycle) &&
@@ -51,7 +50,7 @@ void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache
             this->add_totalPrefetched();
             uint64_t latency_prefetch = orcs_engine.memory_controller->requestDRAM(NULL, newAddress);
             orcs_engine.memory_controller->add_requests_prefetcher();
-            line_t *linha = cache->installLine(newAddress, latency_prefetch, d, idx_padding, line_padding, tag_padding, mob_line->memory_operation);
+            way_t *linha = cache->installLine(newAddress, latency_prefetch, d, idx_padding, line_padding, mob_line->memory_operation);
             linha->prefetched=1;
             this->prefetch_waiting_complete.push_back(cycle+latency_prefetch);
         }

@@ -200,40 +200,38 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op) {
-    uint32_t i, j, llc_idx; 
-    int32_t llc_line;
-    uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
-    line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
+    uint32_t i, j, idx; 
+    int32_t way;
+    way_t ***cache_line = new way_t**[NUMBER_OF_PROCESSORS];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        line[i] = new line_t*[POINTER_LEVELS];
+        cache_line[i] = new way_t*[POINTER_LEVELS];
         for (j = 0; j < POINTER_LEVELS; j++) {
-            line[i][j] = NULL;
+            cache_line[i][j] = NULL;
         }
     }
 
     if (mem_op == MEMORY_OPERATION_INST) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i], mem_op);
+            cache_line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, idx, way, mem_op);
         }
     } else {
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, llc_idx, llc_line, CACHE_TAGS[i], mem_op);
+        cache_line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, *this->directory, idx, way, mem_op);
     }
 
-    directory->installCachePointers(line, NUMBER_OF_PROCESSORS, POINTER_LEVELS, llc_idx, llc_line, mem_op, CACHE_TAGS);
+    directory->installCachePointers(cache_line, NUMBER_OF_PROCESSORS, POINTER_LEVELS, idx, way, mem_op);
 
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
-            line[i][j] = NULL;
+            cache_line[i][j] = NULL;
         }
     }
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        delete[] line[i];
+        delete[] cache_line[i];
     }
-    delete[] line;
-    delete[] CACHE_TAGS;
+    delete[] cache_line;
 }
 
 void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t latency_request){
@@ -270,15 +268,7 @@ void cache_manager_t::clock() {
         if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->processor_id, cache_indexes);
-            // CACHE_DEBUG_PRINTF("Memory operation: %lu to be installed in ", mshr_table[mshr_index]->memory_address);
             this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, mshr_table[mshr_index]->memory_operation);
-            if (mshr_table[mshr_index]->memory_operation == MEMORY_OPERATION_WRITE) {
-                int cache_level = DATA_LEVELS - 1;
-                for (int32_t k = cache_level - 1; k >= 0; k--) {
-                    this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
-                }
-                this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->memory_address, mshr_table[mshr_index]->memory_operation, *this->directory);
-            }
             mshr_table[mshr_index]->updatePackageReady (mshr_table[mshr_index]->latency);
             delete mshr_table[mshr_index];
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
@@ -421,7 +411,6 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_package_t *mob_line, int32_t
                 this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->memory_address, &this->data_cache[i][cache_indexes[i]], *this->directory, mob_line->memory_operation);
             }
         }
-        this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, mob_line->memory_operation, * this->directory);
         mob_line->updatePackageReady(latency_request);
         delete mob_line;
         return latency_request;

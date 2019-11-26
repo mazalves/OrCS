@@ -12,7 +12,7 @@ class cache_t {
         uint64_t cache_read;
         uint64_t cache_write;
         uint64_t cache_writeback;
-        uint64_t change_line;
+        uint64_t change_way;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -37,19 +37,20 @@ class cache_t {
 
         void statistics();
         void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
-        inline void eviction(directory_t directory, uint32_t idx, int32_t line, memory_operation_t mem_op); //makes writeback of line
-        inline uint32_t is_LLC();
         void sendMemoryRequest(uint64_t address, memory_operation_t mem_op);
         void returnLine(uint64_t address, cache_t *cache, directory_t directory, memory_operation_t mem_op); //return line from lower cache level
-        inline void writeback(uint32_t c_idx, int32_t c_line, uint32_t d_idx, int32_t d_line, directory_t directory, memory_operation_t mem_op);
-        void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag, uint32_t n_sets, uint32_t offset); //calculate index of data, makes tag from address
-        int32_t searchLru(uint32_t idx);//searh LRU to substitue
+        void write(uint32_t idx, int32_t line);
+        inline void eviction(directory_t directory, uint32_t idx, int32_t line, memory_operation_t mem_op); //makes writeback of line
+        inline void writeback(way_t cache_line, directory_t directory, memory_operation_t mem_op);
+        inline void tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
         inline int32_t getCacheLine(uint32_t idx, uint64_t tag);
         inline int32_t getInvalidLine(uint32_t idx);
         inline int32_t getDirectoryLine(directory_t directory, uint32_t idx, uint64_t tag);
+        inline uint32_t is_LLC();
+        way_t *installLine(uint64_t address, uint32_t latency, directory_t directory, uint32_t &idx, int32_t &line, memory_operation_t mem_op); //install line of cache |mem_controller -> caches|
+        int32_t searchLru(uint32_t idx);//searh LRU to substitue
+        uint32_t checkUpperLevels(uint64_t address, directory_t directory); 
         uint32_t read(uint64_t address, uint32_t &ttc);
-        uint32_t write(uint64_t address, memory_operation_t mem_op, directory_t directory);
-        line_t *installLine(uint64_t address, uint32_t latency, directory_t directory, uint32_t &idx, int32_t &line, uint64_t &tag, memory_operation_t mem_op); //install line of cache |mem_controller -> caches|
 
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)
@@ -59,7 +60,7 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_read)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_write)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)
-        INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
+        INSTANTIATE_GET_SET_ADD(uint64_t,change_way)
         
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)

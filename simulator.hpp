@@ -70,7 +70,7 @@ class processor_t;
 // Cache Classes
 //  =========================================//
 
-class linha_t;
+class way_t;
 class cacheSet_t;
 class cache_t;
 class cache_manager_t;
@@ -80,10 +80,10 @@ class mshr_entry_t;
 // Directory Classes
 //  =========================================//
 
-class directory_line_t;
+class directory_way_t;
 class directory_set_t;
 class directory_t;
-class directory_manager_t;
+
 //  =========================================//
 // Usefull Classes
 //  =========================================//
@@ -192,7 +192,7 @@ extern orcs_engine_t orcs_engine;
 // Cache Classes
 //  =========================================//
 // // CACHE INCLUDES
-#include "./cache/linha.hpp"
+#include "./cache/way.hpp"
 #include "./cache/cacheSet.hpp"
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
@@ -202,7 +202,7 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 // // DIRECTORY INCLUDES
 #include "./directory/directory.hpp"
-#include "./directory/directory_line.hpp"
+#include "./directory/directory_way.hpp"
 #include "./directory/directory_set.hpp"
 //  =========================================//
 // // Prefetcher INCLUDES
