@@ -23,7 +23,7 @@ cache_manager_t::~cache_manager_t() {
 
     delete[] data_cache;
     delete[] instruction_cache;
-    delete[] directory;
+    // delete[] directory;
     std::vector<memory_package_t *>().swap(mshr_table);
 }
 
@@ -368,6 +368,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_
 }
 
 uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
+    CACHE_DEBUG_PRINTF("DATA REQUESTED %lu\n", mob_line->memory_address);
     uint32_t ttc = 0, latency_request = 0;
     if (!isInMSHR(mob_line)){
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];

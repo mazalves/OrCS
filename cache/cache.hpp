@@ -26,7 +26,7 @@ class cache_t {
         cache_t();
         ~cache_t();
 
-        uint32_t id;
+        cacheId_t id;
         uint32_t level;
         uint32_t size;
         uint32_t latency;

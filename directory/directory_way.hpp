@@ -4,7 +4,7 @@ class directory_way_t {
         uint32_t POINTER_LEVELS;
 
     public:
-        uint32_t id;
+        cacheId_t id;
         uint64_t tag; 
         uint32_t level;
         uint32_t shared;
@@ -18,7 +18,7 @@ class directory_way_t {
         ~directory_way_t()=default;
 
         void clean_way() {
-            this->id = 0;
+            this->id = NAC;
             this->tag = 0;
             this->level = 0;
             this->shared = 0;

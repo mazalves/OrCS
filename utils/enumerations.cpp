@@ -100,17 +100,16 @@ const char *get_enum_package_state_char(package_state_t type) {
     return "FAIL";
 }
 // ============================================================================
-/// Enumerates the cache level, 
-const char *get_enum_cache_level_char(cacheLevel_t type) {
-    switch (type) {
-        case  INST_CACHE:     return "INST_CACHE"; break;
-        case L1:     return "L1_DATA_CACHE"; break;
-        case L2:     return "L2_UNIFIED_CACHE"; break;
-        case LLC:     return "LLC"; break;
+const char *get_enum_cache_id_char(cacheId_t type) {
+    switch(type) {
+        case INSTRUCTION:   return "INSTRUCTION"; break;
+        case DATA:          return "DATA"; break;
+        case NAC:           return "NOT A CACHE"; break;
     }
-    ERROR_PRINTF("Wrong CACHE_LEVEL\n");
+    ERROR_PRINTF("Wrong cache ID\n");
     return "FAIL";
-} 
+}
+
 const char *get_enum_status_stride_prefetcher_char(status_stride_prefetcher_t type) {
     switch (type) {
         case  INVALID:     return "INVALID"; break;
@@ -153,6 +152,15 @@ const char *get_enum_memory_controller_command_char(memory_controller_command_t 
         case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS: return "ROW_ACCESS"; break;
         case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE: return "COLUMN_WRITE"; break;
         case MEMORY_CONTROLLER_COMMAND_COLUMN_READ: return "COLUMN_READ"; break;
+    }
+    return "FAIL";
+}
+
+const char *get_cache_level_char(uint32_t type) {
+    switch(type) {
+        case 0: return "L1"; break;
+        case 1: return "L2"; break;
+        case 2: return "L3"; break;
     }
     return "FAIL";
 }

@@ -19,24 +19,14 @@ enum cache_status_t{
     HIT,
     MISS
 };
-// =====================================================
-/**
- * Enum cache Level
-*/
-enum cacheLevel_t{
-    L1=0,
-    L2=1,
-    LLC=2,
-    INST_CACHE=3
-};
-
-//get char operation
-const char* get_enum_cache_level_char(cacheLevel_t type);
 
 enum cacheId_t {
     INSTRUCTION,
-    DATA
+    DATA,
+    NAC
 };
+
+const char *get_enum_cache_id_char(cacheId_t type);
 
 enum directoryStatus_t {
     CACHED,
@@ -195,4 +185,5 @@ enum branch_prediction_method_t {
     BRANCH_PREDICTION_METHOD_PIECEWISE
 };
 // ============================================================================
+const char *get_cache_level_char(uint32_t type);
 #endif

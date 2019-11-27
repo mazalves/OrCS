@@ -7,7 +7,7 @@
 #endif
 
 cache_t::cache_t() {
-    this->id = 0;
+    this->id = NAC;
     this->level = 0;
     this->size = 0;
     this->latency = 0;
@@ -111,7 +111,7 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
 	int32_t way = this->getCacheLine(idx, tag);
-	CACHE_DEBUG_PRINTF("Reading address %lu (TAG: %lu) in index %u in level %u: ", address, tag, idx, this->level);
+	CACHE_DEBUG_PRINTF("Reading address %lu (TAG: %lu - index %u) in %s %s: ", address, tag, idx, get_enum_cache_id_char(this->id), get_cache_level_char(this->level));
 
 	if (way != POSITION_FAIL) {
 		if (this->sets[idx].ways[way].ready_at <= orcs_engine.get_global_cycle()) {
@@ -180,14 +180,14 @@ uint32_t cache_t::checkUpperLevels(uint64_t address, directory_t directory) {
 }
 
 inline void cache_t::writeback(way_t cache_way, directory_t directory, memory_operation_t mem_op) {
-	CACHE_DEBUG_PRINTF("Writeback address %lu (TAG %lu) in level %u\n", cache_way.address, cache_way.tag, this->level);
+	CACHE_DEBUG_PRINTF("Writeback address %lu (TAG %lu) in %s %s\n", cache_way.address, cache_way.tag, get_enum_cache_id_char(this->id), get_cache_level_char(this->level));
 
 	if (this->is_LLC()) {
 		CACHE_DEBUG_PRINTF("Dirty in LLC: ...")
 		this->sendMemoryRequest(cache_way.address, mem_op);
 		directory.nullingCaches(cache_way.address, POINTER_LEVELS);
 	} else {
-		CACHE_DEBUG_PRINTF("Dirty in level %u ...", this->level);
+		CACHE_DEBUG_PRINTF("Dirty in level %s ...", get_cache_level_char(this->level));
 		uint32_t wb_status = this->checkUpperLevels(cache_way.address, directory);
 		if (wb_status == 0) {
 			for (uint32_t i = this->level + 1; i < POINTER_LEVELS; i++) {
@@ -200,7 +200,7 @@ inline void cache_t::writeback(way_t cache_way, directory_t directory, memory_op
 }
 
 inline void cache_t::eviction(directory_t directory, uint32_t idx, int32_t way, memory_operation_t mem_op) {
-	CACHE_DEBUG_PRINTF("Evicting address %lu (TAG %lu - index %u - way %d) in cache level %u\n", this->sets[idx].ways[way].address, this->sets[idx].ways[way].tag, idx, way, this->level);
+	CACHE_DEBUG_PRINTF("Evicting address %lu (TAG %lu - index %u - way %d) in %s %s\n", this->sets[idx].ways[way].address, this->sets[idx].ways[way].tag, idx, way, get_enum_cache_id_char(this->id), get_cache_level_char(this->level));
 
 	if (this->sets[idx].ways[way].directory_way == NULL) {
 		CACHE_DEBUG_PRINTF("Cache pointer to directory is NULL. Cache TAG: %lu\n", this->sets[idx].ways[way].tag);
@@ -210,10 +210,10 @@ inline void cache_t::eviction(directory_t directory, uint32_t idx, int32_t way, 
 		this->writeback(this->sets[idx].ways[way], directory, mem_op);
 	} else {
 		if (this->is_LLC()) {
-			CACHE_DEBUG_PRINTF("Not dirty and LLC ...");
+			CACHE_DEBUG_PRINTF("Not dirty in LLC ...");
 			directory.nullingCaches(this->sets[idx].ways[way].address, POINTER_LEVELS);
 		} else {
-			CACHE_DEBUG_PRINTF("Not dirty in level %u ...", this->level);
+			CACHE_DEBUG_PRINTF("Not dirty in %s ...", get_cache_level_char(this->level));
 			[[maybe_unused]] static uint32_t wb_status = this->checkUpperLevels(this->sets[idx].ways[way].address, directory);
 			directory.nullCachePointer(this->sets[idx].ways[way].address, this->level);
 		}
@@ -225,7 +225,7 @@ way_t *cache_t::installLine(uint64_t address, uint32_t latency, directory_t dire
 	this->tagIdxSetCalculation(address, &idx, &tag);
 	way = this->getInvalidLine(idx);
 
-	CACHE_DEBUG_PRINTF("Installing address %lu (TAG %lu - index %u) in level %u\n", address, tag, idx, this->level);
+	CACHE_DEBUG_PRINTF("Installing address %lu (TAG %lu - index %u) in %s %s\n", address, tag, idx, get_enum_cache_id_char(this->id), get_cache_level_char(this->level));
 
 	if (way == POSITION_FAIL) {
 		way = this->searchLru(idx);
@@ -242,7 +242,7 @@ way_t *cache_t::installLine(uint64_t address, uint32_t latency, directory_t dire
 	this->sets[idx].ways[way].ready_at = orcs_engine.get_global_cycle() + latency;
 	this->add_cache_eviction();
 
-	CACHE_DEBUG_PRINTF("Address %lu (TAG %lu - index %u) installed in way %d\n", address, tag, idx, way);
+	CACHE_DEBUG_PRINTF("Address %lu (TAG %lu - index %u) installed in way %d in %s cache\n", address, tag, idx, way, get_enum_cache_id_char(this->id));
 
 	if (this->level == 0 && mem_op == MEMORY_OPERATION_WRITE) {
 		this->write(idx, way);
@@ -259,7 +259,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	way = this->getCacheLine(idx, tag);
 	this->sets[idx].ways[way].lru = orcs_engine.get_global_cycle();
 
-	CACHE_DEBUG_PRINTF("Return address %lu (TAG %lu - index %u - way %d) from cache %u to cache %u\n", address, tag, idx, way, this->level, cache->level);	
+	CACHE_DEBUG_PRINTF("Return address %lu (TAG %lu - index %u - way %d) from %s cache %s to %s cache %s\n", address, tag, idx, way, get_enum_cache_id_char(this->id), get_cache_level_char(this->level), get_enum_cache_id_char(cache->id), get_cache_level_char(cache->level));
 	ERROR_ASSERT_PRINTF(way != POSITION_FAIL, "Error, way not found!")
 
 	way_t *return_way = NULL;
@@ -282,6 +282,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 }
 
 void cache_t::write(uint32_t idx, int32_t way) {
+	CACHE_DEBUG_PRINTF("Writing address %lu in %s cache\n", this->sets[idx].ways[way].address, get_enum_cache_id_char(this->id));
 	this->add_cache_write();
     this->sets[idx].ways[way].dirty = 1;
 	if(this->sets[idx].ways[way].ready_at <= orcs_engine.get_global_cycle()){
@@ -300,15 +301,15 @@ void cache_t::statistics() {
 	}
 	if (output != NULL){
 		utils_t::largeSeparator(output);
-		fprintf(output, "Cache_Level: %d - Cache_Type: %u\n", this->level, this->id);
-		fprintf(output, "%d_Cache_Access: %lu\n", this->level, this->get_cache_access());
-		fprintf(output, "%d_Cache_Hits: %lu\n", this->level, this->get_cache_hit());
-		fprintf(output, "%d_Cache_Miss: %lu\n", this->level, this->get_cache_miss());
-		fprintf(output, "%d_Cache_Eviction: %lu\n", this->level, this->get_cache_eviction());
-		fprintf(output, "%d_Cache_Read: %lu\n", this->level, this->get_cache_read());
-		fprintf(output, "%d_Cache_Write: %lu\n", this->level, this->get_cache_write());
+		fprintf(output, "Cache_Level: %s - Cache_Type: %s\n", get_cache_level_char(this->level), get_enum_cache_id_char(this->id));
+		fprintf(output, "%s_Cache_Access: %lu\n", get_cache_level_char(this->level), this->get_cache_access());
+		fprintf(output, "%s_Cache_Hits: %lu\n", get_cache_level_char(this->level), this->get_cache_hit());
+		fprintf(output, "%s_Cache_Miss: %lu\n", get_cache_level_char(this->level), this->get_cache_miss());
+		fprintf(output, "%s_Cache_Eviction: %lu\n", get_cache_level_char(this->level), this->get_cache_eviction());
+		fprintf(output, "%s_Cache_Read: %lu\n", get_cache_level_char(this->level), this->get_cache_read());
+		fprintf(output, "%s_Cache_Write: %lu\n", get_cache_level_char(this->level), this->get_cache_write());
 		if(this->get_cache_writeback()!=0){
-			fprintf(output, "%d_Cache_WriteBack: %lu\n", this->level, this->get_cache_writeback());
+			fprintf(output, "%s_Cache_WriteBack: %lu\n", get_cache_level_char(this->level), this->get_cache_writeback());
 		}
 		utils_t::largeSeparator(output);
 	}
