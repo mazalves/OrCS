@@ -245,6 +245,7 @@ bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
     uint64_t tag = (mob_line->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
         if ((mshr_table[i]->memory_address >> this->offset) == tag) {
+            CACHE_DEBUG_PRINTF("Is in MSHR!\n");
             for (size_t j = 0; j < mob_line->clients.size(); j++){
                 mshr_table[i]->clients.push_back (mob_line->clients[j]);
             }
@@ -346,7 +347,7 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_
         if (cache_level > 0) {
             for (int32_t i = cache_level - 1; i >= 0; i--) {
                 this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], *this->directory, mob_line->memory_operation);
-                this->data_cache[i + 1][cache_indexes[i + 1]].add_cache_write();
+                // this->data_cache[i + 1][cache_indexes[i + 1]].add_cache_write();
             }
         }
         mob_line->updatePackageReady(latency_request);
@@ -368,13 +369,15 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_
 }
 
 uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
-    CACHE_DEBUG_PRINTF("DATA REQUESTED %lu\n", mob_line->memory_address);
+    CACHE_DEBUG_PRINTF("\n\n\nREQUESTED DATA %lu\n", mob_line->memory_address);
     uint32_t ttc = 0, latency_request = 0;
     if (!isInMSHR(mob_line)){
+        CACHE_DEBUG_PRINTF("Is NOT in MSHR! ");
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(mob_line->processor_id, cache_indexes);
         switch (mob_line->memory_operation){
             case MEMORY_OPERATION_READ:
+                CACHE_DEBUG_PRINTF("Is a READ\n");
                 recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, 0);
                 break;
             case MEMORY_OPERATION_HIVE_FP_ALU:
@@ -390,9 +393,11 @@ uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
                 llcMiss (mob_line, latency_request);
                 break;
             case MEMORY_OPERATION_WRITE:
+                CACHE_DEBUG_PRINTF("Is a WRITE\n");
                 recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, 0);
                 break;
             case MEMORY_OPERATION_INST:
+                CACHE_DEBUG_PRINTF("Is an INSTRUCTION\n");
                 recursiveInstructionSearch (mob_line, cache_indexes, latency_request, ttc, 0);
                 break;
             default:

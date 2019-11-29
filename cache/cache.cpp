@@ -210,10 +210,10 @@ inline void cache_t::eviction(directory_t directory, uint32_t idx, int32_t way, 
 		this->writeback(this->sets[idx].ways[way], directory, mem_op);
 	} else {
 		if (this->is_LLC()) {
-			CACHE_DEBUG_PRINTF("Not dirty in LLC ...");
+			CACHE_DEBUG_PRINTF("Not dirty in LLC ...\n");
 			directory.nullingCaches(this->sets[idx].ways[way].address, POINTER_LEVELS);
 		} else {
-			CACHE_DEBUG_PRINTF("Not dirty in %s ...", get_cache_level_char(this->level));
+			CACHE_DEBUG_PRINTF("Not dirty in %s ...\n", get_cache_level_char(this->level));
 			[[maybe_unused]] static uint32_t wb_status = this->checkUpperLevels(this->sets[idx].ways[way].address, directory);
 			directory.nullCachePointer(this->sets[idx].ways[way].address, this->level);
 		}

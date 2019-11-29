@@ -95,7 +95,7 @@ void directory_t::nullingCaches(uint64_t address, uint32_t cache_levels) {
 
     this->tagIdxSetCalculation(address, &idx, &tag);
     int32_t way = this->getDirectoryLine(idx, tag);    //TODO renomear para VIA do diretorio e não linha
-    DIRECTORY_DEBUG_PRINTF("Address %lu found in set %u and way %u in directory. ", address, idx, way);
+    DIRECTORY_DEBUG_PRINTF("Address %lu found in set %u and way %u in directory.\n", address, idx, way);
 
     for (uint32_t i = 0; i < cache_levels; i++) {
         if (this->sets[idx].ways[way][i].cache_way != NULL) {
@@ -144,12 +144,12 @@ void directory_t::copyCacheInfo(uint64_t address, uint32_t to_cache_level, uint3
     int32_t way = this->getDirectoryLine(idx, tag);
 
     DIRECTORY_DEBUG_PRINTF("Address %lu in %s %s is dirty. Copying its info to %s %s\n", address, get_enum_cache_id_char(this->sets[idx].ways[way][from_cache_level].id), get_cache_level_char(from_cache_level), get_enum_cache_id_char(this->sets[idx].ways[way][to_cache_level].id), get_cache_level_char(to_cache_level));
-    printf("%s receives %s\n", get_cache_level_char(to_cache_level), get_cache_level_char(from_cache_level));
+    DIRECTORY_DEBUG_PRINTF("%s receives %s\n", get_cache_level_char(to_cache_level), get_cache_level_char(from_cache_level));
     if (this->sets[idx].ways[way][to_cache_level].cache_way == NULL) {
-        printf("%s is NULL\n", get_cache_level_char(to_cache_level));
+        DIRECTORY_DEBUG_PRINTF("%s is NULL\n", get_cache_level_char(to_cache_level));
     }
     if (this->sets[idx].ways[way][from_cache_level].cache_way == NULL) {
-        printf("%s is NULL\n", get_cache_level_char(from_cache_level));
+        DIRECTORY_DEBUG_PRINTF("%s is NULL\n", get_cache_level_char(from_cache_level));
     }
     this->sets[idx].ways[way][to_cache_level].cache_way->dirty = this->sets[idx].ways[way][from_cache_level].cache_way->dirty;
     this->sets[idx].ways[way][to_cache_level].cache_way->lru = orcs_engine.get_global_cycle();
@@ -162,7 +162,7 @@ void directory_t::nullCachePointer(uint64_t address, uint32_t cache_level) {
     this->tagIdxSetCalculation(address, &idx, &tag);
     int32_t way = this->getDirectoryLine(idx, tag);
 
-    DIRECTORY_DEBUG_PRINTF("Deleting pointers between %s %s and directory\n to address %lu", get_enum_cache_id_char(this->sets[idx].ways[way][cache_level].id), get_cache_level_char(cache_level), address);
+    DIRECTORY_DEBUG_PRINTF("Deleting pointers between %s %s and directory\n to address %lu\n", get_enum_cache_id_char(this->sets[idx].ways[way][cache_level].id), get_cache_level_char(cache_level), address);
 
     if (this->sets[idx].ways[way][cache_level].cache_way != NULL) {
         // this->sets[idx].ways[way][cache_level].cache_way->clean_way();
