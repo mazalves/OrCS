@@ -26,12 +26,13 @@ void directory_t::allocate(cache_t llc, uint32_t POINTER_LEVELS) {
     this->sets = new directory_set_t[this->n_sets];
     for (uint32_t i = 0; i < this->n_sets; i++) {
         this->sets[i].ways = new directory_way_t*[llc.associativity];
-		this->sets[i].n_ways = llc.associativity;
+        this->sets[i].tag = new uint64_t[llc.associativity];
+        this->sets[i].id = new cacheId_t[llc.associativity];
+        this->sets[i].n_ways = llc.associativity;
         for (uint32_t j = 0; j < this->sets[i].n_ways; j++) {
             this->sets[i].ways[j] = new directory_way_t[POINTER_LEVELS];
             for (uint32_t k = 0; k < POINTER_LEVELS; k++) {
                 this->sets[i].ways[j][k].clean_way();
-                this->sets[i].ways[j][k].level = k;
             }
         }
     }
@@ -45,17 +46,17 @@ void directory_t::setCachePointers(way_t *cache_way, uint32_t cache_level, memor
     this->tagIdxSetCalculation(cache_way->address, &idx, &tag);
     int32_t way = this->getDirectoryLine(idx, tag);
 
-    DIRECTORY_DEBUG_PRINTF("Installing address %lu (TAG %lu) in directory in %s %s\n", cache_way->address, cache_way->tag, get_enum_cache_id_char(this->sets[idx].ways[way][cache_level].id), get_cache_level_char(cache_level));
+    DIRECTORY_DEBUG_PRINTF("Installing address %lu (TAG %lu) in directory in %s %s\n", cache_way->address, cache_way->tag, get_enum_cache_id_char(this->sets[idx].id[way]), get_cache_level_char(cache_level));
 
     this->sets[idx].ways[way][cache_level].cache_way = cache_way;
     this->sets[idx].ways[way][cache_level].shared = 1;
     this->sets[idx].ways[way][cache_level].cache_status = CACHED;
     if (mem_op == MEMORY_OPERATION_INST) {
-        this->sets[idx].ways[way][cache_level].id = INSTRUCTION;
+        this->sets[idx].id[way] = INSTRUCTION;
     } else {
-        this->sets[idx].ways[way][cache_level].id = DATA;
+        this->sets[idx].id[way] = DATA;
     }
-    this->sets[idx].ways[way][cache_level].tag = tag;
+    this->sets[idx].tag[way] = tag;
     cache_way->directory_way = &this->sets[idx].ways[way][cache_level];
 }
 
@@ -66,13 +67,13 @@ void directory_t::installCachePointers(way_t ***cache_ways, uint32_t n_proc, uin
             this->sets[idx].ways[way][j].shared = 1;
             this->sets[idx].ways[way][j].cache_status = CACHED;
             if (mem_op == MEMORY_OPERATION_INST) {
-                this->sets[idx].ways[way][j].id = INSTRUCTION;
+                this->sets[idx].id[way] = INSTRUCTION;
             } else {
-                this->sets[idx].ways[way][j].id = DATA;
+                this->sets[idx].id[way] = DATA;
             }
-            this->sets[idx].ways[way][j].tag = cache_ways[i][j]->tag;
+            this->sets[idx].tag[way] = cache_ways[i][j]->tag;
             cache_ways[i][j]->directory_way = &this->sets[idx].ways[way][j];
-            DIRECTORY_DEBUG_PRINTF("Installing address %lu (TAG %lu) in directory in %s %s\n", cache_ways[i][j]->address, cache_ways[i][j]->tag, get_enum_cache_id_char(this->sets[idx].ways[way][j].id), get_cache_level_char(j));
+            DIRECTORY_DEBUG_PRINTF("Installing address %lu (TAG %lu) in directory in %s %s\n", cache_ways[i][j]->address, cache_ways[i][j]->tag, get_enum_cache_id_char(this->sets[idx].id[way]), get_cache_level_char(j));
         }
     }
 }
@@ -80,7 +81,7 @@ void directory_t::installCachePointers(way_t ***cache_ways, uint32_t n_proc, uin
 int32_t directory_t::getDirectoryLine(uint32_t idx, uint64_t tag) {
     int32_t way = POSITION_FAIL;
     for (size_t i = 0; i < this->sets[idx].n_ways; i++) {
-        if (this->sets[idx].ways[i][2].tag == tag) {
+        if (this->sets[idx].tag[way] == tag) {
             way = i;
             break;
         }
@@ -99,7 +100,7 @@ void directory_t::nullingCaches(uint64_t address, uint32_t cache_levels) {
 
     for (uint32_t i = 0; i < cache_levels; i++) {
         if (this->sets[idx].ways[way][i].cache_way != NULL) {
-            DIRECTORY_DEBUG_PRINTF("In %s cache\n", get_enum_cache_id_char(this->sets[idx].ways[way][i].id));
+            DIRECTORY_DEBUG_PRINTF("In %s cache\n", get_enum_cache_id_char(this->sets[idx].id[way]));
             // this->sets[idx].ways[way][i].cache_way->directory_way = NULL;
             // this->sets[idx].ways[way][i].cache_way = NULL;
             this->sets[idx].ways[way][i].cache_way->clean_way();
@@ -143,7 +144,7 @@ void directory_t::copyCacheInfo(uint64_t address, uint32_t to_cache_level, uint3
     this->tagIdxSetCalculation(address, &idx, &tag);
     int32_t way = this->getDirectoryLine(idx, tag);
 
-    DIRECTORY_DEBUG_PRINTF("Address %lu in %s %s is dirty. Copying its info to %s %s\n", address, get_enum_cache_id_char(this->sets[idx].ways[way][from_cache_level].id), get_cache_level_char(from_cache_level), get_enum_cache_id_char(this->sets[idx].ways[way][to_cache_level].id), get_cache_level_char(to_cache_level));
+    DIRECTORY_DEBUG_PRINTF("Address %lu in %s %s is dirty. Copying its info to %s %s\n", address, get_enum_cache_id_char(this->sets[idx].id[way]), get_cache_level_char(from_cache_level), get_enum_cache_id_char(this->sets[idx].id[way]), get_cache_level_char(to_cache_level));
     DIRECTORY_DEBUG_PRINTF("%s receives %s\n", get_cache_level_char(to_cache_level), get_cache_level_char(from_cache_level));
     if (this->sets[idx].ways[way][to_cache_level].cache_way == NULL) {
         DIRECTORY_DEBUG_PRINTF("%s is NULL\n", get_cache_level_char(to_cache_level));
@@ -162,7 +163,7 @@ void directory_t::nullCachePointer(uint64_t address, uint32_t cache_level) {
     this->tagIdxSetCalculation(address, &idx, &tag);
     int32_t way = this->getDirectoryLine(idx, tag);
 
-    DIRECTORY_DEBUG_PRINTF("Deleting pointers between %s %s and directory\n to address %lu\n", get_enum_cache_id_char(this->sets[idx].ways[way][cache_level].id), get_cache_level_char(cache_level), address);
+    DIRECTORY_DEBUG_PRINTF("Deleting pointers between %s %s and directory to address %lu\n", get_enum_cache_id_char(this->sets[idx].id[way]), get_cache_level_char(cache_level), address);
 
     if (this->sets[idx].ways[way][cache_level].cache_way != NULL) {
         // this->sets[idx].ways[way][cache_level].cache_way->clean_way();

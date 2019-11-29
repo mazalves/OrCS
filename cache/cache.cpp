@@ -191,7 +191,6 @@ inline void cache_t::writeback(way_t cache_way, directory_t directory, memory_op
 		uint32_t wb_status = this->checkUpperLevels(cache_way.address, directory);
 		if (wb_status == 0) {
 			for (uint32_t i = this->level + 1; i < POINTER_LEVELS; i++) {
-				printf("cycle in directory %lu\n", orcs_engine.get_global_cycle());
 				directory.copyCacheInfo(cache_way.address, i, this->level);
 			}
 		}

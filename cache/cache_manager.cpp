@@ -244,7 +244,7 @@ bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
     if (mob_line->is_hive) return false;
     uint64_t tag = (mob_line->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if ((mshr_table[i]->memory_address >> this->offset) == tag) {
+        if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->memory_operation == mob_line->memory_operation) {
             CACHE_DEBUG_PRINTF("Is in MSHR!\n");
             for (size_t j = 0; j < mob_line->clients.size(); j++){
                 mshr_table[i]->clients.push_back (mob_line->clients[j]);
@@ -267,6 +267,14 @@ void cache_manager_t::clock() {
         mshr_index += 1;
         if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
         if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY) {
+            CACHE_DEBUG_PRINTF("\n\n\nREADY IN MSHR! %lu ", mshr_table[mshr_index]->memory_address);
+            if (mshr_table[mshr_index]->memory_operation == MEMORY_OPERATION_INST) {
+                CACHE_DEBUG_PRINTF("Is an INSTRUCTION\n");
+            } else if (mshr_table[mshr_index]->memory_operation == MEMORY_OPERATION_READ) {
+                CACHE_DEBUG_PRINTF("Is an READ\n");
+            } else if (mshr_table[mshr_index]->memory_operation == MEMORY_OPERATION_WRITE) {
+                CACHE_DEBUG_PRINTF("Is an WRITE\n");
+            }
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->processor_id, cache_indexes);
             this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, mshr_table[mshr_index]->memory_operation);
