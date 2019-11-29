@@ -259,15 +259,15 @@ void cache_manager_t::add_mshr_entry (memory_package_t* mob_line, uint64_t laten
     if (!mob_line->is_hive) orcs_engine.memory_controller->add_requests_llc();
 }
 
-bool cache_manager_t::isInMSHR (memory_package_t* mob_line){
-    if (mob_line->is_hive) return false;
-    uint64_t tag = (mob_line->memory_address >> this->offset);
+bool cache_manager_t::isInMSHR (memory_package_t* request){
+    if (request->is_hive) return false;
+    uint64_t tag = (request->memory_address >> this->offset);
     for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if ((mshr_table[i]->memory_address >> this->offset) == tag) {
-            for (size_t j = 0; j < mob_line->clients.size(); j++){
-                mshr_table[i]->clients.push_back (mob_line->clients[j]);
+        if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->memory_operation == request->memory_operation) {
+            for (size_t j = 0; j < request->clients.size(); j++){
+                mshr_table[i]->clients.push_back (request->clients[j]);
             }
-            delete mob_line;
+            delete request;
             return true;
         }
     }
@@ -289,14 +289,17 @@ void cache_manager_t::clock() {
             this->generateIndexArray(mshr_table[mshr_index]->processor_id, cache_indexes);
             switch (mshr_table[mshr_index]->memory_operation){
                 case MEMORY_OPERATION_INST:{
+                    ORCS_PRINTF ("INST Installed! ")
                     this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, INSTRUCTION);
                     break;
                 }
                 case MEMORY_OPERATION_READ:{
-                   this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
-                   break;
+                    ORCS_PRINTF ("READ Installed! ")
+                    this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
+                    break;
                 }
                 case MEMORY_OPERATION_WRITE:{
+                    ORCS_PRINTF ("WRIT Installed! ")
                     this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
                     int cache_level = DATA_LEVELS - 1;
                     for (int32_t k = cache_level - 1; k >= 0; k--) {
@@ -319,6 +322,7 @@ void cache_manager_t::clock() {
                 case MEMORY_OPERATION_FREE:
                     break;
             }
+            ORCS_PRINTF ("%lu", (mshr_table[mshr_index]->memory_address >> this->offset));
             mshr_table[mshr_index]->updatePackageReady (mshr_table[mshr_index]->latency);
             delete mshr_table[mshr_index];
             mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
@@ -360,14 +364,12 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
     return cache_status;
 }
 
-uint32_t cache_manager_t::llcMiss(memory_package_t* mob_line, uint32_t latency_request) {
+void cache_manager_t::llcMiss(memory_package_t* mob_line, uint32_t latency_request) {
     this->add_mshr_entry (mob_line, latency_request);
-    return latency_request;
 }
 
 // Searches an instruction in cache levels
-uint32_t cache_manager_t::recursiveInstructionSearch(memory_package_t* mob_line, int32_t *cache_indexes,
-                                                     uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
+void cache_manager_t::recursiveInstructionSearch(memory_package_t* mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
     uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
@@ -379,18 +381,18 @@ uint32_t cache_manager_t::recursiveInstructionSearch(memory_package_t* mob_line,
         }
         mob_line->updatePackageReady(latency_request);
         delete mob_line;
-        return 0;
+        return;
     }
     this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == INSTRUCTION_LEVELS - 1) {
-        return recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
+        recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
+        return;
     }
-    return recursiveInstructionSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1);
+    recursiveInstructionSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1);
 }
 
-uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc,
-                                              uint32_t cache_level, cacheId_t cache_type) {
+void cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
     uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     if (cache_status == HIT) {
@@ -399,22 +401,19 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_
             this->data_cache[i+1][cache_indexes[i+1]].returnLine(mob_line->opcode_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
+        ORCS_PRINTF ("Cache HIT! ")
         mob_line->updatePackageReady(latency_request);
         delete mob_line;
-        return latency_request;
+        return;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
-        if (cache_type == DATA) {
-            for (size_t i = 0; i < mob_line->clients.size(); i++) {
-                mob_line->clients[i]->waiting_DRAM = true;
-            }
-            orcs_engine.processor[mob_line->processor_id].request_DRAM++;
-        }
-        return llcMiss(mob_line, latency_request);
+        if (cache_type == DATA) orcs_engine.processor[mob_line->processor_id].request_DRAM++;
+        llcMiss(mob_line, latency_request);
+        return;
     }
-    return recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
+    recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
 }
 
 uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
@@ -452,7 +451,7 @@ uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
     return 0;
 }
 
-uint32_t cache_manager_t::recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes,
+void cache_manager_t::recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes,
                                              uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
     uint32_t cache_status = this->searchAddress(mob_line->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
@@ -463,15 +462,15 @@ uint32_t cache_manager_t::recursiveDataWrite(memory_package_t *mob_line, int32_t
         this->data_cache[0][cache_indexes[0]].write(mob_line->memory_address, &this->directory[0]);
         mob_line->updatePackageReady(latency_request);
         delete mob_line;
-        return latency_request;
+        return;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
-        latency_request = llcMiss(mob_line, latency_request);
-        return latency_request;
+        llcMiss(mob_line, latency_request);
+        return;
     }
-    return recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
+    recursiveDataWrite(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
 }
 
 void cache_manager_t::statistics(uint32_t core_id) {

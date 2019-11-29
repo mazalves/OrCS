@@ -618,20 +618,21 @@ void processor_t::fetch(){
 		}
 		if (!updated)
 		{
-			memory_package_t* mob_line = new memory_package_t;
+			memory_package_t* request = new memory_package_t;
 			
-			mob_line->clients.push_back (fetchBuffer.back());
-			mob_line->processor_id = this->processor_id;
-			mob_line->opcode_address = fetchBuffer.back()->opcode_address;
-			mob_line->opcode_number = fetchBuffer.back()->opcode_number;
-			mob_line->memory_address = fetchBuffer.back()->opcode_address;
-			mob_line->memory_size = fetchBuffer.back()->opcode_size;
-			mob_line->memory_operation = MEMORY_OPERATION_INST;
-			mob_line->is_hive = false;
-			mob_line->status = PACKAGE_STATE_UNTREATED;
-			mob_line->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
+			request->clients.push_back (fetchBuffer.back());
+			request->processor_id = this->processor_id;
+			request->uop_number = 0;
+			request->opcode_address = fetchBuffer.back()->opcode_address;
+			request->opcode_number = fetchBuffer.back()->opcode_number;
+			request->memory_address = fetchBuffer.back()->opcode_address;
+			request->memory_size = fetchBuffer.back()->opcode_size;
+			request->memory_operation = MEMORY_OPERATION_INST;
+			request->is_hive = false;
+			request->status = PACKAGE_STATE_UNTREATED;
+			request->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 
-			orcs_engine.cacheManager->searchData(mob_line);
+			orcs_engine.cacheManager->searchData(request);
 		}
 	}
 }
@@ -1539,9 +1540,8 @@ void processor_t::clean_mob_hive(){
 		if (this->memory_order_buffer_hive[pos].status == PACKAGE_STATE_READY &&
 			this->memory_order_buffer_hive[pos].readyAt <= orcs_engine.get_global_cycle() &&
 			this->memory_order_buffer_hive[pos].processed == false){
-			uint64_t latency = this->memory_order_buffer_hive[pos].readyAt - this->memory_order_buffer_hive[pos].cycle_send_request;
 			this->memory_order_buffer_hive[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-			this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
+			this->memory_order_buffer_hive[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 			this->memory_order_buffer_hive[pos].processed=true;
 			this->memory_hive_executed--;
 			/*if (DISAMBIGUATION_ENABLED){
@@ -1564,9 +1564,9 @@ void processor_t::clean_mob_write(){
 				ORCS_PRINTF("\nSolving %s\n\n", this->memory_order_buffer_write[pos].rob_ptr->content_to_string().c_str())
 			}
 		}
-		uint64_t latency = this->memory_order_buffer_write[pos].readyAt - this->memory_order_buffer_write[pos].cycle_send_request;
+		//uint64_t latency = this->memory_order_buffer_write[pos].readyAt - this->memory_order_buffer_write[pos].cycle_send_request;
 		this->memory_order_buffer_write[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-		this->memory_order_buffer_write[pos].rob_ptr->uop.updatePackageReady(latency + COMMIT_LATENCY);
+		this->memory_order_buffer_write[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 		this->memory_order_buffer_write[pos].processed=true;
 		this->memory_write_executed--;
 		this->solve_registers_dependency(this->memory_order_buffer_write[pos].rob_ptr);
@@ -2097,7 +2097,7 @@ void processor_t::commit(){
                 case INSTRUCTION_OPERATION_HIVE_FP_MUL :
                 case INSTRUCTION_OPERATION_HIVE_FP_DIV :
 					this->add_stat_inst_hive_completed();
-					if (DEBUG) ORCS_PRINTF ("Processor commit(): instruction HIVE %lu, %s committed.\n", this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation))
+					ORCS_PRINTF ("Processor commit(): instruction HIVE %lu, %s committed, readyAt %lu.\n", this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
 
 				// MEMORY OPERATIONS - READ
@@ -2107,12 +2107,14 @@ void processor_t::commit(){
 						this->add_core_ram_requests();
 					}
 					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
+					//ORCS_PRINTF ("%lu commit(): uop %lu, %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					this->add_stat_inst_load_completed();
 					break;
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
 					this->add_stat_inst_store_completed();
+					//ORCS_PRINTF ("%lu commit(): uop %lu, %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
 					// BRANCHES
 
