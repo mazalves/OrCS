@@ -80,6 +80,7 @@ class mshr_entry_t;
 // Directory Classes
 //  =========================================//
 
+class level_way_t;
 class directory_way_t;
 class directory_set_t;
 class directory_t;
@@ -201,6 +202,7 @@ extern orcs_engine_t orcs_engine;
 // Directory Classes
 //  =========================================//
 // // DIRECTORY INCLUDES
+#include "./directory/level_way.hpp"
 #include "./directory/directory.hpp"
 #include "./directory/directory_way.hpp"
 #include "./directory/directory_set.hpp"

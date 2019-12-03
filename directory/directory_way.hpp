@@ -1,26 +1,23 @@
 class directory_way_t {
 
-    private:
-        uint32_t POINTER_LEVELS;
-
     public:
-        // uint32_t level;
-        uint32_t shared;
-        way_t *cache_way;
-        uint32_t cache_status;
+        level_way_t *cache_level;
+        uint64_t tag;
+        cacheId_t id;
 
         directory_way_t() {
-            this->clean_way();
+            this->cache_level = NULL;
+            this->tag = 0;
+            this->id = NAC;
         }
 
         ~directory_way_t()=default;
 
-        void clean_way() {
-            // this->level = 0;
-            this->shared = 0;
-            this->cache_way = NULL;
-            this->cache_status = UNCACHED;
+        void allocate(uint32_t POINTER_LEVELS) {
+            this->cache_level = new level_way_t[POINTER_LEVELS];
+            for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
+                this->cache_level[i].clean_way();
+            }
         }
 
-        INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
 };

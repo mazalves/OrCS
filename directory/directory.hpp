@@ -1,8 +1,9 @@
 class directory_t {
+
+    private:
+        uint32_t OFFSET;
     
     public:
-        uint32_t OFFSET;
-
         uint32_t n_sets;
         directory_set_t *sets;
 

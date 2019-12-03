@@ -59,7 +59,7 @@ void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
 		this->sets[i].n_ways = this->associativity;
         for (uint32_t j = 0; j < this->sets[i].n_ways; j++) {
 			this->sets[i].ways[j].directory_way = new directory_way_t;
-	        this->sets[i].ways[j].clean_way();
+			this->sets[i].ways[j].clean_way();
         }
     }
     this->set_cache_access(0);
@@ -261,7 +261,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	CACHE_DEBUG_PRINTF("Return address %lu (TAG %lu - index %u - way %d) from %s cache %s to %s cache %s\n", address, tag, idx, way, get_enum_cache_id_char(this->id), get_cache_level_char(this->level), get_enum_cache_id_char(cache->id), get_cache_level_char(cache->level));
 	ERROR_ASSERT_PRINTF(way != POSITION_FAIL, "Error, way not found!")
 
-	way_t *return_way = NULL;
+	way_t *return_way;
 	return_way = cache->installLine(address, this->latency, directory, idx_padding, way_padding, mem_op);
 
 	if (this->sets[idx].ways[way].directory_way == NULL) {
@@ -273,7 +273,7 @@ void cache_t::returnLine(uint64_t address, cache_t *cache, directory_t directory
 	return_way->prefetched = this->sets[idx].ways[way].prefetched;
 	return_way->ready_at = orcs_engine.get_global_cycle();
 
-	directory.setCachePointers(return_way, cache->level, mem_op);
+	directory.setCachePointers(&return_way, cache->level, mem_op);
 
 	if (mem_op == MEMORY_OPERATION_WRITE) {
 		this->add_cache_write();
