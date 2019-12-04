@@ -45,31 +45,18 @@ void memory_controller_t::allocate(){
     this->channels = new memory_channel_t[CHANNEL];
     for (size_t i = 0; i < CHANNEL; i++){
         channels[i].set_TIMING_AL (ceil (this->TIMING_AL * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_AL\n", channels[i].get_TIMING_AL())
         channels[i].set_TIMING_CAS (ceil (this->TIMING_CAS * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_CAS\n", channels[i].get_TIMING_CAS())
         channels[i].set_TIMING_CCD (ceil (this->TIMING_CCD * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_CCD\n", channels[i].get_TIMING_CCD())
         channels[i].set_TIMING_CWD (ceil (this->TIMING_CWD * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_CWD\n", channels[i].get_TIMING_CWD())
         channels[i].set_TIMING_FAW (ceil (this->TIMING_FAW * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_FAW\n", channels[i].get_TIMING_FAW())
         channels[i].set_TIMING_RAS (ceil (this->TIMING_RAS * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RAS\n", channels[i].get_TIMING_RAS())
         channels[i].set_TIMING_RC (ceil (this->TIMING_RC * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RC\n", channels[i].get_TIMING_RC())
         channels[i].set_TIMING_RCD (ceil (this->TIMING_RCD * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RCD\n", channels[i].get_TIMING_RCD())
         channels[i].set_TIMING_RP (ceil (this->TIMING_RP * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RP\n", channels[i].get_TIMING_RP())
         channels[i].set_TIMING_RRD (ceil (this->TIMING_RRD * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RRD\n", channels[i].get_TIMING_RRD())
         channels[i].set_TIMING_RTP (ceil (this->TIMING_RTP * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_RTP\n", channels[i].get_TIMING_RTP())
         channels[i].set_TIMING_WR (ceil (this->TIMING_WR * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_WR\n", channels[i].get_TIMING_WR())
         channels[i].set_TIMING_WTR (ceil (this->TIMING_WTR * this->CORE_TO_BUS_CLOCK_RATIO));
-        ORCS_PRINTF ("%u TIMING_WTR\n", channels[i].get_TIMING_WTR())
     }
     
     this->set_masks();

@@ -25,6 +25,23 @@ class cache_t {
         uint64_t cacheWriteBack;
         uint64_t changeLine;
 
+        uint64_t offset_bits_shift;
+        uint64_t index_bits_shift;
+        uint64_t tag_bits_shift;
+
+        uint64_t offset_bits_mask;
+        uint64_t index_bits_mask;
+        uint64_t tag_bits_mask;
+
+        // Get channel to access DATA
+        inline uint64_t get_index(uint64_t addr) {
+            return (addr & this->index_bits_mask) >> this->index_bits_shift;
+        }
+
+        inline uint64_t get_tag(uint64_t addr) {
+            return (addr & this->tag_bits_mask) >> this->tag_bits_shift;
+        }
+        
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
         uint32_t INSTRUCTION_LEVELS;
@@ -54,6 +71,7 @@ class cache_t {
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
         uint32_t read(uint64_t address, uint32_t &ttc);
         uint32_t write(uint64_t address, directory_t *directory);
+        void printTagIdx(uint64_t address);
         line_t *installLine(uint64_t address, uint32_t latency, directory_t *directory, uint32_t &idx, uint32_t &line); //install line of cache |mem_controller -> caches|
 
         // Getters and setters
