@@ -1741,25 +1741,29 @@ void processor_t::execute()
 			ORCS_PRINTF("Parallel Write Data %d \n",this->counter_mshr_write)
 		}
 	}
-		// =========================================================================
-		// Verificar se foi executado alguma operação de leitura,
-		//  e executar a mais antiga no MOB
-		// =========================================================================
+	// =========================================================================
+	// Verificar se foi executado alguma operação de leitura,
+	//  e executar a mais antiga no MOB
+	// =========================================================================
+	for (size_t i = 0; i < PARALLEL_LOADS; i++){
 		if(this->memory_read_executed!=0){
 			this->mob_read();
 		}
+	}
 
 		if(this->memory_hive_executed!=0){
 			this->mob_hive();
 		}
 
-		// ==================================
-		// Executar o MOB Write, com a escrita mais antiga.
-		// depois liberar e tratar as escrita prontas;
-		// ==================================
+	// ==================================
+	// Executar o MOB Write, com a escrita mais antiga.
+	// depois liberar e tratar as escrita prontas;
+	// ==================================
+	for (size_t i = 0; i < PARALLEL_STORES; i++){
 		if(this->memory_write_executed!=0){
 			this->mob_write();
 		}
+	}
 		// =====================================
 	if (EXECUTE_DEBUG){
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){

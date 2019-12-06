@@ -270,13 +270,14 @@ bool cache_manager_t::isInMSHR (memory_package_t* request){
     //ORCS_PRINTF ("%lu %s\n", tag, get_enum_memory_operation_char (request->memory_operation))
     for (std::size_t i = 0; i < mshr_table.size(); i++){
         if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->memory_operation == request->memory_operation) {
+            //ORCS_PRINTF ("%s %s\n", get_enum_memory_operation_char(request->memory_operation), get_enum_memory_operation_char (mshr_table[i]->memory_operation))
             //ORCS_PRINTF ("HIT! %lu %lu %s\n", request->memory_address, tag, get_enum_memory_operation_char (request->memory_operation))
             for (size_t j = 0; j < request->clients.size(); j++){
                 mshr_table[i]->clients.push_back (request->clients[j]);
             }
             delete request;
             return true;
-        } //else ORCS_PRINTF ("MISS %lu %lu %s\n", request->memory_address, tag, get_enum_memory_operation_char (request->memory_operation))
+        }
     }
     return false;
 }
@@ -289,6 +290,7 @@ void cache_manager_t::print_mshr_table(){
 
 void cache_manager_t::clock() {
     if (mshr_table.size() > 0) {
+        //ORCS_PRINTF ("cycle: %lu %lu\n", orcs_engine.get_global_cycle(), mshr_table.size())
         mshr_index += 1;
         if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
         if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY) {
@@ -307,7 +309,7 @@ void cache_manager_t::clock() {
                     this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, DATA);
                     int cache_level = DATA_LEVELS - 1;
                     for (int32_t k = cache_level - 1; k >= 0; k--) {
-                        this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
+                        //this->data_cache[k+1][cache_indexes[k+1]].returnLine(mshr_table[mshr_index]->memory_address, &this->data_cache[k][cache_indexes[k]], &this->directory[0]);
                         this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
                     }
                     this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->memory_address, &this->directory[0]);
