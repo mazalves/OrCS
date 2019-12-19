@@ -48,7 +48,7 @@ void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache
             this->add_totalPrefetched();
             uint64_t latency_prefetch = orcs_engine.memory_controller->requestDRAM(NULL, newAddress);
             orcs_engine.memory_controller->add_requests_prefetcher();
-            line_t *linha = cache->installLine(newAddress, latency_prefetch, NULL, idx_padding, line_padding);
+            line_t *linha = cache->installLine(newAddress, latency_prefetch, idx_padding, line_padding, mob_line->memory_operation);
             linha->prefetched=1;
             this->prefetch_waiting_complete.push_back(cycle+latency_prefetch);
         }

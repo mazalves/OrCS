@@ -4,12 +4,12 @@
 #define _ORCS_ORCS_HPP_
 
 /// C Includes
-#include <unistd.h>     /* for getopt */
-#include <getopt.h>     /* for getopt_long; POSIX standard getopt is in unistd.h */
-#include <inttypes.h>   /* for uint32_t */
+#include <unistd.h>   /* for getopt */
+#include <getopt.h>   /* for getopt_long; POSIX standard getopt is in unistd.h */
+#include <inttypes.h> /* for uint32_t */
 #include <zlib.h>
-#include <assert.h> //asserts
- #include <sys/time.h> //get time of day
+#include <assert.h>   //asserts
+#include <sys/time.h> //get time of day
 /// C++ Includes
 //facilities
 #include <iostream>
@@ -67,27 +67,30 @@ class memory_order_buffer_line_t;
 class processor_t;
 
 //  =========================================//
+// Directory Classes
+//  =========================================//
+
+class level_way_t;
+class directory_way_t;
+class directory_set_t;
+class directory_t;
+class directory_manager_t;
+
+//  =========================================//
 // Cache Classes
 //  =========================================//
 
-class linha_t;
+class line_t;
 class cacheSet_t;
 class cache_t;
 class cache_manager_t;
 class mshr_entry_t;
 
 //  =========================================//
-// Directory Classes
-//  =========================================//
-
-class directory_line_t;
-class directory_set_t;
-class directory_t;
-class directory_manager_t;
-//  =========================================//
 // Usefull Classes
 //  =========================================//
-template<class CB_TYPE> class circular_buffer_t;
+template <class CB_TYPE>
+class circular_buffer_t;
 class utils_t;
 class priority_memory_access_t;
 //  =========================================//
@@ -108,7 +111,7 @@ class hive_register_t;
 //  =========================================//
 // DATA Types
 // ====================================
-typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t;
+typedef std::vector<reorder_buffer_line_t *> container_ptr_reorder_buffer_line_t;
 // ============================================================================
 /// Global SINUCA_ENGINE instantiation
 // ============================================================================
@@ -121,13 +124,13 @@ extern orcs_engine_t orcs_engine;
 #define HEARTBEAT_CLOCKS 10000000
 
 #define KILO 1024
-#define MEGA KILO*KILO
+#define MEGA KILO *KILO
 // ============================================================================
 /// Definitions for Log, Debug, Warning, Error and Statistics
 // ============================================================================
-#define POSITION_FAIL -1        /// FAIL when return is int32_t
-#define FAIL 0                  /// FAIL when return is int32_t or uint32_t
-#define OK 1                    /// OK when return is int32_t or uint32_t
+#define POSITION_FAIL -1 /// FAIL when return is int32_t
+#define FAIL 0           /// FAIL when return is int32_t or uint32_t
+#define OK 1             /// OK when return is int32_t or uint32_t
 #define NOT_ALL_REGS 2
 #define TRACE_LINE_SIZE 512
 
@@ -135,8 +138,8 @@ extern orcs_engine_t orcs_engine;
 // Defines Simulators Caracteristics
 // ========================
 #define MAX_UOP_DECODED 5
-#define MAX_REGISTERS 6         /// opcode_package_t uop_package_t  (Max number of register (read or write) for one opcode/uop)
-#define MAX_ASSEMBLY_SIZE 32    /// In general 20 is enough
+#define MAX_REGISTERS 6      /// opcode_package_t uop_package_t  (Max number of register (read or write) for one opcode/uop)
+#define MAX_ASSEMBLY_SIZE 32 /// In general 20 is enough
 // ========================
 // ==============================================================================
 /// Enumerations
@@ -157,8 +160,6 @@ extern orcs_engine_t orcs_engine;
 #include "./trace_reader.hpp"
 #include "./main_memory/memory_request_client.hpp"
 #include "./package/opcode_package.hpp"
-
-
 
 //  =========================================//
 // Usefull Classes
@@ -189,6 +190,14 @@ extern orcs_engine_t orcs_engine;
 #include "./branch_predictor/twoBit.hpp"
 #include "./branch_predictor/branch_predictor.hpp"
 //  =========================================//
+// Directory Classes
+//  =========================================//
+// // DIRECTORY INCLUDES
+#include "./directory/level_way.hpp"
+#include "./directory/directory_way.hpp"
+#include "./directory/directory_set.hpp"
+#include "./directory/directory.hpp"
+//  =========================================//
 // Cache Classes
 //  =========================================//
 // // CACHE INCLUDES
@@ -197,13 +206,6 @@ extern orcs_engine_t orcs_engine;
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
 #include "./cache/mshr_entry.hpp"
-//  =========================================//
-// Directory Classes
-//  =========================================//
-// // DIRECTORY INCLUDES
-#include "./directory/directory.hpp"
-#include "./directory/directory_line.hpp"
-#include "./directory/directory_set.hpp"
 //  =========================================//
 // // Prefetcher INCLUDES
 #include "./prefetcher/prefetcher.hpp"
@@ -218,4 +220,4 @@ extern orcs_engine_t orcs_engine;
 #include "./hive/hive_controller.hpp"
 #include "./hive/hive_register.hpp"
 //  =========================================//
-#endif  // _ORCS_ORCS_HPP_
+#endif // _ORCS_ORCS_HPP_

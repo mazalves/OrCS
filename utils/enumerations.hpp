@@ -33,15 +33,19 @@ enum cacheLevel_t{
 //get char operation
 const char* get_enum_cache_level_char(cacheLevel_t type);
 
-enum cacheId_t {
-    INSTRUCTION,
-    DATA
-};
-
 enum directoryStatus_t {
     CACHED,
     UNCACHED
 };
+
+enum cacheId_t
+{
+    INSTRUCTION,
+    DATA,
+    NAC
+};
+
+const char *get_enum_cache_id_char(cacheId_t type);
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type
 enum instruction_operation_t {
@@ -195,4 +199,6 @@ enum branch_prediction_method_t {
     BRANCH_PREDICTION_METHOD_PIECEWISE
 };
 // ============================================================================
+const char *get_cache_level_char(uint32_t type);
+
 #endif
