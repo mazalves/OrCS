@@ -12,9 +12,6 @@ class cache_manager_t {
         uint64_t offset;
         uint64_t mshr_index;
 
-        uint32_t mshr_load_count;
-        uint32_t mshr_store_count;
-
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
         uint32_t DATA_LEVELS;
@@ -65,9 +62,6 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
-
-        INSTANTIATE_GET_SET_ADD(uint32_t, mshr_load_count)
-        INSTANTIATE_GET_SET_ADD(uint32_t, mshr_store_count)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, PREFETCHER_ACTIVE)
