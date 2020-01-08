@@ -45,6 +45,7 @@ private:
     bool isInMSHR(memory_package_t *mob_line);
 
     void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op);
+    uint32_t getLatencyRequest(memory_package_t *mob_line, int32_t cache_status, int32_t *cache_indexes);
 
 public:
     // instruction and data caches dynamically allocated

@@ -281,6 +281,7 @@ void cache_manager_t::print_mshr_table() {
 }
 
 void cache_manager_t::clock() {
+    uint64_t address;
     if (mshr_table.size() > 0) {
         mshr_index += 1;
         if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size())
@@ -288,6 +289,11 @@ void cache_manager_t::clock() {
         if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->processor_id, cache_indexes);
+            if (mshr_table[mshr_index]->memory_operation == MEMORY_OPERATION_INST) {
+		        address = mshr_table[mshr_index]->opcode_address;
+	        } else {
+		        address = mshr_table[mshr_index]->memory_address;
+	        }
             if (mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_HIVE_LOCK &&
                 mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_HIVE_UNLOCK &&
                 mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_HIVE_INT_ALU &&
@@ -299,7 +305,7 @@ void cache_manager_t::clock() {
                 mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_HIVE_LOAD &&
                 mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_HIVE_STORE &&
                 mshr_table[mshr_index]->memory_operation != MEMORY_OPERATION_FREE) {
-                this->installCacheLines(mshr_table[mshr_index]->memory_address, cache_indexes, mshr_table[mshr_index]->latency, mshr_table[mshr_index]->memory_operation);
+                this->installCacheLines(address, cache_indexes, mshr_table[mshr_index]->latency, mshr_table[mshr_index]->memory_operation);
             }
             mshr_table[mshr_index]->updatePackageReady(mshr_table[mshr_index]->latency);
             delete mshr_table[mshr_index];
@@ -394,26 +400,23 @@ uint32_t cache_manager_t::recursiveDataSearch(memory_package_t *mob_line, int32_
     return recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1);
 }
 
-// uint32_t cacheSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t ttc)
-// {
-//     uint32_t i, j, cache_status;
-//     for (i = 0; i < NUMBER_OF_PROCESSORS; i++)
-//     {
-//         for (j = 0; j < INSTRUCTION_LEVELS; j++)
-//         {
-//             if (j == 0 && mob_line->memory_operation == MEMORY_OPERATION_INST)
-//             {
-//                 cache_status = this->cache_instruction[j][cache_indexes[j]].read()
-//             }
-//         }
-//     }
-//     cache->read(instructionAddress, *ttc);
-//     *latency_request += *ttc;
-//     return cache_status;
-// }
-
+uint32_t cache_manager_t::getLatencyRequest(memory_package_t *mob_line, int32_t cache_status, int32_t *cache_indexes) {
+    uint32_t latency_request = 0;
+    if (cache_status == 0) {
+        latency_request = this->data_cache[0][0].latency;
+    } else if (cache_status == POSITION_FAIL) {
+        latency_request = this->llcMiss(mob_line, latency_request);
+    } else {
+        for (int32_t i = cache_status - 1; i >= 0; i--) {
+            this->data_cache[i + 1][cache_indexes[i + 1]].returnLine(mob_line, &this->data_cache[i][cache_indexes[i]]);
+        }
+    }
+    return latency_request;
+}
+ 
 uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
     uint32_t ttc = 0, latency_request = 0;
+    // int32_t cache_status;
     if (!isInMSHR(mob_line)) {
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(mob_line->processor_id, cache_indexes);
@@ -429,7 +432,8 @@ uint32_t cache_manager_t::searchData(memory_package_t *mob_line) {
         //     mob_line->memory_operation == MEMORY_OPERATION_HIVE_UNLOCK) {
         //     llcMiss(mob_line, latency_request);
         // } else {
-        //     latency_request = cacheSearch(mob_line, cache_indexes, ttc);
+        //     cache_status = this->directory[0].searchAddress(mob_line);
+                // latency_request = this->getLatencyRequest(mob_line, cache_status, cache_indexes);
         // }
         switch (mob_line->memory_operation) {
             case MEMORY_OPERATION_READ:

@@ -22,48 +22,116 @@ directory_t::~directory_t()
     // delete[] sets;
 }
 
-void directory_t::allocate(cache_t llc, uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS)
-{
+void directory_t::allocate(cache_t llc, uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
+    set_INSTRUCTION_LEVELS(INSTRUCTION_LEVELS);
+    set_DATA_LEVELS(DATA_LEVELS);
+    set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     this->n_sets = llc.n_sets;
     this->sets = new directory_set_t[this->n_sets];
-    for (uint32_t i = 0; i < this->n_sets; i++)
-    {
+    for (uint32_t i = 0; i < this->n_sets; i++) {
         this->sets[i].allocate(llc.associativity, NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
     }
     set_OFFSET(llc.offset);
 }
 
-void directory_t::installCachePointers(line_t ***cache_ways, uint32_t n_proc, uint32_t data_levels, uint32_t inst_levels, memory_operation_t mem_op, uint32_t idx, int32_t way)
-{
-    uint32_t i, j;
-    for (i = 0; i < n_proc; i++)
-    {
-        if (mem_op == MEMORY_OPERATION_INST)
-        {
-            for (j = 0; j < inst_levels; j++)
-            {
-                this->sets[idx].ways[way].inst_cache[i][j].cache_way = cache_ways[i][j];
-                this->sets[idx].ways[way].inst_cache[i][j].shared = 1;
-                this->sets[idx].ways[way].inst_cache[i][j].cache_status = CACHED;
-                this->sets[idx].ways[way].tag = cache_ways[i][j]->tag;
-                cache_ways[i][j]->directory_line = &this->sets[idx].ways[way];
-                // printf("inst cache %lu (TAG %lu) in directory in level %u\n", this->sets[idx].ways[way].inst_cache[i][j].cache_way->address, cache_ways[i][j]->directory_line->tag, j);
+// void directory_t::installCachePointers(line_t ***cache_ways, uint32_t n_proc, uint32_t data_levels, uint32_t inst_levels, memory_operation_t mem_op, uint32_t idx, int32_t way)
+// {
+//     uint32_t i, j;
+//     for (i = 0; i < n_proc; i++)
+//     {
+//         if (mem_op == MEMORY_OPERATION_INST)
+//         {
+//             for (j = 0; j < inst_levels; j++)
+//             {
+//                 this->sets[idx].ways[way].inst_cache[i][j].cache_way = cache_ways[i][j];
+//                 this->sets[idx].ways[way].inst_cache[i][j].shared = 1;
+//                 this->sets[idx].ways[way].inst_cache[i][j].cache_status = CACHED;
+//                 this->sets[idx].ways[way].tag = cache_ways[i][j]->tag;
+//                 cache_ways[i][j]->directory_line = &this->sets[idx].ways[way];
+//                 // printf("inst cache %lu (TAG %lu) in directory in level %u\n", this->sets[idx].ways[way].inst_cache[i][j].cache_way->address, cache_ways[i][j]->directory_line->tag, j);
+//             }
+//         }
+//         else
+//         {
+//             j = 0;
+//         }
+//         for (; j < data_levels; j++)
+//         {
+//             this->sets[idx].ways[way].data_cache[i][j].cache_way = cache_ways[i][j];
+//             this->sets[idx].ways[way].data_cache[i][j].shared = 1;
+//             this->sets[idx].ways[way].data_cache[i][j].cache_status = CACHED;
+//             this->sets[idx].ways[way].tag = cache_ways[i][j]->tag;
+//             cache_ways[i][j]->directory_line = &this->sets[idx].ways[way];
+//             // printf("data cache %lu (TAG %lu) in directory in level %u\n", this->sets[idx].ways[way].data_cache[i][j].cache_way->address, cache_ways[i][j]->directory_line->tag, j);
+//         }
+//     }
+// }
+
+// // Return address index in cache
+void directory_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag) {
+    uint32_t get_bits = this->n_sets - 1;
+    *tag = address >> OFFSET;
+    *idx = *tag & get_bits;
+}
+
+int32_t directory_t::searchAddress(memory_package_t *mob_line) {
+    uint64_t address;
+    int32_t cache_level;
+    if (mob_line->memory_operation == MEMORY_OPERATION_INST) {
+        address = mob_line->opcode_address;
+    } else {
+        address = mob_line->memory_address;
+    }
+    cache_level = this->read(address, mob_line->memory_operation);
+    return cache_level;
+}
+
+uint32_t directory_t::checkInclusionPolicy(directory_way_t *way, memory_operation_t mem_op, uint32_t level) {
+    uint32_t i = level;
+    if (mem_op == MEMORY_OPERATION_INST) {
+        for (; i < INSTRUCTION_LEVELS; i++) {
+            if (way->inst_cache[i]->cache_way == NULL) {
+                return FAIL;
             }
         }
-        else
-        {
-            j = 0;
-        }
-        for (; j < data_levels; j++)
-        {
-            this->sets[idx].ways[way].data_cache[i][j].cache_way = cache_ways[i][j];
-            this->sets[idx].ways[way].data_cache[i][j].shared = 1;
-            this->sets[idx].ways[way].data_cache[i][j].cache_status = CACHED;
-            this->sets[idx].ways[way].tag = cache_ways[i][j]->tag;
-            cache_ways[i][j]->directory_line = &this->sets[idx].ways[way];
-            // printf("data cache %lu (TAG %lu) in directory in level %u\n", this->sets[idx].ways[way].data_cache[i][j].cache_way->address, cache_ways[i][j]->directory_line->tag, j);
+    } else {
+        i = 0;
+    }
+    for (; i < DATA_LEVELS; i++) {
+        if (way->data_cache[i]->cache_way == NULL) {
+            return FAIL;
         }
     }
+    return OK;
+}
+
+int32_t directory_t::read(uint64_t address, memory_operation_t mem_op) {
+    uint64_t tag;
+    uint32_t idx, i, j;
+    this->tagIdxSetCalculation(address, &idx, &tag);
+    for (i = 0; i < this->n_sets; i++) {
+        if (this->sets[idx].ways[i].tag == tag) {
+            if (mem_op == MEMORY_OPERATION_INST) {
+                for (j = 0; j < INSTRUCTION_LEVELS; j++) {
+                    if (this->sets[idx].ways[i].inst_cache[j]->cache_way != NULL) {
+                        if (this->checkInclusionPolicy(&this->sets[idx].ways[i], mem_op, j + 1)) {
+                            return (int32_t)j;
+                        }
+                    }
+                }
+            } else {
+                j = 0;
+            }
+            for (; j < DATA_LEVELS; j++) {
+                if (this->sets[idx].ways[i].data_cache[j]->cache_way != NULL) {
+                    if (this->checkInclusionPolicy(&this->sets[idx].ways[i], mem_op, j + 1)) {
+                        return (int32_t)j;
+                    }
+                }
+            }
+        }
+    }
+    return POSITION_FAIL;
 }
 
 // void directory_t::setCachePointers(line_t *cache_way, uint32_t cache_level, memory_operation_t mem_op) {
@@ -125,12 +193,6 @@ void directory_t::installCachePointers(line_t ***cache_ways, uint32_t n_proc, ui
 //     }
 // }
 
-// // Return address index in cache
-// void directory_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag) {
-//     uint32_t get_bits = this->n_sets - 1;
-//     *tag = address >> OFFSET;
-//     *idx = *tag & get_bits;
-// }
 
 // uint32_t directory_t::validCacheLine(uint64_t address, uint32_t cache_level) {
 //     uint32_t idx;
