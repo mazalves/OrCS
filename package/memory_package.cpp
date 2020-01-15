@@ -15,6 +15,8 @@ void memory_package_t::updatePackageUntreated (uint32_t stallTime){
 }
 void memory_package_t::updatePackageReady (uint32_t stallTime){
     this->status = PACKAGE_STATE_READY;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    //ORCS_PRINTF ("%lu memory_package_t::updatePackageReady(): uop %lu, %s, stallTime: %u, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->uop_number, get_enum_memory_operation_char (this->memory_operation), stallTime, this->readyAt)
     for (size_t i = 0; i < clients.size(); i++) {
         clients[i]->updatePackageReady (stallTime);
     }

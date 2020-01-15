@@ -1,12 +1,10 @@
 #ifndef CACHE_MANAGER_H
 #define CACHE_MANAGER_H
-using namespace std; //TODO usamos isso? (nunca mais usar isso no ORCS)
 
 class cache_manager_t
 {
 
 private:
-    // TODO remover essas estatisticas?
     uint64_t read_miss;
     uint64_t read_hit;
     uint64_t write_miss;
@@ -32,28 +30,33 @@ private:
     void get_cache_levels(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
     void get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, cache_t *cache, uint32_t cache_level, uint32_t CACHE_AMOUNT);
     void check_cache(uint32_t cache_size, uint32_t cache_level);
+    uint32_t *get_latencies();
+    void cacheAccesses(memory_operation_t mem_op, int32_t cache_status, int32_t *cache_indexes);
+    void hitMissStats(int32_t cache_status, int32_t *cache_indexes, memory_operation_t mem_op);
+    void readWriteStats(int32_t cache_status, int32_t *cache_indexes, memory_operation_t mem_op);
 
-    uint32_t recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
-    uint32_t recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
-    uint32_t recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+
+    void recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+    void recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+    void recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
 
     uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
-    uint32_t llcMiss(memory_package_t *mob_line, uint32_t latency_request);
+    void llcMiss(memory_package_t *mob_line, uint32_t latency_request);
 
     void add_mshr_entry(memory_package_t *mob_line, uint64_t latency_request);
     void print_mshr_table();
     bool isInMSHR(memory_package_t *mob_line);
 
     void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, memory_operation_t mem_op);
-    uint32_t getLatencyRequest(memory_package_t *mob_line, int32_t cache_status, int32_t *cache_indexes);
+    void installAddress(memory_package_t *mob_line, int32_t cache_status, int32_t *cache_indexes, uint32_t latency_request);
 
 public:
-    // instruction and data caches dynamically allocated
     cache_t **data_cache;
     cache_t **instruction_cache;
     directory_t *directory;
     uint32_t *ICACHE_AMOUNT;
     uint32_t *DCACHE_AMOUNT;
+    uint32_t *CACHE_LATENCIES;
     line_t ***line_aux;
 
     cache_manager_t();

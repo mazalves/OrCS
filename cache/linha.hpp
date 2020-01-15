@@ -45,7 +45,7 @@ public:
         //delete[] directory_line;
     }
 
-    void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS)
+    void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS, uint32_t *ICACHE_AMOUNT, uint32_t *DCACHE_AMOUNT)
     {
         set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
         this->line_ptr_caches = new line_t **[NUMBER_OF_PROCESSORS];
@@ -58,7 +58,7 @@ public:
             }
         }
         this->directory_line = new directory_way_t;
-        this->directory_line->allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
+        this->directory_line->allocate(INSTRUCTION_LEVELS, DATA_LEVELS, ICACHE_AMOUNT, DCACHE_AMOUNT);
     }
 
     void clean_line()
@@ -72,7 +72,11 @@ public:
         this->ready_at = 0;
     }
 
-    INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
+        void print_line(){
+            ORCS_PRINTF ("tag: %lu, dirty: %u, lru: %lu, prefetched: %u, valid: %u, ready_at: %lu\n", tag, dirty, lru, prefetched, valid, ready_at)
+        }
+
+        INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
 };
 
 #endif // LINE_H

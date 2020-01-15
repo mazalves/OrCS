@@ -20,4 +20,8 @@ public:
         this->cache_way = NULL;
         this->cache_status = UNCACHED;
     }
+
+    // void allocate() {
+    //     cache_way = new line_t;
+    // }
 };

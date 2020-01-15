@@ -13,12 +13,16 @@ class directory_way_t {
 
         ~directory_way_t()=default;
 
-        void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
-            this->inst_cache = new level_way_t *[NUMBER_OF_PROCESSORS];
-            this->data_cache = new level_way_t *[NUMBER_OF_PROCESSORS];
-            for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-                this->inst_cache[i] = new level_way_t[INSTRUCTION_LEVELS];
-                this->data_cache[i] = new level_way_t[DATA_LEVELS];
+        void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS, uint32_t *ICACHE_AMOUNT, uint32_t *DCACHE_AMOUNT) {
+            this->inst_cache = new level_way_t *[INSTRUCTION_LEVELS];
+            this->data_cache = new level_way_t *[DATA_LEVELS];
+            for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
+                this->inst_cache[i] = new level_way_t[ICACHE_AMOUNT[i]];
+                // this->inst_cache[i]->allocate();
+            }
+            for (uint32_t i = 0; i < DATA_LEVELS; i++) {
+                this->data_cache[i] = new level_way_t[DCACHE_AMOUNT[i]];
+                // this->data_cache[i]->allocate();
             }
         }
 

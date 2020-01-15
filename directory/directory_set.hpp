@@ -16,13 +16,13 @@ public:
         // delete[] this->ways;
     }
 
-    void allocate(uint32_t associativity, uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS)
+    void allocate(uint32_t associativity, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS, uint32_t *ICACHE_AMOUNT, uint32_t *DCACHE_AMOUNT)
     {
         this->n_ways = associativity;
         this->ways = new directory_way_t[this->n_ways];
         for (uint32_t i = 0; i < this->n_ways; i++)
         {
-            this->ways[i].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
+            this->ways[i].allocate(INSTRUCTION_LEVELS, DATA_LEVELS, ICACHE_AMOUNT, DCACHE_AMOUNT);
         }
     }
 };

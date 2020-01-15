@@ -23,7 +23,6 @@ cache_t::cache_t() {
 	this->cache_read = 0;
 	this->cache_write = 0;
 	this->cache_writeback = 0;
-	this->change_line = 0;
 }
 
 cache_t::~cache_t() {
@@ -40,7 +39,7 @@ cache_t::~cache_t() {
 }
 
 // Allocate each cache type
-void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
+void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS, uint32_t *ICACHE_AMOUNT, uint32_t *DCACHE_AMOUNT) {
 	// Access configure file
 	libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 
@@ -56,13 +55,36 @@ void cache_t::allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS) {
 	set_DATA_LEVELS(DATA_LEVELS);
 	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
+	uint32_t line_number = this->size/this->LINE_SIZE;
+	uint32_t total_sets = line_number/associativity;
+
+	this->offset_bits_shift = 0;
+    this->index_bits_shift = utils_t::get_power_of_two(this->get_LINE_SIZE());
+    this->tag_bits_shift = index_bits_shift + utils_t::get_power_of_two(total_sets);
+	
+	uint64_t i;
+    /// OFFSET MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->get_LINE_SIZE()); i++) {
+        this->offset_bits_mask |= 1 << i;
+    }
+    
+    /// INDEX MASK
+    for (i = 0; i < utils_t::get_power_of_two(total_sets); i++) {
+        this->index_bits_mask |= 1 << (i + index_bits_shift);
+    }
+
+    /// TAG MASK
+    for (i = tag_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
+        this->tag_bits_mask |= 1 << i;
+    }
+	
 	this->sets = new cacheSet_t[this->n_sets];
 	for (size_t i = 0; i < this->n_sets; i++) {
-		this->sets[i].allocate(this->associativity, INSTRUCTION_LEVELS, DATA_LEVELS);
+		this->sets[i].allocate(this->associativity, INSTRUCTION_LEVELS, DATA_LEVELS, ICACHE_AMOUNT, DCACHE_AMOUNT);
 	}
-	this->set_cache_access(0);
-	this->set_cache_hit(0);
-	this->set_cache_miss(0);
+    this->set_cache_access(0);
+    this->set_cache_hit(0);
+    this->set_cache_miss(0);
 	this->set_cache_eviction(0);
 	this->set_cache_read(0);
 	this->set_cache_write(0);
@@ -81,6 +103,16 @@ inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint6
 	uint32_t get_bits = (this->n_sets) - 1;
 	*tag = (address >> this->offset); //TODO tirar o 6
 	*idx = *tag & get_bits;
+	*tag >>= utils_t::get_power_of_two(this->n_sets);
+	//printf("tag: %lu idx: %lu\n", get_tag(address), get_index(address));
+}
+
+void cache_t::printTagIdx (uint64_t address){
+	uint32_t get_bits = (this->n_sets) - 1;
+	uint64_t tag = (address >> this->offset);
+	uint32_t idx = tag & get_bits;
+	tag >>= utils_t::get_power_of_two(this->n_sets);
+	printf("tag: %lu idx: %u\n", tag, idx);
 }
 
 inline int32_t cache_t::getInvalidLine(uint32_t idx) {

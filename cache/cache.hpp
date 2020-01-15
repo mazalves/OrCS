@@ -14,21 +14,27 @@ private:
     uint64_t cache_read;
     uint64_t cache_write;
     uint64_t cache_writeback;
-    uint64_t change_line; //TODO remover
 
     void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb);
     void copyNextLevels(line_t *line, uint32_t idx);
 
-    //TODO, padronizar o nome de variaveis do código todo!!!
-    uint64_t cacheHit;
-    uint64_t cacheMiss;
-    uint64_t cacheAccess;
-    uint64_t cacheRead;
-    uint64_t cacheWrite;
-    uint64_t cacheWriteBack;
-    uint64_t changeLine;
+    uint64_t offset_bits_shift;
+    uint64_t index_bits_shift;
+    uint64_t tag_bits_shift;
 
-    // todo padronizar todos todos os nomes de variaveis
+    uint64_t offset_bits_mask;
+    uint64_t index_bits_mask;
+    uint64_t tag_bits_mask;
+
+    // Get channel to access DATA
+    inline uint64_t get_index(uint64_t addr) {
+        return (addr & this->index_bits_mask) >> this->index_bits_shift;
+    }
+
+    inline uint64_t get_tag(uint64_t addr) {
+        return (addr & this->tag_bits_mask) >> this->tag_bits_shift;
+    }
+        
     uint32_t LINE_SIZE;
     uint32_t PREFETCHER_ACTIVE;
     uint32_t INSTRUCTION_LEVELS;
@@ -52,9 +58,10 @@ public:
     uint32_t offset;
 
     void statistics();
-    void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS); //allocate data structure
-    line_t *installLine(uint64_t address, uint32_t latency, uint32_t &idx, uint32_t &line, memory_operation_t mem_op);
-    void returnLine(memory_package_t *mob_line, cache_t *cache); //return line from lower cache level
+    void allocate(uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS, uint32_t *ICACHE_AMOUNT, uint32_t *DCACHE_AMOUNT);//allocate data structure
+    void returnLine(memory_package_t *mob_line, cache_t *cache);//return line from lower cache level
+    void printTagIdx(uint64_t address);
+    line_t *installLine(uint64_t address, uint32_t latency, uint32_t &idx, uint32_t &line, memory_operation_t mem_op); //install line of cache |mem_controller -> caches|
 
     uint32_t read(uint64_t address, uint32_t &ttc);
     void write(uint32_t idx, int32_t line);
@@ -79,7 +86,6 @@ public:
     INSTANTIATE_GET_SET_ADD(uint64_t, cache_read)
     INSTANTIATE_GET_SET_ADD(uint64_t, cache_write)
     INSTANTIATE_GET_SET_ADD(uint64_t, cache_writeback)
-    INSTANTIATE_GET_SET_ADD(uint64_t, change_line)
 
     INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
     INSTANTIATE_GET_SET_ADD(uint32_t, PREFETCHER_ACTIVE)
