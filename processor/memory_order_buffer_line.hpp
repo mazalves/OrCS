@@ -9,6 +9,12 @@ class memory_order_buffer_line_t : public memory_request_client_t {
         uint64_t hive_read1;
         uint64_t hive_read2;
         uint64_t hive_write;
+
+        //VIMA
+        bool is_vima;
+        uint64_t vima_read1;
+        uint64_t vima_read2;
+        uint64_t vima_write;
          
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control

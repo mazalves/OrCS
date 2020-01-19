@@ -41,7 +41,13 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_HIVE_STORE:  return "HIVE_STORE"; break;
         case INSTRUCTION_OPERATION_HIVE_LOCK: return "HIVE_LOCK"; break;
         case INSTRUCTION_OPERATION_HIVE_UNLOCK: return "HIVE_UNLOCK"; break;
-
+        ///VIMA
+        case INSTRUCTION_OPERATION_VIMA_FP_MUL: return "VIMA_FP_MUL"; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_DIV: return "VIMA_FP_DIV"; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_ALU: return "VIMA_FP_ALU"; break;
+        case INSTRUCTION_OPERATION_VIMA_INT_ALU: return "VIMA_INT_ALU"; break;
+        case INSTRUCTION_OPERATION_VIMA_INT_DIV: return "VIMA_INT_DIV"; break;
+        case INSTRUCTION_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
         
         
     }
@@ -80,7 +86,12 @@ const char *get_enum_memory_operation_char(memory_operation_t type) {
         case MEMORY_OPERATION_HIVE_FP_ALU:  return "HIVE_FP_ALU"; break;
         case MEMORY_OPERATION_HIVE_FP_DIV:  return "HIVE_FP_DIV"; break;
         case MEMORY_OPERATION_HIVE_FP_MUL:  return "HIVE_FP_MUL"; break;
-        
+        case MEMORY_OPERATION_VIMA_INT_ALU: return "VIMA_INT_ALU"; break;
+        case MEMORY_OPERATION_VIMA_INT_DIV: return "VIMA_INT_DIV"; break;
+        case MEMORY_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
+        case MEMORY_OPERATION_VIMA_FP_ALU:  return "VIMA_FP_ALU"; break;
+        case MEMORY_OPERATION_VIMA_FP_DIV:  return "VIMA_FP_DIV"; break;
+        case MEMORY_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL"; break;
     }
     ERROR_PRINTF("Wrong MEMORY_OPERATION\n");
     return "FAIL";
@@ -95,6 +106,7 @@ const char *get_enum_package_state_char(package_state_t type) {
         case PACKAGE_STATE_UNTREATED:     return "UNTREATED"; break;
         case PACKAGE_STATE_WAIT:     return "WAIT"; break;
         case PACKAGE_STATE_HIVE:    return "HIVE"; break;
+        case PACKAGE_STATE_VIMA:    return "VIMA"; break;
     }
     ERROR_PRINTF("Wrong PACKAGE_STATE\n");
     return "FAIL";

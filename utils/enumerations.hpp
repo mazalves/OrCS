@@ -81,7 +81,15 @@ enum instruction_operation_t {
 
     INSTRUCTION_OPERATION_HIVE_FP_ALU,   //21
     INSTRUCTION_OPERATION_HIVE_FP_MUL,   //22
-    INSTRUCTION_OPERATION_HIVE_FP_DIV    //23
+    INSTRUCTION_OPERATION_HIVE_FP_DIV,    //23
+
+    INSTRUCTION_OPERATION_VIMA_INT_ALU,  //24
+    INSTRUCTION_OPERATION_VIMA_INT_MUL,  //25
+    INSTRUCTION_OPERATION_VIMA_INT_DIV,  //26
+
+    INSTRUCTION_OPERATION_VIMA_FP_ALU,   //27
+    INSTRUCTION_OPERATION_VIMA_FP_MUL,   //28
+    INSTRUCTION_OPERATION_VIMA_FP_DIV    //29
 };
 
 // ============================================================================
@@ -105,7 +113,8 @@ enum package_state_t {
     PACKAGE_STATE_READY,
     PACKAGE_STATE_WAIT,
     PACKAGE_STATE_TRANSMIT,
-    PACKAGE_STATE_HIVE
+    PACKAGE_STATE_HIVE,
+    PACKAGE_STATE_VIMA
 };
 const char *get_enum_package_state_char(package_state_t type);
 // ============================================================================
@@ -139,7 +148,13 @@ enum memory_operation_t {
     MEMORY_OPERATION_HIVE_INT_DIV,
     MEMORY_OPERATION_HIVE_FP_ALU,
     MEMORY_OPERATION_HIVE_FP_MUL,
-    MEMORY_OPERATION_HIVE_FP_DIV
+    MEMORY_OPERATION_HIVE_FP_DIV,
+    MEMORY_OPERATION_VIMA_INT_ALU,
+    MEMORY_OPERATION_VIMA_INT_MUL,
+    MEMORY_OPERATION_VIMA_INT_DIV,
+    MEMORY_OPERATION_VIMA_FP_ALU,
+    MEMORY_OPERATION_VIMA_FP_MUL,
+    MEMORY_OPERATION_VIMA_FP_DIV
 };
 const char *get_enum_memory_operation_char(memory_operation_t type);
 // ============================================================================

@@ -261,7 +261,8 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
 void cache_manager_t::add_mshr_entry (memory_package_t* request, uint64_t latency_request){
     request->latency = latency_request;
     mshr_table.push_back (request);
-    if (!request->is_hive) orcs_engine.memory_controller->add_requests_llc();
+    if (!request->is_hive && !request->is_vima) orcs_engine.memory_controller->add_requests_llc();
+    //ORCS_PRINTF ("add_mshr_entry(): %s %s\n", get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation), get_enum_package_state_char (request->status))
 }
 
 bool cache_manager_t::isInMSHR (memory_package_t* request){
@@ -284,8 +285,9 @@ bool cache_manager_t::isInMSHR (memory_package_t* request){
 
 void cache_manager_t::print_mshr_table(){
     for (size_t i = 0; i < mshr_table.size(); i++){
-        ORCS_PRINTF ("MSHR Table entry %lu: %s %lu %s.\n", i, get_enum_memory_operation_char (mshr_table[i]->memory_operation), mshr_table[i]->uop_number, get_enum_package_state_char (mshr_table[i]->status))
+        ORCS_PRINTF ("MSHR Table entry %lu: mop %s | uop %lu | status %s.\n", i, get_enum_memory_operation_char (mshr_table[i]->memory_operation), mshr_table[i]->uop_number, get_enum_package_state_char (mshr_table[i]->status))
     }
+    ORCS_PRINTF ("------------------------------\n")
 }
 
 void cache_manager_t::clock() {
@@ -315,20 +317,9 @@ void cache_manager_t::clock() {
                     this->data_cache[0][cache_indexes[0]].write(mshr_table[mshr_index]->memory_address, &this->directory[0]);
                     break;
                 }
-                case MEMORY_OPERATION_HIVE_LOCK:
-                case MEMORY_OPERATION_HIVE_UNLOCK:
-                case MEMORY_OPERATION_HIVE_INT_ALU:
-                case MEMORY_OPERATION_HIVE_INT_DIV:
-                case MEMORY_OPERATION_HIVE_INT_MUL:
-                case MEMORY_OPERATION_HIVE_FP_ALU:
-                case MEMORY_OPERATION_HIVE_FP_DIV:
-                case MEMORY_OPERATION_HIVE_FP_MUL:
-                case MEMORY_OPERATION_HIVE_LOAD:
-                case MEMORY_OPERATION_HIVE_STORE:
-                case MEMORY_OPERATION_FREE:
+                default:
                     break;
             }
-            //ORCS_PRINTF ("%lu", (mshr_table[mshr_index]->memory_address >> this->offset));
             
             mshr_table[mshr_index]->updatePackageReady (mshr_table[mshr_index]->latency);
             delete mshr_table[mshr_index];
@@ -357,6 +348,16 @@ void cache_manager_t::clock() {
                 case MEMORY_OPERATION_HIVE_STORE:
                     if (orcs_engine.hive_controller->addRequest (mshr_table[mshr_index])){
                         if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending HIVE instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
+                    }                    
+                    break;
+                case MEMORY_OPERATION_VIMA_INT_ALU:
+                case MEMORY_OPERATION_VIMA_INT_DIV:
+                case MEMORY_OPERATION_VIMA_INT_MUL:
+                case MEMORY_OPERATION_VIMA_FP_ALU:
+                case MEMORY_OPERATION_VIMA_FP_DIV:
+                case MEMORY_OPERATION_VIMA_FP_MUL:
+                    if (orcs_engine.vima_controller->addRequest (mshr_table[mshr_index])){
+                        if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending VIMA instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
                     }                    
                     break;
             }
@@ -444,6 +445,12 @@ uint32_t cache_manager_t::searchData(memory_package_t *request) {
         case MEMORY_OPERATION_HIVE_STORE:
         case MEMORY_OPERATION_HIVE_LOCK:
         case MEMORY_OPERATION_HIVE_UNLOCK:
+        case MEMORY_OPERATION_VIMA_FP_ALU:
+        case MEMORY_OPERATION_VIMA_FP_MUL:
+        case MEMORY_OPERATION_VIMA_FP_DIV:
+        case MEMORY_OPERATION_VIMA_INT_ALU:
+        case MEMORY_OPERATION_VIMA_INT_MUL:
+        case MEMORY_OPERATION_VIMA_INT_DIV:
             llcMiss (request, latency_request);
             break;
         case MEMORY_OPERATION_WRITE:

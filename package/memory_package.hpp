@@ -18,6 +18,11 @@ class memory_package_t {
         int64_t hive_read2;
         int64_t hive_write;
 
+        bool is_vima;
+        uint64_t vima_read1;
+        uint64_t vima_read2;
+        uint64_t vima_write;
+
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
 

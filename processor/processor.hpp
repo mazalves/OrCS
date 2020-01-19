@@ -45,6 +45,7 @@ class processor_t {
 	uint64_t stat_inst_mul_fp_completed;
 	uint64_t stat_inst_div_fp_completed;
 	uint64_t stat_inst_hive_completed;
+	uint64_t stat_inst_vima_completed;
 	uint64_t stat_inst_nop_completed;
 	uint64_t stat_inst_load_completed;
 	uint64_t stat_inst_store_completed;
@@ -111,6 +112,7 @@ class processor_t {
 	uint32_t MOB_READ;
 	uint32_t MOB_WRITE;
 	uint32_t MOB_HIVE;
+	uint32_t MOB_VIMA;
 	// =====================
 
 	// =====================
@@ -128,6 +130,10 @@ class processor_t {
 	uint32_t HIVE_UNIT;
 	uint32_t WAIT_NEXT_MEM_HIVE;
 	uint32_t LATENCY_MEM_HIVE;
+	// VIMA Units
+	uint32_t VIMA_UNIT;
+	uint32_t WAIT_NEXT_MEM_VIMA;
+	uint32_t LATENCY_MEM_VIMA;
 
 	uint32_t QTDE_MEMORY_FU;
 
@@ -168,6 +174,8 @@ class processor_t {
 	uint32_t MOB_DEBUG;
 	uint32_t PRINT_MOB;
 	uint32_t PRINT_ROB;
+	uint32_t HIVE_DEBUG;
+	uint32_t VIMA_DEBUG;
 	uint32_t COMMIT_DEBUG;
 
 	uint32_t WAIT_CYCLE;
@@ -197,6 +205,7 @@ class processor_t {
 		uint32_t memory_read_executed;
 		uint32_t memory_write_executed;
 		uint32_t memory_hive_executed;
+		uint32_t memory_vima_executed;
 		
 		// ====================================================================
 		/// Methods
@@ -210,9 +219,9 @@ class processor_t {
 		void printCache(FILE *output);
 		uint32_t get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL);
 
-			// ====================================================================
-			// ROB RELATED
-			void update_registers(reorder_buffer_line_t *robLine);
+		// ====================================================================
+		// ROB RELATED
+		void update_registers(reorder_buffer_line_t *robLine);
 		void solve_registers_dependency(reorder_buffer_line_t *rob_line);
 		int32_t searchPositionROB();
 		void removeFrontROB();
@@ -230,6 +239,11 @@ class processor_t {
 		int32_t search_position_mob_hive();
 		void remove_front_mob_hive();
 		// ====================================================================
+		// MOB HIVE RELATED
+		void print_mob_vima();
+		int32_t search_position_mob_vima();
+		void remove_front_mob_vima();
+		// ====================================================================
 		// Stage Methods
 		// ====================================================================
 		void fetch();
@@ -244,6 +258,8 @@ class processor_t {
 		void clean_mob_write();
 		uint32_t mob_hive();
 		void clean_mob_hive();
+		uint32_t mob_vima();
+		void clean_mob_vima();
 		
 		void commit();
 		// ====================================================================
@@ -295,7 +311,7 @@ class processor_t {
 		// Pointers to retain oldests memory operations
 		memory_order_buffer_line_t *oldest_write_to_send;
 		// ======================
-		//WRITE
+		//HIVE
 		// ======================
 		memory_order_buffer_line_t *memory_order_buffer_hive;
 		uint32_t memory_order_buffer_hive_start;
@@ -304,6 +320,16 @@ class processor_t {
 		memory_order_buffer_line_t* get_next_op_hive();
 		// Pointers to retain oldests memory operations
 		memory_order_buffer_line_t *oldest_hive_to_send;
+		// ======================
+		//VIMA
+		// ======================
+		memory_order_buffer_line_t *memory_order_buffer_vima;
+		uint32_t memory_order_buffer_vima_start;
+        uint32_t memory_order_buffer_vima_end;
+        uint32_t memory_order_buffer_vima_used;
+		memory_order_buffer_line_t* get_next_op_vima();
+		// Pointers to retain oldests memory operations
+		memory_order_buffer_line_t *oldest_vima_to_send;
 		// ======================
 		// Parallel requests
 		uint32_t counter_mshr_read;
@@ -328,6 +354,7 @@ class processor_t {
 		uint64_t *fu_mem_load;
 		uint64_t *fu_mem_store;
 		uint64_t *fu_mem_hive;
+		uint64_t *fu_mem_vima;
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
@@ -366,6 +393,7 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_mul_alu_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_mul_fp_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_hive_completed)
+		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_vima_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_load_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_store_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_nop_completed)
@@ -431,6 +459,7 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_READ)
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_WRITE)
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_HIVE)
+		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_VIMA)
 		// =====================
 
 		// =====================
@@ -448,6 +477,10 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,HIVE_UNIT)
 		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_NEXT_MEM_HIVE)
 		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_MEM_HIVE)
+
+		INSTANTIATE_GET_SET_ADD(uint32_t,VIMA_UNIT)
+		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_NEXT_MEM_VIMA)
+		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_MEM_VIMA)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,QTDE_MEMORY_FU)
 
@@ -470,6 +503,8 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_DEBUG)
 		INSTANTIATE_GET_SET_ADD(uint32_t,PRINT_MOB)
 		INSTANTIATE_GET_SET_ADD(uint32_t,PRINT_ROB)
+		INSTANTIATE_GET_SET_ADD(uint32_t,HIVE_DEBUG)
+		INSTANTIATE_GET_SET_ADD(uint32_t,VIMA_DEBUG)
 		INSTANTIATE_GET_SET_ADD(uint32_t,COMMIT_DEBUG)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)

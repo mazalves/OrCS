@@ -19,6 +19,7 @@ FD_DIRECTORY = directory
 FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
 FD_HIVE = hive
+FD_VIMA = vima
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
@@ -60,6 +61,9 @@ SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
 SRC_HIVE = $(FD_HIVE)/hive_controller.cpp\
 		   $(FD_HIVE)/hive_register.cpp
 
+SRC_VIMA = $(FD_VIMA)/vima_controller.cpp\
+			$(FD_VIMA)/vima_cache.cpp
+
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 
 SRC_CORE =  simulator.cpp orcs_engine.cpp\
@@ -71,6 +75,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_BRANCH_PREDICTOR)\
 			$(SRC_CACHE)\
 			$(SRC_HIVE)\
+			$(SRC_VIMA)\
 			$(SRC_DIRECTORY)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\

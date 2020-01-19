@@ -34,6 +34,7 @@ class orcs_engine_t {
         //Memory Controller
         memory_controller_t *memory_controller;
         hive_controller_t *hive_controller;
+        vima_controller_t *vima_controller;
 
         // ====================================================================
         /// Statistics related

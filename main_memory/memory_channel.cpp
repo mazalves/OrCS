@@ -128,17 +128,7 @@ void memory_channel_t::addRequest (memory_package_t* request){
             bank_write_requests[bank].push_back (request);
             if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
             break;
-        case MEMORY_OPERATION_HIVE_FP_ALU:
-        case MEMORY_OPERATION_HIVE_FP_DIV:
-        case MEMORY_OPERATION_HIVE_FP_MUL:
-        case MEMORY_OPERATION_HIVE_INT_ALU:
-        case MEMORY_OPERATION_HIVE_INT_DIV:
-        case MEMORY_OPERATION_HIVE_INT_MUL:
-        case MEMORY_OPERATION_HIVE_LOAD:
-        case MEMORY_OPERATION_HIVE_STORE:
-        case MEMORY_OPERATION_HIVE_LOCK:
-        case MEMORY_OPERATION_HIVE_UNLOCK:
-        case MEMORY_OPERATION_FREE:
+        default:
             break;
     }
 }
@@ -260,19 +250,7 @@ void memory_channel_t::clock(){
                                 this->bank_is_ready[bank] = true;
                                 break;
                             }
-                            case MEMORY_OPERATION_HIVE_LOCK   :
-                            case MEMORY_OPERATION_HIVE_UNLOCK :
-                            case MEMORY_OPERATION_HIVE_LOAD   :
-                            case MEMORY_OPERATION_HIVE_STORE  :
-                            case MEMORY_OPERATION_HIVE_INT_ALU:
-                            case MEMORY_OPERATION_HIVE_INT_MUL:
-                            case MEMORY_OPERATION_HIVE_INT_DIV:
-                            case MEMORY_OPERATION_HIVE_FP_ALU :
-                            case MEMORY_OPERATION_HIVE_FP_MUL :
-                            case MEMORY_OPERATION_HIVE_FP_DIV :
-                            case MEMORY_OPERATION_FREE: {
-                                break;
-                            }
+                            default: break;
                         }
                     } else {
                         this->bank_last_row[bank] = row;

@@ -37,6 +37,8 @@ class opcode_package_t : public memory_request_client_t {
         int32_t hive_read2;
         int32_t hive_write;
 
+        bool is_vima;
+
         // ====================================================================
         /// Status Control
         // ====================================================================

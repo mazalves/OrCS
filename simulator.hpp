@@ -106,6 +106,11 @@ class memory_controller_t;
 class hive_controller_t;
 class hive_register_t;
 //  =========================================//
+// VIMA Classes
+//  =========================================//
+class vima_controller_t;
+class vima_cache_t;
+//  =========================================//
 // DATA Types
 // ====================================
 typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t;
@@ -218,4 +223,9 @@ extern orcs_engine_t orcs_engine;
 #include "./hive/hive_controller.hpp"
 #include "./hive/hive_register.hpp"
 //  =========================================//
+// // VIMA INCLUDES
+#include "./vima/vima_controller.hpp"
+#include "./vima/vima_cache.hpp"
+//  =========================================//
+
 #endif  // _ORCS_ORCS_HPP_

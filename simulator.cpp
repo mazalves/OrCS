@@ -201,6 +201,7 @@ int main(int argc, char **argv) {
     //==================
     orcs_engine.memory_controller->allocate();
     orcs_engine.hive_controller->allocate();
+    orcs_engine.vima_controller->allocate();
 
     for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++){
         //==================
@@ -298,6 +299,7 @@ int main(int argc, char **argv) {
     ORCS_PRINTF("Writed FILE\n")
     // *****************************************************************************************
 
+    delete orcs_engine.vima_controller;
     ORCS_PRINTF("Deleting Trace Reader\n")
     delete[] orcs_engine.trace_reader;
     delete orcs_engine.configuration;

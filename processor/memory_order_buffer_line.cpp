@@ -18,6 +18,11 @@ void memory_order_buffer_line_t::package_clean() {
         this->opcode_address=0;
         this->memory_address=0;
         this->memory_size=0;
+        this->is_hive = false;
+        this->hive_read1 = 0;
+        this->hive_read2 = 0;
+        this->hive_write = 0;
+        this->is_vima = false;
         this->rob_ptr=NULL;                 /// rob pointer
         this->uop_executed=false;
         this->uop_number = 0;
