@@ -15,7 +15,6 @@ class memory_order_buffer_line_t : public memory_request_client_t {
         bool uop_executed; //*
         uint64_t uop_number;
         uint64_t cycle_send_request;                       // Cycle of send request
-        memory_operation_t memory_operation;
         uint64_t readyToGo;                                 /// Cycles of waiting
         uint32_t wait_mem_deps_number;                      /// Must wait BEFORE execution
         memory_order_buffer_line_t* *mem_deps_ptr_array;    /// Elements to wake-up AFTER execution

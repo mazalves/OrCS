@@ -54,6 +54,10 @@ class line_t {
             this->ready_at = 0;
         }
 
+        void print_line(){
+            ORCS_PRINTF ("tag: %lu, dirty: %u, lru: %lu, prefetched: %u, valid: %u, ready_at: %lu\n", tag, dirty, lru, prefetched, valid, ready_at)
+        }
+
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
 };
 

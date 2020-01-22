@@ -48,6 +48,29 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 	set_INSTRUCTION_LEVELS (INSTRUCTION_LEVELS);
 	set_DATA_LEVELS (DATA_LEVELS);
 	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+
+	uint32_t line_number = this->size/this->LINE_SIZE;
+	uint32_t total_sets = line_number/associativity;
+
+	this->offset_bits_shift = 0;
+    this->index_bits_shift = utils_t::get_power_of_two(this->get_LINE_SIZE());
+    this->tag_bits_shift = index_bits_shift + utils_t::get_power_of_two(total_sets);
+	
+	uint64_t i;
+    /// OFFSET MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->get_LINE_SIZE()); i++) {
+        this->offset_bits_mask |= 1 << i;
+    }
+    
+    /// INDEX MASK
+    for (i = 0; i < utils_t::get_power_of_two(total_sets); i++) {
+        this->index_bits_mask |= 1 << (i + index_bits_shift);
+    }
+
+    /// TAG MASK
+    for (i = tag_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
+        this->tag_bits_mask |= 1 << i;
+    }
 	
 	this->sets = new cacheSet_t[this->n_sets];
     for (size_t i = 0; i < this->n_sets; i++) {
@@ -61,7 +84,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
                 }
 				this->sets[i].lines[j].directory_line = new directory_line_t;
 			}
-            this->sets[i].lines[j].clean_line();
+			this->sets[i].lines[j].clean_line();
         }
     }
     this->set_cache_access(0);
@@ -79,7 +102,15 @@ inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint6
 	*tag = (address >> this->offset);
 	*idx = *tag & get_bits;
 	*tag >>= utils_t::get_power_of_two(this->n_sets);
-	//printf("tag: %lu idx: %u\n", *tag, *idx);
+	//printf("tag: %lu idx: %lu\n", get_tag(address), get_index(address));
+}
+
+void cache_t::printTagIdx (uint64_t address){
+	uint32_t get_bits = (this->n_sets) - 1;
+	uint64_t tag = (address >> this->offset);
+	uint32_t idx = tag & get_bits;
+	tag >>= utils_t::get_power_of_two(this->n_sets);
+	printf("tag: %lu idx: %u\n", tag, idx);
 }
 
 // Reads a cache, updates cycles and return HIT or MISS status
