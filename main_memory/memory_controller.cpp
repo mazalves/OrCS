@@ -78,6 +78,7 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_from_Prefetcher:   %lu\n",this->get_requests_prefetcher());
         fprintf(output,"Requests_from_LLC:          %lu\n",this->get_requests_llc());
         fprintf(output,"Requests_from_HIVE:         %lu\n",this->get_requests_hive());
+        fprintf(output,"Requests from VIMA:         %lu\n",this->get_requests_vima());
         for (uint32_t i = 0; i < CHANNEL; i++){
             fprintf(output,"Row_Buffer_Hit, Channel %u:  %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
             fprintf(output,"Row_Buffer_Miss, Channel %u: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
@@ -111,10 +112,8 @@ void memory_controller_t::set_masks(){
 //=====================================================================
 uint64_t memory_controller_t::requestDRAM (memory_package_t* request, uint64_t address){
     this->add_requests_made();
-    if (request->is_hive) {
-        request->printPackage();
-        this->add_requests_hive();
-    }
+    if (request->is_hive) this->add_requests_hive();
+    if (request->is_vima) this->add_requests_vima();
     if (request != NULL) {
         this->channels[get_channel (address)].addRequest (request);
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))

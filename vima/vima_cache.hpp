@@ -1,5 +1,6 @@
 class vima_cache_t {
     struct vima_cache_line_t {
+        uint64_t cycle_ready;
         uint64_t cycle_used;
         uint32_t tag;
         bool dirty;
