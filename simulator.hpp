@@ -109,7 +109,6 @@ class hive_register_t;
 // VIMA Classes
 //  =========================================//
 class vima_controller_t;
-class vima_cache_t;
 class vima_vector_t;
 //  =========================================//
 // DATA Types
@@ -226,7 +225,6 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
-#include "./vima/vima_cache.hpp"
 #include "./vima/vima_vector.hpp"
 //  =========================================//
 
