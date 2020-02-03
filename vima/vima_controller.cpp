@@ -46,56 +46,68 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
 }
 
 void vima_controller_t::check_cache(){
-    if (read1->get_address() != vima_buffer[0]->vima_read1){
-        read1 = search_cache (vima_buffer[0]->vima_read1);
-        read1->set_label ("READ1");
-        if ((read1->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_read1 >> index_bits_shift)){
-            //ORCS_PRINTF ("%lu tag %lu READ1 HIT!\n", vima_buffer[0]->vima_read1, get_tag (vima_buffer[0]->vima_read1))
-            read1->status = PACKAGE_STATE_READY;
-        } else {
-            if (read1->status == PACKAGE_STATE_FREE) read1->status = PACKAGE_STATE_WAIT;
-            else read1->status = PACKAGE_STATE_TRANSMIT;
+    if (vima_buffer[0]->vima_read1 != 0){
+        if (read1->get_address() != vima_buffer[0]->vima_read1){
+            read1 = search_cache (vima_buffer[0]->vima_read1);
+            read1->set_label ("READ1");
+            if ((read1->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_read1 >> index_bits_shift)){
+                //ORCS_PRINTF ("%lu tag %lu READ1 HIT!\n", vima_buffer[0]->vima_read1, get_tag (vima_buffer[0]->vima_read1))
+                read1->status = PACKAGE_STATE_READY;
+            } else {
+                if (read1->status == PACKAGE_STATE_FREE) read1->status = PACKAGE_STATE_WAIT;
+                else read1->status = PACKAGE_STATE_TRANSMIT;
+            }
+            read1->set_address (vima_buffer[0]->vima_read1);
+            read1->set_tag (get_tag (vima_buffer[0]->vima_read1));    
+            read1->set_lru (orcs_engine.get_global_cycle());
         }
-        read1->set_address (vima_buffer[0]->vima_read1);
-        read1->set_tag (get_tag (vima_buffer[0]->vima_read1));    
-        read1->set_lru (orcs_engine.get_global_cycle());
     }
 
-    if (read2->get_address() != vima_buffer[0]->vima_read2){
-        read2 = search_cache (vima_buffer[0]->vima_read2);
-        read2->set_label ("READ2");
-        if ((read2->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_read2 >> index_bits_shift)){
-            //ORCS_PRINTF ("%lu tag %lu READ2 HIT!\n", vima_buffer[0]->vima_read2, get_tag (vima_buffer[0]->vima_read2))
-            read2->status = PACKAGE_STATE_READY;
-        } else {
-            if (read2->status == PACKAGE_STATE_FREE) read2->status = PACKAGE_STATE_WAIT;
-            else read2->status = PACKAGE_STATE_TRANSMIT;
+    if (vima_buffer[0]->vima_read2){
+        if (read2->get_address() != vima_buffer[0]->vima_read2){
+            read2 = search_cache (vima_buffer[0]->vima_read2);
+            read2->set_label ("READ2");
+            if ((read2->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_read2 >> index_bits_shift)){
+                //ORCS_PRINTF ("%lu tag %lu READ2 HIT!\n", vima_buffer[0]->vima_read2, get_tag (vima_buffer[0]->vima_read2))
+                read2->status = PACKAGE_STATE_READY;
+            } else {
+                if (read2->status == PACKAGE_STATE_FREE) read2->status = PACKAGE_STATE_WAIT;
+                else read2->status = PACKAGE_STATE_TRANSMIT;
+            }
+            read2->set_address (vima_buffer[0]->vima_read2);
+            read2->set_tag (get_tag (vima_buffer[0]->vima_read2));
+            read2->set_lru (orcs_engine.get_global_cycle());
         }
-        read2->set_address (vima_buffer[0]->vima_read2);
-        read2->set_tag (get_tag (vima_buffer[0]->vima_read2));
-        read2->set_lru (orcs_engine.get_global_cycle());
-    }
-
-    if (write->get_address() != vima_buffer[0]->vima_write){
-        write = search_cache (vima_buffer[0]->vima_write);
-        write->set_label ("WRITE");
-        if ((write->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_write >> index_bits_shift)){
-            //ORCS_PRINTF ("%lu tag %lu WRITE HIT!\n", vima_buffer[0]->vima_write, get_tag (vima_buffer[0]->vima_write))
-            write->status = PACKAGE_STATE_READY;
-        } else {
-            if (write->status == PACKAGE_STATE_FREE) write->status = PACKAGE_STATE_WAIT;
-            else write->status = PACKAGE_STATE_TRANSMIT;
-        }
-        write->set_address (vima_buffer[0]->vima_write);
-        write->set_tag (get_tag (vima_buffer[0]->vima_write));
-        write->set_lru (orcs_engine.get_global_cycle());
     }
     
-    if (read1->status == PACKAGE_STATE_READY && read2->status == PACKAGE_STATE_READY){
-        vima_buffer[0]->status = PACKAGE_STATE_READY;
-        write->dirty = true;
-        ORCS_PRINTF ("%lu instrução finalizada, %lu sujo!\n", vima_buffer[0]->uop_number, vima_buffer[0]->vima_write)
+    if (vima_buffer[0]->vima_write != 0){
+        if (write->get_address() != vima_buffer[0]->vima_write){
+            write = search_cache (vima_buffer[0]->vima_write);
+            write->set_label ("WRITE");
+            if ((write->get_address() >> index_bits_shift) == (vima_buffer[0]->vima_write >> index_bits_shift)){
+                //ORCS_PRINTF ("%lu tag %lu WRITE HIT!\n", vima_buffer[0]->vima_write, get_tag (vima_buffer[0]->vima_write))
+                write->status = PACKAGE_STATE_READY;
+            } else {
+                if (write->status == PACKAGE_STATE_FREE) write->status = PACKAGE_STATE_WAIT;
+                else write->status = PACKAGE_STATE_TRANSMIT;
+            }
+            write->set_address (vima_buffer[0]->vima_write);
+            write->set_tag (get_tag (vima_buffer[0]->vima_write));
+            write->set_lru (orcs_engine.get_global_cycle());
+        }
     }
+    
+    if (vima_buffer[0]->vima_read1 != 0){
+        if (read1->status != PACKAGE_STATE_READY) return;
+    }
+
+    if (vima_buffer[0]->vima_read2 != 0){
+        if (read2->status != PACKAGE_STATE_READY) return;
+    }
+    
+    vima_buffer[0]->status = PACKAGE_STATE_READY;
+    if (vima_buffer[0]->vima_write != 0) write->dirty = true;
+    ORCS_PRINTF ("%lu instrução finalizada, %lu sujo!\n", vima_buffer[0]->uop_number, vima_buffer[0]->vima_write)
 }
 
 void vima_controller_t::clock(){
