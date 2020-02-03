@@ -6,7 +6,11 @@ vima_controller_t::vima_controller_t(){
 }
 
 vima_controller_t::~vima_controller_t(){
-
+    ORCS_PRINTF ("#========================================================================#\n")
+    ORCS_PRINTF ("VIMA Cache Hits: %lu\n", get_cache_hits())
+    ORCS_PRINTF ("VIMA Cache Misses: %lu\n", get_cache_misses())
+    ORCS_PRINTF ("VIMA Cache Accesses: %lu\n", get_cache_accesses())
+    ORCS_PRINTF ("#========================================================================#\n")
 }
 
 void vima_controller_t::print_vima_instructions(){
@@ -27,12 +31,13 @@ void vima_controller_t::instruction_ready (size_t index){
 }
 
 vima_vector_t* vima_controller_t::search_cache (uint64_t address){
+    add_cache_accesses();
     uint64_t lru_cycle = UINT64_MAX;
     uint32_t lru_way = 0;
     for (uint32_t i = 0; i < get_lines(); i++){
         if (cache[i].get_address() >> index_bits_shift == address >> index_bits_shift) {
             add_cache_hits();
-            ORCS_PRINTF ("%s HIT! %lu\n", cache[i].get_label(), address)
+            //ORCS_PRINTF ("%s HIT! %lu\n", cache[i].get_label(), address)
             return &cache[i];
         }
         else if (cache[i].lru < lru_cycle) {
@@ -41,7 +46,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         }
     }
     add_cache_misses();
-    ORCS_PRINTF ("%s MISS! %lu\n", cache[lru_way].get_label(), address)
+    //ORCS_PRINTF ("%s MISS! %lu\n", cache[lru_way].get_label(), address)
     return &cache[lru_way];
 }
 
@@ -107,7 +112,7 @@ void vima_controller_t::check_cache(){
     
     vima_buffer[0]->status = PACKAGE_STATE_READY;
     if (vima_buffer[0]->vima_write != 0) write->dirty = true;
-    ORCS_PRINTF ("%lu instrução finalizada, %lu sujo!\n", vima_buffer[0]->uop_number, vima_buffer[0]->vima_write)
+    //ORCS_PRINTF ("%lu instrução finalizada, %lu sujo!\n", vima_buffer[0]->uop_number, vima_buffer[0]->vima_write)
 }
 
 void vima_controller_t::clock(){
@@ -187,6 +192,10 @@ void vima_controller_t::allocate(){
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] * this->CORE_TO_BUS_CLOCK_RATIO);
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] = cfg_processor["VIMA_LATENCY_FP_MUL"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] * this->CORE_TO_BUS_CLOCK_RATIO);
+
+    set_cache_accesses(0);
+    set_cache_hits(0);
+    set_cache_misses(0);
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){

@@ -33,7 +33,7 @@ void vima_vector_t::clock() {
                     }
                 }
                 if (sub_ready >= no_sub_requests) {
-                    ORCS_PRINTF ("%lu %s WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle(), label)
+                    //ORCS_PRINTF ("%lu %s WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle(), label)
                     status = PACKAGE_STATE_WAIT;
                 }
             } else {
@@ -66,7 +66,7 @@ void vima_vector_t::clock() {
                 }
             }
             if (sub_ready >= no_sub_requests) {
-                ORCS_PRINTF ("%lu %s %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), label, address)
+                //ORCS_PRINTF ("%lu %s %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), label, address)
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
                 status = PACKAGE_STATE_READY;
@@ -105,6 +105,4 @@ void vima_vector_t::allocate() {
     sub_ready = 128;
     last_ready = 0;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
-
-    ORCS_PRINTF ("Criando VIMA Vector!\n")
 }
