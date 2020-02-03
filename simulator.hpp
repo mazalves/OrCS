@@ -221,7 +221,6 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 // // HIVE INCLUDES
 #include "./hive/hive_controller.hpp"
-#include "./hive/hive_register.hpp"
 //  =========================================//
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
