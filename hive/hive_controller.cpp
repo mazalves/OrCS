@@ -18,7 +18,7 @@ hive_controller_t::~hive_controller_t(){
 void hive_controller_t::print_hive_instructions(){
     ORCS_PRINTF ("=======HIVE INSTRUCTIONS=========\n")
     for (size_t i = 0; i < hive_instructions.size(); i++){
-        ORCS_PRINTF ("%lu %s %lu %s\n", hive_instructions[i]->uop_number, get_enum_memory_operation_char (hive_instructions[i]->memory_operation), hive_instructions[i]->readyAt, get_enum_package_state_char (hive_instructions[i]->status))
+        ORCS_PRINTF ("%lu %s %lu %s R1 %lu R2 %lu W %lu\n", hive_instructions[i]->uop_number, get_enum_memory_operation_char (hive_instructions[i]->memory_operation), hive_instructions[i]->readyAt, get_enum_package_state_char (hive_instructions[i]->status), hive_instructions[i]->hive_read1, hive_instructions[i]->hive_read2, hive_instructions[i]->hive_write)
     }
     ORCS_PRINTF ("=================================\n")
 }
@@ -27,7 +27,7 @@ void hive_controller_t::instruction_ready (size_t index){
     hive_instructions[index]->status = PACKAGE_STATE_READY;
     hive_instructions[index]->readyAt = orcs_engine.get_global_cycle();
     if (HIVE_DEBUG) {
-        ORCS_PRINTF ("HIVE Controller clock(): instruction %lu, %s ready at cycle %lu.\n", hive_instructions[index]->uop_number, get_enum_memory_operation_char (hive_instructions[index]->memory_operation), hive_instructions[index]->readyAt)
+        ORCS_PRINTF ("%lu HIVE Controller clock(): instruction %lu, %s ready at cycle %lu.\n", orcs_engine.get_global_cycle(), hive_instructions[index]->uop_number, get_enum_memory_operation_char (hive_instructions[index]->memory_operation), hive_instructions[index]->readyAt)
     }
     hive_instructions.erase (std::remove (hive_instructions.begin(), hive_instructions.end(), hive_instructions[index]), hive_instructions.end());
 }
@@ -55,7 +55,7 @@ void hive_controller_t::set_sub_requests (memory_package_t* request){
         memory_address += 1;
     }
 
-    if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller set_sub_requests(): setting sub-requests on register %lu, instruction %lu, %s, %lu.\n", hive_register, request->uop_number, get_enum_memory_operation_char (request->memory_operation), request->memory_address)
+    //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller set_sub_requests(): setting sub-requests on register %lu, instruction %lu, %s, %lu.\n", orcs_engine.get_global_cycle(), hive_register, request->uop_number, get_enum_memory_operation_char (request->memory_operation), request->memory_address)
 }
 
 void hive_controller_t::reset_sub_requests(size_t hive_register){
@@ -67,7 +67,7 @@ void hive_controller_t::reset_sub_requests(size_t hive_register){
     }
     this->nano_requests_ready[hive_register] = 0;
 
-    if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller reset_sub_requests(): resetting sub-requests on register %lu.\n", hive_register)
+    //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller reset_sub_requests(): resetting sub-requests on register %lu.\n", orcs_engine.get_global_cycle(), hive_register)
 }
 
 void hive_controller_t::check_sub_requests (size_t hive_register){
@@ -76,12 +76,12 @@ void hive_controller_t::check_sub_requests (size_t hive_register){
             if (this->hive_sub_requests[hive_register][i].status == PACKAGE_STATE_READY){
                 this->nano_requests_ready[hive_register]++;
                 this->hive_sub_requests[hive_register][i].status = PACKAGE_STATE_FREE;
-                //if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller check_sub_requests(): sub-request %lu finished from register %lu, %lu, %lu.\n", i, hive_register, hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
+                //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu finished from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
             }
         } else if (this->hive_sub_requests[hive_register][i].status == PACKAGE_STATE_TRANSMIT) {
             orcs_engine.memory_controller->requestDRAM (&hive_sub_requests[hive_register][i], hive_sub_requests[hive_register][i].memory_address);
             this->hive_sub_requests[hive_register][i].sent_to_ram = true;
-            //if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller check_sub_requests(): sub-request %lu issued from register %lu, %lu, %lu.\n", i, hive_register, this->hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
+            //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu issued from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, this->hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
             break;
         }
     }
@@ -89,46 +89,48 @@ void hive_controller_t::check_sub_requests (size_t hive_register){
         this->reset_sub_requests (hive_register);
         hive_register_state[hive_register] = PACKAGE_STATE_READY;
         if (HIVE_DEBUG) {
-            ORCS_PRINTF ("HIVE Controller check_sub_requests(): register %lu is ready, cycle %lu!\n", hive_register, orcs_engine.get_global_cycle());
+            ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): register %lu is ready, cycle %lu!\n", orcs_engine.get_global_cycle(), hive_register, orcs_engine.get_global_cycle());
         }
     }
 }
 
 void hive_controller_t::clock(){
     if (hive_instructions.size() == 0) return;
+    //else print_hive_instructions();
+
     for (size_t i = 0; i < this->HIVE_REGISTERS; i++) this->check_sub_requests (i);
     
-    for (size_t i = 0; i < hive_instructions.size(); i++){
-        package_state_t wait_r1, wait_r2;
-        if (hive_instructions[i]->status == PACKAGE_STATE_TRANSMIT){
-            if (hive_instructions[i]->hive_read1 != -1) wait_r1 = hive_register_state[hive_instructions[i]->hive_read1];
-            else wait_r1 = PACKAGE_STATE_READY;
-
-            if (hive_instructions[i]->hive_read2 != -1) wait_r2 = hive_register_state[hive_instructions[i]->hive_read2];
-            else wait_r2 = PACKAGE_STATE_READY;
+    package_state_t wait_r1, wait_r2;
+    if (hive_instructions[0]->status == PACKAGE_STATE_TRANSMIT){
+        if (hive_instructions[0]->hive_read1 != -1) wait_r1 = hive_register_state[hive_instructions[0]->hive_read1];
+        else wait_r1 = PACKAGE_STATE_READY;
         
-            if ((wait_r1 == PACKAGE_STATE_READY || wait_r1 == PACKAGE_STATE_FREE) && (wait_r2 == PACKAGE_STATE_READY || wait_r2 == PACKAGE_STATE_FREE)){
-                if (HIVE_DEBUG) ORCS_PRINTF ("Instruction %s %lu: readyAt %lu -> ", get_enum_memory_operation_char(hive_instructions[i]->memory_operation), hive_instructions[i]->uop_number, hive_instructions[i]->readyAt)
-                hive_instructions[i]->readyAt = orcs_engine.get_global_cycle() + hive_op_latencies[hive_instructions[i]->memory_operation];
-                if (HIVE_DEBUG) ORCS_PRINTF ("%lu.\n", hive_instructions[i]->readyAt)
-                hive_instructions[i]->status = PACKAGE_STATE_WAIT;
-                break;
-            } else {
-                if (HIVE_DEBUG) ORCS_PRINTF ("Hive Controller clock:() instruction %lu depends on registers %lu %s and %lu %s.\n", hive_instructions[i]->uop_number, hive_instructions[i]->hive_read1, get_enum_package_state_char (wait_r1), hive_instructions[i]->hive_read2, get_enum_package_state_char (wait_r2))
-            }
-        } 
-    }
+        if (hive_instructions[0]->hive_read2 != -1) wait_r2 = hive_register_state[hive_instructions[0]->hive_read2];
+        else wait_r2 = PACKAGE_STATE_READY;
+
+        ORCS_PRINTF ("%s R1 %s R2!\n", get_enum_package_state_char (hive_register_state[hive_instructions[0]->hive_read1]), get_enum_package_state_char (hive_register_state[hive_instructions[0]->hive_read2]))
+        
+        if ((wait_r1 == PACKAGE_STATE_READY || wait_r1 == PACKAGE_STATE_FREE) && (wait_r2 == PACKAGE_STATE_READY || wait_r2 == PACKAGE_STATE_FREE)){
+            if (HIVE_DEBUG) ORCS_PRINTF ("Instruction %s %lu: readyAt %lu -> ", get_enum_memory_operation_char(hive_instructions[0]->memory_operation), hive_instructions[0]->uop_number, hive_instructions[0]->readyAt)
+            hive_instructions[0]->readyAt = orcs_engine.get_global_cycle() + hive_op_latencies[hive_instructions[0]->memory_operation];
+            if (HIVE_DEBUG) ORCS_PRINTF ("%lu.\n", hive_instructions[0]->readyAt)
+            hive_instructions[0]->status = PACKAGE_STATE_WAIT;
+        } else {
+            if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller clock:() instruction %lu depends on registers %lu %s and %lu %s.\n", orcs_engine.get_global_cycle(), hive_instructions[0]->uop_number, hive_instructions[0]->hive_read1, get_enum_package_state_char (wait_r1), hive_instructions[0]->hive_read2, get_enum_package_state_char (wait_r2))
+        }
+    } 
+    
     if (hive_instructions[0]->status == PACKAGE_STATE_WAIT && hive_instructions[0]->readyAt <= orcs_engine.get_global_cycle()) {
         switch (hive_instructions[0]->memory_operation){
             case MEMORY_OPERATION_HIVE_UNLOCK:
                 this->hive_lock = false;
                 for (size_t i = 0; i < this->HIVE_REGISTERS; i++) hive_register_state[i] = PACKAGE_STATE_FREE;
-                if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller clock(): HIVE IS UNLOCKED, ALL REGISTERS FREED!\n")
+                //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller clock(): HIVE IS UNLOCKED, ALL REGISTERS FREED!\n", orcs_engine.get_global_cycle())
                 this->instruction_ready (0);
             break;
             case MEMORY_OPERATION_HIVE_LOCK:
                 this->hive_lock = true;
-                if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller clock(): HIVE IS LOCKED!\n")
+                //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller clock(): HIVE IS LOCKED!\n", orcs_engine.get_global_cycle())
                 this->instruction_ready (0);
                 break;
             case MEMORY_OPERATION_HIVE_FP_ALU:
@@ -140,7 +142,7 @@ void hive_controller_t::clock(){
                 if (hive_instructions[0]->hive_read1 == -1 && hive_instructions[0]->hive_read2 == -1){
                     hive_register_state[hive_instructions[0]->hive_write] = PACKAGE_STATE_READY;
                 }
-                if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller clock(): %s executed! %lu %s\n", get_enum_memory_operation_char (hive_instructions[0]->memory_operation), hive_instructions[0]->hive_write, get_enum_package_state_char (hive_register_state[hive_instructions[0]->hive_write]))
+                //if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller clock(): %s executed! %lu %s\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (hive_instructions[0]->memory_operation), hive_instructions[0]->hive_write, get_enum_package_state_char (hive_register_state[hive_instructions[0]->hive_write]))
                 this->instruction_ready (0);
                 break;
             case MEMORY_OPERATION_HIVE_LOAD:
@@ -154,7 +156,7 @@ void hive_controller_t::clock(){
         }
     }
 
-    int32_t current_instruction = -1;
+    /*int32_t current_instruction = -1;
     if (hive_instructions.size() > 0){
         if (!this->hive_lock){
             for (size_t i = 0; i < this->hive_instructions.size(); i++){
@@ -175,16 +177,16 @@ void hive_controller_t::clock(){
         }
     } else return;
 
-    this->last_instruction = hive_instructions[current_instruction]->uop_number;
+    this->last_instruction = hive_instructions[current_instruction]->uop_number;*/
 
-    switch (hive_instructions[current_instruction]->memory_operation){
+    switch (hive_instructions[0]->memory_operation){
         case MEMORY_OPERATION_HIVE_LOCK:
             this->hive_lock = true;
-            hive_instructions[current_instruction]->status = PACKAGE_STATE_WAIT;
+            hive_instructions[0]->status = PACKAGE_STATE_WAIT;
             break;
         case MEMORY_OPERATION_HIVE_UNLOCK:
-            hive_instructions[current_instruction]->readyAt = orcs_engine.get_global_cycle() + 10;
-            hive_instructions[current_instruction]->status = PACKAGE_STATE_WAIT;
+            hive_instructions[0]->readyAt = orcs_engine.get_global_cycle() + 10;
+            hive_instructions[0]->status = PACKAGE_STATE_WAIT;
             break;
         case MEMORY_OPERATION_HIVE_FP_ALU:
         case MEMORY_OPERATION_HIVE_FP_DIV:
@@ -192,24 +194,24 @@ void hive_controller_t::clock(){
         case MEMORY_OPERATION_HIVE_INT_ALU:
         case MEMORY_OPERATION_HIVE_INT_DIV:
         case MEMORY_OPERATION_HIVE_INT_MUL:
-            if (hive_instructions[current_instruction]->hive_read1 == -1 && hive_instructions[current_instruction]->hive_read2 == -1){
-                hive_register_state[hive_instructions[current_instruction]->hive_write] = PACKAGE_STATE_READY;
-                hive_instructions[current_instruction]->readyAt = orcs_engine.get_global_cycle() + hive_op_latencies[hive_instructions[current_instruction]->memory_operation];
-                hive_instructions[current_instruction]->status = PACKAGE_STATE_WAIT;
-            } else hive_instructions[current_instruction]->status = PACKAGE_STATE_TRANSMIT;
+            if (hive_instructions[0]->hive_read1 == -1 && hive_instructions[0]->hive_read2 == -1){
+                hive_register_state[hive_instructions[0]->hive_write] = PACKAGE_STATE_READY;
+                hive_instructions[0]->readyAt = orcs_engine.get_global_cycle() + hive_op_latencies[hive_instructions[0]->memory_operation];
+                hive_instructions[0]->status = PACKAGE_STATE_WAIT;
+            } else hive_instructions[0]->status = PACKAGE_STATE_TRANSMIT;
             break;
         case MEMORY_OPERATION_HIVE_LOAD:
-            if (hive_register_state[hive_instructions[current_instruction]->hive_write] == PACKAGE_STATE_FREE){
-                this->set_sub_requests (hive_instructions[current_instruction]);
-                hive_instructions[current_instruction]->status = PACKAGE_STATE_WAIT;
-                hive_register_state[hive_instructions[current_instruction]->hive_write] = PACKAGE_STATE_WAIT;
+            if (hive_register_state[hive_instructions[0]->hive_write] == PACKAGE_STATE_FREE){
+                this->set_sub_requests (hive_instructions[0]);
+                hive_instructions[0]->status = PACKAGE_STATE_WAIT;
+                hive_register_state[hive_instructions[0]->hive_write] = PACKAGE_STATE_WAIT;
             }
             break;
         case MEMORY_OPERATION_HIVE_STORE:
-            if (hive_register_state[hive_instructions[current_instruction]->hive_read1] == PACKAGE_STATE_READY){
-                this->set_sub_requests (hive_instructions[current_instruction]);
-                hive_instructions[current_instruction]->status = PACKAGE_STATE_WAIT;
-                hive_register_state[hive_instructions[current_instruction]->hive_read1] = PACKAGE_STATE_WAIT;
+            if (hive_register_state[hive_instructions[0]->hive_read1] == PACKAGE_STATE_READY){
+                this->set_sub_requests (hive_instructions[0]);
+                hive_instructions[0]->status = PACKAGE_STATE_WAIT;
+                hive_register_state[hive_instructions[0]->hive_read1] = PACKAGE_STATE_WAIT;
             }
         default:
             break;
@@ -267,8 +269,8 @@ bool hive_controller_t::addRequest (memory_package_t* request){
     if (hive_instructions.size() < this->HIVE_BUFFER) {
         request->status = PACKAGE_STATE_HIVE;
         hive_instructions.push_back (request);
-        if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller addRequest(): received new instruction %lu, %s, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status))
+        if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller addRequest(): received new instruction %lu, %s, %s.\n", orcs_engine.get_global_cycle(), request->uop_number, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status))
         return true;
-    } else if (HIVE_DEBUG) ORCS_PRINTF ("HIVE Controller addRequest(): HIVE buffer is full!\n")
+    } else if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller addRequest(): HIVE buffer is full!\n",orcs_engine.get_global_cycle())
     return false;
 }
