@@ -11,6 +11,8 @@ class cache_manager_t {
         uint64_t write_hit;
         uint64_t offset;
         uint64_t mshr_index;
+        uint64_t* mshr_count;
+        uint64_t* mshr_max;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -30,15 +32,15 @@ class cache_manager_t {
         void get_cache_levels(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
         void get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, cache_t *cache, uint32_t cache_level, uint32_t CACHE_AMOUNT);
         void check_cache(uint32_t cache_size, uint32_t cache_level);
-        void add_mshr_entry(memory_package_t* mob_line, uint64_t latency_request);
         void print_mshr_table();
         bool isInMSHR (memory_package_t* mob_line);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
-        void llcMiss(memory_package_t* mob_line, uint32_t latency_request);
+        void llcMiss(memory_package_t* mob_line);
         void recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
         void recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
         void recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        void finishRequest (memory_package_t* request);
 
     public:
         // instruction and data caches dynamically allocated
@@ -54,7 +56,7 @@ class cache_manager_t {
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
-        uint32_t searchData(memory_package_t *mob_line);
+        bool searchData(memory_package_t *mob_line);
         
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t, read_miss)

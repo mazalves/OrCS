@@ -19,6 +19,9 @@ cache_manager_t::~cache_manager_t() {
     delete[] instruction_cache;
     delete[] directory;
     std::vector<memory_package_t *>().swap(mshr_table);
+
+    delete mshr_count;
+    delete mshr_max;
 }
 
 void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
@@ -179,6 +182,15 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_write_miss(0);
     this->set_offset(utils_t::get_power_of_two(LINE_SIZE));
 
+    this->mshr_count = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof(uint64_t));
+    this->mshr_max = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof(uint64_t));
+    for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+        this->mshr_count[i] = 0;
+        this->mshr_max[i] = UINT64_MAX;
+    }
+    mshr_max[MEMORY_OPERATION_READ] = get_MAX_PARALLEL_REQUESTS_CORE();
+    mshr_max[MEMORY_OPERATION_WRITE] = get_MAX_PARALLEL_REQUESTS_CORE();
+
     //Allocate Prefetcher
     if (PREFETCHER_ACTIVE) {
         this->prefetcher = new prefetcher_t;
@@ -258,24 +270,16 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] CACHE_TAGS;
 }
 
-void cache_manager_t::add_mshr_entry (memory_package_t* request, uint64_t latency_request){
-    request->latency = latency_request;
-    mshr_table.push_back (request);
-    if (!request->is_hive && !request->is_vima) orcs_engine.memory_controller->add_requests_llc();
-    //ORCS_PRINTF ("add_mshr_entry(): %s %s\n", get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation), get_enum_package_state_char (request->status))
-}
-
 bool cache_manager_t::isInMSHR (memory_package_t* request){
     if (request->is_hive) return false;
     uint64_t tag = (request->memory_address >> this->offset);
     //ORCS_PRINTF ("%lu %s\n", tag, get_enum_memory_operation_char (request->memory_operation))
     for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->memory_operation == request->memory_operation) {
+        if ((mshr_table[i]->memory_address >> this->offset) == tag) {
             //ORCS_PRINTF ("%s %s\n", get_enum_memory_operation_char(request->memory_operation), get_enum_memory_operation_char (mshr_table[i]->memory_operation))
             //ORCS_PRINTF ("HIT! %lu %lu %s\n", request->memory_address, tag, get_enum_memory_operation_char (request->memory_operation))
-            for (size_t j = 0; j < request->clients.size(); j++){
-                mshr_table[i]->clients.push_back (request->clients[j]);
-            }
+            for (uint64_t j = 0; j < MEMORY_OPERATION_LAST; j++) mshr_table[i]->memop_count[j] += request->memop_count[j];
+            for (size_t j = 0; j < request->clients.size(); j++) mshr_table[i]->clients.push_back (request->clients[j]);
             delete request;
             return true;
         }
@@ -290,12 +294,28 @@ void cache_manager_t::print_mshr_table(){
     ORCS_PRINTF ("------------------------------\n")
 }
 
+void cache_manager_t::finishRequest (memory_package_t* request){
+    if (request->memory_operation != MEMORY_OPERATION_INST){
+        for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+            if (request->memop_count[i] > 0){
+                //ORCS_PRINTF ("%lu OUT %s %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), mshr_count[request->memory_operation])
+                mshr_count[i] = mshr_count[i] - request->memop_count[i];
+                //ORCS_PRINTF ("%lu\n", mshr_count[request->memory_operation])
+            }
+        }
+    }
+
+    request->updatePackageReady (0);
+    delete request;
+    mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), request), mshr_table.end());
+}
+
 void cache_manager_t::clock() {
     if (mshr_table.size() > 0) {
         //ORCS_PRINTF ("cycle: %lu %lu\n", orcs_engine.get_global_cycle(), mshr_table.size())
         mshr_index += 1;
-        if (mshr_index >= this->MAX_PARALLEL_REQUESTS_CORE || mshr_index >= mshr_table.size()) mshr_index = 0;
-        if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY) {
+        if (mshr_index >= mshr_table.size()) mshr_index = 0;
+        if (mshr_table[mshr_index]->status == PACKAGE_STATE_READY && (mshr_table[mshr_index]->readyAt + mshr_table[mshr_index]->latency) <= orcs_engine.get_global_cycle()) {
             int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
             this->generateIndexArray(mshr_table[mshr_index]->processor_id, cache_indexes);
             switch (mshr_table[mshr_index]->memory_operation){
@@ -320,10 +340,7 @@ void cache_manager_t::clock() {
                 default:
                     break;
             }
-            
-            mshr_table[mshr_index]->updatePackageReady (mshr_table[mshr_index]->latency);
-            delete mshr_table[mshr_index];
-            mshr_table.erase (std::remove (mshr_table.begin(), mshr_table.end(), mshr_table[mshr_index]), mshr_table.end());
+            finishRequest (mshr_table[mshr_index]);
             delete[] cache_indexes;
         }
         else if (mshr_table[mshr_index]->status == PACKAGE_STATE_UNTREATED){
@@ -360,6 +377,8 @@ void cache_manager_t::clock() {
                         if (DEBUG) ORCS_PRINTF ("Cache Manager clock(): sending VIMA instruction %lu, %s to memory.\n", mshr_table[mshr_index]->uop_number, get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation))
                     }                    
                     break;
+                default:
+                    break;
             }
         }
     }
@@ -372,32 +391,63 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
     return cache_status;
 }
 
-void cache_manager_t::llcMiss(memory_package_t* request, uint32_t latency_request) {
-    this->add_mshr_entry (request, latency_request);
+void cache_manager_t::llcMiss(memory_package_t* request) {
+    switch (request->memory_operation){
+        case MEMORY_OPERATION_READ:
+        case MEMORY_OPERATION_WRITE:
+        case MEMORY_OPERATION_INST:
+            orcs_engine.memory_controller->add_requests_llc();
+            break;
+        case MEMORY_OPERATION_HIVE_FP_ALU:
+        case MEMORY_OPERATION_HIVE_FP_DIV:
+        case MEMORY_OPERATION_HIVE_FP_MUL:
+        case MEMORY_OPERATION_HIVE_INT_ALU:
+        case MEMORY_OPERATION_HIVE_INT_DIV:
+        case MEMORY_OPERATION_HIVE_INT_MUL:
+        case MEMORY_OPERATION_HIVE_LOAD:
+        case MEMORY_OPERATION_HIVE_LOCK:
+        case MEMORY_OPERATION_HIVE_STORE:
+        case MEMORY_OPERATION_HIVE_UNLOCK:
+            orcs_engine.memory_controller->add_requests_hive();
+            break;
+        case MEMORY_OPERATION_VIMA_FP_ALU:
+        case MEMORY_OPERATION_VIMA_FP_DIV:
+        case MEMORY_OPERATION_VIMA_FP_MUL:
+        case MEMORY_OPERATION_VIMA_INT_ALU:
+        case MEMORY_OPERATION_VIMA_INT_DIV:
+        case MEMORY_OPERATION_VIMA_INT_MUL:
+            orcs_engine.memory_controller->add_requests_vima();
+            break;
+        default:
+            break;
+    }
+    mshr_table.push_back (request);
 }
 
 // Searches an instruction in cache levels
-void cache_manager_t::recursiveInstructionSearch(memory_package_t* mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
-    uint32_t cache_status = this->searchAddress(mob_line->opcode_address, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
+void cache_manager_t::recursiveInstructionSearch(memory_package_t* request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
+    uint32_t cache_status = this->searchAddress(request->opcode_address, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(mob_line->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(request->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
             }
         }
-        mob_line->updatePackageReady(latency_request);
-        delete mob_line;
+        request->status = PACKAGE_STATE_READY;
+        request->latency += latency_request;
+        mshr_table.push_back (request);
+        //finishRequest (request);
         return;
     }
     this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == INSTRUCTION_LEVELS - 1) {
-        recursiveDataSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
+        recursiveDataSearch(request, cache_indexes, latency_request, ttc, cache_level + 1, INSTRUCTION);
         return;
     }
-    recursiveInstructionSearch(mob_line, cache_indexes, latency_request, ttc, cache_level + 1);
+    recursiveInstructionSearch(request, cache_indexes, latency_request, ttc, cache_level + 1);
 }
 
 void cache_manager_t::recursiveDataSearch(memory_package_t *request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
@@ -413,22 +463,34 @@ void cache_manager_t::recursiveDataSearch(memory_package_t *request, int32_t *ca
         }
         //ORCS_PRINTF ("Cache HIT! %s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
         //this->data_cache[cache_level][cache_indexes[cache_level]].printTagIdx (request->memory_address);
-        request->updatePackageReady(latency_request);
-        delete request;
+        //request->updatePackageReady(latency_request);
+        //delete request;
+        request->status = PACKAGE_STATE_READY;
+        request->latency += latency_request;
+        mshr_table.push_back (request);
+        //finishRequest (request);
         return;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
         if (cache_type == DATA) orcs_engine.processor[request->processor_id].request_DRAM++;
-        llcMiss(request, latency_request);
+        request->latency += latency_request;
+        llcMiss(request);
         return;
     }
     recursiveDataSearch(request, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
 }
 
-uint32_t cache_manager_t::searchData(memory_package_t *request) {
+bool cache_manager_t::searchData(memory_package_t *request) {
     uint32_t ttc = 0, latency_request = 0;
+    if (mshr_count[request->memory_operation] >= mshr_max[request->memory_operation]) {
+        ORCS_PRINTF ("%s maxed out\n", get_enum_memory_operation_char (request->memory_operation))
+        return false;
+    }
+    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu IN  %s %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), mshr_count[request->memory_operation])
+    this->mshr_count[request->memory_operation]++;
+    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu\n", mshr_count[request->memory_operation])
     int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
     this->generateIndexArray(request->processor_id, cache_indexes);
     switch (request->memory_operation){
@@ -451,7 +513,7 @@ uint32_t cache_manager_t::searchData(memory_package_t *request) {
         case MEMORY_OPERATION_VIMA_INT_ALU:
         case MEMORY_OPERATION_VIMA_INT_MUL:
         case MEMORY_OPERATION_VIMA_INT_DIV:
-            llcMiss (request, latency_request);
+            llcMiss (request);
             break;
         case MEMORY_OPERATION_WRITE:
             if (!isInMSHR (request)) recursiveDataWrite(request, cache_indexes, latency_request, ttc, 0, DATA);
@@ -463,7 +525,7 @@ uint32_t cache_manager_t::searchData(memory_package_t *request) {
             break;
     }
     delete[] cache_indexes;
-    return 0;
+    return true;
 }
 
 void cache_manager_t::recursiveDataWrite(memory_package_t *request, int32_t *cache_indexes,
@@ -480,14 +542,17 @@ void cache_manager_t::recursiveDataWrite(memory_package_t *request, int32_t *cac
         this->data_cache[0][cache_indexes[0]].write(request->memory_address, &this->directory[0]);
         //ORCS_PRINTF ("Cache HIT! %s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
         //this->data_cache[cache_level][cache_indexes[cache_level]].printTagIdx (request->memory_address);
-        request->updatePackageReady(latency_request);
-        delete request;
+        request->status = PACKAGE_STATE_READY;
+        request->latency += latency_request;
+        mshr_table.push_back (request);
+        //finishRequest (request);
         return;
     }
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_miss();
     ttc = 0;
     if (cache_level == DATA_LEVELS - 1) {
-        llcMiss(request, latency_request);
+        request->latency += latency_request;
+        llcMiss(request);
         return;
     }
     recursiveDataWrite(request, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);

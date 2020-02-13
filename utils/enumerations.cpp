@@ -92,6 +92,7 @@ const char *get_enum_memory_operation_char(memory_operation_t type) {
         case MEMORY_OPERATION_VIMA_FP_ALU:  return "VIMA_FP_ALU"; break;
         case MEMORY_OPERATION_VIMA_FP_DIV:  return "VIMA_FP_DIV"; break;
         case MEMORY_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL"; break;
+        case MEMORY_OPERATION_LAST:         return "LAST"; break;
     }
     ERROR_PRINTF("Wrong MEMORY_OPERATION\n");
     return "FAIL";

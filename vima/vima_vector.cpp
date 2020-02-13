@@ -5,7 +5,7 @@ vima_vector_t::vima_vector_t(){
 
 }
 vima_vector_t::~vima_vector_t(){
-
+    free (this->sub_requests);
 }
 
 void vima_vector_t::print_vector(){

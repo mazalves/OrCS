@@ -332,8 +332,6 @@ class processor_t {
 		memory_order_buffer_line_t *oldest_vima_to_send;
 		// ======================
 		// Parallel requests
-		uint32_t counter_mshr_read;
-		uint32_t counter_mshr_write;
 		int32_t request_DRAM;
 		// ======================
 		//Reservation Station 

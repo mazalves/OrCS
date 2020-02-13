@@ -11,6 +11,11 @@ vima_controller_t::~vima_controller_t(){
     ORCS_PRINTF ("VIMA Cache Misses: %lu\n", get_cache_misses())
     ORCS_PRINTF ("VIMA Cache Accesses: %lu\n", get_cache_accesses())
     ORCS_PRINTF ("#========================================================================#\n")
+
+    free (this->cache);
+    free (read1);
+    free (read2);
+    free (write);
 }
 
 void vima_controller_t::print_vima_instructions(){
