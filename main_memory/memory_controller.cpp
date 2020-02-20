@@ -115,6 +115,7 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request, uint64_t a
     if (request->is_hive) this->add_requests_hive();
     if (request->is_vima) this->add_requests_vima();
     if (request != NULL) {
+        request->sent_to_ram = true;
         this->channels[get_channel (address)].addRequest (request);
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;

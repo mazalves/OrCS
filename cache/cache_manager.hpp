@@ -5,12 +5,16 @@ using namespace std;
 class cache_manager_t {
 
     private:
+        uint64_t reads;
         uint64_t read_miss;
         uint64_t read_hit;
+        uint64_t writes;
         uint64_t write_miss;
         uint64_t write_hit;
         uint64_t offset;
         uint64_t mshr_index;
+        uint64_t* mshr_count;
+        uint64_t* mshr_max;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -35,10 +39,12 @@ class cache_manager_t {
         bool isInMSHR (memory_package_t* mob_line);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
-        void llcMiss(memory_package_t* mob_line, uint32_t latency_request);
-        void recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
-        void recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
-        void recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        cache_status_t recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+        cache_status_t recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        cache_status_t recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        void processRequest (memory_package_t* request);
+        void finishRequest (memory_package_t* request);
+        void install (memory_package_t* request);
 
     public:
         // instruction and data caches dynamically allocated
@@ -54,11 +60,13 @@ class cache_manager_t {
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
-        uint32_t searchData(memory_package_t *mob_line);
+        bool searchData(memory_package_t *mob_line);
         
         // Getters and setters
+        INSTANTIATE_GET_SET_ADD(uint64_t, reads)
         INSTANTIATE_GET_SET_ADD(uint64_t, read_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t, read_hit)
+        INSTANTIATE_GET_SET_ADD(uint64_t, writes)
         INSTANTIATE_GET_SET_ADD(uint64_t, write_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)

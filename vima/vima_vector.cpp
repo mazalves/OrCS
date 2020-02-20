@@ -23,11 +23,12 @@ void vima_vector_t::clock() {
                         sub_requests[i].memory_operation = MEMORY_OPERATION_WRITE;
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
+                        sub_requests[i].row_buffer = false;
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i], sub_requests[i].memory_address);
                     }
                 } else {
                     //print_vector();
-                    while (sub_requests[sub_ready].status == PACKAGE_STATE_READY) {
+                    while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
                         //ORCS_PRINTF ("%s %lu %u sub_reqs %lu ready\n", label, orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].memory_address)
                         sub_ready++;
                     }
@@ -54,13 +55,14 @@ void vima_vector_t::clock() {
                     sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
                     sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                     sub_requests[i].sent_to_ram = false;
+                    sub_requests[i].row_buffer = false;
                     sub_requests[i].memory_address = memory_address << sub_req_offset;
                     memory_address++;
 
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i], sub_requests[i].memory_address);
                 } 
             } else {
-                while (sub_requests[sub_ready].status == PACKAGE_STATE_READY) {
+                while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
                     //ORCS_PRINTF ("%s %lu %u sub_reqs %lu ready\n", label, orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].memory_address)
                     sub_ready++;
                 }

@@ -116,7 +116,7 @@ void memory_channel_t::set_masks(){
     }
 }
 
-void memory_channel_t::addRequest (memory_package_t* request){        
+void memory_channel_t::addRequest (memory_package_t* request){
     uint64_t bank = this->get_bank(request->memory_address);
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
@@ -214,38 +214,37 @@ void memory_channel_t::clock(){
                 case MEMORY_CONTROLLER_COMMAND_NUMBER:
                     ERROR_PRINTF("Should not receive COMMAND_NUMBER\n")
                 break;
-                case MEMORY_CONTROLLER_COMMAND_PRECHARGE:{
+                case MEMORY_CONTROLLER_COMMAND_PRECHARGE:
                     if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS) > orcs_engine.get_global_cycle()) break;
-                    if (current_entry->status != PACKAGE_STATE_WAIT) {
+                    if (!current_entry->row_buffer) {
                         this->add_stat_row_buffer_miss();
-                        current_entry->status = PACKAGE_STATE_WAIT;
+                        current_entry->row_buffer = true;
                     }
                     this->bank_last_row[bank] = row;
                     this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
                     this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
                     this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] = orcs_engine.get_global_cycle();
                     break;
-                }
                 case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
                 case MEMORY_CONTROLLER_COMMAND_COLUMN_READ:
-                case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:{
+                case MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE:
                     if (bank_last_row[bank] == row){
                         switch (current_entry->memory_operation){
                             case MEMORY_OPERATION_INST:
                             case MEMORY_OPERATION_READ: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ) > orcs_engine.get_global_cycle()) break;
-                                if (current_entry->status != PACKAGE_STATE_WAIT) {
+                                if (!current_entry->row_buffer) {
                                     this->add_stat_row_buffer_hit();
-                                    current_entry->status = PACKAGE_STATE_WAIT;
+                                    current_entry->row_buffer = true;
                                 }
                                 this->bank_is_ready[bank] = true;
                                 break;
                             }
                             case MEMORY_OPERATION_WRITE: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE) > orcs_engine.get_global_cycle()) break;
-                                if (current_entry->status != PACKAGE_STATE_WAIT) {
+                                if (!current_entry->row_buffer) {
                                     this->add_stat_row_buffer_hit();
-                                    current_entry->status = PACKAGE_STATE_WAIT;
+                                    current_entry->row_buffer = true;
                                 }
                                 this->bank_is_ready[bank] = true;
                                 break;
@@ -258,7 +257,7 @@ void memory_channel_t::clock(){
                         this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
                         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = orcs_engine.get_global_cycle();
                     }
-                }
+                    break;
             }
         }
     }
@@ -279,29 +278,24 @@ void memory_channel_t::clock(){
 
         switch (current_entry->memory_operation){
             case MEMORY_OPERATION_INST:
-            case MEMORY_OPERATION_READ:{
+            case MEMORY_OPERATION_READ:
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->latency += this->TIMING_CAS + this->latency_burst;
-                current_entry->status = PACKAGE_STATE_READY;
+                current_entry->updatePackageWait (this->TIMING_CAS + this->latency_burst);
                 if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 break;
-            }
-            case MEMORY_OPERATION_WRITE:{
+            case MEMORY_OPERATION_WRITE:
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->latency += this->TIMING_CWD + this->latency_burst;
-                current_entry->status = PACKAGE_STATE_READY;
+                current_entry->updatePackageWait (this->TIMING_CWD + this->latency_burst);
                 if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 break;
-            }
-            default:{
+            default:
                 break;
-            }
         }
         bank_is_ready[bank] = false;
     }

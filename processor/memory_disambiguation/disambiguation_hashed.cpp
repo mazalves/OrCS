@@ -99,7 +99,7 @@ void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t
 	if (new_mob_line->memory_operation == MEMORY_OPERATION_READ) {
 		this->disambiguation_load_hash[load_hash] = new_mob_line;
 	}
-	else {
+	else if (new_mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
 		this->disambiguation_store_hash[store_hash] = new_mob_line;
 	}
 }
@@ -140,7 +140,7 @@ void disambiguation_hashed_t::solve_memory_dependences(memory_order_buffer_line_
 		if (mob_line->mem_deps_ptr_array[j]->memory_address != mob_line->memory_address) {
 			if (mob_line->memory_operation == MEMORY_OPERATION_READ) {
 				this->add_stat_disambiguation_read_false_positive();
-			} else {
+			} else if (mob_line->memory_operation == MEMORY_OPERATION_WRITE) {
 				this->add_stat_disambiguation_write_false_positive();
 			}
 		}

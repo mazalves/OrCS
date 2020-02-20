@@ -22,7 +22,7 @@ void vima_controller_t::print_vima_instructions(){
 }
 
 void vima_controller_t::instruction_ready (size_t index){
-    vima_buffer[index]->status = PACKAGE_STATE_READY;
+    vima_buffer[index]->status = PACKAGE_STATE_WAIT;
     vima_buffer[index]->readyAt = orcs_engine.get_global_cycle();
     if (VIMA_DEBUG) {
         ORCS_PRINTF ("VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
@@ -110,7 +110,7 @@ void vima_controller_t::check_cache(){
         if (read2->status != PACKAGE_STATE_READY) return;
     }
     
-    vima_buffer[0]->status = PACKAGE_STATE_READY;
+    vima_buffer[0]->status = PACKAGE_STATE_WAIT;
     if (vima_buffer[0]->vima_write != 0) write->dirty = true;
     //ORCS_PRINTF ("%lu instrução finalizada, %lu sujo!\n", vima_buffer[0]->uop_number, vima_buffer[0]->vima_write)
 }
@@ -122,7 +122,7 @@ void vima_controller_t::clock(){
 
     if (vima_buffer.size() <= 0) return;
     switch (vima_buffer[0]->status){
-        case PACKAGE_STATE_READY:
+        case PACKAGE_STATE_WAIT:
             ///ORCS_PRINTF ("%lu %s -> ", vima_buffer[0]->uop_number, get_enum_package_state_char (vima_buffer[0]->status))
             //vima_buffer[0]->status = PACKAGE_STATE_READY;
             ///ORCS_PRINTF ("%s %lu\n", get_enum_package_state_char (vima_buffer[0]->status), orcs_engine.get_global_cycle())
@@ -199,6 +199,7 @@ void vima_controller_t::allocate(){
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){
+    request->sent_to_ram = true;
     if (vima_buffer.size() < this->VIMA_BUFFER) {
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);

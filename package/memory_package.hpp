@@ -23,15 +23,26 @@ class memory_package_t {
         uint64_t vima_read2;
         uint64_t vima_write;
 
+        bool row_buffer;
+        cacheId_t type;
+        uint64_t* op_count;
+
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
+
+        uint32_t DEBUG;
 
         memory_package_t();
         ~memory_package_t();
 
         void updatePackageUntreated(uint32_t stallTime);
-        void updatePackageReady(uint32_t stallTime);
+        void updatePackageReady();
         void updatePackageWait(uint32_t stallTime);
         void updatePackageFree(uint32_t stallTime);
+        void updatePackageHive(uint32_t stallTime);
+        void updatePackageTransmit(uint32_t stallTime);
+        void updateClients();
         void printPackage();
+
+        INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
 };
