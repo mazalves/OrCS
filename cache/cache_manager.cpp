@@ -424,6 +424,8 @@ void cache_manager_t::processRequest (memory_package_t* request){
         this->finishRequest (request);
         return;
     } else if (!request->sent_to_ram){
+        mshr_table.push_back (request);
+        
         uint32_t ttc = 0, latency_request = 0;
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(request->processor_id, cache_indexes);
@@ -479,7 +481,9 @@ bool cache_manager_t::searchData(memory_package_t *request) {
     if (request->memory_operation == MEMORY_OPERATION_READ) this->add_reads();
     else if (request->memory_operation == MEMORY_OPERATION_WRITE) this->add_writes();
 
-    if (!isInMSHR (request)) mshr_table.push_back (request);
+    if (!isInMSHR (request)) {
+        this->processRequest (request);
+    }
     return true;
 }
 
