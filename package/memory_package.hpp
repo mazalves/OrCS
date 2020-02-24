@@ -10,7 +10,6 @@ class memory_package_t {
         package_state_t status;                  /// package state
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package create time
-        uint64_t latency;
         
         bool sent_to_ram;
         bool is_hive;

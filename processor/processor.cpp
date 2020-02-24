@@ -771,7 +771,7 @@ void processor_t::decode(){
 			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
 
-			new_uop.updatePackageReady (DECODE_LATENCY);
+			new_uop.updatePackageWait (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -796,7 +796,7 @@ void processor_t::decode(){
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
 			new_uop.write_address = this->fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageReady (DECODE_LATENCY);
+			new_uop.updatePackageWait (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -821,7 +821,7 @@ void processor_t::decode(){
 			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
 			new_uop.write_address = this->fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageReady (DECODE_LATENCY);
+			new_uop.updatePackageWait (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -855,7 +855,7 @@ void processor_t::decode(){
 			new_uop.read2_address = fetchBuffer.front()->read2_address;
 			new_uop.write_address = fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageReady (DECODE_LATENCY);
+			new_uop.updatePackageWait (DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -900,7 +900,7 @@ void processor_t::decode(){
 				/// Insert 258 into WRegs
 				new_uop.write_regs[0] = 258;
 			}
-			new_uop.updatePackageReady(DECODE_LATENCY);
+			new_uop.updatePackageWait(DECODE_LATENCY);
 			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
@@ -942,7 +942,7 @@ void processor_t::decode(){
 				/// Insert 258 into WRegs
 				new_uop.write_regs[0] = 258;
 			}
-			new_uop.updatePackageReady(DECODE_LATENCY);
+			new_uop.updatePackageWait(DECODE_LATENCY);
 			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
@@ -1000,7 +1000,7 @@ void processor_t::decode(){
 				ERROR_ASSERT_PRINTF(inserted_258, "Could not insert register_258, all MAX_REGISTERS(%d) used.\n", MAX_REGISTERS)
 				// assert(!inserted_258 && "Max registers used");
 			}
-			new_uop.updatePackageReady(DECODE_LATENCY);
+			new_uop.updatePackageWait(DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1050,7 +1050,7 @@ void processor_t::decode(){
 				}
 				ERROR_ASSERT_PRINTF(inserted_258, "Todos Max regs usados. %u \n", MAX_REGISTERS)
 			}
-			new_uop.updatePackageReady(DECODE_LATENCY);
+			new_uop.updatePackageWait(DECODE_LATENCY);
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1088,7 +1088,7 @@ void processor_t::decode(){
 					new_uop.write_regs[i] = POSITION_FAIL;
 				}
 			}
-			new_uop.updatePackageReady(DECODE_LATENCY);
+			new_uop.updatePackageWait(DECODE_LATENCY);
 			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
@@ -1155,7 +1155,7 @@ void processor_t::rename(){
 		// Checando se há uop decodificado, se está pronto, e se o ciclo de pronto
 		// é maior ou igual ao atual
 		if (this->decodeBuffer.is_empty() ||
-			this->decodeBuffer.front()->status != PACKAGE_STATE_READY ||
+			this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
 			this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle())
 		{
 			break;
@@ -1266,7 +1266,7 @@ void processor_t::rename(){
 		// Setting controls to ROB.
 		// =======================
 		this->reorderBuffer[pos_rob].stage = PROCESSOR_STAGE_RENAME;
-		this->reorderBuffer[pos_rob].uop.updatePackageReady(RENAME_LATENCY + DISPATCH_LATENCY);
+		this->reorderBuffer[pos_rob].uop.updatePackageWait(RENAME_LATENCY + DISPATCH_LATENCY);
 		this->reorderBuffer[pos_rob].mob_ptr = mob_line;
 		this->reorderBuffer[pos_rob].processor_id = this->processor_id;
 		// =======================
@@ -1480,7 +1480,7 @@ void processor_t::dispatch(){
 
 			if ((rob_line->uop.readyAt <= orcs_engine.get_global_cycle()) &&
 				(rob_line->wait_reg_deps_number == 0)){
-				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_READY, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
+				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
 				//if dispatched
 				bool dispatched = false;
@@ -1504,7 +1504,7 @@ void processor_t::dispatch(){
 								fu_int_alu++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_INTEGER_ALU);
+								rob_line->uop.updatePackageWait(LATENCY_INTEGER_ALU);
 								break;
 							}
 						}
@@ -1523,7 +1523,7 @@ void processor_t::dispatch(){
 								fu_int_mul++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_INTEGER_MUL);
+								rob_line->uop.updatePackageWait(LATENCY_INTEGER_MUL);
 								break;
 							}
 						}
@@ -1542,7 +1542,7 @@ void processor_t::dispatch(){
 								fu_int_div++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_INTEGER_DIV);
+								rob_line->uop.updatePackageWait(LATENCY_INTEGER_DIV);
 								break;
 							}
 						}
@@ -1561,7 +1561,7 @@ void processor_t::dispatch(){
 								fu_fp_alu++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_FP_ALU);
+								rob_line->uop.updatePackageWait(LATENCY_FP_ALU);
 								break;
 							}
 						}
@@ -1580,7 +1580,7 @@ void processor_t::dispatch(){
 								fu_fp_mul++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_FP_MUL);
+								rob_line->uop.updatePackageWait(LATENCY_FP_MUL);
 								break;
 							}
 						}
@@ -1600,7 +1600,7 @@ void processor_t::dispatch(){
 								fu_fp_div++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_FP_DIV);
+								rob_line->uop.updatePackageWait(LATENCY_FP_DIV);
 								break;
 							}
 						}
@@ -1628,7 +1628,7 @@ void processor_t::dispatch(){
 								fu_mem_hive++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_MEM_HIVE);
+								rob_line->uop.updatePackageWait(LATENCY_MEM_HIVE);
 								if (DEBUG) ORCS_PRINTF ("Processor dispatch(): HIVE instruction %lu dispatched!\n", rob_line->uop.uop_number)
 								break;
 							}
@@ -1651,7 +1651,7 @@ void processor_t::dispatch(){
 								fu_mem_vima++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_MEM_VIMA);
+								rob_line->uop.updatePackageWait(LATENCY_MEM_VIMA);
 								if (VIMA_DEBUG) ORCS_PRINTF ("Processor dispatch(): VIMA instruction %lu dispatched!\n", rob_line->uop.uop_number)
 								break;
 							}
@@ -1669,7 +1669,7 @@ void processor_t::dispatch(){
 								fu_mem_load++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_MEM_LOAD);
+								rob_line->uop.updatePackageWait(LATENCY_MEM_LOAD);
 								break;
 							}
 						}
@@ -1689,7 +1689,7 @@ void processor_t::dispatch(){
 								fu_mem_store++;
 								dispatched = true;
 								rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-								rob_line->uop.updatePackageReady(LATENCY_MEM_STORE);
+								rob_line->uop.updatePackageWait(LATENCY_MEM_STORE);
 								break;
 							}
 						}
@@ -1828,7 +1828,7 @@ void processor_t::execute()
 		}
 		if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle()){
 			ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_EXECUTION, "ROB not on execution state")
-			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_READY, "FU with Package not in ready state")
+			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "FU with Package not in ready state")
 			switch (rob_line->uop.uop_operation){
 				// =============================================================
 				// BRANCHES
@@ -1868,7 +1868,7 @@ void processor_t::execute()
 					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
 					this->memory_hive_executed++;
 					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageReady(EXECUTE_LATENCY);
+					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
@@ -1888,7 +1888,7 @@ void processor_t::execute()
 					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
 					this->memory_vima_executed++;
 					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageReady(EXECUTE_LATENCY);
+					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
@@ -1902,7 +1902,7 @@ void processor_t::execute()
 					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
 					this->memory_read_executed++;
 					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageReady(EXECUTE_LATENCY);
+					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
@@ -1914,7 +1914,7 @@ void processor_t::execute()
 					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Write with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
 					this->memory_write_executed++;
 					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageReady(EXECUTE_LATENCY);
+					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
@@ -2396,14 +2396,14 @@ void processor_t::commit(){
 						this->add_core_ram_requests();
 					}
 					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
-					//ORCS_PRINTF ("%lu commit(): uop %lu, %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
+					//ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					this->add_stat_inst_load_completed();
 					break;
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
 					this->add_stat_inst_store_completed();
-					//ORCS_PRINTF ("%lu commit(): uop %lu, %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
+					//ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
 					// BRANCHES
 

@@ -3,7 +3,6 @@
 
 memory_package_t::memory_package_t() {
     this->row_buffer = false;
-    this->latency = 0;
     this->op_count = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof(uint64_t));
     for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++) this->op_count[i] = 0;
 
@@ -70,6 +69,6 @@ void memory_package_t::printPackage(){
 
 void memory_package_t::updateClients(){
     for (size_t i = 0; i < clients.size(); i++) {
-        clients[i]->updatePackageReady (latency);
+        clients[i]->updatePackageReady (0);
     }
 }

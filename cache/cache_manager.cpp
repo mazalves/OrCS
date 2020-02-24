@@ -269,8 +269,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     delete[] CACHE_TAGS;
 }
 
-void cache_manager_t::add_mshr_entry (memory_package_t* request, uint64_t latency_request){
-    request->latency = latency_request;
+void cache_manager_t::add_mshr_entry (memory_package_t* request){
     mshr_table.push_back (request);
     if (!request->is_hive && !request->is_vima) orcs_engine.memory_controller->add_requests_llc();
     //ORCS_PRINTF ("add_mshr_entry(): %s %s\n", get_enum_memory_operation_char (mshr_table[mshr_index]->memory_operation), get_enum_package_state_char (request->status))
@@ -303,7 +302,7 @@ void cache_manager_t::print_mshr_table(){
 void cache_manager_t::finishRequest (memory_package_t* request){
     for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
         if (request->op_count[i] > 0){
-            //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu OUT %s %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), mshr_count[request->memory_operation])
+            //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu OUT %s uop %lu %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), request->uop_number, mshr_count[request->memory_operation])
             mshr_count[i] = mshr_count[i] - request->op_count[i];
             //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu\n", mshr_count[request->memory_operation])
         }
@@ -398,7 +397,7 @@ cache_status_t cache_manager_t::recursiveDataSearch(memory_package_t *request, i
             this->data_cache[i+1][cache_indexes[i+1]].returnLine(request->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
-        //ORCS_PRINTF ("Cache HIT! %s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
+        //ORCS_PRINTF ("Cache HIT! %s uop: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->uop_number, cache_level)
         //this->data_cache[cache_level][cache_indexes[cache_level]].printTagIdx (request->memory_address);
         //request->updatePackageReady(latency_request);
         //delete request;
@@ -429,7 +428,7 @@ void cache_manager_t::processRequest (memory_package_t* request){
         uint32_t ttc = 0, latency_request = 0;
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
         this->generateIndexArray(request->processor_id, cache_indexes);
-        cache_status_t result;
+        cache_status_t result = MISS;
 
         switch (request->memory_operation){
             case MEMORY_OPERATION_INST:
@@ -474,7 +473,7 @@ void cache_manager_t::processRequest (memory_package_t* request){
 
 bool cache_manager_t::searchData(memory_package_t *request) {
     if (mshr_count[request->memory_operation] >= mshr_max[request->memory_operation]) return false;
-    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu IN  %s %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), mshr_count[request->memory_operation])
+    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu IN  %s uop %lu %lu -> ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (request->memory_operation), request->uop_number, mshr_count[request->memory_operation])
     mshr_count[request->memory_operation]++;
     //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu\n", mshr_count[request->memory_operation])
 
