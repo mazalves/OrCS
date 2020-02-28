@@ -699,6 +699,7 @@ void processor_t::fetch(){
 			request->sent_to_ram = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
+			request->latency += FETCH_LATENCY;
 
 			if (!orcs_engine.cacheManager->searchData(request)) delete request;
 		}
