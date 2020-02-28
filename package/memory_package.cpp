@@ -14,6 +14,7 @@ memory_package_t::memory_package_t() {
 
 memory_package_t::~memory_package_t(){
     vector<memory_request_client_t*>().swap(this->clients);
+    free (op_count);
 }
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){
