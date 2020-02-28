@@ -187,7 +187,7 @@ void processor_t::allocate() {
 	set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
 
 	set_DEBUG(cfg_processor["DEBUG"]);
-	set_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
+	set_PROCESSOR_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
 	set_FETCH_DEBUG(cfg_processor["FETCH_DEBUG"]);
 	set_DECODE_DEBUG(cfg_processor["DECODE_DEBUG"]);
 	set_RENAME_DEBUG(cfg_processor["RENAME_DEBUG"]);
