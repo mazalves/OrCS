@@ -10,7 +10,7 @@ class memory_package_t {
         package_state_t status;                  /// package state
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package create time
-        uint64_t latency;
+        uint32_t latency;
         
         bool sent_to_ram;
         bool is_hive;
@@ -26,6 +26,8 @@ class memory_package_t {
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
 
+        uint32_t MSHR_DEBUG;
+
         memory_package_t();
         ~memory_package_t();
 
@@ -34,4 +36,6 @@ class memory_package_t {
         void updatePackageWait(uint32_t stallTime);
         void updatePackageFree(uint32_t stallTime);
         void printPackage();
+
+        INSTANTIATE_GET_SET_ADD(uint32_t,MSHR_DEBUG)
 };
