@@ -25,11 +25,13 @@ class memory_package_t {
         bool row_buffer;
         cacheId_t type;
         uint64_t* op_count;
+        uint32_t latency;
 
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
 
         uint32_t DEBUG;
+        uint32_t MSHR_DEBUG;
 
         memory_package_t();
         ~memory_package_t();
@@ -44,4 +46,5 @@ class memory_package_t {
         void printPackage();
 
         INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
+        INSTANTIATE_GET_SET_ADD (uint32_t, MSHR_DEBUG)
 };

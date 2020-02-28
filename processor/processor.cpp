@@ -187,6 +187,7 @@ void processor_t::allocate() {
 	set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
 
 	set_DEBUG(cfg_processor["DEBUG"]);
+	set_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
 	set_FETCH_DEBUG(cfg_processor["FETCH_DEBUG"]);
 	set_DECODE_DEBUG(cfg_processor["DECODE_DEBUG"]);
 	set_RENAME_DEBUG(cfg_processor["RENAME_DEBUG"]);
@@ -198,6 +199,7 @@ void processor_t::allocate() {
 	set_HIVE_DEBUG(cfg_processor["HIVE_DEBUG"]);
 	set_VIMA_DEBUG(cfg_processor["VIMA_DEBUG"]);
 	set_COMMIT_DEBUG(cfg_processor["COMMIT_DEBUG"]);
+	set_MSHR_DEBUG(cfg_processor["MSHR_DEBUG"]);
 
 	set_WAIT_CYCLE(cfg_processor["WAIT_CYCLE"]);
 	// Load Units
@@ -674,13 +676,16 @@ void processor_t::fetch(){
 		if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
 			break;
 		}
+
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu fetch(): uop %lu %s, readyAt %u.\n", orcs_engine.get_global_cycle(), operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt)
+
 		if (!updated)
 		{
 			memory_package_t* request = new memory_package_t;
 			
 			request->clients.push_back (fetchBuffer.back());
 			request->processor_id = this->processor_id;
-			request->uop_number = 0;
+			request->uop_number = fetchBuffer.back()->opcode_number;
 			request->opcode_address = fetchBuffer.back()->opcode_address;
 			request->opcode_number = fetchBuffer.back()->opcode_number;
 			request->memory_address = fetchBuffer.back()->opcode_address;
@@ -690,6 +695,7 @@ void processor_t::fetch(){
 			request->is_vima = false;
 			request->status = PACKAGE_STATE_UNTREATED;
 			request->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
+			request->born_cycle = orcs_engine.get_global_cycle();
 			request->sent_to_ram = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
@@ -1096,6 +1102,8 @@ void processor_t::decode(){
 			}
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
 		}
+
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu decode(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), new_uop.uop_number, get_enum_instruction_operation_char (new_uop.uop_operation), new_uop.readyAt)
 		this->fetchBuffer.pop_front();
 	}
 }
@@ -1433,6 +1441,8 @@ void processor_t::rename(){
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
 		}
+
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu rename(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_rob].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_rob].uop.uop_operation), this->reorderBuffer[pos_rob].uop.readyAt)
 	} //end for
 }
 // ============================================================================
@@ -1482,6 +1492,9 @@ void processor_t::dispatch(){
 				(rob_line->wait_reg_deps_number == 0)){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
+
+				if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu dispatch(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
+
 				//if dispatched
 				bool dispatched = false;
 				switch (rob_line->uop.uop_operation)
@@ -1826,6 +1839,9 @@ void processor_t::execute()
 		if (rob_line == NULL){
 			break;
 		}
+
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu execute(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
+
 		if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle()){
 			ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_EXECUTION, "ROB not on execution state")
 			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "FU with Package not in ready state")
@@ -2048,6 +2064,7 @@ uint32_t processor_t::mob_read(){
 			request->hive_read2 = oldest_read_to_send->hive_read2;
 			request->hive_write = oldest_read_to_send->hive_write;
 			request->readyAt = orcs_engine.get_global_cycle();
+			request->born_cycle = orcs_engine.get_global_cycle();
 			request->sent_to_ram = false;
 			request->type = DATA;
 			request->uop_number = oldest_read_to_send->uop_number;
@@ -2153,6 +2170,7 @@ uint32_t processor_t::mob_hive(){
 			request->hive_read2 = oldest_hive_to_send->hive_read2;
 			request->hive_write = oldest_hive_to_send->hive_write;
 			request->readyAt = orcs_engine.get_global_cycle();
+			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
 			request->uop_number = oldest_hive_to_send->uop_number;
@@ -2193,6 +2211,7 @@ uint32_t processor_t::mob_vima(){
 			request->vima_read2 = oldest_vima_to_send->vima_read2;
 			request->vima_write = oldest_vima_to_send->vima_write;
 			request->readyAt = orcs_engine.get_global_cycle();
+			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
 			request->uop_number = oldest_vima_to_send->uop_number;
@@ -2282,6 +2301,7 @@ uint32_t processor_t::mob_write(){
 			request->hive_read2 = oldest_write_to_send->hive_read2;
 			request->hive_write = oldest_write_to_send->hive_write;
 			request->readyAt = orcs_engine.get_global_cycle();
+			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
 			request->uop_number = oldest_write_to_send->uop_number;
@@ -2396,14 +2416,14 @@ void processor_t::commit(){
 						this->add_core_ram_requests();
 					}
 					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
-					//ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
+					if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					this->add_stat_inst_load_completed();
 					break;
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
 					this->add_stat_inst_store_completed();
-					//ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
+					if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
 					// BRANCHES
 
