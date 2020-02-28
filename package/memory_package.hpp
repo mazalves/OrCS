@@ -23,6 +23,8 @@ class memory_package_t {
         uint64_t vima_read2;
         uint64_t vima_write;
 
+        cacheId_t type;
+
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
 

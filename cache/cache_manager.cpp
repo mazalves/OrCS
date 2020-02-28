@@ -270,7 +270,7 @@ bool cache_manager_t::isInMSHR (memory_package_t* request){
     uint64_t tag = (request->memory_address >> this->offset);
     //ORCS_PRINTF ("%lu %s\n", tag, get_enum_memory_operation_char (request->memory_operation))
     for (std::size_t i = 0; i < mshr_table.size(); i++){
-        if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->memory_operation == request->memory_operation) {
+        if ((mshr_table[i]->memory_address >> this->offset) == tag && mshr_table[i]->type == request->type) {
             //ORCS_PRINTF ("%s %s\n", get_enum_memory_operation_char(request->memory_operation), get_enum_memory_operation_char (mshr_table[i]->memory_operation))
             //ORCS_PRINTF ("HIT! %lu %lu %s\n", request->memory_address, tag, get_enum_memory_operation_char (request->memory_operation))
             for (size_t j = 0; j < request->clients.size(); j++){

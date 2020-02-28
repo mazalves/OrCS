@@ -696,6 +696,7 @@ void processor_t::fetch(){
 			request->status = PACKAGE_STATE_UNTREATED;
 			request->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 			request->born_cycle = orcs_engine.get_global_cycle();
+			request->type = INSTRUCTION;
 
 			orcs_engine.cacheManager->searchData(request);
 		}
@@ -2078,6 +2079,7 @@ uint32_t processor_t::mob_read(){
 			mob_line->born_cycle = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_read_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
+			mob_line->type = DATA;
 
 			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
@@ -2180,6 +2182,7 @@ uint32_t processor_t::mob_hive(){
 			mob_line->born_cycle = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_hive_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
+			mob_line->type = DATA;
 
 			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
@@ -2217,6 +2220,7 @@ uint32_t processor_t::mob_vima(){
 			mob_line->readyAt = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_vima_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
+			mob_line->type = DATA;
 
 			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
@@ -2309,6 +2313,7 @@ uint32_t processor_t::mob_write(){
 			mob_line->born_cycle = orcs_engine.get_global_cycle();
 			mob_line->uop_number = oldest_write_to_send->uop_number;
 			mob_line->processor_id = this->processor_id;
+			mob_line->type = DATA;
 
 			orcs_engine.cacheManager->searchData(mob_line);
 			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
