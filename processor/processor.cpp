@@ -614,10 +614,9 @@ void processor_t::fetch(){
 	opcode_package_t operation;
 	// uint32_t position;
 	// Trace ->fetchBuffer
-	for (uint32_t i = 0; i < FETCH_WIDTH; i++)
-	{
+	for (uint32_t i = 0; i < FETCH_WIDTH; i++) {
 		operation.package_clean();
-		bool updated = false;
+		//bool updated = false;
 		//=============================
 		//Stall full fetch buffer
 		//=============================
@@ -645,6 +644,7 @@ void processor_t::fetch(){
 		//add control variables
 		//============================
 		operation.opcode_number = this->fetchCounter;
+		operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 		this->fetchCounter++;
 		//============================
 		///Solve Branch
@@ -679,8 +679,7 @@ void processor_t::fetch(){
 
 		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu fetch(): uop %lu %s, readyAt %u.\n", orcs_engine.get_global_cycle(), operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt)
 
-		if (!updated)
-		{
+		//if (!updated){
 			memory_package_t* request = new memory_package_t;
 			
 			request->clients.push_back (fetchBuffer.back());
@@ -694,15 +693,14 @@ void processor_t::fetch(){
 			request->is_hive = false;
 			request->is_vima = false;
 			request->status = PACKAGE_STATE_UNTREATED;
-			request->readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
-			request->born_cycle = orcs_engine.get_global_cycle();
+			request->readyAt = fetchBuffer.back()->readyAt;
+			request->born_cycle = fetchBuffer.back()->readyAt;
 			request->sent_to_ram = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
-			request->latency += FETCH_LATENCY;
 
 			if (!orcs_engine.cacheManager->searchData(request)) delete request;
-		}
+		//}
 	}
 }
 // ============================================================================
@@ -1494,8 +1492,7 @@ void processor_t::dispatch(){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
 
-				if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu dispatch(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
-
+				
 				//if dispatched
 				bool dispatched = false;
 				switch (rob_line->uop.uop_operation)
@@ -1733,6 +1730,8 @@ void processor_t::dispatch(){
 					this->unified_reservation_station.erase(this->unified_reservation_station.begin() + i);
 					i--;
 				} //end if dispatched
+
+				if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu dispatch(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
 			}	 //end if robline is ready
 		}		  //end for
 		// sleep(1);
@@ -1841,8 +1840,6 @@ void processor_t::execute()
 			break;
 		}
 
-		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu execute(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
-
 		if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle()){
 			ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_EXECUTION, "ROB not on execution state")
 			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "FU with Package not in ready state")
@@ -1949,6 +1946,8 @@ void processor_t::execute()
 					ORCS_PRINTF("Executed %s\n", rob_line->content_to_string().c_str())
 				}
 			}
+
+			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu execute(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt)
 		} //end if ready package
 	}	 //end for
 	if (EXECUTE_DEBUG){
@@ -2424,7 +2423,6 @@ void processor_t::commit(){
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
 					this->add_stat_inst_store_completed();
-					if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
 					// BRANCHES
 
@@ -2450,6 +2448,8 @@ void processor_t::commit(){
 			}
 
 			ERROR_ASSERT_PRINTF(uint32_t(pos_buffer) == this->robStart, "Commiting different from the position start\n");
+			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
+
 			if (COMMIT_DEBUG){
 				if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 				{
