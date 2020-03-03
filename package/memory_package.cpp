@@ -28,6 +28,7 @@ void memory_package_t::updatePackageUntreated (uint32_t stallTime){
 void memory_package_t::updatePackageReady(){
     if (MSHR_DEBUG) ORCS_PRINTF ("%lu %lu %s %s -> ", orcs_engine.get_global_cycle(), uop_number, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     this->status = PACKAGE_STATE_READY;
+    this->readyAt = orcs_engine.get_global_cycle();
     if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency)
 }
 
@@ -63,7 +64,7 @@ void memory_package_t::updatePackageHive (uint32_t stallTime){
 }
 
 void memory_package_t::printPackage(){
-    ORCS_PRINTF ("Memory Package\nAddress: %lu | Operation: %s | Status: %s | Uop: %lu | ReadyAt: %lu\n", memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status), uop_number, readyAt)
+    ORCS_PRINTF ("%lu Address: %lu | Operation: %s | Status: %s | Uop: %lu | ReadyAt: %lu\n", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status), uop_number, readyAt)
 }
 
 void memory_package_t::updateClients(){

@@ -24,7 +24,7 @@ void vima_vector_t::clock() {
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
                         sub_requests[i].row_buffer = false;
-                        orcs_engine.memory_controller->requestDRAM (&sub_requests[i], sub_requests[i].memory_address);
+                        orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
                 } else {
                     //print_vector();
@@ -59,7 +59,7 @@ void vima_vector_t::clock() {
                     sub_requests[i].memory_address = memory_address << sub_req_offset;
                     memory_address++;
 
-                    orcs_engine.memory_controller->requestDRAM (&sub_requests[i], sub_requests[i].memory_address);
+                    orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 
             } else {
                 while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {

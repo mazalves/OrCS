@@ -30,7 +30,9 @@ void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
 // @*cache - cache to be instaled line prefetched
 // ================================================================
 void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache){
-    uint32_t idx_padding, line_padding;
+    std::ignore = mob_line;
+    std::ignore = cache;
+    /*uint32_t idx_padding, line_padding;
     uint64_t cycle = orcs_engine.get_global_cycle();
     if((this->prefetch_waiting_complete.front() <= cycle) &&
         (this->prefetch_waiting_complete.size()!=0)){
@@ -42,6 +44,7 @@ void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache
     if(this->prefetch_waiting_complete.size()>= PARALLEL_PREFETCH){
         return;
     }
+    //UPDATE IF GOING TO USE
     if(newAddress != POSITION_FAIL) {
         uint32_t status = cache->read(newAddress, sacrifice);
         if(status == MISS){
@@ -52,7 +55,7 @@ void prefetcher_t::prefecht(memory_order_buffer_line_t *mob_line, cache_t *cache
             linha->prefetched=1;
             this->prefetch_waiting_complete.push_back(cycle+latency_prefetch);
         }
-    }
+    }*/
 }
 void prefetcher_t::statistics(){
     bool close = false;

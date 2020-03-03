@@ -60,7 +60,7 @@ class memory_controller_t{
         void clock();
         void statistics();
         void set_masks();
-        uint64_t requestDRAM (memory_package_t* request, uint64_t address);
+        uint64_t requestDRAM (memory_package_t* request);
         //statistiscs methods
         INSTANTIATE_GET_SET_ADD(uint64_t,requests_made)
         INSTANTIATE_GET_SET_ADD(uint64_t,operations_executed)

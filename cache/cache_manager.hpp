@@ -29,20 +29,19 @@ class cache_manager_t {
         uint32_t NUMBER_OF_PROCESSORS;
         uint32_t MAX_PARALLEL_REQUESTS_CORE;
 
-        std::vector<memory_package_t*> mshr_table;
+        std::vector<memory_package_t*> requests;
         cache_t **instantiate_cache(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
         void get_cache_levels(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs);
         void get_cache_info(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, cache_t *cache, uint32_t cache_level, uint32_t CACHE_AMOUNT);
         void check_cache(uint32_t cache_size, uint32_t cache_level);
-        void add_mshr_entry(memory_package_t* mob_line);
-        void print_mshr_table();
-        bool isInMSHR (memory_package_t* mob_line);
+        void print_requests();
+        bool isIn (memory_package_t* mob_line);
         void installCacheLines(uint64_t instructionAddress, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
         cache_status_t recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
         cache_status_t recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
         cache_status_t recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
-        void processRequest (memory_package_t* request);
+        void requestCache (memory_package_t* request);
         void finishRequest (memory_package_t* request);
         void install (memory_package_t* request);
 

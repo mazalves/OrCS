@@ -11,6 +11,7 @@ class memory_package_t {
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package create time
         
+        bool sent_to_cache;
         bool sent_to_ram;
         bool is_hive;
         int64_t hive_read1;

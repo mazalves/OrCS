@@ -110,13 +110,13 @@ void memory_controller_t::set_masks(){
     }
 }
 //=====================================================================
-uint64_t memory_controller_t::requestDRAM (memory_package_t* request, uint64_t address){
+uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
     this->add_requests_made();
     if (request->is_hive) this->add_requests_hive();
     if (request->is_vima) this->add_requests_vima();
     if (request != NULL) {
         request->sent_to_ram = true;
-        this->channels[get_channel (address)].addRequest (request);
+        this->channels[get_channel (request->memory_address)].addRequest (request);
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;
     }

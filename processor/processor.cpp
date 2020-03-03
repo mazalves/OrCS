@@ -695,6 +695,7 @@ void processor_t::fetch(){
 			request->status = PACKAGE_STATE_UNTREATED;
 			request->readyAt = fetchBuffer.back()->readyAt;
 			request->born_cycle = fetchBuffer.back()->readyAt;
+			request->sent_to_cache = false;
 			request->sent_to_ram = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
@@ -2066,6 +2067,7 @@ uint32_t processor_t::mob_read(){
 			request->readyAt = orcs_engine.get_global_cycle();
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->sent_to_ram = false;
+			request->sent_to_cache = false;
 			request->type = DATA;
 			request->uop_number = oldest_read_to_send->uop_number;
 			request->processor_id = this->processor_id;
@@ -2173,6 +2175,7 @@ uint32_t processor_t::mob_hive(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
+			request->sent_to_cache = false;
 			request->uop_number = oldest_hive_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
@@ -2214,6 +2217,7 @@ uint32_t processor_t::mob_vima(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
+			request->sent_to_cache = false;
 			request->uop_number = oldest_vima_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
@@ -2304,6 +2308,7 @@ uint32_t processor_t::mob_write(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
+			request->sent_to_cache = false;
 			request->uop_number = oldest_write_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
