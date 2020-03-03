@@ -166,6 +166,7 @@ class processor_t {
 	disambiguation_method_t DISAMBIGUATION_METHOD;
 
 	uint32_t DEBUG;
+	uint32_t PROCESSOR_DEBUG;
 	uint32_t FETCH_DEBUG;
 	uint32_t DECODE_DEBUG;
 	uint32_t RENAME_DEBUG;
@@ -178,7 +179,6 @@ class processor_t {
 	uint32_t VIMA_DEBUG;
 	uint32_t COMMIT_DEBUG;
 	uint32_t MSHR_DEBUG;
-	uint32_t PROCESSOR_DEBUG;
 
 	uint32_t WAIT_CYCLE;
 

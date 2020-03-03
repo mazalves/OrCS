@@ -1493,7 +1493,6 @@ void processor_t::dispatch(){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
 
-				
 				//if dispatched
 				bool dispatched = false;
 				switch (rob_line->uop.uop_operation)
