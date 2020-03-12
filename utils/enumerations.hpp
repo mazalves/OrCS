@@ -89,7 +89,10 @@ enum instruction_operation_t {
 
     INSTRUCTION_OPERATION_VIMA_FP_ALU,   //27
     INSTRUCTION_OPERATION_VIMA_FP_MUL,   //28
-    INSTRUCTION_OPERATION_VIMA_FP_DIV    //29
+    INSTRUCTION_OPERATION_VIMA_FP_DIV,    //29
+    INSTRUCTION_OPERATION_VIMA_INT_MLA,   //30
+    INSTRUCTION_OPERATION_VIMA_FP_MLA,   //31
+    INSTRUCTION_OPERATION_LAST
 };
 
 // ============================================================================
@@ -155,6 +158,8 @@ enum memory_operation_t {
     MEMORY_OPERATION_VIMA_FP_ALU,
     MEMORY_OPERATION_VIMA_FP_MUL,
     MEMORY_OPERATION_VIMA_FP_DIV,
+    MEMORY_OPERATION_VIMA_INT_MLA,
+    MEMORY_OPERATION_VIMA_FP_MLA,
     MEMORY_OPERATION_LAST
 };
 const char *get_enum_memory_operation_char(memory_operation_t type);

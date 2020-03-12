@@ -201,7 +201,6 @@ extern orcs_engine_t orcs_engine;
 #include "./cache/cacheSet.hpp"
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
-#include "./cache/mshr_entry.hpp"
 //  =========================================//
 // Directory Classes
 //  =========================================//

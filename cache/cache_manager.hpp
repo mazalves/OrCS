@@ -13,8 +13,8 @@ class cache_manager_t {
         uint64_t write_hit;
         uint64_t offset;
         uint64_t mshr_index;
-        uint64_t* mshr_count;
-        uint64_t* mshr_max;
+        uint64_t* op_count;
+        uint64_t* op_max;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -60,6 +60,7 @@ class cache_manager_t {
         void statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
         bool searchData(memory_package_t *mob_line);
+        bool available(memory_operation_t op);
         
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t, reads)
