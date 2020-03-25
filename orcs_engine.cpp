@@ -8,6 +8,7 @@ orcs_engine_t::orcs_engine_t() {
 	this->cacheManager = NULL;
 	this->memory_controller = NULL;
 	this->configuration = NULL;
+	this->use_pin = false;
 }
 // =====================================================================
 void orcs_engine_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {

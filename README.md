@@ -63,7 +63,7 @@ g++ -ggdb3 -o orcs simulator.o orcs_engine.o trace_reader.o package/opcode_packa
 ```
 
 ## Running OrCS
-Before executing OrCS we must download a simulation trace.
+OrCS can be executed directly over an application with [Pin](https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool) or using simulation traces.
 
 ### Simulation traces
 Download at least one [simulation trace](https://drive.google.com/drive/folders/1wJIxye5Cm4cRu3pTYrKkWfPF94_9h5uN) because it will be needed during OrCS execution. Simulation traces replicate the computational behavior of a specific application, so these traces will be evaluated in OrCS similarly to the real application execution on a conventional computer. Each application directory has three different compressed files containing the simulation traces:
@@ -200,6 +200,207 @@ Deleting Branch predictor
 Deleting Cache manager
 Deleting Memory Controller
 ```
+
+### Direct execution
+Direct execution can be applied to any single threaded program. This mode uses [Pin](https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool) to obtain information about a program and send this information as an OrCS simulation input.
+Before executing, the pintool used to extract the programs information and the OrCS simulator should be compiled using the following command:
+```bash
+$ make orcs_pin
+```
+As long as both are compiled, any single threaded program can be simulated over OrCS using:
+```bash
+$ pin3.11/pin -t pin3.11/getInfos -c <orcs config file path> -- <program to be simulated>
+```
+The output will be close to a union of that obtained with traces and the application output, as shown in the following exemple:
+
+Command:
+```bash
+$ pin3.11/pin -t pin3.11/getInfos -- /bin/ls > output.txt
+```
+
+Output:
+```
+astar.CINT.PP200M.tid0.dyn.out.gz
+astar.CINT.PP200M.tid0.mem.out.gz
+astar.CINT.PP200M.tid0.stat.out.gz
+branch_predictor
+cache
+config
+directory
+entrada
+entradaLS.txt
+err.log
+hive
+Log.log
+main_memory
+Makefile
+orcs
+orcs_engine.cpp
+orcs_engine.hpp
+orcs_engine.o
+output.txt
+package
+pin3.11
+pin.log
+pintool.log
+prefetcher
+processor
+README.md
+sandyBridge.cfg
+simulator.cpp
+simulator.hpp
+simulator.o
+s.temp
+trace_reader.cpp
+trace_reader.hpp
+trace_reader.o
+utils
+vima
+==========================================================================
+Active Cores: 1 of 1
+Opcodes Processed: 0 of 1
+Total Progress   0.0000%
+Global IPC(-nan)
+Global ETC(inf:-nan:-nan)
+==========================================================================
+==========================================================================
+Benchmark PIN
+Actual Cycle 0
+Opcodes Processed: 0 of 1
+Uops Fetched/Uops Total: 0 of 0
+Uops Completed/uops decoded: 0 of 1
+Total Progress     -nan%
+IPC(-nan)
+ETC(-nan:-nan:-nan)
+KIPS(0.000000)
+Elapsed Time (00:00:01)
+==========================================================================
+
+End of Simulation
+Writting FILE
+Global_Statistics
+#===============================================#
+Global_Cycle: 89253
+Global_IPC: 0.000011
+Elapsed Time (00:00:02)
+KIPS: 0.000000
+#===============================================#
+#===============================================#
+Statistics of Core 0
+#========================================================================#
+trace_reader_t
+fetch_instructions: 0
+#========================================================================#
+#========================================================================#
+Total_Cycle: 89252
+#===============================================#
+Stage_Opcode_and_Uop_Counters
+#===============================================#
+Stage_Fetch: 25331
+Stage_Decode: 25331
+Stage_Rename: 27947
+Stage_Commit: 27946
+#========================================================================#
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_READ: 0
+Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: 2246
+#========================================================================#
+Instruction_Per_Cycle: 0.283814
+MPKI: 90.166199
+Average_wait_cycles_wait_mem_req: 37.568443
+Core_Request_RAM_AVG_Cycle: -nan
+#========================================================================#
+#===============================================#
+Total_Read_false_Positives: 20
+Total_Write_false_Positives: 46
+Total_Resolve_Address_to_Address: 2308
+#===============================================#
+#========================================================================#
+BTB Hits: 1336
+BTB Miss: 3973
+Total Branchs: 5309
+Total Branchs Taken: 529
+Total Branchs Not Taken: 4780
+Correct Branchs Taken: 217
+Incorrect Branchs Taken: 312
+Correct Branchs Not Taken: 3652
+Incorrect Branchs Not Taken: 1128
+#========================================================================#
+#========================================================================#
+##############  Cache Memories ##################
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+Total Reads: 3821
+Total Writes: 3918
+#========================================================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 0
+0_Cache_Access: 4278
+0_Cache_Hits: 2400
+0_Cache_Miss: 1878
+0_Cache_Eviction: 1737
+0_Cache_Read: 2400
+0_Cache_Write: 0
+#===============================================#
+#===============================================#
+Cache_Level: 0 - Cache_Type: 1
+0_Cache_Access: 5747
+0_Cache_Hits: 5190
+0_Cache_Miss: 557
+0_Cache_Eviction: 698
+0_Cache_Read: 5747
+0_Cache_Write: 2092
+0_Cache_WriteBack: 84
+#===============================================#
+#===============================================#
+Cache_Level: 1 - Cache_Type: 1
+1_Cache_Access: 2435
+1_Cache_Hits: 151
+1_Cache_Miss: 2284
+1_Cache_Eviction: 2284
+1_Cache_Read: 2435
+1_Cache_Write: 348
+#===============================================#
+#===============================================#
+Cache_Level: 2 - Cache_Type: 1
+2_Cache_Access: 2284
+2_Cache_Hits: 0
+2_Cache_Miss: 2284
+2_Cache_Eviction: 2284
+2_Cache_Read: 2284
+2_Cache_Write: 199
+#===============================================#
+#===============================================#
+#========================================================================#
+#Memory Controller
+#========================================================================#
+Requests_Made:              2284
+Requests_from_Prefetcher:   0
+Requests_from_LLC:          0
+Requests_from_HIVE:         0
+Requests from VIMA:         0
+Row_Buffer_Hit, Channel 0:  396
+Row_Buffer_Miss, Channel 0: 187
+Row_Buffer_Hit, Channel 1:  373
+Row_Buffer_Miss, Channel 1: 177
+Row_Buffer_Hit, Channel 2:  397
+Row_Buffer_Miss, Channel 2: 171
+Row_Buffer_Hit, Channel 3:  387
+Row_Buffer_Miss, Channel 3: 196
+#========================================================================#
+Writed FILE
+Deleting Trace Reader
+Deleting Processor
+Deleting Branch predictor
+Deleting Cache manager
+Deleting HIVE Controller
+Deleting VIMA Controller
+#========================================================================#
+VIMA Cache Hits: 0
+VIMA Cache Misses: 0
+VIMA Cache Accesses: 0
+#========================================================================#
+Deleting Memory Controller
+```
+
 
 ## Development
 To keep all branches correct and a functional master, we must follow some versioning rules.

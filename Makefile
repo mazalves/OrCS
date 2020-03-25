@@ -23,6 +23,7 @@ FD_VIMA = vima
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
+FD_PIN = pin3.11
 
 
 ###
@@ -96,8 +97,12 @@ all: orcs
 orcs: $(OBJS_CORE)
 	$(LD) $(LDFLAGS) -o $(BIN_NAME) $(OBJS) $(LIBRARY)
 
+orcs_pin: orcs
+	make -C $(FD_PIN) getInfos
+
 clean:
 	-$(RM) $(OBJS)
 	-$(RM) $(BIN_NAME)
+	-$(RM) $(FD_PIN)/getInfos.o $(FD_PIN)/getInfos
 	@echo OrCS cleaned!
 	@echo
