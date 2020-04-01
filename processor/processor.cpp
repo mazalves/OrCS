@@ -1238,7 +1238,9 @@ void processor_t::rename(){
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL){
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
 			if (this->memory_order_buffer_hive_used>=MOB_VIMA || this->robUsed>=ROB_SIZE) break;
 			pos_mob = this->search_position_mob_vima();
 			if (pos_mob == POSITION_FAIL) {
@@ -1377,7 +1379,9 @@ void processor_t::rename(){
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL){
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
 			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
 			this->reorderBuffer[pos_rob].mob_ptr->is_vima = true;
 			this->reorderBuffer[pos_rob].mob_ptr->vima_read1 = this->reorderBuffer[pos_rob].uop.read_address;
@@ -1779,6 +1783,7 @@ void processor_t::clean_mob_vima(){
 			this->memory_order_buffer_vima[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 			this->memory_order_buffer_vima[pos].processed=true;
 			this->memory_vima_executed--;
+			this->solve_registers_dependency(this->memory_order_buffer_vima[pos].rob_ptr);
 			/*if (DISAMBIGUATION_ENABLED){
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vima[pos]);
 			}*/
@@ -2166,10 +2171,10 @@ memory_order_buffer_line_t* processor_t::get_next_op_vima(){
 
 // ============================================================================
 uint32_t processor_t::mob_hive(){
-	if(this->oldest_hive_to_send==NULL && orcs_engine.cacheManager->available (oldest_hive_to_send->memory_operation)){
+	if(this->oldest_hive_to_send==NULL)
 		this->oldest_hive_to_send = this->get_next_op_hive();
-	}
-	if (this->oldest_hive_to_send != NULL){
+	
+	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (oldest_hive_to_send->memory_operation)){
 		if (!this->oldest_hive_to_send->sent){
 			memory_package_t* request = new memory_package_t;
 			

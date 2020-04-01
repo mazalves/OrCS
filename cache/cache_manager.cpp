@@ -180,6 +180,12 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_write_hit(0);
     this->set_write_miss(0);
     this->set_offset(utils_t::get_power_of_two(LINE_SIZE));
+    this->set_sent_ram(0);
+    this->set_sent_ram_cycles(0);
+    this->set_sent_hive(0);
+    this->set_sent_hive_cycles(0);
+    this->set_sent_vima(0);
+    this->set_sent_vima_cycles(0);
 
     this->op_count = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof (uint64_t));
     this->op_max = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof (uint64_t));
@@ -287,15 +293,31 @@ bool cache_manager_t::isIn (memory_package_t* request){
 }
 
 void cache_manager_t::print_requests(){
+    ORCS_PRINTF ("-------------%lu------------\n", orcs_engine.get_global_cycle())
     for (size_t i = 0; i < requests.size(); i++){
         ORCS_PRINTF ("MSHR Table entry %lu: mop %s | uop %lu | status %s.\n", i, get_enum_memory_operation_char (requests[i]->memory_operation), requests[i]->uop_number, get_enum_package_state_char (requests[i]->status))
     }
-    ORCS_PRINTF ("------------------------------\n")
 }
 
 void cache_manager_t::finishRequest (memory_package_t* request){
     for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
         op_count[i] = op_count[i] - request->op_count[i];
+    }
+
+    if (request->sent_to_ram && !request->is_hive && !request->is_vima){
+        sent_ram++;
+        sent_ram_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
+        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
+    }
+    else if (request->is_hive){
+        sent_hive++;
+        sent_hive_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
+        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
+    }
+    else if (request->is_vima){
+        sent_vima++;
+        sent_vima_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
+        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
     }
 
     request->updatePackageReady();
@@ -345,6 +367,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
 
 void cache_manager_t::clock() {
     if (requests.size() > 0) {
+        //ORCS_PRINTF ("%lu ", requests.size())
         for (size_t i = 0; i < requests.size(); i++){
             if (requests[i]->readyAt <= orcs_engine.get_global_cycle()) {
                 if (requests[i]->status == PACKAGE_STATE_WAIT) {
@@ -498,7 +521,20 @@ void cache_manager_t::statistics(uint32_t core_id) {
         fprintf(output,"##############  Cache Memories ##################\n");
         for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++) ORCS_PRINTF ("%lu ", op_count[i]);
         ORCS_PRINTF ("\n")
-        ORCS_PRINTF ("Total Reads: %lu\nTotal Writes: %lu\n", this->get_reads(), this->get_writes())
+        if (this->get_sent_ram() > 0) {
+            ORCS_PRINTF ("Total Reads: %lu\nTotal Writes: %lu\n", this->get_reads(), this->get_writes())
+            ORCS_PRINTF ("Total RAM requests: %u\nTotal RAM request latency cycles: %u\n", this->get_sent_ram(), this->get_sent_ram_cycles())
+            ORCS_PRINTF ("Average wait for RAM requests: %u\n", sent_ram_cycles/sent_ram)
+        }
+        if (this->get_sent_hive() > 0) {
+            ORCS_PRINTF ("Total HIVE requests: %u\nTotal HIVE request latency cycles: %u\n", this->get_sent_hive(), this->get_sent_hive_cycles())
+            ORCS_PRINTF ("Average wait for HIVE requests: %u\n", sent_hive_cycles/sent_hive)
+        }
+        if (this->get_sent_vima() > 0){
+            ORCS_PRINTF ("Total VIMA requests: %u\nTotal VIMA request latency cycles: %u\n", this->get_sent_vima(), this->get_sent_vima_cycles())
+            ORCS_PRINTF ("Average wait for VIMA requests: %u\n", sent_vima_cycles/sent_vima)
+        }
+    
         utils_t::largestSeparator(output);
     }
 	if(close) fclose(output);
