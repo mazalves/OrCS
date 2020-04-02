@@ -21,23 +21,26 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 //
 //==============================================================================
-// #include "../../../../sinuca.hpp"
-#include "../../../../utils.cpp"
-#include "../../../../packages/opcode_package.cpp"
-#include "../../../../enumerations.cpp"
+
+#include <inttypes.h>
+#include <string>
+#include <stdio.h>
+#include "defines.hpp"
+#include "enumerations.hpp"
+#include "memory_request_client.hpp"
+#include "opcode_package.hpp"
+#include "opcodes.hpp"
+// ============================================================================
 
 #undef ERROR // Required to avoid using backtrace
+// ============================================================================
 
 #include "pin.H"
 #include "instlib.H"
-// ~ #include "control_manager.H"
 #include "xed-interface.h"
-
-
-
-// ~ NEW
 #include "pinplay.H"
 PINPLAY_ENGINE pinplay_engine;
+// ============================================================================
 
 
 // #include "intrinsics_extension.cpp"
@@ -57,6 +60,16 @@ KNOB<BOOL>KnobLogger(KNOB_MODE_WRITEONCE,  KNOB_FAMILY,
                      KNOB_LOG_NAME, "0", "Create a pinball");
 
 
+
+// ============================================================================
+/// Enumerates the synchronization type required by the dynamic trace.
+enum sync_t {
+    SYNC_BARRIER,
+    SYNC_WAIT_CRITICAL_START,
+    SYNC_CRITICAL_START,
+    SYNC_CRITICAL_END,
+    SYNC_FREE
+};
 
 // #ifdef TRACE_GENERATOR_DEBUG
 //     #define TRACE_GENERATOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
@@ -121,11 +134,6 @@ KNOB<int32_t> KnobParallelEnd(KNOB_MODE_WRITEONCE, "pintool",
 const char* get_label() {
     return "Trace Generator";
 };
-
-sinuca_engine_t sinuca_engine;
-sinuca_engine_t::sinuca_engine_t() {};
-sinuca_engine_t::~sinuca_engine_t() {};
-void sinuca_engine_t::global_panic() {};
 
 
 //==============================================================================
@@ -776,7 +784,7 @@ void x86_to_static(const INS& ins) {
     }
 
     char opcode_str[TRACE_LINE_SIZE];
-    NewInstruction.opcode_to_trace_string(opcode_str);
+    opcodes::opcode_to_trace_string(NewInstruction, opcode_str);
     write_static_char(opcode_str);
 };
 
@@ -1238,7 +1246,7 @@ int main(int argc, char *argv[]) {
     PIN_InitSymbols();
 
     max_threads = KnobNumberThreads.Value();
-    SINUCA_PRINTF("GCC Threads = %d\n", max_threads);
+    printf("GCC Threads = %d\n", max_threads);
 
     /// Initialize the pin lock
     PIN_InitLock(&lock);
@@ -1260,14 +1268,14 @@ int main(int argc, char *argv[]) {
     static char stat_file_name[500];
     stat_file_name[0] = '\0';
 
-    SINUCA_PRINTF("Inserted Output File Name = %s\n", KnobOutputFile.Value().c_str());
+    printf("Inserted Output File Name = %s\n", KnobOutputFile.Value().c_str());
 
     sprintf(stat_file_name , "%s.tid0.stat.out.gz", KnobOutputFile.Value().c_str());
     gzStaticTraceFile = gzopen(stat_file_name, "wb");   /// Open the .gz file
     ASSERTX(gzStaticTraceFile != NULL);                 /// Check the .gz file
     gzwrite(gzStaticTraceFile, trace_header, strlen(trace_header));
 
-    SINUCA_PRINTF("Real Static File = %s => READY !\n",stat_file_name);
+    printf("Real Static File = %s => READY !\n",stat_file_name);
 
     //==========================================================================
     // Dynamic Trace Files
@@ -1280,7 +1288,7 @@ int main(int argc, char *argv[]) {
         thread_data[i].gzDynamicTraceFile = gzopen(dyn_file_name, "wb");    /// Open the .gz file
         ASSERTX(thread_data[i].gzDynamicTraceFile != NULL);                 /// Check the .gz file
         gzwrite(thread_data[i].gzDynamicTraceFile, trace_header, strlen(trace_header));
-        SINUCA_PRINTF("Real Dynamic File = %s => READY !\n", dyn_file_name);
+        printf("Real Dynamic File = %s => READY !\n", dyn_file_name);
     }
 
     //==========================================================================
@@ -1294,7 +1302,7 @@ int main(int argc, char *argv[]) {
         thread_data[i].gzMemoryTraceFile = gzopen(mem_file_name, "wb");     /// Open the .gz file
         ASSERTX(thread_data[i].gzMemoryTraceFile != NULL);                  /// Check the .gz file
         gzwrite(thread_data[i].gzMemoryTraceFile, trace_header, strlen(trace_header));
-        SINUCA_PRINTF("Real Memory File = %s => READY !\n", mem_file_name);
+        printf("Real Memory File = %s => READY !\n", mem_file_name);
     }
 
     //=======================================================================

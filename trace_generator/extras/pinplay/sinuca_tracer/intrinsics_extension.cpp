@@ -501,7 +501,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
     uint32_t i, j, bicount;
     int ireg, breg, rreg, wreg;
     std::string rtn_name;
-    bool read_regs[MAX_REGISTER_NUMBER], write_regs[MAX_REGISTER_NUMBER];
+    bool read_regs[MAX_REGISTERS], write_regs[MAX_REGISTERS];
     // Open HMC routine
     if (RTN_Valid(arch_rtn)) {
         RTN_Open(arch_rtn);
@@ -532,7 +532,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                             IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);            
         }
 
-        for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
+        for (i = 0; i < MAX_REGISTERS; i++) {
             read_regs[i] = false;
             write_regs[i] = false;
         }
@@ -573,7 +573,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
 
         // Record all read and write registers into read and write register's list
         int r_index = 0, w_index = 0;
-        for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
+        for (i = 0; i < MAX_REGISTERS; i++) {
             if (read_regs[i] == true) {
                 NewInstruction.read_regs[r_index++] = i;
             }
@@ -752,7 +752,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         NewInstruction.is_indirect = 0;
         NewInstruction.is_predicated = 0;
         // NewInstruction.is_prefetch = 0;
-        NewInstruction.opcode_to_trace_string(opcode_str);
+        opcodes::opcode_to_trace_string(NewInstruction, opcode_str);
         write_static_char(opcode_str);
         RTN_Close(arch_rtn);
     }
