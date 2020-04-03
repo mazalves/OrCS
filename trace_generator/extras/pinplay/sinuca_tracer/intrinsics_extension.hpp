@@ -1,6 +1,8 @@
 // INTRINSICS EXTENSION HEADER
 
-#include "../../../../sinuca.hpp"
+#include "enumerations.hpp"
+#include "opcodes.hpp"
+#include <zlib.h>
 
 #ifdef TRACE_GENERATOR_DEBUG
     #define TRACE_GENERATOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
