@@ -1,8 +1,5 @@
 #ifndef __ORCS_TRACER_DEFINES_hpp__
 #define __ORCS_TRACER_DEFINES_hpp__
-#define TRACE_LINE_SIZE 512
-#define MAX_REGISTERS 6
-#define POSITION_FAIL -1
 // ============================================================================
 
 #define ERROR_INFORMATION() {\

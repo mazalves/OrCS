@@ -1,6 +1,6 @@
 // INTRINSICS EXTENSION HEADER
 
-#include "enumerations.hpp"
+#include "../../../../utils/enumerations.hpp"
 #include "opcodes.hpp"
 #include <zlib.h>
 

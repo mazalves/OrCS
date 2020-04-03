@@ -2,7 +2,7 @@
 #define __ORCS_OPCODES_hpp__
 #include <stdint.h>
 #include <stdio.h>
-#include "opcode_package.hpp"
+#include "../../../../package/opcode_package.cpp"
 namespace opcodes {
     void opcode_to_trace_string(opcode_package_t &op, char *trace_string) {
         char register_string[TRACE_LINE_SIZE];
