@@ -24,10 +24,10 @@
 #include <inttypes.h>
 #include <string>
 #include <stdio.h>
-#include "defines.hpp"
-#include "enumerations.hpp"
-#include "memory_request_client.hpp"
-#include "opcode_package.hpp"
+#include "tracer_log_procedures.hpp"
+#include "../../../../defines.hpp"
+#include "../../../../utils/enumerations.hpp"
+#include "../../../../main_memory/memory_request_client.cpp"
 #include "opcodes.hpp"
 
 #include "pin.H"

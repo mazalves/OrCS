@@ -1,4 +1,9 @@
+#ifndef __PIN__
 #include "../simulator.hpp"
+#else
+#include "opcode_package.hpp"
+#endif
+
 #include <string>
 // =====================================================================
 opcode_package_t::opcode_package_t() {
@@ -36,13 +41,17 @@ opcode_package_t::opcode_package_t() {
     this->is_prefetch = false;
 
     this->status = PACKAGE_STATE_FREE;
+    #ifndef __PIN__
     this->readyAt = orcs_engine.get_global_cycle();
+    #else
+    this->readyAt = 0;
+    #endif    
 }
 
 opcode_package_t::~opcode_package_t() {
     
 }
-
+#ifndef __PIN__
 // =============================================================================
 void opcode_package_t::package_clean() {
     /// TRACE Variables
@@ -131,3 +140,5 @@ std::string opcode_package_t::content_to_string2() {
 
     return content_string;
 }
+
+#endif // ifndef __PIN__
