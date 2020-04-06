@@ -279,20 +279,22 @@ VOID tracer(TRACE trace, VOID *v) {
             //--------------------------------------------------------------------------
             // New BBL instruction
             //--------------------------------------------------------------------------
-            opcode_package_t op = x86_to_static(ins);
-            program.insert(current_bbl, op);
+            if(INS_hasKnownMemorySize(ins)) {
+                opcode_package_t op = x86_to_static(ins);
+                program.insert(current_bbl, op);
 
-            //--------------------------------------------------------------------------
-            // Memory accesses executed
-            //--------------------------------------------------------------------------
-             if (INS_IsMemoryRead(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, true, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT64, current_bbl, IARG_END);
-            }
-            if (INS_HasMemoryRead2(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, true, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_UINT64, current_bbl, IARG_END);
-            }
-            if (INS_IsMemoryWrite(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT64, current_bbl, IARG_END);
+                //--------------------------------------------------------------------------
+                // Memory accesses executed
+                //--------------------------------------------------------------------------
+                if (INS_IsMemoryRead(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, true, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT64, current_bbl, IARG_END);
+                }
+                if (INS_HasMemoryRead2(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, true, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_UINT64, current_bbl, IARG_END);
+                }
+                if (INS_IsMemoryWrite(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT64, current_bbl, IARG_END);
+                }
             }
             
         }

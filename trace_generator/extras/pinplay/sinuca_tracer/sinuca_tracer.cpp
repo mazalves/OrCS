@@ -288,28 +288,31 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                         IARG_THREAD_ID, IARG_END);
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-            opcode_package_t pck = x86_to_static(ins);       // pin::ins => static trace
 
-            //--------------------------------------------------------------------------
-            // Write into the static trace
-            //--------------------------------------------------------------------------
-            char opcode_str[TRACE_LINE_SIZE];
-            opcodes::opcode_to_trace_string(pck, opcode_str);
-            write_static_char(opcode_str);
+            if(INS_hasKnownMemorySize(ins)) {
+                opcode_package_t pck = x86_to_static(ins);       // pin::ins => static trace
 
-            //--------------------------------------------------------------------------
-            // Write the Memory
-            // is_instrumenteds loads using a predicated call, i.e.
-            // the call happens if the load will be actually executed
-            //--------------------------------------------------------------------------
-            if (INS_IsMemoryRead(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, true, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
-            }
-            if (INS_HasMemoryRead2(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, true, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
-            }
-            if (INS_IsMemoryWrite(ins)) {
-                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
+                //--------------------------------------------------------------------------
+                // Write into the static trace
+                //--------------------------------------------------------------------------
+                char opcode_str[TRACE_LINE_SIZE];
+                opcodes::opcode_to_trace_string(pck, opcode_str);
+                write_static_char(opcode_str);
+
+                //--------------------------------------------------------------------------
+                // Write the Memory
+                // is_instrumenteds loads using a predicated call, i.e.
+                // the call happens if the load will be actually executed
+                //--------------------------------------------------------------------------
+                if (INS_IsMemoryRead(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, true, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
+                }
+                if (INS_HasMemoryRead2(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, true, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
+                }
+                if (INS_IsMemoryWrite(ins)) {
+                    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
+                }
             }
         }
 
