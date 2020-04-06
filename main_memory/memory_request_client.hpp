@@ -1,3 +1,5 @@
+#ifndef MEMORY_REQUEST_CLIENT_H
+#define MEMORY_REQUEST_CLIENT_H
 class memory_request_client_t {
     public:
         package_state_t status;
@@ -15,3 +17,4 @@ class memory_request_client_t {
         virtual void updatePackageFree(uint32_t stallTime);
         #endif
 };
+#endif

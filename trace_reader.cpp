@@ -23,26 +23,32 @@ trace_reader_t::trace_reader_t() {
     this->fetch_instructions=0;
         //get total opcodes 
     this->trace_opcode_max=0;
+
 }
 
 // =====================================================================
 trace_reader_t::~trace_reader_t() {
-    gzclose(gzStaticTraceFile);
-    gzclose(gzDynamicTraceFile);
-    gzclose(gzMemoryTraceFile);
-        /// De-Allocate memory to prevent memory leak
-    utils_t::template_delete_array<char>(line_static);
-    utils_t::template_delete_matrix<char>(line_dynamic, TRACE_LINE_SIZE);
-    utils_t::template_delete_matrix<char>(line_memory, TRACE_LINE_SIZE);
-    
-    for (uint32_t bbl = 1; bbl < this->binary_total_bbls; bbl++) delete[] binary_dict[bbl];
-    delete[] binary_dict;
-    delete[] binary_bbl_size;
+        if(orcs_engine.use_pin)
+            return;
+        gzclose(gzStaticTraceFile);
+        gzclose(gzDynamicTraceFile);
+        gzclose(gzMemoryTraceFile);
+            /// De-Allocate memory to prevent memory leak
+        utils_t::template_delete_array<char>(line_static);
+        utils_t::template_delete_matrix<char>(line_dynamic, TRACE_LINE_SIZE);
+        utils_t::template_delete_matrix<char>(line_memory, TRACE_LINE_SIZE);
+        
+        for (uint32_t bbl = 1; bbl < this->binary_total_bbls; bbl++) delete[] binary_dict[bbl];
+        delete[] binary_dict;
+        delete[] binary_bbl_size;
 }
 
 // =====================================================================
 void trace_reader_t::allocate(char *trace_file) {
-
+    if(orcs_engine.use_pin) {
+        return;
+    }
+        
     char file_name[TRACE_LINE_SIZE];
 
     // =================================================================
@@ -455,7 +461,104 @@ bool trace_reader_t::trace_next_memory(uint64_t *mem_address, uint32_t *mem_size
 }
 
 // =====================================================================
+bool trace_reader_t::pin_next(opcode_package_t *m) {
+    char next_instruction[1024];
+    char *tmp_ptr = NULL;
+    char *sub_string = NULL;
+
+    opcode_package_t CleanOpcode;
+
+    if(fgets(next_instruction, 1024, stdin) == NULL) {
+	    ORCS_PRINTF("Could not read Pin input\n");
+        return FAIL;
+    }
+
+    if(strcmp(next_instruction, "000") == 0) {
+        return FAIL;
+    }
+
+    *m = CleanOpcode;
+    sub_string = strtok_r(next_instruction, " ", &tmp_ptr);
+    strcpy(m->opcode_assembly, sub_string);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->opcode_operation = static_cast<instruction_operation_t> (std::strtoul(sub_string, NULL, 10));
+    
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->opcode_address = std::strtoull(sub_string, NULL, 10);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->opcode_size = std::strtoul(sub_string, NULL, 10);
+
+    for (int i = 0; i < MAX_REGISTERS; ++i) {
+        sub_string = strtok_r(NULL, " ", &tmp_ptr);
+        m->read_regs[i] = std::atoi(sub_string);
+
+        sub_string = strtok_r(NULL, " ", &tmp_ptr);
+        m->write_regs[i] = std::atoi(sub_string);
+    }
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->base_reg = std::strtoul(sub_string, NULL, 10);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->index_reg = std::strtoul(sub_string, NULL, 10);
+
+    /// Read 1
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_read = (sub_string[0] == '1');
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->read_address = std::strtoull(sub_string, NULL, 10);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->read_size = std::strtoul(sub_string, NULL, 10);
+
+    /// Read 2
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_read2 = (sub_string[0] == '1');
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->read2_address = std::strtoull(sub_string, NULL, 10);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->read2_size = std::strtoul(sub_string, NULL, 10);
+
+    /// Write
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_write = (sub_string[0] == '1');
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->write_address = std::strtoull(sub_string, NULL, 10);
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->write_size = std::strtoul(sub_string, NULL, 10);
+    /// Branches
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->branch_type = static_cast<branch_t> (strtoull(sub_string, NULL, 10));
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_indirect = (sub_string[0] == '1');
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_predicated = (sub_string[0] == '1');
+
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    m->is_prefetch = (sub_string[0] == '1');
+
+    return OK;
+
+}
+
+// =====================================================================
 bool trace_reader_t::trace_fetch(opcode_package_t *m) {
+
+    if(orcs_engine.use_pin)
+    {
+        return pin_next(m);
+
+    }
+
     opcode_package_t NewOpcode;
     bool success;
     uint32_t new_BBL;

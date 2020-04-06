@@ -42,7 +42,7 @@ endif
 
 CXXFLAGS += ${WARNINGS} $(DBG) $(OPT) ${DEPENDENCYFLAG} -std=c++0x
 
-TOOLNAMES=pinplay-driver sinuca_tracer branch_profiler instruction_type_count library_call profile
+TOOLNAMES=pinplay-driver sinuca_tracer branch_profiler instruction_type_count library_call profile direct_tracer
 
 TOOLS=${TOOLNAMES:%=$(OBJDIR)/$(PINTOOL_PREFIX)%$(PINTOOL_SUFFIX)}
 
@@ -179,7 +179,13 @@ ${OBJDIR}/profile.so:  ${OBJDIR}/profile.${OBJEXT} $(PINPLAY_LIB_HOME)/libpinpla
 	mv $@  $(PINPLAY_HOME)/bin/$(TARGET)/
 	@echo ""
 
-
+${OBJDIR}/direct_tracer.so:  ${OBJDIR}/direct_tracer.${OBJEXT}
+	$(LINKER) $(TOOL_LDFLAGS) $(LINK_EXE)$@ $^ $(TOOL_LPATHS) $(TOOL_LIBS) $(MYLIBS) $(EXTRA_LIBS) $(PIN_LIBS) $(DBG)
+	@echo ""
+	@echo "*********************************"
+	@echo "Moving direct_tracer.so to  $(PINPLAY_HOME)/bin/$(TARGET)/"
+	mv $@  $(PINPLAY_HOME)/bin/$(TARGET)/
+	@echo ""
 
 ## cleaning
 instclean:
