@@ -21,6 +21,7 @@ static uint32_t process_argv(int argc, char **argv) {
         {"core",        required_argument, 0, 'c'},
         {"trace",       required_argument, 0, 't'},
         {"output_filename",       optional_argument, 0, 'f'},
+        {"use_pin", optional_argument, 0, 'p'},
         {NULL,          0, NULL, 0}
     };
 
@@ -29,7 +30,7 @@ static uint32_t process_argv(int argc, char **argv) {
     int option_index = 0;
     uint32_t traces_informados = 0;
     
-    while ((opt = getopt_long_only(argc, argv, "h:c:t:f:w:",
+    while ((opt = getopt_long_only(argc, argv, "h:c:t:f:pw:",
                  long_options, &option_index)) != -1) {
         switch (opt) {
         case 0:
@@ -51,6 +52,9 @@ static uint32_t process_argv(int argc, char **argv) {
         case 'f':
             orcs_engine.output_file_name = optarg;
             break;
+        case 'p':
+            orcs_engine.use_pin = true;
+            break;
         case '?':
             break;
 
@@ -71,12 +75,16 @@ static uint32_t process_argv(int argc, char **argv) {
     uint32_t NUMBER_OF_PROCESSORS = cfg_root["PROCESSOR"].getLength();
 
     utils_t::process_mem_usage(&orcs_engine.stat_vm_start, &orcs_engine.stat_rss_start);
-
-    ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
-    if (orcs_engine.arg_trace_file_name.empty()) {
-        ORCS_PRINTF("Trace file not defined.\n");
-        display_use();
+    if(orcs_engine.use_pin == false) {
+        ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
+        if (orcs_engine.arg_trace_file_name.empty()) {
+            ORCS_PRINTF("Trace file not defined.\n");
+            display_use();
+        }
+    } else {
+        ERROR_ASSERT_PRINTF(NUMBER_OF_PROCESSORS == 1,"Error, Pin can only be used in a system with one processor\n")
     }
+
     return NUMBER_OF_PROCESSORS;
 }
 
@@ -131,8 +139,9 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     for (uint32_t cpu = 0 ; cpu < NUMBER_OF_PROCESSORS ; cpu++) {
         snprintf(report,sizeof(report),"%s","==========================================================================\n");
         final_report+=report;
-        // Get benchmark name 
-        snprintf(report,sizeof(report),"Benchmark %s\n",orcs_engine.arg_trace_file_name[cpu].c_str());
+        // Get benchmark name
+        snprintf(report,sizeof(report),"Benchmark %s\n",(orcs_engine.use_pin) 
+                                                        ? "PIN" : orcs_engine.arg_trace_file_name[cpu].c_str());
         final_report+=report;
 
         for (uint32_t i = 0 ; i < NUMBER_OF_PROCESSORS; i++) {
@@ -208,7 +217,12 @@ int main(int argc, char **argv) {
         //trace_reader
         //==================
         orcs_engine.trace_reader[i].set_processor_id(i);
-        orcs_engine.trace_reader[i].allocate((char*)orcs_engine.arg_trace_file_name[i].c_str());
+        if(orcs_engine.use_pin == false)
+        {
+            orcs_engine.trace_reader[i].allocate((char*)orcs_engine.arg_trace_file_name[i].c_str());
+        }else {
+            orcs_engine.trace_reader[i].allocate(NULL);
+        }
         // Allocate structures to all cores
         //==================
         //Processor
