@@ -249,7 +249,7 @@ $ git push
 * Again switch to the local `develop` branch to merge it with your branch modifications:
 ```bash
 $ git checkout develop
-$ git merge --no--ff your_branch
+$ git merge --no-ff your_branch
 ```
 
 * Finally update the `develop` remote branch:
