@@ -546,6 +546,7 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->is_prefetch = (sub_string[0] == '1');
 
+    this->fetch_instructions++;
     return OK;
 
 }

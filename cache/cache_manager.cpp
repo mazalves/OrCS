@@ -45,9 +45,9 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
         try {
             libconfig::Setting &cfg_cache = cfg_caches[i];
             clevels.push_back(cfg_cache["LEVEL"]);
-        } catch (libconfig::SettingNotFoundException const(&nfex)) {
+        } catch (libconfig::SettingNotFoundException const &nfex) {
             ERROR_PRINTF("MISSING CACHE PARAMETERS");
-        } catch (libconfig::SettingTypeException const(&tex)) {
+        } catch (libconfig::SettingTypeException const &tex) {
             ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
         }
     }
@@ -100,9 +100,9 @@ void cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &c
                     cache[j].set_LINE_SIZE (LINE_SIZE);
                 }
                 
-            } catch (libconfig::SettingNotFoundException const(&nfex)) {
+            } catch (libconfig::SettingNotFoundException const &nfex) {
                 ERROR_PRINTF("MISSING CACHE PARAMETERS");
-            } catch (libconfig::SettingTypeException const(&tex)) {
+            } catch (libconfig::SettingTypeException const &tex) {
                 ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
             }
         }

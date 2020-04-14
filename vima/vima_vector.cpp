@@ -100,7 +100,7 @@ void vima_vector_t::allocate() {
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
     this->sub_requests = (memory_package_t*) malloc (get_no_sub_requests()*sizeof (memory_package_t));
-    std::memset (this->sub_requests, 0, get_no_sub_requests()*sizeof(memory_package_t));
+    std::memset ((void *)this->sub_requests, 0, get_no_sub_requests()*sizeof(memory_package_t));
 
     this->label = (const char*) malloc (127*sizeof(const char));
     //std::memset (this->label, 0, 127*sizeof(const char));

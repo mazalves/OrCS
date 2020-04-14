@@ -231,7 +231,7 @@ void hive_controller_t::allocate(){
     std::memset (this->hive_sub_requests, 0, this->HIVE_REGISTERS*sizeof(memory_package_t*));
     for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
         this->hive_sub_requests[i] = (memory_package_t*) malloc (this->nano_requests_number*sizeof (memory_package_t));
-        std::memset (this->hive_sub_requests[i], 0, this->nano_requests_number*sizeof(memory_package_t));
+        std::memset ((void *)this->hive_sub_requests[i], 0, this->nano_requests_number*sizeof(memory_package_t));
     }
 
     for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++){

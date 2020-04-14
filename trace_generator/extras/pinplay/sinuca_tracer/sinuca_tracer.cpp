@@ -25,6 +25,7 @@
 #include <inttypes.h>
 #include <string>
 #include <stdio.h>
+#include <sstream>
 #include "tracer_log_procedures.hpp"
 #include "../../../../defines.hpp"
 #include "../../../../utils/enumerations.hpp"
@@ -239,11 +240,43 @@ VOID write_memory(BOOL is_Read, ADDRINT addr, INT32 size, UINT32 bbl, THREADID t
         rw = 'W';
     }
 
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", rw, size, (uint64_t)addr, bbl);
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n",  rw, size, (uint64_t)addr, bbl);
 
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
-};
 
+};
+// =====================================================================
+
+VOID unknown_memory_size_f(PIN_MULTI_MEM_ACCESS_INFO* multi_size, UINT32 bbl, THREADID threadid) {
+    uint32_t i;
+    uint32_t max = multi_size->numberOfMemops;
+    // Salva loads e stores
+    for(i = 0; i < max; ++i) {
+
+        PIN_MEM_ACCESS_INFO *info = &multi_size->memop[i];
+
+        TRACE_GENERATOR_DEBUG_PRINTF("write_memory()\n");
+
+        if (thread_data[threadid].is_instrumented_bbl == false) return;     /// If the pin-points disabled this region
+        
+        char mem_str[TRACE_LINE_SIZE];
+        char rw;
+        if (info->memopType == PIN_MEMOP_LOAD) {
+            rw = 'R';
+        }
+        else {
+            rw = 'W';
+        }
+
+        sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 
+                          rw, static_cast<int32_t> (info->bytesAccessed),
+                          (uint64_t)info->memoryAddress, bbl);
+
+        gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
+
+    }
+
+}
 
 //==============================================================================
 VOID trace_instruction(TRACE trace, VOID *v) {
@@ -278,6 +311,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
         sprintf(bbl_count_str, "@%u\n", count_trace);
         write_static_char(bbl_count_str);    // Write the static trace
 
+
         //----------------------------------------------------------------------
         // Write the dynamic trace (basic block numbers)
         //----------------------------------------------------------------------
@@ -298,6 +332,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 char opcode_str[TRACE_LINE_SIZE];
                 opcodes::opcode_to_trace_string(pck, opcode_str);
                 write_static_char(opcode_str);
+                
 
                 //--------------------------------------------------------------------------
                 // Write the Memory
@@ -313,6 +348,30 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 if (INS_IsMemoryWrite(ins)) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
                 }
+
+            } else {
+
+                std::vector<opcode_package_t> *op = vgather_vscatter_to_static(ins);
+                std::vector<opcode_package_t>::iterator it;
+
+                it = op->begin();
+                while(it != op->end()) {
+                    
+                    //--------------------------------------------------------------------------
+                    // Write into the static trace
+                    //--------------------------------------------------------------------------
+                    char opcode_str[TRACE_LINE_SIZE];
+                    opcodes::opcode_to_trace_string(*it, opcode_str);
+                    write_static_char(opcode_str);
+
+                    ++it;
+                }
+                delete(op);
+
+                //--------------------------------------------------------------------------
+                // Memory accesses list
+                //--------------------------------------------------------------------------
+                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)unknown_memory_size_f, IARG_MULTI_MEMORYACCESS_EA, IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
             }
         }
 
@@ -558,7 +617,8 @@ VOID ImageLoad(IMG img, VOID *) {
                 // ~ // SPIN LOCK START
                 // ~ char *sync_str = new char[200];
                 // ~ sprintf(sync_str, "#BEGIN:\"%s\"\n", rtn_name.c_str());
-                // ~ RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
+                // ~ std::string tempStr = sync_str.str();  
+                // ~ RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
 // ~
                 // ~ // Examine each instruction in the routine.
                 // ~ for( INS ins = RTN_InsHead(rtn); INS_Valid(ins); ins = INS_Next(ins) ) {
@@ -568,7 +628,8 @@ VOID ImageLoad(IMG img, VOID *) {
                         // ~ char *sync_str = new char[200];
                         // ~ sprintf(sync_str, "#END:\"%s\"\n", rtn_name.c_str());
                         // ~ // IPOINT_TAKEN_BRANCH always occurs last.
-                        // ~ // INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
+                        // ~ // std::string tempStr = sync_str.str();
+                        // ~ // INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
                     // ~ }
                 // ~ }
 // ~
@@ -586,10 +647,17 @@ VOID ImageLoad(IMG img, VOID *) {
                 if (strcmp(rtn_name.c_str(), OMP_barrier_master_end[i]) == 0) {
                     RTN_Open(rtn);
 
+                    
+                    std::stringstream sync_str;
+                    sync_str << "#" << rtn_name.c_str() << "\n"         \
+                            << "$" << SYNC_BARRIER      << "\n";
+                    /*
                     char *sync_str = new char[TRACE_LINE_SIZE];
                     sprintf(sync_str, "#%s\n", rtn_name.c_str());
                     sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
-                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, true, IARG_END);
+                    */
+                    std::string tempStr = sync_str.str();
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, true, IARG_END);
                     /// Parallel End
                     RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(handleParallelControlEvent), IARG_BOOL, false, IARG_THREAD_ID, IARG_END);
 
@@ -604,13 +672,19 @@ VOID ImageLoad(IMG img, VOID *) {
                 if (strcmp(rtn_name.c_str(), OMP_barrier_master_start[i]) == 0) {
                     RTN_Open(rtn);
 
+                    std::stringstream sync_str;
+                    sync_str << "#" << rtn_name.c_str() << "\n"         \
+                            << "$" << SYNC_BARRIER      << "\n";
+                    /*
                     char *sync_str = new char[TRACE_LINE_SIZE];
                     sprintf(sync_str, "#%s\n", rtn_name.c_str());
                     sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
+                    */
                     /// Parallel Start
                     RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(handleParallelControlEvent), IARG_BOOL, true, IARG_THREAD_ID, IARG_END);
-
-                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, true, IARG_END);
+                    
+                    std::string tempStr = sync_str.str();
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, true, IARG_END);
 
                     RTN_Close(rtn);
                     found_GOMP = true;
@@ -623,10 +697,16 @@ VOID ImageLoad(IMG img, VOID *) {
                 if (strcmp(rtn_name.c_str(), OMP_barrier_simple[i]) == 0) {
                     RTN_Open(rtn);
 
+                    std::stringstream sync_str;
+                    sync_str << "#" << rtn_name.c_str() << "\n"         \
+                            << "$" << SYNC_BARRIER      << "\n";
+                    /*
                     char *sync_str = new char[TRACE_LINE_SIZE];
                     sprintf(sync_str, "#%s\n", rtn_name.c_str());
                     sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
-                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
+                    */
+                    std::string tempStr = sync_str.str();
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
 
                     RTN_Close(rtn);
                     found_GOMP = true;
@@ -639,10 +719,16 @@ VOID ImageLoad(IMG img, VOID *) {
                 if (strcmp(rtn_name.c_str(), OMP_critical_start[i]) == 0) {
                     RTN_Open(rtn);
 
+                    std::stringstream sync_str;
+                    sync_str << "#" << rtn_name.c_str()     << "\n"         \
+                            << "$" << SYNC_CRITICAL_START   << "\n";
+                    /*
                     char *sync_str = new char[TRACE_LINE_SIZE];
                     sprintf(sync_str, "#%s\n", rtn_name.c_str());
                     sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_START);
-                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
+                    */
+                    std::string tempStr = sync_str.str();
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
 
                     RTN_Close(rtn);
                     found_GOMP = true;
@@ -655,10 +741,16 @@ VOID ImageLoad(IMG img, VOID *) {
                 if (strcmp(rtn_name.c_str(), OMP_critical_end[i]) == 0) {
                     RTN_Open(rtn);
 
+                    std::stringstream sync_str;
+                    sync_str << "#" << rtn_name.c_str()     << "\n"         \
+                            << "$" << SYNC_CRITICAL_END     << "\n";
+                    /*
                     char *sync_str = new char[TRACE_LINE_SIZE];
                     sprintf(sync_str, "#%s\n", rtn_name.c_str());
                     sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_END);
-                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, sync_str, IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
+                    */
+                    std::string tempStr = sync_str.str();
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char), IARG_PTR, tempStr.c_str(), IARG_THREAD_ID, IARG_BOOL, false, IARG_END);
 
                     RTN_Close(rtn);
                     found_GOMP = true;
@@ -701,11 +793,17 @@ VOID ImageLoad(IMG img, VOID *) {
 // Main
 //==============================================================================
 int main(int argc, char *argv[]) {
+    std::stringstream trace_header;
+    trace_header << "#\n"                                                       \
+                << "# Compressed Trace Generated By Pin to SiNUCA\n"            \
+                << "#\n";
+    std::string tempStr = trace_header.str();
+    /*
     char trace_header[TRACE_LINE_SIZE];
     sprintf(trace_header, "#\n");
     sprintf(trace_header, "%s# Compressed Trace Generated By Pin to SiNUCA\n", trace_header);
     sprintf(trace_header, "%s#\n", trace_header);
-
+    */
     if (PIN_Init(argc, argv)) {
         return Usage();
     }
@@ -739,7 +837,7 @@ int main(int argc, char *argv[]) {
     sprintf(stat_file_name , "%s.tid0.stat.out.gz", KnobOutputFile.Value().c_str());
     gzStaticTraceFile = gzopen(stat_file_name, "wb");   /// Open the .gz file
     ASSERTX(gzStaticTraceFile != NULL);                 /// Check the .gz file
-    gzwrite(gzStaticTraceFile, trace_header, strlen(trace_header));
+    gzwrite(gzStaticTraceFile, tempStr.c_str(), strlen(tempStr.c_str()));
 
     printf("Real Static File = %s => READY !\n",stat_file_name);
 
@@ -753,7 +851,7 @@ int main(int argc, char *argv[]) {
         sprintf(dyn_file_name, "%s.tid%d.dyn.out.gz", KnobOutputFile.Value().c_str(), i);
         thread_data[i].gzDynamicTraceFile = gzopen(dyn_file_name, "wb");    /// Open the .gz file
         ASSERTX(thread_data[i].gzDynamicTraceFile != NULL);                 /// Check the .gz file
-        gzwrite(thread_data[i].gzDynamicTraceFile, trace_header, strlen(trace_header));
+        gzwrite(thread_data[i].gzDynamicTraceFile, tempStr.c_str(), strlen(tempStr.c_str()));
         printf("Real Dynamic File = %s => READY !\n", dyn_file_name);
     }
 
@@ -767,7 +865,7 @@ int main(int argc, char *argv[]) {
         sprintf(mem_file_name, "%s.tid%d.mem.out.gz", KnobOutputFile.Value().c_str(), i);
         thread_data[i].gzMemoryTraceFile = gzopen(mem_file_name, "wb");     /// Open the .gz file
         ASSERTX(thread_data[i].gzMemoryTraceFile != NULL);                  /// Check the .gz file
-        gzwrite(thread_data[i].gzMemoryTraceFile, trace_header, strlen(trace_header));
+        gzwrite(thread_data[i].gzMemoryTraceFile, tempStr.c_str(), strlen(tempStr.c_str()));
         printf("Real Memory File = %s => READY !\n", mem_file_name);
     }
 

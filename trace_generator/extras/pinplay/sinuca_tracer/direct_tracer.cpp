@@ -181,7 +181,7 @@ void bbl_executed(uint32_t bbl) {
             }
             if(mem.bbl != bbl) {
                 std::cerr << "bbl_executed: Memory access from bbl " << mem.bbl << 
-                             " found when bbl " << bbl << " expected!" << std::endl;
+                            " found when bbl " << bbl << " expected!" << std::endl;
                 exit(1);
             }
         }
@@ -201,7 +201,7 @@ void bbl_executed(uint32_t bbl) {
             }
             if(mem.bbl != bbl) {
                 std::cerr << "bbl_executed: Memory access from bbl " << mem.bbl << 
-                             " found when bbl " << bbl << " expected!" << std::endl;
+                            " found when bbl " << bbl << " expected!" << std::endl;
                 exit(1);
             }
         }
@@ -222,7 +222,7 @@ void bbl_executed(uint32_t bbl) {
             }
             if(mem.bbl != bbl) {
                 std::cerr << "bbl_executed: Memory access from bbl " << mem.bbl << 
-                             " found when bbl " << bbl << " expected!" << std::endl;
+                            " found when bbl " << bbl << " expected!" << std::endl;
                 exit(1);
             }
         }
@@ -264,6 +264,28 @@ VOID touch_memory(bool is_read, uint64_t addr, int32_t size, uint64_t bbl) {
 
 };
 // ***************************************************************************************************************************************
+/*
+ADDRINT 	memoryAddress
+PIN_MEMOP_ENUM 	memopType
+UINT32 	bytesAccessed
+BOOL 	maskOn
+
+VOID touch_memory(bool is_read, uint64_t addr, int32_t size, uint64_t bbl) {
+*/
+VOID unknown_memory_size_f(PIN_MULTI_MEM_ACCESS_INFO* multi_size, uint64_t bbl) {
+    uint32_t i;
+    uint32_t max = multi_size->numberOfMemops;
+    // Salva loads e stores
+    for(i = 0; i < max; ++i) {
+        PIN_MEM_ACCESS_INFO *info = &multi_size->memop[i];
+        touch_memory(   (info->memopType == PIN_MEMOP_LOAD) ? true : false, // is_read
+                        info->memoryAddress,                                // addr
+                        static_cast<int32_t> (info->bytesAccessed),         // size
+                        bbl);                                               // BBL
+    }
+
+}
+// ***************************************************************************************************************************************
 
 VOID tracer(TRACE trace, VOID *v) {
 
@@ -280,6 +302,7 @@ VOID tracer(TRACE trace, VOID *v) {
             // New BBL instruction
             //--------------------------------------------------------------------------
             if(INS_hasKnownMemorySize(ins)) {
+                
                 opcode_package_t op = x86_to_static(ins);
                 program.insert(current_bbl, op);
 
@@ -295,6 +318,23 @@ VOID tracer(TRACE trace, VOID *v) {
                 if (INS_IsMemoryWrite(ins)) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT64, current_bbl, IARG_END);
                 }
+            } else {
+
+                std::vector<opcode_package_t> *op = vgather_vscatter_to_static(ins);
+                std::vector<opcode_package_t>::iterator it;
+
+                it = op->begin();
+                while(it != op->end()) {
+                    program.insert(current_bbl, *it);
+                    ++it;
+                }
+                delete(op);
+                
+
+                //--------------------------------------------------------------------------
+                // Memory accesses list
+                //--------------------------------------------------------------------------
+                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)unknown_memory_size_f, IARG_MULTI_MEMORYACCESS_EA, IARG_UINT64, current_bbl, IARG_END);
             }
             
         }
@@ -335,7 +375,9 @@ int main(int argc, char *argv[]) {
     // Open PIPE
     std::stringstream pipedCommand;
     pipedCommand << "./orcs -c " << KnobConfigFile.Value() << " -f " << KnobOutputFile.Value() << " -p";
-    output = popen(pipedCommand.str().c_str(), "w");
+    std::string tempStr = pipedCommand.str();
+    
+    output = popen(tempStr.c_str(), "w");
     //output = fopen("output.test", "w");
 
 

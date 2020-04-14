@@ -38,9 +38,9 @@ memory_channel_t::memory_channel_t(){
     this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
 
     this->bank_read_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
-    std::memset(this->bank_read_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
+    std::memset((void *)this->bank_read_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
     this->bank_write_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
-    std::memset(this->bank_write_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
+    std::memset((void *)this->bank_write_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
 
     this->set_masks();
 }
