@@ -272,7 +272,7 @@ void vima_controller_t::allocate(){
     write_unbalanced = (vima_vector_t*) malloc (sizeof (vima_vector_t));
 
     this->cache = (vima_vector_t*) malloc (sizeof (vima_vector_t)*lines);
-    std::memset (this->cache, 0, sizeof (vima_vector_t)*lines);
+    std::memset ((void *)this->cache, 0, sizeof (vima_vector_t)*lines);
 
     for (size_t i = 0; i < lines; i++) this->cache[i].allocate();
     

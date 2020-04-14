@@ -27,8 +27,8 @@ VOID write_dynamic_char(char *dyn_str, THREADID threadid) {
 
 VOID write_static_char(char *stat_str) {
     TRACE_GENERATOR_DEBUG_PRINTF("write_static_char()\n");
-    // puts("write_static_char");
-    // printf("static: %s\n", stat_str);
+    //puts("write_static_char");
+    //printf("static: %s\n", stat_str);
     PIN_GetLock(&lock, 1);
         gzwrite(gzStaticTraceFile, stat_str, strlen(stat_str));
     PIN_ReleaseLock(&lock);

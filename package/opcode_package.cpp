@@ -40,12 +40,15 @@ opcode_package_t::opcode_package_t() {
     this->is_predicated = false;
     this->is_prefetch = false;
 
+    this->is_hive = false;
+    this->is_vima = false;
+
     this->status = PACKAGE_STATE_FREE;
     #ifndef __PIN__
     this->readyAt = orcs_engine.get_global_cycle();
     #else
     this->readyAt = 0;
-    #endif    
+    #endif  
 }
 
 opcode_package_t::~opcode_package_t() {

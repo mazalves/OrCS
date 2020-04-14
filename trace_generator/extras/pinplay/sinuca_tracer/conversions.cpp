@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string>
 #include <stdio.h>
+#include <vector>
 #include "tracer_log_procedures.hpp"
 #include "../../../../defines.hpp"
 #include "../../../../utils/enumerations.hpp"
@@ -562,5 +563,176 @@ opcode_package_t x86_to_static(const INS& ins) {
 
     return NewInstruction;
 }
+// ***************************************************************************************************************************************
+
+opcode_package_t make_VGather_Vscatter(const INS& ins) {
+    opcode_package_t NewInstruction;
+
+    strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
+
+
+   for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.read_regs[i] = POSITION_FAIL;
+    }
+    for (uint32_t i = 0; i < INS_MaxNumRRegs(ins); i++) {
+        NewInstruction.read_regs[i] = INS_RegR(ins, i);
+    }
+
+
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.write_regs[i] = POSITION_FAIL;
+    }
+    for (uint32_t i = 0; i < INS_MaxNumWRegs(ins); i++) {
+        NewInstruction.write_regs[i] = INS_RegW(ins, i);
+    }
+    NewInstruction.base_reg = INS_MemoryBaseReg(ins);
+    NewInstruction.index_reg = INS_MemoryIndexReg(ins);
+
+    NewInstruction.is_predicated = INS_IsPredicated(ins);
+    NewInstruction.is_prefetch = INS_IsPrefetch(ins);
+
+    NewInstruction.is_hive = false;
+    NewInstruction.is_vima = false;
+
+    return NewInstruction;
+}
+
+std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
+    //std::cerr << "Codificando instrução gather/scatter: " << std::endl;
+    //std::cerr << "ASM: " << INS_Disassemble(ins) << std::endl;
+    //std::cerr << "is_Vgather: " << INS_IsVgather(ins) << " is_Vscatter: " << INS_IsVscatter(ins) << std::endl;
+    //std::cerr << "Addr: " << INS_Address(ins) << "    Size: " << INS_Size(ins) << std::endl;
+
+    std::vector<opcode_package_t> *ops = new std::vector<opcode_package_t>;
+   
+   if(INS_IsVgather(ins)) {
+        int32_t numAccesses, accessSize, indexSize;
+        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
+        //std::cout << "Vgather -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
+        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
+        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
+
+        // -----------------------------------------------------------------------
+        // Create reads
+        // -----------------------------------------------------------------------
+        ops->reserve(numAccesses);
+
+        // -----------------------------------------------------------------------
+        // Make all possible double reads sets
+        // -----------------------------------------------------------------------
+        int32_t max = floor ((numAccesses + 0.0f)/2);
+        int32_t i;
+        for (i = 0; i < max; ++i) {
+
+            opcode_package_t op = make_VGather_Vscatter(ins);
+
+            // -------------------------------------------------------------------
+            // Shift each instruction inside the real one
+            // -------------------------------------------------------------------
+            op.opcode_address = INS_Address(ins) + i;
+            if((i * 2) != (numAccesses - 2)) {
+                op.opcode_size = 1;
+            } else {
+                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+            }
+
+            // -------------------------------------------------------------------
+            // Configure to a memory read
+            // -------------------------------------------------------------------
+            op.is_read = true;
+            op.is_read2 = true;
+            op.is_write = false;
+            op.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
+
+            // -------------------------------------------------------------------
+            // Save to be added in the bbl instructions list
+            // -------------------------------------------------------------------
+            ops->push_back(op);
+        }
+
+        // -------------------------------------------------------------------
+        // If necessary, send the last mem read
+        // -------------------------------------------------------------------
+        if((i*2) != numAccesses) {
+            opcode_package_t op = make_VGather_Vscatter(ins);
+
+            // -------------------------------------------------------------------
+            // Shift each instruction inside the real one
+            // -------------------------------------------------------------------
+            op.opcode_address = INS_Address(ins) + i;
+            op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+
+
+            // -------------------------------------------------------------------
+            // Configure to a memory read
+            // -------------------------------------------------------------------
+            op.is_read = true;
+            op.is_read2 = false;
+            op.is_write = false;
+            op.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
+
+            // -------------------------------------------------------------------
+            // Save to be added in the bbl instructions list
+            // -------------------------------------------------------------------
+            ops->push_back(op);
+        }
+       
+
+
+   } else if (INS_IsVscatter(ins)) {
+        int32_t numAccesses, accessSize, indexSize;
+        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
+        //std::cout << "Vscatter -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
+        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
+        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
+        // -----------------------------------------------------------------------
+        // Create writes
+        // -----------------------------------------------------------------------
+        ops->reserve(numAccesses);
+
+        for (int32_t i = 0; i < numAccesses; ++i) {
+
+            opcode_package_t op = make_VGather_Vscatter(ins);
+
+            // -------------------------------------------------------------------
+            // Shift each instruction inside the real one
+            // -------------------------------------------------------------------
+            if(i < numAccesses - 1) {
+                op.opcode_address = INS_Address(ins) + i;
+                op.opcode_size = 1;
+            } else {
+                op.opcode_address = INS_Address(ins) + i;
+                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+            }
+
+            // -------------------------------------------------------------------
+            // Configure to a memory write
+            // -------------------------------------------------------------------
+            op.is_read = false;
+            op.is_read2 = false;
+            op.is_write = true;
+            op.opcode_operation = INSTRUCTION_OPERATION_MEM_STORE;
+
+            // -------------------------------------------------------------------
+            // Save to be added in the bbl instructions list
+            // -------------------------------------------------------------------
+            ops->push_back(op);
+        }
+
+   } else {
+       std::cerr << "vgather_vscatter_to_static: Unknown instruction type!" << std::endl;
+       exit(1);
+   }
+
+    /*opcode_package_t NewInstruction;
+    sprintf(NewInstruction.opcode_assembly, "vgather_vscatter");
+    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_LAST;
+    NewInstruction.opcode_address = INS_Address(ins);
+    NewInstruction.opcode_size = INS_Size(ins);
+    return NewInstruction;*/
+
+    return ops;
+}
+
 
 #endif

@@ -108,9 +108,9 @@ uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &c
 			SIZE[i] = cfg_cache["SIZE"];
 			SETS[i] = ((SIZE[i]/ LINE_SIZE) / ASSOCIATIVITY[i]);
 			LEVEL[i] = cfg_cache["LEVEL"];
-		} catch (libconfig::SettingNotFoundException const(&nfex)) {
+		} catch (libconfig::SettingNotFoundException const &nfex) {
             ERROR_PRINTF("MISSING CACHE PARAMETERS");
-        } catch (libconfig::SettingTypeException const(&tex)) {
+        } catch (libconfig::SettingTypeException const &tex) {
             ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
         }
 	}
