@@ -12,7 +12,7 @@ cd trace_generator
 # Extract the files
 #https://www.marksanborn.net/linux/extract-without-first-directory/
 tar -xvjf $PINPLAY_IDENTIFIER*.tar.bz2 --strip 1
-rm $PINPLAY_IDENTIFIER*.tar.bz2
+rm $PINPLAY_IDENTIFIER*.tar.bz2 -f
 
 # Copy required files
 srcCPP="extras/pinplay/examples/pinplay-debugger-shell.cpp"
