@@ -271,6 +271,13 @@ int main(int argc, char **argv) {
         kilo_instructions_simulated += orcs_engine.trace_reader->get_fetch_instructions() / 1000.0;
     }
     
+    if(orcs_engine.use_pin)
+    {
+        FullLength += orcs_engine.trace_reader->get_fetch_instructions(); 
+        std::cout << "FullLength with pin: " << FullLength << std::endl;
+
+    }
+
     FILE *output = stdout;
     bool close = false;
     if(orcs_engine.output_file_name != NULL){
