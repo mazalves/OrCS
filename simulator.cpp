@@ -274,7 +274,6 @@ int main(int argc, char **argv) {
     if(orcs_engine.use_pin)
     {
         FullLength += orcs_engine.trace_reader->get_fetch_instructions(); 
-        std::cout << "FullLength with pin: " << FullLength << std::endl;
 
     }
 
