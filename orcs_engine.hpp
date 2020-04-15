@@ -6,6 +6,8 @@ class orcs_engine_t {
     public:
         /// Program input
         std::vector<std::string> arg_trace_file_name;
+            // Pin will be used as input
+        bool use_pin;
         /// Control the Global Cycle
         uint64_t global_cycle;
         // =======================================

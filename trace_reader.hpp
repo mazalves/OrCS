@@ -42,6 +42,7 @@ class trace_reader_t {
         bool trace_string_to_opcode(char *input_string, opcode_package_t *opcode);
         bool trace_next_dynamic(uint32_t *next_bbl);
         bool trace_next_memory(uint64_t *next_address, uint32_t *operation_size, bool *is_read);
+        bool pin_next(opcode_package_t *m);
         bool trace_fetch(opcode_package_t *m);
         INSTANTIATE_GET_SET(uint64_t,fetch_instructions)
         INSTANTIATE_GET_SET(uint64_t,trace_opcode_max)

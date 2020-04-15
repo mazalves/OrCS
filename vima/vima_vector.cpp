@@ -24,17 +24,18 @@ void vima_vector_t::clock() {
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
                         sub_requests[i].row_buffer = false;
+                        sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
                 } else {
                     //print_vector();
                     while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
-                        //ORCS_PRINTF ("%s %lu %u sub_reqs %lu ready\n", label, orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].memory_address)
+                        //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-sub_requests[sub_ready].born_cycle)
                         sub_ready++;
                     }
                 }
                 if (sub_ready >= no_sub_requests) {
-                    //ORCS_PRINTF ("%lu %s WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle(), label)
+                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu %s WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle(), label)
                     status = PACKAGE_STATE_WAIT;
                 }
             } else {
@@ -57,18 +58,19 @@ void vima_vector_t::clock() {
                     sub_requests[i].sent_to_ram = false;
                     sub_requests[i].row_buffer = false;
                     sub_requests[i].memory_address = memory_address << sub_req_offset;
+                    sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                     memory_address++;
 
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 
             } else {
                 while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
-                    //ORCS_PRINTF ("%s %lu %u sub_reqs %lu ready\n", label, orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].memory_address)
+                    //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-sub_requests[sub_ready].born_cycle)
                     sub_ready++;
                 }
             }
             if (sub_ready >= no_sub_requests) {
-                //ORCS_PRINTF ("%lu %s %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), label, address)
+                if (VIMA_DEBUG) ORCS_PRINTF ("%lu %s %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), label, address)
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
                 status = PACKAGE_STATE_READY;
@@ -84,6 +86,11 @@ void vima_vector_t::clock() {
     }
 }
 
+bool vima_vector_t::ready(){
+    if (sub_ready >= no_sub_requests && status == PACKAGE_STATE_READY) return true;
+    else return false;
+}
+
 void vima_vector_t::allocate() {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
@@ -93,7 +100,7 @@ void vima_vector_t::allocate() {
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
     this->sub_requests = (memory_package_t*) malloc (get_no_sub_requests()*sizeof (memory_package_t));
-    std::memset (this->sub_requests, 0, get_no_sub_requests()*sizeof(memory_package_t));
+    std::memset ((void *)this->sub_requests, 0, get_no_sub_requests()*sizeof(memory_package_t));
 
     this->label = (const char*) malloc (127*sizeof(const char));
     //std::memset (this->label, 0, 127*sizeof(const char));
@@ -107,4 +114,5 @@ void vima_vector_t::allocate() {
     sub_ready = 128;
     last_ready = 0;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
+    set = false;
 }

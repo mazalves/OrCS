@@ -42,9 +42,9 @@ SRC_PROCESSOR =		$(FD_PROCESSOR)/processor.cpp\
 
 SRC_BRANCH_PREDICTOR =	$(FD_BRANCH_PREDICTOR)/branch_predictor.cpp\
 						$(FD_BRANCH_PREDICTOR)/piecewise.cpp
+						
 SRC_CACHE = $(FD_CACHE)/cache.cpp\
-			$(FD_CACHE)/cache_manager.cpp\
-			$(FD_CACHE)/mshr_entry.cpp
+			$(FD_CACHE)/cache_manager.cpp
 
 SRC_DIRECTORY = $(FD_DIRECTORY)/directory.cpp
 

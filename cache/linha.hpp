@@ -46,9 +46,9 @@ class line_t {
         }
 
         void clean_line() {
-            this->tag = 0;
+            this->tag = POSITION_FAIL;
             this->dirty = 0;
-            this->lru = 0;
+            this->lru = UINT64_MAX;
             this->prefetched = 0;
             this->valid = 0;
             this->ready_at = 0;

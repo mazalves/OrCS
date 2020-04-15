@@ -108,9 +108,9 @@ uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &c
 			SIZE[i] = cfg_cache["SIZE"];
 			SETS[i] = ((SIZE[i]/ LINE_SIZE) / ASSOCIATIVITY[i]);
 			LEVEL[i] = cfg_cache["LEVEL"];
-		} catch (libconfig::SettingNotFoundException const(&nfex)) {
+		} catch (libconfig::SettingNotFoundException const &nfex) {
             ERROR_PRINTF("MISSING CACHE PARAMETERS");
-        } catch (libconfig::SettingTypeException const(&tex)) {
+        } catch (libconfig::SettingTypeException const &tex) {
             ERROR_PRINTF("WRONG TYPE CACHE PARAMETERS");
         }
 	}
@@ -1238,7 +1238,9 @@ void processor_t::rename(){
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL){
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
 			if (this->memory_order_buffer_hive_used>=MOB_VIMA || this->robUsed>=ROB_SIZE) break;
 			pos_mob = this->search_position_mob_vima();
 			if (pos_mob == POSITION_FAIL) {
@@ -1377,7 +1379,9 @@ void processor_t::rename(){
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL){
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
 			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
 			this->reorderBuffer[pos_rob].mob_ptr->is_vima = true;
 			this->reorderBuffer[pos_rob].mob_ptr->vima_read1 = this->reorderBuffer[pos_rob].uop.read_address;
@@ -1403,6 +1407,12 @@ void processor_t::rename(){
 					break;
             	case INSTRUCTION_OPERATION_VIMA_FP_DIV:
                 	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_DIV;
+					break;
+				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_MLA;
+					break;
+				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
+                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_MLA;
 					break;
 				default:
 					break;
@@ -1437,7 +1447,9 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL)
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
 		}
@@ -1652,6 +1664,8 @@ void processor_t::dispatch(){
                 case INSTRUCTION_OPERATION_VIMA_FP_ALU :
                 case INSTRUCTION_OPERATION_VIMA_FP_MUL :
                 case INSTRUCTION_OPERATION_VIMA_FP_DIV :
+				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
 					if (fu_mem_vima < VIMA_UNIT)
 					{
 						for (uint8_t k = 0; k < VIMA_UNIT; k++)
@@ -1710,7 +1724,8 @@ void processor_t::dispatch(){
 				case INSTRUCTION_OPERATION_BARRIER:
 				case INSTRUCTION_OPERATION_HMC_ROA:
 				case INSTRUCTION_OPERATION_HMC_ROWA:
-					ERROR_PRINTF("Invalid instruction BARRIER||HMC_ROA||HMC_ROWA being dispatched.\n");
+				case INSTRUCTION_OPERATION_LAST:
+					ERROR_PRINTF("Invalid instruction LAST||BARRIER||HMC_ROA||HMC_ROWA being dispatched.\n");
 					break;
 				} //end switch
 				//remover os postos em execucao aqui
@@ -1768,6 +1783,7 @@ void processor_t::clean_mob_vima(){
 			this->memory_order_buffer_vima[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 			this->memory_order_buffer_vima[pos].processed=true;
 			this->memory_vima_executed--;
+			this->solve_registers_dependency(this->memory_order_buffer_vima[pos].rob_ptr);
 			/*if (DISAMBIGUATION_ENABLED){
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vima[pos]);
 			}*/
@@ -1898,6 +1914,8 @@ void processor_t::execute()
                 case INSTRUCTION_OPERATION_VIMA_FP_ALU :
                 case INSTRUCTION_OPERATION_VIMA_FP_MUL :
                 case INSTRUCTION_OPERATION_VIMA_FP_DIV :
+				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
 				{
 					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
 					this->memory_vima_executed++;
@@ -1938,7 +1956,8 @@ void processor_t::execute()
 				case INSTRUCTION_OPERATION_BARRIER:
 				case INSTRUCTION_OPERATION_HMC_ROA:
 				case INSTRUCTION_OPERATION_HMC_ROWA:
-					ERROR_PRINTF("Invalid BARRIER | HMC ROA |HMC ROWA.\n");
+				case INSTRUCTION_OPERATION_LAST:
+					ERROR_PRINTF("Invalid BARRIER | HMC ROA | HMC ROWA | ÇAST.\n");
 					break;
 			} //end switch
 			if (EXECUTE_DEBUG){
@@ -2039,7 +2058,7 @@ uint32_t processor_t::mob_read(){
 				}
 			}
 	}
-	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent){
+	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (oldest_read_to_send->memory_operation)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
@@ -2152,10 +2171,10 @@ memory_order_buffer_line_t* processor_t::get_next_op_vima(){
 
 // ============================================================================
 uint32_t processor_t::mob_hive(){
-	if(this->oldest_hive_to_send==NULL){
+	if(this->oldest_hive_to_send==NULL)
 		this->oldest_hive_to_send = this->get_next_op_hive();
-	}
-	if (this->oldest_hive_to_send != NULL){
+	
+	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (oldest_hive_to_send->memory_operation)){
 		if (!this->oldest_hive_to_send->sent){
 			memory_package_t* request = new memory_package_t;
 			
@@ -2197,7 +2216,7 @@ uint32_t processor_t::mob_vima(){
 	if(this->oldest_vima_to_send==NULL){
 		this->oldest_vima_to_send = this->get_next_op_vima();
 	}
-	if (this->oldest_vima_to_send != NULL){
+	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (oldest_vima_to_send->memory_operation)){
 		if (!this->oldest_vima_to_send->sent){
 			memory_package_t* request = new memory_package_t;
 			
@@ -2278,7 +2297,7 @@ uint32_t processor_t::mob_write(){
 			}
 		}
 	}
-	if (this->oldest_write_to_send != NULL){
+	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (oldest_write_to_send->memory_operation)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
@@ -2410,6 +2429,8 @@ void processor_t::commit(){
                 case INSTRUCTION_OPERATION_VIMA_FP_ALU :
                 case INSTRUCTION_OPERATION_VIMA_FP_MUL :
                 case INSTRUCTION_OPERATION_VIMA_FP_DIV :
+				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
 					this->add_stat_inst_vima_completed();
 					if (DEBUG) ORCS_PRINTF ("Processor commit(): instruction VIMA %lu, %s committed, readyAt %lu.\n", this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt)
 					break;
@@ -2447,7 +2468,8 @@ void processor_t::commit(){
 				case INSTRUCTION_OPERATION_BARRIER:
 				case INSTRUCTION_OPERATION_HMC_ROWA:
 				case INSTRUCTION_OPERATION_HMC_ROA:
-					ERROR_PRINTF("Invalid instruction BARRIER| HMC ROA | HMC ROWA.\n");
+				case INSTRUCTION_OPERATION_LAST:
+					ERROR_PRINTF("Invalid instruction BARRIER | HMC ROA | HMC ROWA | LAST.\n");
 					break;
 			}
 

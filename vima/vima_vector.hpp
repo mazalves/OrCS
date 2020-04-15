@@ -10,18 +10,21 @@ class vima_vector_t {
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;
+        uint32_t VIMA_DEBUG;
 
     public:
         package_state_t status;
         uint64_t tag;
         uint64_t lru;
         bool dirty;
+        bool set;
         
         vima_vector_t();
         ~vima_vector_t();
         void clock();
         void allocate();
         void print_vector();
+        bool ready();
 
         INSTANTIATE_GET_SET_ADD (uint32_t,no_sub_requests)
         INSTANTIATE_GET_SET_ADD (uint64_t,address)
@@ -31,5 +34,6 @@ class vima_vector_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_VECTOR_SIZE)
+        INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_DEBUG)
 
 };
