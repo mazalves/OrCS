@@ -144,10 +144,7 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
                                                         ? "PIN" : orcs_engine.arg_trace_file_name[cpu].c_str());
         final_report+=report;
 
-        for (uint32_t i = 0 ; i < NUMBER_OF_PROCESSORS; i++) {
-            kilo_instructions_simulated += orcs_engine.trace_reader->get_fetch_instructions() / 1000.0;
-        }
-
+        kilo_instructions_simulated += orcs_engine.trace_reader[cpu].get_fetch_instructions() / 1000.0;
         ActualLength = orcs_engine.trace_reader[cpu].get_fetch_instructions();
         FullLength = orcs_engine.trace_reader[cpu].get_trace_opcode_max() + 1;
         // get actual cicle
@@ -268,12 +265,12 @@ int main(int argc, char **argv) {
     }
     for (uint32_t cpu = 0; cpu < NUMBER_OF_PROCESSORS; cpu++){
         FullLength += orcs_engine.trace_reader[cpu].get_trace_opcode_max() + 1; 
-        kilo_instructions_simulated += orcs_engine.trace_reader->get_fetch_instructions() / 1000.0;
+        kilo_instructions_simulated += orcs_engine.trace_reader[cpu].get_fetch_instructions() / 1000.0;
     }
     
     if(orcs_engine.use_pin)
     {
-        FullLength += orcs_engine.trace_reader->get_fetch_instructions(); 
+        FullLength += orcs_engine.trace_reader[0].get_fetch_instructions(); 
 
     }
 

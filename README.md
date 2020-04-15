@@ -23,6 +23,8 @@ Download the [zlib](https://zlib.net/) library by terminal commands only:
 $ sudo apt install zlib1g-dev
 ```
 
+
+
 ### Install OrCS
 Clone or download OrCS
 ```bash
@@ -61,6 +63,11 @@ g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_me
 g++ -c -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic main_memory/memory_controller.cpp -o main_memory/memory_controller.o
 g++ -ggdb3 -o orcs simulator.o orcs_engine.o trace_reader.o package/opcode_package.o package/uop_package.o processor/memory_disambiguation/disambiguation_hashed.o processor/processor.o processor/reorder_buffer_line.o processor/memory_order_buffer_line.o utils/utils.o utils/enumerations.o branch_predictor/branch_predictor.o branch_predictor/piecewise.o cache/cache.o cache/cache_manager.o cache/mshr_entry.o directory/directory.o prefetcher/prefetcher.o prefetcher/stride_prefetcher.o config/config.o main_memory/memory_channel.o main_memory/memory_controller.o -lz -lconfig++ 
 ```
+
+### Install OrCS + Tracer
+Video tutorials showing OrCS+Sinuca_tracer download and configuration:
+[Fast installation](https://asciinema.org/a/78yLzIg0GlXvUngoA8f0lx4Vb)
+[Manual installation](https://asciinema.org/a/mn63H4OW4SY542Xs1p7seEL3M)
 
 ## Running OrCS
 Before executing OrCS we must download a simulation trace.
