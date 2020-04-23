@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#
+
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2014 Intel Corporation. All rights reserved.
+# Copyright (c)2015 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -34,44 +34,45 @@
 #
 # @ORIGINAL_AUTHORS: T. Mack Stallcup, Cristiano Pereira, Harish Patil, Chuck Yount
 #
-# $Id: sinuca_replay_dir.py,v 1.9 2014/05/27 22:28:26 tmstall Exp tmstall $
+#
+# $Id: sde_cmpsim_replayer.py,v 1.20 2015/05/19 18:16:56 tmstall Exp tmstall $
+
+#
+# This is a script to replay one pinplay process
+#
 
 import sys
 
 # Local modules
 #
-import sinuca_kit
-import replay_dir
-import config
 
-class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
+import sde_cmpsim_kit
+import replayer
 
-        """
-        Replay multiple pinballs.
 
-        This class is a wrapper which replays either one pinball or the
-        pinballs in a directory
-        """
+class CMPsimReplayer(replayer.Replayer):
+    """
+    Replays one set of log files using SDE.
 
-        # Branch predictor simulator python script to replay one pinball.
-        #
-        replayer_cmd = config.all_scripts_path + 'sinuca_replayer.py'
+    This class is the low level primative which replays one pinball.
+    It currently does NOT work with multi-process apps which are not MPI.
+    """
 
-        def GetKit(self):
-            """ Get the Branch predictor kit. """
+    def GetKit(self):
+        """ Get the CMPSim SDE kit. """
 
-            return sinuca_kit.Sinuca_TracerKit()
+        return sde_cmpsim_kit.CMPsimKit()
+
 
 def main():
-        """ Process command line arguments and run the replayer """
+    """ Process command line arguments and run the replayer """
 
-        replay = Sinuca_TracerReplayMulti()
-        result = replay.Run()
-        return result
+    replayer = CMPsimReplayer()
+    result = replayer.Run()
+    return result
 
 # If module is called in stand along mode, then run it.
 #
 if __name__ == "__main__":
     result = main()
     sys.exit(result)
-

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -63,7 +63,7 @@ def PrintMsg(msg):
 
     # Remove any non-printing char
     #
-    msg = filter(lambda x: x in string.printable, msg)
+    msg = ''.join(x for x in msg if x in string.printable)
 
     # Escape the char '`' so the shell won't interpret it.
     #
@@ -110,7 +110,7 @@ def PrintMsgNoCR(msg):
 
     # Remove any non-printing char
     #
-    msg = filter(lambda x: x in string.printable, msg)
+    msg = ''.join(x for x in msg if x in string.printable)
 
     # Escape the char '`' so the shell won't interpret it.
     #
@@ -198,3 +198,10 @@ def PrintStart(options, start_str):
     if not options.list:
         # import pdb;  pdb.set_trace()
         PrintMsgDate(start_str)
+
+def ensure_string(text):
+    if isinstance(text, bytes):
+        return text.decode('utf-8')
+    if isinstance(text, list):
+        return [(x.decode('utf-8') if isinstance(x, bytes) else x) for x in text]
+    return text

@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# BEGIN_LEGAL
+#BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2016 Intel Corporation. All rights reserved.
+# Copyright (c)2017 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -133,7 +133,7 @@ def CheckNonPrintChar(argv):
     """
 
     for s in argv:
-        new_s = filter(lambda x: x in string.printable, s)
+        new_s = ''.join(x for x in s if x in string.printable)
         if new_s != s:
             msg.PrintMsg('ERROR: Non-printable char found in command line option "%s".  Possibly the\n' \
                   'string "--" (two hyphens) which Windows has turned into the non-printable\n' \
@@ -386,7 +386,7 @@ def FormatCmd(cmd, print_time=True):
         command = JoinOptionsList(cmd)
         if '.py' in command[0]:
             command[0] = os.path.join(GetScriptDir(), command[0])
-            cmd = ['python'] + command
+            cmd = ['python3'] + command
         else:
             cmd = command
     elif platform == config.LINUX or platform == config.WIN_CYGWIN:
@@ -556,25 +556,26 @@ def GetAllIcount(dirname, file_name):
 
     # Get the result file(s) for the pinball and the icount for each thread.
     #
-    # import pdb ; pdb.set_trace()
+    #import pdb ; pdb.set_trace()
     all_icount = []
     files = glob.glob(os.path.join(dirname, file_name + '*' + '.result'))
     for pfile in files:
         field = FindResultString(pfile, 'inscount:')
         icount = field[0]
-        if icount:
+        icountFound = (icount != None)
+        if icountFound:
             icount = int(icount)
             pid = field[1]
             tid = field[2]
         else:
             icount = 0
-        if icount:
+        if icountFound:
             pfile = ChangeExtension(pfile, '.result', '')
             all_icount += [(icount, pfile)]
         else:
             # The icount was not found.
             #
-            msg.PrintMsg('\nWARNING: util.GetAllIcount(), string \'inscount\' not found (or icount of 0).\n' \
+            msg.PrintMsg('\nWARNING: util.GetAllIcount(), string \'inscount\' not found.\n' \
                 'Check out possible corruption in pinball:\n' + '   ' + pfile)
             continue
     # Sort max->min by icount
@@ -606,13 +607,14 @@ def GetMaxIcount(dirname, file_name):
     for pfile in files:
         field = FindResultString(pfile, 'inscount:')
         icount = field[0]
-        if icount:
+        icountFound = (icount != None)
+        if icountFound:
             icount = int(icount)
             pid = field[1]
             tid = field[2]
         else:
             icount = 0
-        if icount:
+        if icountFound:
             icount = int(icount)
         else:
             # The icount was not found.
@@ -644,7 +646,7 @@ def GetMinIcount(dirname, file_name):
     # Get the result file(s) for the pinball and find the minimum icount.
     #
     # import pdb ; pdb.set_trace()
-    min_icount = sys.maxint
+    min_icount = sys.maxsize
     files = glob.glob(os.path.join(dirname, file_name + '*' + '.result'))
     for pfile in files:
         field = FindResultString(pfile, 'inscount:')
@@ -670,7 +672,7 @@ def GetMinIcount(dirname, file_name):
     # Check to make sure we really found an icount.  If not, this is
     # an error.
     #
-    if min_icount == sys.maxint:
+    if min_icount == sys.maxsize:
         min_icount = 0
 
     return min_icount
@@ -698,12 +700,12 @@ def walk_callback(param, dirname, fnames):
 
     # Get items from the param dictionary.
     #
-    if param.has_key('options'):
+    if 'options' in param:
         options = param['options']
     else:
         msg.PrintAndExit(
             'function util.walk_callback() failed to get param \'options\'')
-    if param.has_key('method'):
+    if 'method' in param:
         method = param['method']
     else:
         err_msg('method')
@@ -816,7 +818,7 @@ def RunAllDir(dir_string, method, no_glob, param):
         # Get 'param' from 'options' and add 'method'.
         #
         # import pdb ; pdb.set_trace()
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintAndExit(
@@ -830,8 +832,9 @@ def RunAllDir(dir_string, method, no_glob, param):
                 msg.PrintMsg('Processing pinballs in directory \'' + path + \
                                       '\' using method: ' + str(method))
             if hasattr(options, 'verbose') and options.verbose:
-                msg.PrintMsg('Calling os.path.walk() with path: %s' % path)
-            os.path.walk(path, walk_callback, param)
+                msg.PrintMsg('Calling os.walk(path) with path: %s' % path)
+            for root, dirs, files in os.walk(path):
+                walk_callback(param, root, files)
 
             # Need to use the global _util_result because the return values from the callback
             # are not passed back to the calling function.
@@ -928,10 +931,62 @@ def FindResultString(filename, search_string, add_tid=False):
 
     return [val, pid, tid]
 
+def FindDynamicICount(filename, search_string):
+    """
+    Get the value associated with 'search_string' from one bb file.  
+
+    The bb file contains  string of the following form
+        Dynamic instruction count 617601078
+
+    @return list containing two items: [tid, icount]
+    @return if item not found, return 'None'
+    """
+
+    tid = None
+    pattern = '[^.]*.T.([0-9][0-9]*).bb'
+    # import pdb ; pdb.set_trace()
+    sresult =  re.search(pattern, filename)
+    val = None
+    if sresult:
+        # Get the TID info.
+        #
+        tid = sresult.group(1)
+    if tid == None:
+      sresult =  re.search('global', filename)
+      if sresult:
+        tid = 'global'
+
+    val = FindStringRaw(filename, search_string)
+
+    return [tid, val]
+
+def FindStringRaw(filename, search_string):
+    """
+    Get the last word in the first line with 'search_string' from a file.
+
+    @return the last word, if search_string found, else 'None'
+    """
+
+    val = None
+    if os.path.isfile(filename):
+        try:
+            f = open(filename, 'r')
+        except IOError:
+            msg.PrintAndExit(
+                'function util.FindStringRaw(), can\'t open file: ' + filename)
+
+        for line in f.readlines():
+            if line.find(search_string) != -1:
+                wordlist = line.split()
+                wordcount = len(wordlist)
+                val = wordlist[wordcount-1]
+    return val
+
 def FindString(filename, search_string, add_tid=False):
     """
-    Get the value associated with 'search_string' from a file.  If the boolean 'add_tid'
-    is true, then add a TID to the file name before looking for the result file.
+    Get the value associated with 'search_string' from a file.  
+    If the boolean 'add_tid' is true, then add a TID to the file name 
+    before looking for the result file.
 
     Example files input names:
 
@@ -959,17 +1014,7 @@ def FindString(filename, search_string, add_tid=False):
     # Look for string 'search_string' and add the value of this key to the list 'result'.
     #
     # import pdb ; pdb.set_trace()
-    val = None
-    if os.path.isfile(filename):
-        try:
-            f = open(filename, 'r')
-        except IOError:
-            msg.PrintAndExit(
-                'function util.FindString(), can\'t open file: ' + filename)
-
-        for line in f.readlines():
-            if line.find(search_string) != -1:
-                val = line.split()[1]
+    val = FindStringRaw(filename, search_string)
 
     return [val, pid, tid]
 
@@ -1045,6 +1090,7 @@ def PrintInstrCount(dirname, options):
     #
     if not options.list:
         old_pid = -1
+        gicount = 0
         msg.PrintMsg('Instruction count')
         for field in p_list:
             icount = field[0]
@@ -1052,6 +1098,7 @@ def PrintInstrCount(dirname, options):
             tid = field[2]
             if icount:
                 icount = int(icount)
+                gicount += icount
             else:
                 # The icount was not found.
                 #
@@ -1072,6 +1119,8 @@ def PrintInstrCount(dirname, options):
                 # Otherwise, just print the icount
                 #
                 msg.PrintMsg(locale.format('%16d', int(icount), True))
+        msg.PrintMsg('   global:' +
+          locale.format('%16d', int(gicount), True))
 
 
 def GetNumThreadsWP(options):
@@ -1444,7 +1493,7 @@ def NumCores():
     # linux code
     #
     if hasattr(os, "sysconf"):
-        if os.sysconf_names.has_key("SC_NPROCESSORS_ONLN"):
+        if "SC_NPROCESSORS_ONLN" in os.sysconf_names:
             num_cpus = os.sysconf("SC_NPROCESSORS_ONLN")
             if isinstance(num_cpus, int) and num_cpus > 0:
                 return num_cpus
@@ -1455,7 +1504,7 @@ def NumCores():
 
     # Windows specific code
     #
-    if os.environ.has_key("NUMBER_OF_PROCESSORS"):
+    if "NUMBER_OF_PROCESSORS" in os.environ:
         num_cpus = int(os.environ["NUMBER_OF_PROCESSORS"])
         if num_cpus > 0:
             return num_cpus
@@ -1522,7 +1571,7 @@ def AddMethodcbsp(options):
     Add the cbsp() method to a object of type optparse.Values.
     """
 
-    options.cbsp = types.MethodType(cbsp, options, optparse.Values)
+    options.cbsp = types.MethodType(cbsp, options)
 
     return options
 
@@ -1673,8 +1722,8 @@ def RoundupPow2(a):
     @return integer
     """
 
-    if type(a) != type(0): raise RuntimeError, "Only works for ints!"
-    if a <= 0: raise RuntimeError, "Oops, doesn't handle negative values"
+    if type(a) != type(0): raise RuntimeError("Only works for ints!")
+    if a <= 0: raise RuntimeError("Oops, doesn't handle negative values")
 
     next_one_up = 1
     while (next_one_up < a):
@@ -1811,7 +1860,7 @@ def CheckResult(result, options, phase, intermediate_phase=False):
             td = PhaseEnd(options)
         if td != None:
             f.write('%s (%s.%06d)\n' % (str(td), ((td.seconds + \
-                td.days * 24 * 3600) * 10 ** 6) / 10 ** 6, td.microseconds))
+                td.days * 24 * 3600) * 10 ** 6) // 10 ** 6, td.microseconds))
         else:
             f.write('\n')
     f.close()
@@ -1859,6 +1908,8 @@ def PrintModuleVersions():
             cmd = 'grep Id: ' + p_file
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         (stdout, stderr) = p.communicate()
+        stdout = ensure_string(stdout)
+        stderr = ensure_string(stderr)
 
         # Print the file name and version.
         #
@@ -1950,10 +2001,12 @@ def CountFiles(string):
 #
 #   pp_pattern - generated by the PinPlay tools when creating region pinballs 
 #
-# Here's an example of a file name generated by using the default naming
+# Here're two example of a file name generated by using the default naming
 # convention of the pinpoints.py script:
 #
 #   omnetpp.p10000-s10_57015_t0r5_warmup1001500_prolog0_region3500003_epilog0_005_0-00970.0.address
+#
+#   specrand.test_13923_t0r1_warmupendPC0x0004385f0_warmupendPCCount3125_warmuplength1000009_endPC0x000417cc0_endPCCount1377_length1000002_multiplier1-001_001_0-00162.0 
 #
 # Here are examples of the two sub-component patterns for this full name:
 #
@@ -1971,8 +2024,14 @@ def CountFiles(string):
 #   test-abc_one.two_t0r5_warmup1001500_prolog0_region3500003_epilog0_005_0-00970.0.address
 #
 user_pattern = '[a-zA-Z0-9-+%]+\.[a-zA-Z0-9-+%]+_[0-9]+'
-pp_pattern = '_t[0-9]+r[0-9]+_warmup[0-9]+_prolog[0-9]+_region[0-9]+_epilog[0-9]+_[0-9]+_[0-1]-[0-9]+'
-full_pattern = user_pattern + pp_pattern
+pp_iregion_pattern = '_t([0-9])+r([0-9]+)_warmup([0-9]+)_prolog([0-9]+)_region([0-9]+)_epilog([0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+pp_global_iregion_pattern = '_globalr([0-9]+)_warmup([0-9]+)_prolog([0-9]+)_region([0-9]+)_epilog([0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+pp_pcregion_pattern = '_t([0-9])+r([0-9]+)_warmupendPC(0x[0-9A-Fa-f]+)_warmupendPCCount([0-9]+)_warmuplength([0-9]+)_endPC(0x[0-9A-Fa-f]+)_endPCCount([0-9]+)_length([0-9]+)_multiplier([0-9]+-[0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+pp_global_pcregion_pattern = '_globalr([0-9]+)_warmupendPC(0x[0-9A-Fa-f]+)_warmupendPCCount([0-9]+)_warmuplength([0-9]+)_endPC(0x[0-9A-Fa-f]+)_endPCCount([0-9]+)_length([0-9]+)_multiplier([0-9]+-[0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+full_iregion_pattern = user_pattern + pp_iregion_pattern
+full_pcregion_pattern = user_pattern + pp_pcregion_pattern
+full_global_iregion_pattern = user_pattern + pp_global_iregion_pattern
+full_global_pcregion_pattern = user_pattern + pp_global_pcregion_pattern
 
 # Currently, this is not used, but should probably be added to the algorithm for parsing
 # file names...
@@ -2002,11 +2061,25 @@ def ParseFileName(file_name):
 
     result = {}
     file_name = os.path.basename(file_name)
-    # import pdb;  pdb.set_trace()
-    if re.search(full_pattern, file_name):
-        result = ParseFullFileName(file_name)
-    elif re.search(pp_pattern, file_name):
-        result = ParsePartialFileName(file_name)
+    #import pdb;  pdb.set_trace()
+    if config.global_regions:
+      local_full_iregion_pattern = full_global_iregion_pattern
+      local_full_pcregion_pattern = full_global_pcregion_pattern
+      local_pp_iregion_pattern = pp_global_iregion_pattern
+      local_pp_pcregion_pattern = pp_global_pcregion_pattern
+    else:
+      local_full_iregion_pattern = full_iregion_pattern
+      local_full_pcregion_pattern = full_pcregion_pattern
+      local_pp_iregion_pattern = pp_iregion_pattern
+      local_pp_pcregion_pattern = pp_pcregion_pattern
+    if re.search(local_full_iregion_pattern, file_name):
+        result = ParseFullFileName(file_name, local_full_iregion_pattern)
+    elif re.search(local_full_pcregion_pattern, file_name):
+        result = ParseFullFileName(file_name, local_full_pcregion_pattern)
+    elif re.search(local_pp_iregion_pattern, file_name):
+        result = ParsePartialFileNameIregion(file_name)
+    elif re.search(pp_pcregion_pattern, file_name):
+        result = ParsePartialFileNamePCregion(file_name)
     else:
         msg.PrintAndExit('method util.ParseFileName() encountered a file name\n' 'which does not meet requirements for parsing a region pinball name:\n   ' + \
                 file_name + '\nFile name must conform to the region pinball naming convention.')
@@ -2014,7 +2087,7 @@ def ParseFileName(file_name):
     return result
 
 
-def ParseFullFileName(file_name):
+def ParseFullFileName(file_name, myfull_pattern):
     """
     Parse a region pinball file name where all fields were generated by the
     pinpoints.py script.
@@ -2041,7 +2114,7 @@ def ParseFullFileName(file_name):
     # Make sure the file name matches the full file name pattern.
     #
     # import pdb;  pdb.set_trace()
-    if not re.search(full_pattern, file_name):
+    if not re.search(myfull_pattern, file_name):
         msg.PrintAndExit('method util.ParseFullFileName() encountered a file name\n' 'which does not meet requirements for parsing a region pinball name:\n   ' + \
                 file_name + '\nFile name must conform to the region pinball naming convention.')
 
@@ -2094,14 +2167,23 @@ def ParseFullFileName(file_name):
     # Get the fields from the PinPlay part of the file name.
     #
     # import pdb;  pdb.set_trace()
-    partial_result = ParsePartialFileName(file_name)
+    if config.global_regions:
+      local_pp_iregion_pattern = pp_global_iregion_pattern
+      local_pp_pcregion_pattern = pp_global_pcregion_pattern
+    else:
+      local_pp_iregion_pattern = pp_iregion_pattern
+      local_pp_pcregion_pattern = pp_pcregion_pattern
+    if re.search(local_pp_iregion_pattern, file_name):
+        partial_result = ParsePartialFileNameIregion(file_name)
+    elif re.search(local_pp_pcregion_pattern, file_name):
+        partial_result = ParsePartialFileNamePCregion(file_name)
 
     # Return the fields from both parts of the file name.
     #
-    return dict(result.items() + partial_result.items())
+    return dict(list(result.items()) + list(partial_result.items()))
 
 
-def ParsePartialFileName(file_name):
+def ParsePartialFileNameIregion(file_name):
     """
     Parse the portion of a region pinball file name generated by the PinPlay logger pin tool.
 
@@ -2152,8 +2234,12 @@ def ParsePartialFileName(file_name):
     # Make sure the file name matches the PinPlay pattern.
     #
     # import pdb;  pdb.set_trace()
-    if not re.search(pp_pattern, file_name):
-        msg.PrintAndExit('method util.ParsePartialFileName() encountered a file name\n' 'which does not meet requirements for parsing a region pinball name:\n   ' + \
+    if config.global_regions:
+      local_pp_iregion_pattern = pp_global_iregion_pattern
+    else:
+      local_pp_iregion_pattern = pp_iregion_pattern
+    if not re.search(local_pp_iregion_pattern, file_name):
+        msg.PrintAndExit('method util.ParsePartialFileNameIregion() encountered a file name\n' 'which does not meet requirements for parsing a region pinball name:\n   ' + \
                 file_name + '\nFile name must conform to the region pinball naming convention.')
 
     # Directory containing the fields which were successfull parsed.
@@ -2163,13 +2249,21 @@ def ParsePartialFileName(file_name):
     # Define a lambda function to print a standard error msg.
     #
     err_msg = lambda fname, string: msg.PrintAndExit(
-        'method util.ParsePartialFileName() encountered '
+        'method util.ParsePartialFileNameIregion() encountered '
         'an error parsing \'' + string + '\' in \nfile name:  ' + fname)
 
     # Get the file extension
     #
     # import pdb;  pdb.set_trace()
-    tmp = re.split(pp_pattern, file_name)
+    # pp_iregion_pattern = '_t([0-9])+r([0-9]+)_warmup([0-9]+)_prolog([0-9]+)_region([0-9]+)_epilog([0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+    #   group(1) tid, group(2) rid, group(3) warmup_length
+    #   group(4) prolog_length, group(5) sim_length, group(6) epilog_length, 
+    #   group(7) traceno, group(8) weight
+    # pp_global_iregion_pattern = '_globalr([0-9]+)_warmup([0-9]+)_prolog([0-9]+)_region([0-9]+)_epilog([0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+    #   group(1) rid, group(2) warmup_length
+    #   group(3) prolog_length, group(4) sim_length, group(5) epilog_length, 
+    #   group(6) traceno, group(7) weight
+    tmp = re.split(local_pp_iregion_pattern, file_name)
     if len(tmp) >= 2:
         file_ext = tmp[1]
         tmp = file_ext.split('.')
@@ -2182,81 +2276,197 @@ def ParsePartialFileName(file_name):
     # Get the PinPlay generated part of the file name.
     #
     # import pdb;  pdb.set_trace()
-    pp_part = re.findall(pp_pattern, file_name)
+    pp_part = re.search(local_pp_iregion_pattern, file_name)
+    
+    if pp_part:
+        if config.global_regions:
+          gr_offset = -1
+          tid =   -1
+        else:
+          gr_offset = 0
+          tid =   int(pp_part.group(1))
+        result['tid'] = tid
+
+        region_num =   int(pp_part.group(gr_offset+2))
+        result['region_num'] = region_num
+
+        warmup = int(pp_part.group(gr_offset+3))
+        result['warmup'] = warmup
+        prolog =  int(pp_part.group(gr_offset+4))
+        result['prolog'] = prolog
+        region =  int(pp_part.group(gr_offset+5))
+        result['region'] = region
+        epilog =  int(pp_part.group(gr_offset+6))
+        result['epilog'] = epilog
+        trace_num =  int(pp_part.group(gr_offset+7))
+        result['trace_num'] = trace_num
+
+        # Final field contains the weight with '-' as the decimal point.
+        # NOTE: string '1-00000' == 1.0
+        #
+        # import pdb ; pdb.set_trace()
+        tmp =  pp_part.group(gr_offset+8) # string
+        if tmp.find('1-0') != -1:
+            weight = 1.0
+        else:
+            pos = tmp.find('.')
+            tmp = tmp[:pos]  # Remove trailing '.' from the field
+            try:
+                weight = float(tmp.replace('-', '.'))
+            except ValueError:
+                err_msg(file_name, 'weight')
+        result['weight'] = weight
+
+    return result
+
+def ParsePartialFileNamePCregion(file_name):
+    """
+    Parse the portion of a region pinball file name generated by the PinPlay logger pin tool.
+
+    The PinPlay tools encode information about a representative region in the file name.
+    For example, given this full file name:
+
+       specrand.test_13923_t0r1_warmupendPC0x0004385f0_warmupendPCCount3125_warmuplength1000009_endPC0x000417cc0_endPCCount1377_length1000002_multiplier1-001_001_0-00162.0.address 
+
+    The subset of the file name generated by PinPlay is:
+
+       _t0r1_warmupendPC0x0004385f0_warmupendPCCount3125_warmuplength1000009_endPC0x000417cc0_endPCCount1377_length1000002_multiplier1-001_001_0-00162.0.address 
+
+    The first part this string contains:
+        TID:                 0  (t0)
+        region number:       5  (r5)
+
+    The next part contains the pc+count and the length for each of
+    the two 'section' of the region pinball.  
+
+    The items in these sections are:
+        warmup  warmupendPC, warmupendPCCount, warmuplength
+        region  endPC, endPCCount, length
+
+    Any of the sections, except for region itself, may contain 0 pc,count, or
+    length.
+    In this case, the section will still exist, but with 0 pc,count, and 
+    instructions.
+
+    Finally, there are 3 more pieces of information:
+        multiplier:     1.001   (1-001)
+        trace number:     5   (005)
+        weight:     0.00162   (0-00162)
+
+    The trace number is the same as the region number.  This information is duplicted in
+    the file name.
+
+    This code makes the assumption that the tracing parameters 'program_name' and
+    'input_name' do NOT contain any of these chars: '.', '_'.
+
+    @return dictionary which contains fields successfully parsed
+    """
+
+    # Remove any directories from the name.
+    #
+    # import pdb;  pdb.set_trace()
+    if config.global_regions:
+      local_pp_pcregion_pattern = pp_global_pcregion_pattern
+    else:
+      local_pp_pcregion_pattern = pp_pcregion_pattern
+    file_name = os.path.basename(file_name)
+
+    # Make sure the file name matches the PinPlay pattern.
+    #
+    # import pdb;  pdb.set_trace()
+    if not re.search(local_pp_pcregion_pattern, file_name):
+        msg.PrintAndExit('method util.ParsePartialFileNamePCregion() encountered a file name\n' 'which does not meet requirements for parsing a region pinball name:\n   ' + \
+                file_name + '\nFile name must conform to the region pinball naming convention.')
+
+    # Directory containing the fields which were successfull parsed.
+    #
+    result = {}
+
+    # Define a lambda function to print a standard error msg.
+    #
+    err_msg = lambda fname, string: msg.PrintAndExit(
+        'method util.ParsePartialFileNamePCregion() encountered '
+        'an error parsing \'' + string + '\' in \nfile name:  ' + fname)
+
+    # Get the file extension
+    #
+    # import pdb;  pdb.set_trace()
+    tmp = re.split(pp_pcregion_pattern, file_name)
+    if len(tmp) >= 2:
+        file_ext = tmp[1]
+        tmp = file_ext.split('.')
+        if tmp[0].isdigit():
+            file_ext = '.'.join(tmp[1:])  # Remove TID if it exists
+        else:
+            file_ext = '.'.join(tmp[0:])
+        result['file_ext'] = file_ext
+
+    # Get the PinPlay generated part of the file name.
+    #
+    # import pdb;  pdb.set_trace()
+    pp_part = re.search(local_pp_pcregion_pattern, file_name)
 
     # Divide the pp_part into strings separated by '_' which contain the
     # fields of the file name.  The example given above produces this
     # list:
     #
-    #   ['', 't0r5', 'warmup1001500', 'prolog0', 'region3500003', 'epilog0', '005', '0-00970.']
-    #
-    field = pp_part[0].split('_')
+    #pp_pcregion_pattern = '_t([0-9])+r([0-9])+_warmupendPC(0x[0-9A-Fa-f]+)_warmupendPCCount([0-9]+)_warmuplength([0-9]+)_endPC(0x[0-9A-Fa-f]+)_endPCCount([0-9]+)_length([0-9]+)_multiplier([0-9]+-[0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+    #    group(1) tid, group(2) rid, group(3) warmupendPC, 
+    #    group(4) warmupendPCCount, group(5) warmuplength, group(6) endPC, 
+    #    group(7) endPCCount, group(8) length, group(9) multiplier,
+    #    group(10) traceno, group(11) weight
+    #pp_global_pcregion_pattern = '_globalr([0-9]+)_warmupendPC(0x[0-9A-Fa-f]+)_warmupendPCCount([0-9]+)_warmuplength([0-9]+)_endPC(0x[0-9A-Fa-f]+)_endPCCount([0-9]+)_length([0-9]+)_multiplier([0-9]+-[0-9]+)_([0-9]+)_([0-1]-[0-9]+)'
+    #    group(1) rid, group(2) warmupendPC, 
+    #    group(3) warmupendPCCount, group(4) warmuplength, group(5) endPC, 
+    #    group(6) endPCCount, group(7) length, group(8) multiplier,
+    #    group(9) traceno, group(10) weight
+    if pp_part:
+        if config.global_regions:
+          gr_offset = -1
+          tid =   -1
+        else:
+          gr_offset = 0
+          tid =   int(pp_part.group(1))
+        result['tid'] = tid
+        region_num = int(pp_part.group(gr_offset+2))
+        result['region_num'] = region_num
+        warmupendPC =  pp_part.group(gr_offset+3) # string
+        result['warmupendPC'] = warmupendPC
+        warmupendPCCount =  int(pp_part.group(gr_offset+4))
+        result['warmupendPCCount'] = warmupendPCCount
+        warmuplength =  int(pp_part.group(gr_offset+5))
+        result['warmuplength'] = warmuplength
+        endPC =   pp_part.group(gr_offset+6) # string
+        result['endPC'] = endPC
+        endPCCount = int(pp_part.group(gr_offset+7))
+        result['endPCCount'] = endPCCount
+        length =   int(pp_part.group(gr_offset+8))
+        result['length'] = length
+        tmp =   pp_part.group(gr_offset+9) # string
+        multiplier = float(tmp.replace('-', '.'))
+        result['multiplier'] = multiplier
+        trace_num =   int(pp_part.group(gr_offset+10))
+        result['trace_num'] = trace_num
 
-    # 2nd field has TID and region number.
-    #
-    # import pdb;  pdb.set_trace()
-    tmp = field[1][1:]  # Remove the leading 't'
-    pos = tmp.find('r')
-    try:
-        tid = int(tmp[:pos])
-    except ValueError:
-        err_msg(file_name, 'tid')
-    result['tid'] = tid
-    region_num = tmp[pos:]
-    try:
-        region_num = int(region_num[1:])  # Remove the leading 'r'
-    except ValueError:
-        err_msg(file_name, 'region_num')
-    result['region_num'] = region_num
-
-    # Now get the number of instructions in the various regions. Each one is
-    # in a separate field.
-    #
-    try:
-        warmup = int(field[2].replace('warmup', ''))
-    except ValueError:
-        err_msg(file_name, 'warmup')
-    result['warmup'] = warmup
-    try:
-        prolog = int(field[3].replace('prolog', ''))
-    except ValueError:
-        err_msg(file_name, 'prolog')
-    result['prolog'] = prolog
-    try:
-        region = int(field[4].replace('region', ''))
-    except ValueError:
-        err_msg(file_name, 'region')
-    result['region'] = region
-    try:
-        epilog = int(field[5].replace('epilog', ''))
-    except ValueError:
-        err_msg(file_name, 'epilog')
-    result['epilog'] = epilog
-    try:
-        trace_num = int(field[6])
-    except ValueError:
-        err_msg(file_name, 'trace_num')
-    result['trace_num'] = trace_num
-
-    # Final field contains the weight with '-' as the decimal point.
-    # NOTE: string '1-00000' == 1.0
-    #
-    # import pdb ; pdb.set_trace()
-    if field[7].find('1-0') != -1:
-        weight = 1.0
-    else:
-        pos = field[7].find('.')
-        tmp = field[7][:pos]  # Remove trailing '.' from the field
-        try:
-            weight = float(tmp.replace('-', '.'))
-        except ValueError:
-            err_msg(file_name, 'weight')
-    result['weight'] = weight
+        # Final field contains the weight with '-' as the decimal point.
+        # NOTE: string '1-00000' == 1.0
+        #
+        # import pdb ; pdb.set_trace()
+        tmp =   pp_part.group(gr_offset+11) # string
+        if tmp.find('1-0') != -1:
+            weight = 1.0
+        else:
+            pos = tmp.find('.')
+            tmp = tmp[:pos]  # Remove trailing '.' from the field
+            try:
+                weight = float(tmp.replace('-', '.'))
+            except ValueError:
+                err_msg(file_name, 'weight')
+        result['weight'] = weight
 
     return result
 
-
-def GetRegionInfo(file_name, use_file_fields=False):
+def GetRegionInfo(file_name, options, use_file_fields=False):
     """
     Get information about a region pinball, including:
         1) Total icount
@@ -2280,52 +2490,73 @@ def GetRegionInfo(file_name, use_file_fields=False):
     # Get the fields from parsing the pinball file name.  'fields' is a dictionary
     # with the fields in the file name.
     #
-    # import pdb;  pdb.set_trace()
+    #import pdb;  pdb.set_trace()
     fields = ParseFileName(file_name)
-    try:
-        epilog = fields['epilog']
-    except KeyError:
-        err_msg('epilog', file_name)
-        return -1
-    try:
-        prolog = fields['prolog']
-    except KeyError:
-        err_msg('prolog', file_name)
-        return -1
+    prolog=0
+    epilog=0
+    warmup=0
+    region=0
     try:
         region_num = fields['region_num']
     except KeyError:
         err_msg('region_num', file_name)
         return -1
     try:
-        region = fields['region']
-    except KeyError:
-        err_msg('region', file_name)
-        return -1
-    try:
         tid = fields['tid']
     except KeyError:
         err_msg('tid', file_name)
         return -1
-    try:
-        warmup = fields['warmup']
-    except KeyError:
-        err_msg('warmup', file_name)
-        return -1
-
+    if hasattr(options, 'pccount_regions') and options.pccount_regions:
+        try:
+            warmup = fields['warmuplength']
+        except KeyError:
+            err_msg('warmuplength', file_name)
+            return -1
+        try:
+            region = fields['length']
+        except KeyError:
+            err_msg('length', file_name)
+            return -1
+    else:
+        try:
+            epilog = fields['epilog']
+        except KeyError:
+            err_msg('epilog', file_name)
+            return -1
+        try:
+            prolog = fields['prolog']
+        except KeyError:
+            err_msg('prolog', file_name)
+            return -1
+        try:
+            region = fields['region']
+        except KeyError:
+            err_msg('region', file_name)
+            return -1
+        try:
+            warmup = fields['warmup']
+        except KeyError:
+            err_msg('warmup', file_name)
+            return -1
     # Calculate some metrics for the pinball.  Use the number of instructions from the
     # result file (icount) instead of using the count from the file name.  The icount
     # is the actual number of instructions in the region.  The number from the file name
     # is only an approximate number of instructions.
     #
-    # import pdb;  pdb.set_trace()
-    field = FindResultString(glob.glob(file_name + '*.result')[0], 'inscount')
-    icount = field[0]
-    if icount:
-        icount = int(icount)
+    #import pdb;  pdb.set_trace()
+    if config.global_regions:
+      icount=0
+      basename = RemoveTID(file_name)
+      for fname in glob.glob(basename + '*.result'):
+        ticount = int(FindResultString(fname, 'inscount')[0])
+        icount += ticount
     else:
-        icount = 0
-
+      field = FindResultString(glob.glob(file_name + '*.result')[0], 'inscount')
+      icount = field[0]
+      if icount:
+          icount = int(icount)
+      else:
+          icount = 0
     # Two methods of determining the region icount:
     #   1) Calculate region length using icount from the *.result file  (default)
     #      This reflects the actual icount of the region pinball.
@@ -2333,6 +2564,7 @@ def GetRegionInfo(file_name, use_file_fields=False):
     #      much different than the actual value used to generate the pinball region.
     #
     calc_region = icount - warmup - prolog - epilog
+    #import pdb;  pdb.set_trace()
     if use_file_fields:
         calc_region = region
 
@@ -2366,12 +2598,15 @@ def GetCSVFiles(file_name, param=None):
     #
     # import pdb;  pdb.set_trace()
     if param:
-        if param.has_key('iteration'):
+        if 'iteration' in param:
             data_dir = os.path.join(data_dir, GetIterDir(param['iteration']))
-        if param.has_key('in_lit_dir') and param['in_lit_dir']:
+        if 'in_lit_dir' in param and param['in_lit_dir']:
             data_dir = os.path.join('..', data_dir)
 
-    region_file = os.path.join(data_dir, basename) + '.pinpoints.csv'
+    if config.global_regions:
+      region_file = os.path.join(data_dir, basename) + '.global.pinpoints.csv'
+    else:
+      region_file = os.path.join(data_dir, basename) + '.pinpoints.csv'
     csv_file = os.path.basename(region_file)
     base_name = csv_file.replace('.csv', '')
 
@@ -2402,6 +2637,11 @@ def GetClusterInfo(file_name, param):
         # Region = 1 Slice = 88 Icount = 308000214 Length = 3500002 Weight = 0.5432
         cluster 0 from slice 88,0,1,308000214,311500216,0.543210
 
+   For a pc+count regions file, a region record looks like this
+   cluster 0 from slice 5459,0,1,0x4029a5,mcf_base.linux.xSSE4-2-20111104,0x29a5,478047360,0x401e47,mcf_base.linux.xSSE4-2-20111104,0x1e47,2406261603,1516288,30000005,0.04461,463.000,simulation
+   # comment,thread-id,region-id,start-pc, start-image-name, start-image-offset, start-pc-count,end-pc, end-image-name, end-image-offset, end-pc-count,end-pc-relative-count, region-length, region-weight, region-multiplier, region-type
+
+
     @return dictionary containing cluster information
     """
 
@@ -2409,18 +2649,20 @@ def GetClusterInfo(file_name, param):
     #   cluster 0 from slice 88
     #
     cluster_pattern = '[Cc]luster\s(\d+)\sfrom slice\s(\d+)'
+    warmup_pattern = 'Warmup\sfor\sregionid\s(\d+)'
     total_instr_pattern = '.*Total instructions in.*= (\d+)'
 
     # If file_name is not a CSV file, then need to get the CSV
     # file corresponding to file_name.
     #
-    # import pdb;  pdb.set_trace()
+    #import pdb;  pdb.set_trace()
     if '.in.csv' not in file_name and '.out.csv' not in file_name:
         [region_file, in_file, out_file] = GetCSVFiles(file_name, param)
         file_name = region_file
         # self.region_CSV_file = region_file    # Save name of region CSV file in class attribute
 
     cluster_info = {}
+    warmup_info = {}
     total_instr = 0
     # import pdb;  pdb.set_trace()
     if os.path.isfile(file_name):
@@ -2430,21 +2672,38 @@ def GetClusterInfo(file_name, param):
             msg.PrintAndExit(
                 'method phases.GetClusterInfo() can\'t open file: ' + file_name)
 
+        numfields = 0
         for string in f.readlines():
 
             # Look for the cluster information
             #
-            line = string.partition('#')[0]  # Remove any comments
+            line = string
+            if '#' in string:
+                line = string.partition('#')[2]  # Remove any comments
+            # if '#' is found 
+            #   patition() returns the part before '#', '#', part after '#'
+            # else
+            #   patition() returns string followed by two empty strings
             fields = re.split(',', line)  # Find line with CSV fields
-            if len(fields) == 6 and fields[0] != 'comment' and fields[
-                1
-            ] != 'thread-id':
+            if 'comment' in  fields[0]:
+                numfields=len(fields)
+                continue
+            if numfields == 0: 
+                continue
+            if len(fields) == numfields:
                 # Get cluster number from the first field
                 #
                 c = re.search(cluster_pattern, fields[0])
                 if c:
                     num = int(c.group(1))
                     cluster_info[num] = line
+                    warmup_info[num] = ''
+                    # may be modified later if warmup record exists
+                    # assumes simulation records are emitted before warmup
+                c = re.search(warmup_pattern, fields[0])
+                if c:
+                    regionid = int(c.group(1))
+                    warmup_info[regionid-1] = line
 
             # Look for total number of instructions
             #
@@ -2454,7 +2713,7 @@ def GetClusterInfo(file_name, param):
 
         f.close()
 
-    return cluster_info, total_instr
+    return cluster_info, warmup_info, total_instr
 
 
 def ParseClusterInfo(cluster_info):
@@ -2470,7 +2729,17 @@ def ParseClusterInfo(cluster_info):
     #    Here's the format for one line of the cluster info from a file:
     #
     #      cluster 0 from slice 88,0,1,308000214,311500216,0.543210
+    #      or with pc+count regions:
+    #      comment,thread-id,region-id,start-pc, start-image-name, start-image-offset, 
+    #           start-pc-count,end-pc, end-image-name, end-image-offset,  end-pc-count,
+    #           end-pc-relative-count, region-length, region-weight,
+    #           region-multiplier, region-type
+    #      cluster 0 from slice 4,0,1,0x7ffff7de6351,ld-linux-x86-64.so.2,0x11974,13,430,
+    #            0x7fffdea57990, ld-linux-x86-64.so.2,0x11980,14,
+    #            1,2,17962,0.20000,
+    #            0.615,simulation
     #
+    # cluster_iregion_pattern:
     # 1) Comment with cluster number
     #   [Cc]luster\s(\d+)\sfrom slice\s[0-9]+,
     #
@@ -2480,10 +2749,10 @@ def ParseClusterInfo(cluster_info):
     # 3) Region number
     #   (\d+),
     #
-    # 4) icount of first instruction in cluster
+    # 4) icount of first instruction in region
     #   (\d+),
     #
-    # 5) icount of last instruction in cluster
+    # 5) icount of last instruction in region
     #   (\d+),
     #
     # 6) Cluster weight - This matches floating point numbers in either fixed point or scientific notation:
@@ -2501,14 +2770,79 @@ def ParseClusterInfo(cluster_info):
     #   ?         makes the entire non-capturing group optional (to allow for
     #             the presence or absence of the exponent - 3000 or 3E3
 
-    cluster_pattern = '[Cc]luster\s(\d+)\sfrom slice\s[0-9]+,(\d+),(\d+),(\d+),(\d+),' \
+    # cluster_pcregion_pattern:
+    # 1) Comment with cluster number
+    #   [Cc]luster\s(\d+)\sfrom slice\s[0-9]+,
+    #
+    # 2) TID
+    #   (\d+),
+    #
+    # 3) Region number
+    #   (\d+),
+    #
+    # 4) pc of the first instruction in region
+    #   (0x[0-9a-f]+),
+    #
+    # 5) start-image-name
+    #   string,
+    #
+    # 6) end-image-offset
+    #   (0x[0-9a-f]+),
+    #
+    # 7) start-pc-count
+    #   (\d+),
+    #
+    # 8) pc of the last instruction in region
+    #   (0x[0-9a-f]+),
+    #
+    # 9) end-image-name
+    #   string,
+    #
+    # 10) end-image-offset
+    #   (0x[0-9a-f]+),
+    #
+    # 11) end-pc-count
+    #   (\d+),
+    #
+    # 12) end-pc-count-relative
+    #   (\d+),
+    #
+    # 13) region-length
+    #   (\d+),
+    #
+    # 14) Cluster weight - This matches floating point numbers in either fixed point or scientific notation:
+    #   -?        optionally matches a negative sign (zero or one negative signs)
+    #   \ *       matches any number of spaces (to allow for formatting variations like - 2.3 or -2.3)
+    #   [0-9]+    matches one or more digits
+    #   \.?       optionally matches a period (zero or one periods)
+    #   [0-9]*    matches any number of digits, including zero
+    #   (?: ... ) groups an expression, but without forming a "capturing group" (look it up)
+    #   [Ee]      matches either "e" or "E"
+    #   \ *       matches any number of spaces (to allow for formats like 2.3E5 or 2.3E 5)
+    #   -?        optionally matches a negative sign
+    #   \ *       matches any number of spaces
+    #   [0-9]+    matches one or more digits
+    #   ?         makes the entire non-capturing group optional (to allow for
+    #             the presence or absence of the exponent - 3000 or 3E3
+    #
+    # 15) Multiplier - Same as "Cluster weight"
+    #
+    # 16) Region type "warmup" of "simulation"
+    #
+    cluster_iregion_pattern = '[Cc]luster\s(\d+)\sfrom slice\s[0-9]+,(\d+),(\d+),(\d+),(\d+),' \
                       '(-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?)'
+    cluster_pcregion_pattern = '[Cc]luster\s(\d+)\sfrom slice\s[0-9]+,(\d+),(\d+),' \
+                      '(0x[0-9a-f]+),([\S]+),(0x[0-9a-f]+),(\d+),' \
+                      '(0x[0-9a-f]+),([\S]+),(0x[0-9a-f]+),(\d+),(\d+),(\d+),' \
+                      '(-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?),' \
+                      '(-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?),' \
+                      '(warmup|simulation)'
 
     # For each cluster, parse the information and record it.
     #
     cluster_list = []
-    for cluster in cluster_info.values():
-        c = re.search(cluster_pattern, cluster)
+    for cluster in list(cluster_info.values()):
+        c = re.search(cluster_iregion_pattern, cluster)
         if c:
             cl_dir = {}
             cl_dir['cluster_num'] = int(c.group(1))
@@ -2518,6 +2852,27 @@ def ParseClusterInfo(cluster_info):
             cl_dir['last_icount'] = int(c.group(5))
             cl_dir['weight'] = float(c.group(6))
             cluster_list.append(cl_dir)
+        else:
+            c = re.search(cluster_pcregion_pattern, cluster)
+            if c:
+                cl_dir = {}
+                cl_dir['cluster_num'] = int(c.group(1))
+                cl_dir['tid'] = int(c.group(2))
+                cl_dir['region'] = int(c.group(3))
+                cl_dir['startPC'] = c.group(4)
+                cl_dir['startImageName'] = c.group(5)
+                cl_dir['startImageOffset'] = c.group(6)
+                cl_dir['startPCCount'] = int(c.group(7))
+                cl_dir['endPC'] = c.group(8)
+                cl_dir['endImageName'] = c.group(9)
+                cl_dir['endImageOffset'] = c.group(10)
+                cl_dir['endPCCount'] = int(c.group(11))
+                cl_dir['endPCCountRelative'] = int(c.group(12))
+                cl_dir['length'] = int(c.group(13))
+                cl_dir['weight'] = float(c.group(14))
+                cl_dir['multiplier'] = float(c.group(15))
+                cl_dir['regionType'] = c.group(16)
+                cluster_list.append(cl_dir)
 
     return cluster_list
 
@@ -2529,7 +2884,7 @@ def CountClusters(file_name, param):
     @return number of valid clusters
     """
 
-    cluster_info, not_used = GetClusterInfo(file_name, param)
+    cluster_info, not_used1, not_used2 = GetClusterInfo(file_name, param)
     return len(cluster_info)
 
 
@@ -2592,18 +2947,18 @@ def OpenCompressFile(sim_file):
     # different type of compressed files.
     #
     magic_dict = {
-        "\x1f\x8b\x08": "gz",
-        "\x42\x5a\x68": "bz2",
-        "\x50\x4b\x03\x04": "zip"
+        b"\x1f\x8b\x08": "gz",
+        b"\x42\x5a\x68": "bz2",
+        b"\x50\x4b\x03\x04": "zip"
     }
     max_len = max(len(x) for x in magic_dict)
 
     def file_type(filename):
         """Return the type of file compression used for a file."""
 
-        with open(filename) as f:
+        with open(filename, 'rb') as f:
             file_start = f.read(max_len)
-        for magic, filetype in magic_dict.items():
+        for magic, filetype in list(magic_dict.items()):
             if file_start.startswith(magic):
                 return filetype
         return "no match"
@@ -2966,7 +3321,7 @@ def NewStatusFile(options=None, cbsp=False):
         f.close()
 
 
-def GetHighestIcountRegions(file_list):
+def GetHighestIcountRegions(file_list, options):
     """
     For each region pinball in 'file_list', determine the thread (if multi-threaded)
     which has the highest icount.
@@ -2984,10 +3339,16 @@ def GetHighestIcountRegions(file_list):
 
     Assume the format of the result file names is:
         log_t0r1_warmup100001500_prolog0_region29982106_epilog0_001_0-08685.1.result
+             OR
+        log_t0r1_warmupendPC0x0004385f0_warmupendPCCount3125_warmuplength1000009_endPC0x000417cc0_endPCCount1377_length1000002_multiplier1-001_001_0-00162.0 
 
     @return list of result files with highest count for each region
     """
-    search_str = '.*_t\d+r(\d+)_warmup.*_[01]-\d+\.(\d+)\.result'
+    #import pdb ; pdb.set_trace()
+    if config.global_regions:
+      search_str = '.*_globalr(\d+)_warmup.*\.result'
+    else:
+      search_str = '.*_t\d+r(\d+)_warmup.*\.result'
 
     def GetRegion(string):
         """
@@ -2995,17 +3356,44 @@ def GetHighestIcountRegions(file_list):
 
         @return region_num
         """
-        s = re.search(search_str, string)
-        return int(s.group(1))
+        match = re.search(search_str, string)
+        if match:
+          return int(match.group(1))
+        else:
+          #print "Spurious result file ", string
+          return -1
+
+    def DeleteIfSpuriousResultFile(string, options):
+        """
+        Method used to sort on region number.
+
+        @return 1 if deleted 0 otherwise 
+        """
+        match = re.search(search_str, string)
+        if not match:
+          msg.PrintMsgPlus('Spurious result file: ' + string)
+          Delete(options, string)
+          return 1
+        return 0
 
     # Sort by region number
     #
-    file_list.sort(key=lambda x: GetRegion(x))
+    reduced_file_list = list(file_list)
+    for result_file in file_list:
+      if DeleteIfSpuriousResultFile(result_file, options):
+       reduced_file_list.remove(result_file) 
+
+    reduced_file_list.sort(key=lambda x: GetRegion(x))
 
     new_list = []
     cur_region = 1  # Region numbers are 1 based, so start at 1
     cur_file = None
-    for fname in file_list:
+    for fname in reduced_file_list:
+        match = re.search(search_str, fname)
+        if not match:
+          print("Spurious result file ", fname)
+          continue
+           
         region = int(re.search(search_str, fname).group(1))
         # If current region same as last region, skip to next file
         #
@@ -3040,6 +3428,7 @@ def GetHighestIcountRegions(file_list):
                                os.path.basename(cur_file))
         new_list += [icounts[0][1]]
 
+    #import pdb ; pdb.set_trace()
     return new_list
 
 
@@ -3138,3 +3527,5 @@ def PintoolHelpKit(kit, options):
                          print_time=False,
                          print_cmd=False)
     return result
+
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # $Id: pb_weight.py,v 1.5 2015/08/15 20:02:37 tmstall Exp tmstall $
 

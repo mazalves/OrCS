@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # BEGIN_LEGAL
 # BSD License
@@ -83,7 +83,7 @@ class SimRunMulti(replay_dir.ReplayMulti):
         """
 
         # import pdb ; pdb.set_trace()
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintAndExit(

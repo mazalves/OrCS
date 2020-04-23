@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#
+
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2014 Intel Corporation. All rights reserved.
+# Copyright (c)2015 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -34,44 +34,39 @@
 #
 # @ORIGINAL_AUTHORS: T. Mack Stallcup, Cristiano Pereira, Harish Patil, Chuck Yount
 #
-# $Id: sinuca_replay_dir.py,v 1.9 2014/05/27 22:28:26 tmstall Exp tmstall $
+# $Id: sde_cmpsim_metric.py,v 1.14 2015/05/19 19:48:55 tmstall Exp tmstall $
 
 import sys
 
 # Local modules
 #
-import sinuca_kit
-import replay_dir
-import config
+import sde_cmpsim_kit
+import brpred_metric
 
-class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
 
-        """
-        Replay multiple pinballs.
+class CMPsimMetric(brpred_metric.BrPredMetric):
+    """
+    Top level script for calculate the predicted metric of interest from the
+    CMPSim simulator data files in one directory.
+    """
 
-        This class is a wrapper which replays either one pinball or the
-        pinballs in a directory
-        """
+    def GetKit(self):
+        """ Get the CMPSim simulation kit. """
 
-        # Branch predictor simulator python script to replay one pinball.
-        #
-        replayer_cmd = config.all_scripts_path + 'sinuca_replayer.py'
+        kit_obj = sde_cmpsim_kit.CMPsimKit()
+        return kit_obj
 
-        def GetKit(self):
-            """ Get the Branch predictor kit. """
-
-            return sinuca_kit.Sinuca_TracerKit()
 
 def main():
-        """ Process command line arguments and run the replayer """
+    """ Process command line arguments and run the script """
 
-        replay = Sinuca_TracerReplayMulti()
-        result = replay.Run()
-        return result
+    pm = CMPsimMetric()
+    result = pm.Run()
+    return result
 
 # If module is called in stand along mode, then run it.
 #
 if __name__ == "__main__":
     result = main()
-    sys.exit(result)
-
+    if (result > 0):
+        sys.exit(result)

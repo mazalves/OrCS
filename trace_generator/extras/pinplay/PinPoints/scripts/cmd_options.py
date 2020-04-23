@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 # BEGIN_LEGAL
 # BSD License
 #
@@ -692,6 +691,34 @@ def warmup_length(parser, group):
            help="Number of extra instruction to be included before prolog. "
            "Default: 500,000,000")
 
+def warmup_factor(parser, group):
+    method = GetMethod(parser, group)
+    method( "--warmup_factor",
+           dest="warmup_factor",
+           default="0",
+           type="int",
+           help="Number of extra slices to be included before simulation pcregion. "
+           "Default: 0")
+
+
+def pccount_regions(parser, group):
+    method = GetMethod(parser, group)
+    method(
+        "--pccount_regions",
+        dest="pccount_regions",
+        action="store_true",
+        default=False,
+        help="Describe regions with PC+count markers.")
+
+def global_regions(parser, group):
+    method = GetMethod(parser, group)
+    method(
+        "--global_regions",
+        dest="global_regions",
+        action="store_true",
+        default=False,
+        help="Describe regions using a single global profile for all threads.")
+
 #########################################################################
 #
 # LIT file verification phase options
@@ -1250,7 +1277,6 @@ def bbv_file(parser):
                       default='',
                       help="Basic block vector file to use for Simpoint.")
 
-
 def bb_add_filename(parser):
     parser.add_option(
         "--bb_add_filename",
@@ -1361,7 +1387,6 @@ def no_glob(parser):
         help="Do not expand the directory name to include all directories which "
         "start with the string.  Just use the directory name 'as is'.")
 
-
 def no_log(parser):
     parser.add_option(
         "--no_log",
@@ -1369,7 +1394,6 @@ def no_log(parser):
         action="store_true",
         default=False,
         help="Do not run the logger, just run the command with pin.")
-
 
 def no_print_cmd(parser):
     parser.add_option("--no_print_cmd",

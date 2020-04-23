@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#
+
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2014 Intel Corporation. All rights reserved.
+# Copyright (c)2015 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -34,44 +34,61 @@
 #
 # @ORIGINAL_AUTHORS: T. Mack Stallcup, Cristiano Pereira, Harish Patil, Chuck Yount
 #
-# $Id: sinuca_replay_dir.py,v 1.9 2014/05/27 22:28:26 tmstall Exp tmstall $
+# $Id: x86_run.py,v 1.10 2015/05/19 19:48:55 tmstall Exp tmstall $
+
+# This is a script to run a simulator on one trace.
+#
 
 import sys
+import os
+import optparse
+import subprocess
+import glob
 
 # Local modules
 #
-import sinuca_kit
-import replay_dir
+import cmd_options
 import config
+import msg
+import sim_run
+import util
+import x86_kit
 
-class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
 
-        """
-        Replay multiple pinballs.
+class X86Run(sim_run.SimRun):
+    """ Replays one set of trace files.
+        This class is the low level primative which replays one trace.
+    """
 
-        This class is a wrapper which replays either one pinball or the
-        pinballs in a directory
-        """
+    def AddAdditionalCmdOptions(self, parser):
+        """Add additional command line options for this simulator."""
 
-        # Branch predictor simulator python script to replay one pinball.
-        #
-        replayer_cmd = config.all_scripts_path + 'sinuca_replayer.py'
+        cmd_options.archsim_config_dir(parser, '')
 
-        def GetKit(self):
-            """ Get the Branch predictor kit. """
+        return
 
-            return sinuca_kit.Sinuca_TracerKit()
+    def GetKit(self):
+        """ Get the x86 kit. """
+
+        return x86_kit.X86Kit()
+
+    def AddUniqueOptions(self, options):
+        """If running x86, need to add archsim config directory."""
+
+        cmd = ' -archsim_config_dir ' + self.kit.archsim_path
+
+        return cmd
+
 
 def main():
-        """ Process command line arguments and run the replayer """
+    """ Process command line arguments and run x86 """
 
-        replay = Sinuca_TracerReplayMulti()
-        result = replay.Run()
-        return result
+    run = X86Run()
+    result = run.Run()
+    return result
 
 # If module is called in stand along mode, then run it.
 #
 if __name__ == "__main__":
     result = main()
     sys.exit(result)
-

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # BEGIN_LEGAL
 # BSD License
 #
@@ -54,6 +54,7 @@ import sys
 import cmd_options
 import msg
 import util
+from msg import ensure_string
 
 err_msg = lambda string: msg.PrintAndExit('This is not a valid ' + string + \
             '\nUse -h for help.')
@@ -98,7 +99,7 @@ def OpenNormalFVFile(fv_file, type_str):
     # import pdb;  pdb.set_trace()
     type_str = 'normalized frequency vector file: '
     fp = OpenFile(fv_file, type_str)
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     field = line.split(':')
     num_vect = field[0]
     if not util.IsInt(num_vect):
@@ -111,7 +112,7 @@ def OpenNormalFVFile(fv_file, type_str):
 
     # Read the 2nd line: an optional weight, the number of values in the vector and the vector itself.
     #
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     if line == '':
         err_msg(type_str + fv_file)
     field = line.split()
@@ -145,9 +146,9 @@ def OpenFVFile(fv_file, type_str):
 
     # import pdb;  pdb.set_trace()
     fp = OpenFile(fv_file, type_str)
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     while not line.startswith('T:') and line:
-        line = fp.readline()
+        line = ensure_string(fp.readline())
     if not line.startswith('T:'):
         err_msg(type_str + fv_file)
     fp.seek(0, 0)
@@ -164,7 +165,7 @@ def OpenSimpointFile(sp_file, type_str):
     """
 
     fp = OpenFile(sp_file, type_str)
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     field = line.split()
     if not util.IsInt(field[0]):
         err_msg(type_str + sp_file)
@@ -182,7 +183,7 @@ def OpenWeightsFile(wt_file, type_str):
     """
 
     fp = OpenFile(wt_file, type_str)
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     field = line.split()
     if not util.IsFloat(field[0]):
         err_msg(weight_str + wt_file)
@@ -360,7 +361,7 @@ def GetSlice(fp):
     """
 
     fv = []
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     while not line.startswith('T') and line:
         # print 'Skipping line: ' + line
 
@@ -371,7 +372,7 @@ def GetSlice(fp):
         if line.startswith('Block id:'):
             fp.seek(0 - len(line), os.SEEK_CUR)
             return []
-        line = fp.readline()
+        line = ensure_string(fp.readline())
     if line == '': return []
 
     # If vector only contains the char 'T', then assume it's a slice which
@@ -409,15 +410,15 @@ def GetBlockIDs(fp):
     """
 
     block_id = {}
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     while not line.startswith('Block id:') and line:
-        line = fp.readline()
+        line = ensure_string(fp.readline())
     if line:
         while line.startswith('Block id:'):
             bb = int(line.split('Block id:')[1].split()[0])
             count = int(line.split('static instructions:')[1].split()[0])
             block_id[bb] = count
-            line = fp.readline()
+            line = ensure_string(fp.readline())
 
     # import pdb;  pdb.set_trace()
     return block_id
@@ -452,7 +453,7 @@ def PrintVectorFile(matrix):
     #
     # import pdb;  pdb.set_trace()
     num_row = len(matrix)
-    print '%d:w' % num_row
+    print('%d:w' % num_row)
 
     # Print vectors
     #
@@ -461,12 +462,12 @@ def PrintVectorFile(matrix):
     index = 0
     while index < num_row:
         dim = len(matrix[index])
-        print '%.23f %d:' % (weight, dim),
+        print('%.23f %d:' % (weight, dim), end=' ')
         vector = matrix[index]
         # for block in vector:    print '%.19f' % block,
         for block in vector:
-            print '%.20f' % block,
-        print
+            print('%.20f' % block, end=' ')
+        print()
         index += 1
         # import pdb;  pdb.set_trace()
 
@@ -502,7 +503,7 @@ def ReadVectorFile(v_file):
     # Read in the header of the file and do some error checking.
     #
     fp = OpenFile(v_file, 'normalized frequency vector file: ')
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     field = line.split(':')
     num_vect = field[0]
     if len(field) == 2:
@@ -512,7 +513,7 @@ def ReadVectorFile(v_file):
             weights = True
 
     count = 0
-    line = fp.readline()
+    line = ensure_string(fp.readline())
     while True:
         if line == '':
             return matrix
@@ -534,7 +535,7 @@ def ReadVectorFile(v_file):
         matrix.append(vector)
         count += 1
 
-        line = fp.readline()
+        line = ensure_string(fp.readline())
 
     # Make sure 'num_vect' vectors were read from the file.
     #
@@ -588,7 +589,7 @@ def GetWeights(fp):
     pattern = '(-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?)\s(\d+)'
 
     weight_dict = {}
-    for line in fp.readlines():
+    for line in ensure_string(fp.readlines()):
         field = re.match(pattern, line)
 
         # Look for the special case where the first field is a single digit
@@ -612,7 +613,7 @@ def GetSimpoints(fp):
     """
 
     simp_dict = {}
-    for line in fp.readlines():
+    for line in ensure_string(fp.readlines()):
         field = re.match('(\d+)\s(\d+)', line)
         if field:
             slice_num = int(field.group(1))
@@ -712,12 +713,19 @@ def CheckRegions(simp_dict, weight_dict):
 
     @return no return value
     """
+    
+	# if weight regions dictionary is smaller then simpoints regions 
+    # then add missing values with weight 0
+    if len(simp_dict) > len(weight_dict):
+        for simp_key in list(simp_dict.keys()):
+            if simp_key not in list(weight_dict.keys()):
+                weight_dict[simp_key] = 0
 
     if len(simp_dict) != len(weight_dict) or \
-       simp_dict.keys() != weight_dict.keys():
-        msg.PrintMsg('ERROR: Regions in these two files are not identical')
-        msg.PrintMsg('   Simpoint regions: ' + str(simp_dict.keys()))
-        msg.PrintMsg('   Weight regions:   ' + str(weight_dict.keys()))
+       sorted(simp_dict.keys()) != sorted(weight_dict.keys()):
+        msg.PrintMsg('ERROR: ICount Regions in these two files are not identical')
+        msg.PrintMsg('   Simpoint regions: ' + str(sorted(simp_dict.keys())))
+        msg.PrintMsg('   Weight regions:   ' + str(sorted(weight_dict.keys())))
         cleanup()
         sys.exit(-1)
 
@@ -754,11 +762,11 @@ def GenRegionCSV(options, fp_bbv, fp_simp, fp_weight):
 
     # Print region information
     #
-    # import pdb;  pdb.set_trace()
-    if options.focus_thread != -1:
-        tid = int(options.focus_thread)
+    tid = 0
+    if int(options.focus_thread) == -1:
+      tid = 'global'
     else:
-        tid = 0
+      tid = int(options.focus_thread)
     total_icount = 0
     for region in sorted(simp_dict.keys()):
         # Calculate the info for the regions and print it.
@@ -777,7 +785,11 @@ def GenRegionCSV(options, fp_bbv, fp_simp, fp_weight):
         total_icount += length
         msg.PrintMsg('# Region = %d Slice = %d Icount = %d Length = %d Weight = %.5f' % \
             (region + 1, slice_num, start_icount, length, weight))
-        msg.PrintMsg('cluster %d from slice %d,%d,%d,%d,%d,%.5f\n' % \
+        if tid == 'global':
+          msg.PrintMsg('cluster %d from slice %d,%s,%d,%d,%d,%.5f\n' % \
+            (region, slice_num, tid, region + 1, start_icount, end_icount, weight))
+        else:
+          msg.PrintMsg('cluster %d from slice %d,%d,%d,%d,%d,%.5f\n' % \
             (region, slice_num, tid, region + 1, start_icount, end_icount, weight))
 
     # This code is a failed attempt to calculate the coverage of the traces.  It does NOT
@@ -788,7 +800,7 @@ def GenRegionCSV(options, fp_bbv, fp_simp, fp_weight):
         # Get the total number of instructions in all the basic blocks
         #
         total_bb_icount = 0
-        for block in all_bb.keys():
+        for block in list(all_bb.keys()):
             total_bb_icount += all_bb.get(block)
         # print 'Num instructions in all BB:          %6d' % total_bb_icount
 
@@ -842,7 +854,7 @@ def GetDimRandomVector(proj_matrix, proj_dim, dim):
     """
 
     # import pdb;  pdb.set_trace()
-    if proj_matrix.has_key(dim):
+    if dim in proj_matrix:
         # print 'Using random vector: %4d' % dim
         vector = proj_matrix.get(dim)
     else:
@@ -867,8 +879,8 @@ def PrintProjMatrix(matrix):
 
     for key in sorted(matrix.keys()):
         for block in matrix.get(key):
-            print '%6.3f' % block,
-        print
+            print('%6.3f' % block, end=' ')
+        print()
 
 
 def ProjectFVFile(fp, proj_dim=15):
@@ -1090,12 +1102,12 @@ def GetWeightedLDV(fp, num_dim=32):
             # The distances are 0 based, so maximum allowed distance value is 'max-dim-1'.
             #
             if distance > max_dim - 1:
-                print 'ERROR: Distance read from LDV file (%d) was greater than max value of: %d' % (
-                    distance, max_dim - 1)
+                print('ERROR: Distance read from LDV file (%d) was greater than max value of: %d' % (
+                    distance, max_dim - 1))
                 sys.exit(-1)
             count = count * weight[distance]
             index = distance - 10               # Interesting LDV range is from 10 ...
-            index = index * num_dim / (25 - 10) # ... to 25, rescale this range onto 0..num_dim
+            index = index * num_dim // (25 - 10) # ... to 25, rescale this range onto 0..num_dim
             if index >= num_dim:
                 index = num_dim - 1
             fv[index] = (distance, count)
@@ -1186,7 +1198,7 @@ def ScaleCombine(options):
 
 options, fp_bbv, fp_ldv, fp_simp, fp_weight = GetOptions()
 
-if options.combine >= 0.0:
+if options.combine and options.combine >= 0.0:
     ScaleCombine(options)
 elif options.csv_region:
     GenRegionCSV(options, fp_bbv, fp_simp, fp_weight)

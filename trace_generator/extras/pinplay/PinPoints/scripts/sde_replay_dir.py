@@ -3,7 +3,7 @@
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2014 Intel Corporation. All rights reserved.
+# Copyright (c)2015 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -34,44 +34,43 @@
 #
 # @ORIGINAL_AUTHORS: T. Mack Stallcup, Cristiano Pereira, Harish Patil, Chuck Yount
 #
-# $Id: sinuca_replay_dir.py,v 1.9 2014/05/27 22:28:26 tmstall Exp tmstall $
+# $Id: sde_replay_dir.py,v 1.21 2015/05/19 18:16:56 tmstall Exp tmstall $
 
 import sys
 
 # Local modules
 #
-import sinuca_kit
 import replay_dir
-import config
+import sde_kit
 
-class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
 
-        """
-        Replay multiple pinballs.
+class SDEReplayMulti(replay_dir.ReplayMulti):
+    """
+    Replay multiple pinballs.
 
-        This class is a wrapper which replays either one pinball or the
-        pinballs in a directory
-        """
+    This class is a wrapper which replays either one pinball or the
+    pinballs in a directory
+    """
 
-        # Branch predictor simulator python script to replay one pinball.
-        #
-        replayer_cmd = config.all_scripts_path + 'sinuca_replayer.py'
+    # SDE python script to replay one pinball.
+    #
+    replayer_cmd = 'sde_replayer.py'
 
-        def GetKit(self):
-            """ Get the Branch predictor kit. """
+    def GetKit(self):
+        """ Get the SDE kit. """
 
-            return sinuca_kit.Sinuca_TracerKit()
+        return sde_kit.SDEKit()
+
 
 def main():
-        """ Process command line arguments and run the replayer """
+    """ Process command line arguments and run the replayer """
 
-        replay = Sinuca_TracerReplayMulti()
-        result = replay.Run()
-        return result
+    replay = SDEReplayMulti()
+    result = replay.Run()
+    return result
 
 # If module is called in stand along mode, then run it.
 #
 if __name__ == "__main__":
     result = main()
     sys.exit(result)
-

@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2015 Intel Corporation. All rights reserved.
+# Copyright (c)2017 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -75,7 +75,7 @@ class SimPoint(object):
         version = '$Revision: 1.33 $'
         version = version.replace('$Revision: ', '')
         ver = version.replace(' $', '')
-        us = '%prog --bbv_file FILE --data_dir DIR FILE --simpoint_file FILE [options]'
+        us = '%prog --bbv_file FILE --data_dir DIR FILE --simpoint_file FILE [options] --pccount_regions --warmup_factor W'
         desc = 'Runs Simpoint and then generates the region CSV file.  ' \
                'Input to Simpoint can be just an BBV file or a combination of BBV/LDV files. \n\n' \
                 'Required options: --bbv_file, --data_dir, --simpoint_file'
@@ -98,6 +98,9 @@ class SimPoint(object):
         cmd_options.cutoff(parser, '')
         cmd_options.focus_thread(parser, '')
         cmd_options.maxk(parser, '')
+        cmd_options.global_regions(parser, '')
+        cmd_options.warmup_factor(parser, '')
+        cmd_options.pccount_regions(parser, '')
         cmd_options.num_cores(parser, '')
         cmd_options.simpoint_options(parser, '')
 
@@ -133,6 +136,9 @@ class SimPoint(object):
         if options.bbv_file == '':
             msg.PrintAndExit(
                 'Basic block vector file must be defined with option: --bbv_file FILE')
+        if options.warmup_factor != 0 and  not options.pccount_regions:
+            msg.PrintAndExit(
+                '--warmup_factor can only be specified with --pccount_regions')
         if options.data_dir == '':
             msg.PrintAndExit(
                 'Simpoint data directory must be defined with option: --data_dir DIR')
@@ -375,7 +381,10 @@ class SimPoint(object):
 
         # Output and error files
         #
-        regions_csv_file = options.data_dir[:pos] + '.pinpoints.csv'
+        if options.global_regions:
+          regions_csv_file = options.data_dir[:pos] + '.global.pinpoints.csv'
+        else:
+          regions_csv_file = options.data_dir[:pos] + '.pinpoints.csv'
         try:
             fp_out = open(regions_csv_file, 'w')
         except IOError:
@@ -395,10 +404,11 @@ class SimPoint(object):
         # Format the command to generate the region CSV file and run it.
         #
         # import pdb;  pdb.set_trace()
-        if options.focus_thread < 0:
+        if options.focus_thread != "global":
+          if int(options.focus_thread) < 0:
             tid = 0
-        else:
-            tid = options.focus_thread
+          else:
+            tid = int(options.focus_thread)
 
         # use_orig = True  # Use Chuck's original Perl script
         use_orig = False  # Use regions.py script
@@ -413,13 +423,25 @@ class SimPoint(object):
         else:
             # Use the new Python script to generate the CSV file.
             #
-            cmd = self.csv_bin
-            cmd += ' -f ' + str(tid)
-            cmd += ' --csv_region '
+            if options.pccount_regions:
+                cmd = 'pcregions.py'
+                cmd += ' --label_file t.labels'
+                if options.warmup_factor != '':
+                    cmd += ' --warmup_factor '+ str(options.warmup_factor)
+                if options.focus_thread != "global":
+                  cmd += ' --tid ' + str(tid)
+                else: 
+                  cmd += ' --tid global' 
+            else:
+                cmd = self.csv_bin
+                if options.focus_thread != "global":
+                  cmd += ' -f ' + str(tid)
+                cmd += ' --csv_region '
             cmd += ' --bbv_file ' + self.generic_bbv_name + cutoff_suffix
             cmd += ' --region_file t.simpoints' + cutoff_suffix
             cmd += ' --weight_file t.weights' + cutoff_suffix
         msg.PrintMsg('')
+        msg.PrintMsg('cmd='+cmd)
         result = util.RunCmd(cmd, options, '', concurrent=False, print_time=False, f_stdout=fp_out, \
                              f_stderr=fp_error)
         msg.PrintMsg(
@@ -478,16 +500,16 @@ class SimPoint(object):
         instr_count = 0
         slice_size = 0
         for line in f.readlines():
-            if line.find('Dynamic') != -1:
+            if line.startswith('Dynamic '):
                 tmp = line.split()
-                count = tmp[len(tmp) - 1]
+                count = int(tmp[len(tmp) - 1])
                 if count > instr_count:
-                    instr_count = int(count)
-            if line.find('SliceSize') != -1:
+                    instr_count = count
+            if line.startswith('SliceSize:'):
                 tmp = line.split()
-                size = tmp[len(tmp) - 1]
+                size = int(tmp[len(tmp) - 1])
                 if size > slice_size:
-                    slice_size = int(size)
+                    slice_size = size
 
         # Check to make sure instruction count > slice_size.
         #
