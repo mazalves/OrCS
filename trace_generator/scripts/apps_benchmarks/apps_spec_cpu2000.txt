@@ -1,0 +1,34 @@
+################################################################################
+## SPEC CPU 2000
+################################################################################
+## SPEC CPU 2000 - INT -- (1 - 12)
+gzip;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/164.gzip/exe/gzip_base.x86-gcc-static $BENCHMARK_DIR/CINT2000/256.bzip2/data/ref/input/input.program 60
+vpr;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/175.vpr/exe/vpr_base.x86-gcc-static net.in arch.in place.in route.out -nodisp -route_only -route_chan_width 15 -pres_fac_mult 2 -acc_fac 1 -first_iter_pres_fac 4 -initial_pres_fac 8
+gcc;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/176.gcc/exe/cc1_base.x86-gcc-static $BENCHMARK_DIR/CINT2000/176.gcc/data/ref/input/scilab.i -o ./scilab.s
+mcf;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/181.mcf/exe/mcf_base.x86-gcc-static $BENCHMARK_DIR/CINT2000/181.mcf/data/ref/input/inp.in
+crafty;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/186.crafty/exe/crafty_base.x86-gcc-static < $BENCHMARK_DIR/CINT2000/186.crafty/data/ref/input/crafty.in
+parser;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/197.parser/exe/parser_base.x86-gcc-static 2.1.dict -batch < $BENCHMARK_DIR/CINT2000/197.parser/data/ref/input/ref.in
+eon;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/252.eon/exe/eon_base.x86-gcc-static chair.control.kajiya chair.camera chair.surfaces chair.kajiya.ppm ppm pixels_out.kajiya
+perlbmk;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/253.perlbmk/exe/perlbmk_base.x86-gcc-static -I$BENCHMARK_DIR/CINT2000/253.perlbmk/data/all/input/lib splitmail.pl 957 12 23 26 1014
+gap;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/254.gap/exe/gap_base.x86-gcc-static -l $BENCHMARK_DIR/CINT2000/254.gap/data/all/input/ -q -m 192M < $BENCHMARK_DIR/CINT2000/254.gap/data/ref/input/ref.in
+vortex;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/255.vortex/exe/vortex_base.x86-gcc-static lendian3.raw
+bzip2;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/256.bzip2/exe/bzip2_base.x86-gcc-static $BENCHMARK_DIR/CINT2000/256.bzip2/data/ref/input/input.program 58
+twolf;CINT;-1;-1;$BENCHMARK_DIR/CINT2000/300.twolf/exe/twolf_base.x86-gcc-static ref
+################################################################################
+## SPEC CPU 2000 - FP -- (13 - 26)
+wupwise;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/168.wupwise/exe/wupwise_base.x86-gcc-static
+swim;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/171.swim/exe/swim_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/171.swim/data/ref/input/swim.in
+mgrid;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/172.mgrid/exe/mgrid_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/172.mgrid/data/ref/input/mgrid.in
+applu;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/173.applu/exe/applu_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/173.applu/data/ref/input/applu.in
+mesa;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/177.mesa/exe/mesa_base.x86-gcc-static -frames 1000 -meshfile $BENCHMARK_DIR/CFP2000/177.mesa/data/ref/input/mesa.in -ppmfile mesa.ppm
+galgel;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/178.galgel/exe/galgel_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/178.galgel/data/ref/input/galgel.in
+art;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/179.art/exe/art_base.x86-gcc-static -scanfile c756hel.in -trainfile1 a10.img -trainfile2 hc.img -stride 2 -startx 470 -starty 140 -endx 520 -endy 180 -objects 10
+equake;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/183.equake/exe/equake_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/183.equake/data/ref/input/inp.in
+facerec;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/187.facerec/exe/facerec_base.x86-gcc-static  < $BENCHMARK_DIR/CFP2000/187.facerec/data/ref/input/ref.in
+ammp;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/188.ammp/exe/ammp_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/188.ammp/data/ref/input/ammp.in
+lucas;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/189.lucas/exe/lucas_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/189.lucas/data/ref/input/lucas2.in
+fma3d;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/191.fma3d/exe/fma3d_base.x86-gcc-static
+sixtrack;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/200.sixtrack/exe/sixtrack_base.x86-gcc-static < $BENCHMARK_DIR/CFP2000/200.sixtrack/data/ref/input/inp.in
+apsi;CFP;-1;-1;$BENCHMARK_DIR/CFP2000/301.apsi/exe/apsi_base.x86-gcc-static
+################################################################################
+## END OF FILE

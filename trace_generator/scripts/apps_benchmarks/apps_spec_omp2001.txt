@@ -1,0 +1,31 @@
+################################################################################
+## SPEC OMP 2001
+################################################################################
+################################################################################
+## SPEC OMP 2001 - MEDIUM -- (1 - 11)
+#1 ammp# 154.743 parallel regions - ANSI C - (10000) = 202 MInst - No Spinwait
+#2 applu# 469 parallel regions - F77 - (3) = 103 MInst - No Spinwait
+#3 apsi# 1.407 parallel regions - F77 - (2) = 183 MInst - No Spinwait
+#4 art# 4 parallel regions - ANSI C - (3) = 2 MInst - No Spinwait
+#5 equake# 26.684 parallel regions - ANSI C - (32) = 99 MInst - No Spinwait
+#6 fma3d# 5.250 parallel regions - F90 - (8) = 51 MInst - No Spinwait
+#7 gafort# 2.752 parallel regions - F90 - (2) = 344 MInst - No Spinwait
+#8 galgel# 6.949 parallel regions - F90 - (2800) = 161 MInst - No Spinwait
+#9 mgrid# 304.250 parallel regions - F90 NAS - (128) = 142 MInst - No Spinwait
+#10 swim# 4.802 parallel regions - F77 - (4) = 174 MInst - No Spinwait
+#11 wupwise# 4.425 parallel regions - F90 - (12) = 203 MInst - No Spinwait
+################################################################################
+## SPEC OMP 2001 - LARGER
+################################################################################
+## art;M;0;3;$BENCHMARK_DIR/OMPM2001/330.art_m/exe/art_base.x86-gcc -scanfile c756hel.in -trainfile1 a10.img -trainfile2 hc.img -stride 1 -startx 110 -starty 220 -endx 172 -endy 260 -objects 1000
+## ammp;M;10000;20000;$BENCHMARK_DIR/OMPM2001/332.ammp_m/exe/ammp_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/332.ammp_m/data/ref/input/1irk.init.ammp
+## equake;M;21;53;$BENCHMARK_DIR/OMPM2001/320.equake_m/exe/equake_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/320.equake_m/data/ref/input/inp.in
+## gafort;M;18;18;$BENCHMARK_DIR/OMPM2001/326.gafort_m/exe/gafort_base.x86-gcc
+applu;M;15;17;$BENCHMARK_DIR/OMPM2001/316.applu_m/exe/applu_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/316.applu_m/data/ref/input/applu.in
+apsi;M;32;34;$BENCHMARK_DIR/OMPM2001/324.apsi_m/exe/apsi_base.x86-gcc
+fma3d;M;34;42;$BENCHMARK_DIR/OMPM2001/328.fma3d_m/exe/fma3d_base.x86-gcc
+galgel;M;3474;6274;$BENCHMARK_DIR/OMPM2001/318.galgel_m/exe/galgel_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/318.galgel_m/data/ref/input/galgel.in
+mgrid;M;12;136;$BENCHMARK_DIR/OMPM2001/314.mgrid_m/exe/mgrid_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/314.mgrid_m/data/ref/input/mgrid.in
+swim;M;11;14;$BENCHMARK_DIR/OMPM2001/312.swim_m/exe/swim_base.x86-gcc < $BENCHMARK_DIR/OMPM2001/312.swim_m/data/ref/input/swim.in
+wupwise;M;47;57;$BENCHMARK_DIR/OMPM2001/310.wupwise_m/exe/wupwise_base.x86-gcc
+## END OF FILE

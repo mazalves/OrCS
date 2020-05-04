@@ -1,0 +1,12 @@
+################################################################################
+## MICROBENCHMARK - MEMORY STORE RANDOM -- (1 - 25)
+openmp_barrier_all_together;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_barrier_all_together  400000;1
+openmp_barrier_master_slow;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_barrier_master_slow    400000 1000;2
+openmp_critical;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_critical                          400000;3
+##
+openmp_false_sharing_pad00;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_false_sharing_pad00  200000000;4
+openmp_false_sharing_pad08;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_false_sharing_pad08  200000000;5
+openmp_false_sharing_pad24;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_false_sharing_pad24  200000000;6
+openmp_false_sharing_pad56;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_false_sharing_pad56  200000000;7
+openmp_sharing_pairs;OPENMP;-1;-1;$BENCHMARK_DIR/openmp_sharing_pairs  1000 2621440;8
+## END OF FILE
