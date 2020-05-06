@@ -48,8 +48,8 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_VIMA_INT_ALU: return "VIMA_INT_ALU"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_DIV: return "VIMA_INT_DIV"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
-        case INSTRUCTION_OPERATION_VIMA_INT_MLA: return "VIMA_INT_ALU"; break;
-        case INSTRUCTION_OPERATION_VIMA_FP_MLA: return "VIMA_INT_DIV"; break;
+        case INSTRUCTION_OPERATION_VIMA_INT_MLA: return "VIMA_INT_MLA"; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_MLA: return "VIMA_FP_MLA"; break;
         case INSTRUCTION_OPERATION_LAST: return "LAST"; break;
         
     }
