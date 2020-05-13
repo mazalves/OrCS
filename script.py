@@ -1,9 +1,9 @@
 import os
-#python script.py vima traces_microbenchmarks.txt config/sandy_vima/sandy_vima.cfg _outro
+#python script.py vima traces_microbenchmarks.txt configuration_files/sandy_vima.cfg _outro
 
 import sys
 filepath = sys.argv[2]
-path = '~/Experiment/benchmarks/traces/'
+path = '/scratch/traces/'
 benchmark = sys.argv[1]
 config = sys.argv[3]
 output = ""

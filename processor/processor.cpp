@@ -130,6 +130,9 @@ void processor_t::allocate() {
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
 
+	set_HAS_HIVE (cfg_processor["HAS_HIVE"]);
+	set_HAS_VIMA (cfg_processor["HAS_VIMA"]);
+	
 	set_FETCH_WIDTH (cfg_processor["FETCH_WIDTH"]);
 	set_DECODE_WIDTH (cfg_processor["DECODE_WIDTH"]);
 	set_RENAME_WIDTH (cfg_processor["RENAME_WIDTH"]);
@@ -183,9 +186,7 @@ void processor_t::allocate() {
 
 	set_MOB_READ (cfg_processor["MOB_READ"]);
 	set_MOB_WRITE (cfg_processor["MOB_WRITE"]);
-	set_MOB_HIVE (cfg_processor["MOB_HIVE"]);
-	set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
-
+	
 	set_DEBUG(cfg_processor["DEBUG"]);
 	set_PROCESSOR_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
 	set_FETCH_DEBUG(cfg_processor["FETCH_DEBUG"]);
@@ -196,8 +197,6 @@ void processor_t::allocate() {
 	set_MOB_DEBUG(cfg_processor["MOB_DEBUG"]);
 	set_PRINT_MOB(cfg_processor["PRINT_MOB"]);
 	set_PRINT_ROB(cfg_processor["PRINT_ROB"]);
-	set_HIVE_DEBUG(cfg_processor["HIVE_DEBUG"]);
-	set_VIMA_DEBUG(cfg_processor["VIMA_DEBUG"]);
 	set_COMMIT_DEBUG(cfg_processor["COMMIT_DEBUG"]);
 	set_MSHR_DEBUG(cfg_processor["MSHR_DEBUG"]);
 
@@ -210,16 +209,28 @@ void processor_t::allocate() {
 	set_STORE_UNIT (cfg_processor["STORE_UNIT"]);
 	set_WAIT_NEXT_MEM_STORE (cfg_processor["WAIT_NEXT_MEM_STORE"]);
 	set_LATENCY_MEM_STORE (cfg_processor["LATENCY_MEM_STORE"]);
+	
+	if (get_HAS_HIVE()){
+		set_MOB_HIVE (cfg_processor["MOB_HIVE"]);
+		set_HIVE_DEBUG(cfg_processor["HIVE_DEBUG"]);
+		set_HIVE_UNIT (cfg_processor["HIVE_UNIT"]);
+		set_WAIT_NEXT_MEM_HIVE (cfg_processor["WAIT_NEXT_MEM_HIVE"]);
+		set_LATENCY_MEM_HIVE (cfg_processor["LATENCY_MEM_HIVE"]);
+	}
 
-	set_HIVE_UNIT (cfg_processor["HIVE_UNIT"]);
-	set_WAIT_NEXT_MEM_HIVE (cfg_processor["WAIT_NEXT_MEM_HIVE"]);
-	set_LATENCY_MEM_HIVE (cfg_processor["LATENCY_MEM_HIVE"]);
+	if (get_HAS_VIMA()){
+		set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
+		set_VIMA_DEBUG(cfg_processor["VIMA_DEBUG"]);
+		set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
+		set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
+		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
+	}
+	
 
-	set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
-	set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
-	set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
+	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT);
+	if (get_HAS_HIVE()) set_QTDE_MEMORY_FU (get_QTDE_MEMORY_FU() + HIVE_UNIT);
+	if (get_HAS_VIMA()) set_QTDE_MEMORY_FU (get_QTDE_MEMORY_FU() + VIMA_UNIT);
 
-	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT+HIVE_UNIT+VIMA_UNIT);
 
 	set_DISAMBIGUATION_ENABLED (cfg_processor["DISAMBIGUATION_ENABLED"]);
 	if (!strcmp(cfg_processor["DISAMBIGUATION_METHOD"], "HASHED")) this->DISAMBIGUATION_METHOD = DISAMBIGUATION_METHOD_HASHED;
@@ -340,29 +351,31 @@ void processor_t::allocate() {
 	this->memory_order_buffer_write_end = 0;
 	this->memory_order_buffer_write_used = 0;
 	// =========================================================================================
-	// // Memory Order Buffer HIVE
-	this->memory_order_buffer_hive = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_HIVE);
-	for (size_t i = 0; i < MOB_HIVE; i++)
-	{
-		this->memory_order_buffer_hive[i].mem_deps_ptr_array = utils_t::template_allocate_initialize_array<memory_order_buffer_line_t *>(ROB_SIZE, NULL);
+	if (get_HAS_HIVE()) {// // Memory Order Buffer HIVE
+		this->memory_order_buffer_hive = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_HIVE);
+		for (size_t i = 0; i < MOB_HIVE; i++)
+		{
+			this->memory_order_buffer_hive[i].mem_deps_ptr_array = utils_t::template_allocate_initialize_array<memory_order_buffer_line_t *>(ROB_SIZE, NULL);
+		}
+		// =========================================================================================
+		// HIVE
+		this->memory_order_buffer_hive_start = 0;
+		this->memory_order_buffer_hive_end = 0;
+		this->memory_order_buffer_hive_used = 0;
 	}
 	// =========================================================================================
-	// HIVE
-	this->memory_order_buffer_hive_start = 0;
-	this->memory_order_buffer_hive_end = 0;
-	this->memory_order_buffer_hive_used = 0;
-	// =========================================================================================
-	// // Memory Order Buffer VIMA
-	this->memory_order_buffer_vima = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_VIMA);
-	for (size_t i = 0; i < MOB_VIMA; i++)
-	{
-		this->memory_order_buffer_vima[i].mem_deps_ptr_array = utils_t::template_allocate_initialize_array<memory_order_buffer_line_t *>(ROB_SIZE, NULL);
+	if (get_HAS_VIMA()) {// // Memory Order Buffer VIMA
+		this->memory_order_buffer_vima = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_VIMA);
+		for (size_t i = 0; i < MOB_VIMA; i++)
+		{
+			this->memory_order_buffer_vima[i].mem_deps_ptr_array = utils_t::template_allocate_initialize_array<memory_order_buffer_line_t *>(ROB_SIZE, NULL);
+		}
+		// =========================================================================================
+		// VIMA
+		this->memory_order_buffer_vima_start = 0;
+		this->memory_order_buffer_vima_end = 0;
+		this->memory_order_buffer_vima_used = 0;
 	}
-	// =========================================================================================
-	// VIMA
-	this->memory_order_buffer_vima_start = 0;
-	this->memory_order_buffer_vima_end = 0;
-	this->memory_order_buffer_vima_used = 0;
 	// =========================================================================================
 	//disambiguator
 	switch (this->DISAMBIGUATION_METHOD){
@@ -393,8 +406,8 @@ void processor_t::allocate() {
 	//allocating fus memory
 	this->fu_mem_load = utils_t::template_allocate_initialize_array<uint64_t>(LOAD_UNIT, 0);
 	this->fu_mem_store = utils_t::template_allocate_initialize_array<uint64_t>(STORE_UNIT, 0);
-	this->fu_mem_hive = utils_t::template_allocate_initialize_array<uint64_t>(HIVE_UNIT, 0);
-	this->fu_mem_vima = utils_t::template_allocate_initialize_array<uint64_t>(VIMA_UNIT, 0);
+	if (get_HAS_HIVE()) this->fu_mem_hive = utils_t::template_allocate_initialize_array<uint64_t>(HIVE_UNIT, 0);
+	if (get_HAS_VIMA()) this->fu_mem_vima = utils_t::template_allocate_initialize_array<uint64_t>(VIMA_UNIT, 0);
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_reservation_station.reserve(ROB_SIZE);
 	// reserving space to uops on UFs pipeline, waitng to executing ends
@@ -757,119 +770,126 @@ void processor_t::decode(){
 		this->decodeCounter++;
 
 		//HIVE
-		if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK){
-			new_uop.package_clean();
-			new_uop.opcode_to_uop (this->uopCounter++,
-									this->fetchBuffer.front()->opcode_operation,
-									0,
-									1,
-									*this->fetchBuffer.front());
-			
-			new_uop.is_hive = true;
-			new_uop.is_vima = false;
-			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
-			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
-			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
+		if (get_HAS_HIVE()){
+			if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK){
+				new_uop.package_clean();
+				new_uop.opcode_to_uop (this->uopCounter++,
+										this->fetchBuffer.front()->opcode_operation,
+										0,
+										1,
+										*this->fetchBuffer.front());
+				
+				new_uop.is_hive = true;
+				new_uop.is_vima = false;
+				new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
+				new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
+				new_uop.hive_write = this->fetchBuffer.front()->hive_write;
 
-			new_uop.updatePackageWait (DECODE_LATENCY);
-			statusInsert = this->decodeBuffer.push_back(new_uop);
-			if (DECODE_DEBUG){
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			}
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
-			this->fetchBuffer.pop_front();
-			return;
-		} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_LOAD){
-			new_uop.package_clean();
-			new_uop.opcode_to_uop (this->uopCounter++,
-									this->fetchBuffer.front()->opcode_operation,
-									this->fetchBuffer.front()->read_address,
-									this->fetchBuffer.front()->read_size,
-									*this->fetchBuffer.front());
-			
-			new_uop.is_hive = true;
-			new_uop.is_vima = false;
-			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
-			new_uop.read_address = this->fetchBuffer.front()->read_address;
-			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
-			new_uop.read2_address = this->fetchBuffer.front()->read2_address;
-			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
-			new_uop.write_address = this->fetchBuffer.front()->write_address;
+				new_uop.updatePackageWait (DECODE_LATENCY);
+				statusInsert = this->decodeBuffer.push_back(new_uop);
+				if (DECODE_DEBUG){
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				}
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+				this->fetchBuffer.pop_front();
+				return;
+			} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_LOAD){
+				new_uop.package_clean();
+				new_uop.opcode_to_uop (this->uopCounter++,
+										this->fetchBuffer.front()->opcode_operation,
+										this->fetchBuffer.front()->read_address,
+										this->fetchBuffer.front()->read_size,
+										*this->fetchBuffer.front());
+				
+				new_uop.is_hive = true;
+				new_uop.is_vima = false;
+				new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
+				new_uop.read_address = this->fetchBuffer.front()->read_address;
+				new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
+				new_uop.read2_address = this->fetchBuffer.front()->read2_address;
+				new_uop.hive_write = this->fetchBuffer.front()->hive_write;
+				new_uop.write_address = this->fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageWait (DECODE_LATENCY);
-			statusInsert = this->decodeBuffer.push_back(new_uop);
-			if (DECODE_DEBUG){
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			}
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
-			this->fetchBuffer.pop_front();
-			return;
-		} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_STORE){
-			new_uop.package_clean();
-			new_uop.opcode_to_uop (this->uopCounter++,
-									this->fetchBuffer.front()->opcode_operation,
-									this->fetchBuffer.front()->write_address,
-									this->fetchBuffer.front()->write_size,
-									*this->fetchBuffer.front());
-			
-			new_uop.is_hive = true;
-			new_uop.is_vima = false;
-			new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
-			new_uop.read_address = this->fetchBuffer.front()->read_address;
-			new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
-			new_uop.read2_address = this->fetchBuffer.front()->read2_address;
-			new_uop.hive_write = this->fetchBuffer.front()->hive_write;
-			new_uop.write_address = this->fetchBuffer.front()->write_address;
+				new_uop.updatePackageWait (DECODE_LATENCY);
+				statusInsert = this->decodeBuffer.push_back(new_uop);
+				if (DECODE_DEBUG){
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				}
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+				this->fetchBuffer.pop_front();
+				return;
+			} else if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_HIVE_STORE){
+				new_uop.package_clean();
+				new_uop.opcode_to_uop (this->uopCounter++,
+										this->fetchBuffer.front()->opcode_operation,
+										this->fetchBuffer.front()->write_address,
+										this->fetchBuffer.front()->write_size,
+										*this->fetchBuffer.front());
+				
+				new_uop.is_hive = true;
+				new_uop.is_vima = false;
+				new_uop.hive_read1 = this->fetchBuffer.front()->hive_read1;
+				new_uop.read_address = this->fetchBuffer.front()->read_address;
+				new_uop.hive_read2 = this->fetchBuffer.front()->hive_read2;
+				new_uop.read2_address = this->fetchBuffer.front()->read2_address;
+				new_uop.hive_write = this->fetchBuffer.front()->hive_write;
+				new_uop.write_address = this->fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageWait (DECODE_LATENCY);
-			statusInsert = this->decodeBuffer.push_back(new_uop);
-			if (DECODE_DEBUG){
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				new_uop.updatePackageWait (DECODE_LATENCY);
+				statusInsert = this->decodeBuffer.push_back(new_uop);
+				if (DECODE_DEBUG){
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				}
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+				this->fetchBuffer.pop_front();
+				return;
 			}
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
-			this->fetchBuffer.pop_front();
-			return;
 		}
 
+
 		//VIMA
-		if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-		this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL){
-			new_uop.package_clean();
-			new_uop.opcode_to_uop (this->uopCounter++,
-									this->fetchBuffer.front()->opcode_operation,
-									0,
-									1,
-									*this->fetchBuffer.front());
-			
-			new_uop.is_hive = false;
-			new_uop.hive_read1 = -1;
-			new_uop.hive_read2 = -1;
-			new_uop.hive_write = -1;
+		if (get_HAS_VIMA()){
+			if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+			this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
+				new_uop.package_clean();
+				new_uop.opcode_to_uop (this->uopCounter++,
+										this->fetchBuffer.front()->opcode_operation,
+										0,
+										1,
+										*this->fetchBuffer.front());
+				
+				new_uop.is_hive = false;
+				new_uop.hive_read1 = -1;
+				new_uop.hive_read2 = -1;
+				new_uop.hive_write = -1;
 
-			new_uop.is_vima = true;
-			new_uop.read_address = fetchBuffer.front()->read_address;
-			new_uop.read2_address = fetchBuffer.front()->read2_address;
-			new_uop.write_address = fetchBuffer.front()->write_address;
+				new_uop.is_vima = true;
+				new_uop.read_address = fetchBuffer.front()->read_address;
+				new_uop.read2_address = fetchBuffer.front()->read2_address;
+				new_uop.write_address = fetchBuffer.front()->write_address;
 
-			new_uop.updatePackageWait (DECODE_LATENCY);
-			statusInsert = this->decodeBuffer.push_back(new_uop);
-			if (DECODE_DEBUG){
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				new_uop.updatePackageWait (DECODE_LATENCY);
+				statusInsert = this->decodeBuffer.push_back(new_uop);
+				if (DECODE_DEBUG){
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				}
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
+				this->fetchBuffer.pop_front();
+				return;
 			}
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
-			this->fetchBuffer.pop_front();
-			return;
 		}
 
 		// =====================
@@ -1216,45 +1236,49 @@ void processor_t::rename(){
 		//=======================
 		// Memory Operation HIVE
 		//=======================
-		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_STORE){
-			if (this->memory_order_buffer_hive_used>=MOB_HIVE || this->robUsed>=ROB_SIZE) break;
-			pos_mob = this->search_position_mob_hive();
-			if (pos_mob == POSITION_FAIL) {
-				this->add_stall_full_MOB_Read();
-				break;
+		if (get_HAS_HIVE()){
+			if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_HIVE_STORE){
+				if (this->memory_order_buffer_hive_used>=MOB_HIVE || this->robUsed>=ROB_SIZE) break;
+				pos_mob = this->search_position_mob_hive();
+				if (pos_mob == POSITION_FAIL) {
+					this->add_stall_full_MOB_Read();
+					break;
+				}
+				mob_line = &this->memory_order_buffer_hive[pos_mob];
+				//ORCS_PRINTF ("reservando espaço no MOB para instrução %s %lu\n", get_enum_instruction_operation_char(this->decodeBuffer.front()->opcode_operation), this->decodeBuffer.front()->opcode_number)
 			}
-			mob_line = &this->memory_order_buffer_hive[pos_mob];
-			//ORCS_PRINTF ("reservando espaço no MOB para instrução %s %lu\n", get_enum_instruction_operation_char(this->decodeBuffer.front()->opcode_operation), this->decodeBuffer.front()->opcode_number)
 		}
 
 		//=======================
-		// Memory Operation HIVE
+		// Memory Operation VIMA
 		//=======================
-		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-		this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
-			if (this->memory_order_buffer_hive_used>=MOB_VIMA || this->robUsed>=ROB_SIZE) break;
-			pos_mob = this->search_position_mob_vima();
-			if (pos_mob == POSITION_FAIL) {
-				this->add_stall_full_MOB_Read();
-				break;
+		if (get_HAS_VIMA()){
+			if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+			this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
+				if (this->memory_order_buffer_hive_used>=MOB_VIMA || this->robUsed>=ROB_SIZE) break;
+				pos_mob = this->search_position_mob_vima();
+				if (pos_mob == POSITION_FAIL) {
+					this->add_stall_full_MOB_Read();
+					break;
+				}
+				mob_line = &this->memory_order_buffer_vima[pos_mob];
+				//ORCS_PRINTF ("reservando espaço no MOB para instrução %s %lu\n", get_enum_instruction_operation_char(this->decodeBuffer.front()->opcode_operation), this->decodeBuffer.front()->opcode_number)
 			}
-			mob_line = &this->memory_order_buffer_vima[pos_mob];
-			//ORCS_PRINTF ("reservando espaço no MOB para instrução %s %lu\n", get_enum_instruction_operation_char(this->decodeBuffer.front()->opcode_operation), this->decodeBuffer.front()->opcode_number)
 		}
 		
 		//=======================
@@ -1322,7 +1346,7 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
 			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
 		}
-		else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+		else if (this->get_HAS_HIVE() && (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
@@ -1331,7 +1355,7 @@ void processor_t::rename(){
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL){
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL)){
 			this->reorderBuffer[pos_rob].mob_ptr->is_hive = true;
 			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
 			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
@@ -1380,14 +1404,14 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
 			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
 		}
-		else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+		else if (this->get_HAS_VIMA() && (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA){
+		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)){
 			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
 			this->reorderBuffer[pos_rob].mob_ptr->is_vima = true;
 			this->reorderBuffer[pos_rob].mob_ptr->vima_read1 = this->reorderBuffer[pos_rob].uop.read_address;
@@ -1436,7 +1460,7 @@ void processor_t::rename(){
 			if (DISAMBIGUATION_ENABLED){
 				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
 			}
-		} else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+		} else if (this->get_HAS_HIVE() && (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
@@ -1445,17 +1469,17 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL)
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
-		} else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+		} else if (this->get_HAS_VIMA() && (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)
+			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
 		{
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
 		}
@@ -1848,8 +1872,8 @@ void processor_t::execute()
 			ORCS_PRINTF("========== Execute Stage ==========\n")
 		}
 	}
-	this->clean_mob_vima();
-	this->clean_mob_hive();
+	if (this->get_HAS_VIMA()) this->clean_mob_vima();
+	if (this->get_HAS_HIVE()) this->clean_mob_hive();
 	this->clean_mob_read();
 	uint32_t uop_total_executed = 0;
 	for (uint32_t i = 0; i < this->unified_functional_units.size(); i++){
@@ -2662,8 +2686,8 @@ void processor_t::clock(){
 			ORCS_PRINTF("Cycle %lu\n",orcs_engine.get_global_cycle())
 		}
 	}
-	orcs_engine.vima_controller->clock();
-	orcs_engine.hive_controller->clock();
+	if (get_HAS_VIMA()) orcs_engine.vima_controller->clock();
+	if (get_HAS_HIVE()) orcs_engine.hive_controller->clock();
 	orcs_engine.cacheManager->clock();
 	/////////////////////////////////////////////////
 	//// Verifica se existe coisas no ROB

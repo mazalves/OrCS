@@ -52,6 +52,9 @@ class processor_t {
 	uint64_t stat_inst_branch_completed;
 	uint64_t stat_inst_other_completed;
 
+	uint32_t HAS_HIVE;
+	uint32_t HAS_VIMA;
+
 	uint32_t FETCH_WIDTH;
 	uint32_t DECODE_WIDTH;
 	uint32_t RENAME_WIDTH;
@@ -400,6 +403,9 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_store_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_nop_completed)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_inst_other_completed)
+
+		INSTANTIATE_GET_SET_ADD(uint32_t,HAS_HIVE)
+		INSTANTIATE_GET_SET_ADD(uint32_t,HAS_VIMA)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,FETCH_WIDTH)
 		INSTANTIATE_GET_SET_ADD(uint32_t,DECODE_WIDTH)

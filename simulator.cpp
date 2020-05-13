@@ -206,8 +206,6 @@ int main(int argc, char **argv) {
     //Memory Controller
     //==================
     orcs_engine.memory_controller->allocate();
-    orcs_engine.hive_controller->allocate();
-    orcs_engine.vima_controller->allocate();
 
     for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++){
         //==================
@@ -231,6 +229,9 @@ int main(int argc, char **argv) {
         //==================
         orcs_engine.branchPredictor[i].allocate();
     }
+
+    if (orcs_engine.processor->get_HAS_HIVE()) orcs_engine.hive_controller->allocate();
+    if (orcs_engine.processor->get_HAS_VIMA()) orcs_engine.vima_controller->allocate();
     //initializate simulator
     orcs_engine.simulator_alive = true;
 
@@ -325,10 +326,14 @@ int main(int argc, char **argv) {
     delete[] orcs_engine.branchPredictor;
     ORCS_PRINTF("Deleting Cache manager\n")
     delete orcs_engine.cacheManager;
-    ORCS_PRINTF("Deleting HIVE Controller\n")
-    delete orcs_engine.hive_controller;
-    ORCS_PRINTF ("Deleting VIMA Controller\n")
-    delete orcs_engine.vima_controller;
+    if (orcs_engine.processor->get_HAS_HIVE()){
+        ORCS_PRINTF("Deleting HIVE Controller\n")
+        delete orcs_engine.hive_controller;
+    } 
+    if (orcs_engine.processor->get_HAS_VIMA()){
+        ORCS_PRINTF ("Deleting VIMA Controller\n")
+        delete orcs_engine.vima_controller;
+    }
     ORCS_PRINTF("Deleting Memory Controller\n")
     delete orcs_engine.memory_controller;
 }

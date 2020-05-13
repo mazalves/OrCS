@@ -111,7 +111,7 @@ void vima_vector_t::allocate() {
     }
 
     status = PACKAGE_STATE_FREE;
-    sub_ready = 128;
+    sub_ready = no_sub_requests;
     last_ready = 0;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
     set = false;
