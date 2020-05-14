@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -188,6 +188,7 @@ class Replayer(object):
             # then need a set of  knobs for the pin binary itself.
             #
             if not options.cross_os:
+                pin_options += kit_obj.prefix + ' -virtual_segments 1 '
                 pin_options += kit_obj.prefix + ' -reserve_memory '
                 pin_options += kit_obj.prefix + ' ' + options.replay_file + '.address '
 
@@ -242,7 +243,7 @@ class Replayer(object):
         # Print out the version number
         #
         if config.debug:
-            print os.path.basename(sys.argv[0]) + " $Revision: 1.67 $"
+            print(os.path.basename(sys.argv[0]) + " $Revision: 1.67 $")
 
         # Get path to the kit tool and the appropriate pintool name
         #
@@ -251,10 +252,10 @@ class Replayer(object):
         # Print out all the parsed options
         #
         if config.debug:
-            print "parsed_tool_opts:    ", parsed_tool_opts
-            print "parsed_pintool_opts: ", parsed_pintool_opts
-            print "basename:            ", basename
-            print
+            print("parsed_tool_opts:    ", parsed_tool_opts)
+            print("parsed_pintool_opts: ", parsed_pintool_opts)
+            print("basename:            ", basename)
+            print()
 
         # Kit tool options
         #

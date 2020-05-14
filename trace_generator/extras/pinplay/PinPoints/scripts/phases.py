@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# BEGIN_LEGAL
+#BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2015 Intel Corporation. All rights reserved.
+# Copyright (c)2017 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -52,6 +52,7 @@ import sys
 import config
 import msg
 import util
+from msg import ensure_string
 
 
 class Phases(object):
@@ -217,10 +218,10 @@ class Phases(object):
 
         # Print some useful environment variables.
         #
-        if os.environ.has_key('PATH'):
+        if 'PATH' in os.environ:
             msg.PrintMsg('')
             msg.PrintMsg('PATH: ' + os.environ['PATH'])
-        if os.environ.has_key('LD_LIBRARY_PATH'):
+        if 'LD_LIBRARY_PATH' in os.environ:
             msg.PrintMsg('')
             msg.PrintMsg('LD_LIBRARY_PATH: ' + os.environ['LD_LIBRARY_PATH'])
 
@@ -680,6 +681,10 @@ class Phases(object):
             msg.PrintMsgPlus(
                 'Will also generate LDVs (LRU Distance Vectors) using method: '
                 + ldv_type)
+        if options.global_regions:
+          cmd += '-global_profile '
+          msg.PrintMsgPlus(
+            'Will do  global profiling.')
         cmd += '-bbprofile -slice_size ' + str(config.slice_size)
         cmd += '"'
         cmd += ' --bb_add_filename '  # Option which causes replayer to add output file name for BBV
@@ -700,9 +705,10 @@ class Phases(object):
         Return: exit code from Simpoint
         """
 
+        triggering_tid = 0
         # Get items from the param dictionary.
         #
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintMsg(
@@ -730,17 +736,38 @@ class Phases(object):
             # NOTE: Code here may need to be changed if/when Simpoints can take more
             # than one BB vector to generate regions.
             #
-            # import pdb;  pdb.set_trace()
-            if config.focus_thread >= 0:
+            #import pdb;  pdb.set_trace()
+            bb_file_prefix = os.path.join(data_dir, basename)
+            icount_list = util.ProcessAllFiles(options,data_dir,
+                "Dynamic instruction count", '.bb', 't.bb', 
+                 util.FindDynamicICount)
+            max_icount = 0
+            max_icount_tid = 0
+            for field in icount_list:
+                field_tid = field[0]
+                field_icount = int(field[1])
+                if field_tid != 'global':
+                  if field_icount > max_icount:
+                    max_icount = int(field_icount)
+                    max_icount_tid = int(field_tid)
+            if config.global_regions:
+                if not options.list:
+                    msg.PrintMsgPlus('Using global BB vector file') 
+                path_bb_file = os.path.join(data_dir, basename) + '.global.bb'
+                triggering_tid = 'global'
+            elif config.focus_thread >= 0:
                 if not options.list:
                     msg.PrintMsgPlus('Using BB vector file for thread: ' +
                                      str(config.focus_thread))
                 path_bb_file = os.path.join(data_dir, basename) + '.T.' + str(
                     config.focus_thread) + '.bb'
+                triggering_tid = config.focus_thread
             else:
                 if not options.list:
-                    msg.PrintMsgPlus('Using BB vector file for thread: 0')
-                path_bb_file = os.path.join(data_dir, basename) + '.T.0.bb'
+                    msg.PrintMsgPlus('Using BB vector file for thread: '+str(max_icount_tid))
+                path_bb_file = os.path.join(data_dir, basename) + '.T.' + str(
+                    max_icount_tid) + '.bb'
+                triggering_tid = max_icount_tid
         else:
             # User has relogged whole program pinballs with a focus thread.  WP
             # pinballs are now per thread, thus always use BB vector file for
@@ -748,6 +775,7 @@ class Phases(object):
             if not options.list:
                 msg.PrintMsgPlus('Using BB vector file for thread: 0')
             path_bb_file = os.path.join(data_dir, basename) + '.T.0.bb'
+            triggering_tid = 0
 
         bb_file = os.path.basename(path_bb_file)  # Remove directory name
         sim_out_file = basename + '_simpoint_out.txt'
@@ -775,15 +803,14 @@ class Phases(object):
         cmd += ' --bbv_file ' + bb_file
         cmd += ' --data_dir ' + data_dir
         cmd += ' --simpoint_file ' + basename
-        if config.focus_thread >= 0:
-            cmd += ' -f ' + str(config.focus_thread)
-        else:
-            cmd += ' -f 0'
+        cmd += ' -f ' + str(triggering_tid)
 
         # Add either the default options used to configure Simpoints or the
         # Simpoint options from the user. 
         #
         # import pdb;  pdb.set_trace()
+        if options.global_regions: 
+            cmd += ' --global_regions ' 
         if options.simpoint_options == '':
             cmd += ' --maxk ' + str(config.maxk)
             cmd += ' --cutoff ' + str(config.cutoff)
@@ -805,6 +832,11 @@ class Phases(object):
             if options.combine >= 0.0:  # Add only if non-default value
                 cmd += ' --combine ' + str(options.combine)
 
+        if hasattr(options, 'pccount_regions') and options.pccount_regions:
+            cmd += ' --pccount_regions'
+        if hasattr(options, 'warmup_factor') and options.warmup_factor:
+            cmd += ' --warmup_factor ' + str(options.warmup_factor)
+
         result = 0
         # import pdb;  pdb.set_trace()
         if options.list:
@@ -825,6 +857,8 @@ class Phases(object):
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
                 (stdout, stderr) = p.communicate()
+                stdout = ensure_string(stdout)
+                stderr = ensure_string(stderr)
                 result = p.returncode
                 f = open(sim_out_file, 'w')
                 f.write(stdout)
@@ -934,7 +968,7 @@ class Phases(object):
         @return error_code
         """
 
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintAndExit(
@@ -994,7 +1028,7 @@ class Phases(object):
         @return error_code
         """
 
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintAndExit(
@@ -1062,7 +1096,7 @@ class Phases(object):
 
         # Get local copies of items in param.
         #
-        if param.has_key('count'):
+        if 'count' in param:
             count = param['count']
         else:
             err_msg('count')
@@ -1167,14 +1201,19 @@ class Phases(object):
             cmd += ' ' + options.log_options
         cmd += ' -log'
         cmd += ' -xyzzy'
-        cmd += ' ' + self.kit_obj.knob_regions_in + ' ' + in_file
-        cmd += ' ' + self.kit_obj.knob_regions_out + ' ' + out_file
-        cmd += ' ' + self.kit_obj.knob_regions_warmup + ' ' + str(
-            config.warmup_length)
-        cmd += ' ' + self.kit_obj.knob_regions_prolog + ' ' + str(
-            config.prolog_length)
-        cmd += ' ' + self.kit_obj.knob_regions_epilog + ' ' + str(
-            config.epilog_length)
+        if hasattr(options, 'pccount_regions') and options.pccount_regions:
+            cmd += ' ' + self.kit_obj.knob_pcregions_in + ' ' + in_file
+            cmd += ' ' + self.kit_obj.knob_pcregions_out + ' ' + out_file
+            cmd += ' ' + self.kit_obj.knob_pcregions_merge_warmup 
+        else:
+            cmd += ' ' + self.kit_obj.knob_regions_in + ' ' + in_file
+            cmd += ' ' + self.kit_obj.knob_regions_out + ' ' + out_file
+            cmd += ' ' + self.kit_obj.knob_regions_warmup + ' ' + str(
+                config.warmup_length)
+            cmd += ' ' + self.kit_obj.knob_regions_prolog + ' ' + str(
+                config.prolog_length)
+            cmd += ' ' + self.kit_obj.knob_regions_epilog + ' ' + str(
+                config.epilog_length)
         cmd += ' -log:basename ' + pp_file
         cmd += util.AddCompressed(options)
 
@@ -1343,7 +1382,7 @@ class Phases(object):
         #
         return 0
 
-    def WriteMissingClusters(self, new_clusters, wp_pb, iteration, options):
+    def WriteMissingClusters(self, new_clusters, new_warmup_records, wp_pb, iteration, options):
         """
         Save the files from the current iteration and generate the
         CSV file with the missing clusters to be used in the next
@@ -1403,9 +1442,15 @@ class Phases(object):
                 (iteration + 1, next_dir))
         fp.write('# Machine generated CSV file, iteration %d\n' %
                  (iteration + 1))
+        if hasattr(options, 'pccount_regions') and options.pccount_regions:
+            fp.write('# comment,thread-id,region-id,start-pc, start-image-name, start-image-offset, start-pc-count,end-pc, end-image-name, end-image-offset, end-pc-count,end-pc-relative-count, region-length, region-weight, region-multiplier, region-type\n')
+        else:
+            fp.write('# comment,thread-id,region-id,simulation-region-start-icount,simulation-region-end-icount,region-weight\n')
         cl_list = sorted(new_clusters.keys())
         for c in cl_list:
             fp.write(new_clusters[c])
+            if new_warmup_records[c]:
+                fp.write(new_warmup_records[c])
             if not options.list:
                 msg.PrintMsgNoCR('       ' + str(new_clusters[c]))
         fp.close()
@@ -1440,7 +1485,7 @@ class Phases(object):
         # a focus thread.  *.Data/*.pp directories don't have TID, so need to
         # remove it in order to derive the correct names for these directories.
         #
-        #  import pdb;  pdb.set_trace()
+        #import pdb;  pdb.set_trace()
         wp_pb_list = [os.path.basename(pb) for pb in util.GetWPPinballs()]
         wp_pb_list = [util.RemoveTID(pb) for pb in wp_pb_list]
 
@@ -1448,7 +1493,7 @@ class Phases(object):
         # attribute 'self.max_num_clusters'.  Need to re-initialize it to 0
         # before calling the method GetMaxClusters().  Call with no_glob = True
         #
-        # import pdb;  pdb.set_trace()
+        #import pdb;  pdb.set_trace()
         self.max_num_clusters = 0
         iteration = 1
         param = {'options': options}
@@ -1464,9 +1509,10 @@ class Phases(object):
         # the CSV file as the value.
         #
         orig_clusters = {}
+        orig_warmup_records = {}
         del_pb_list = []
         for wp_pb in wp_pb_list:
-            orig_clusters[wp_pb], not_used = util.GetClusterInfo(wp_pb, param)
+            orig_clusters[wp_pb], orig_warmup_records[wp_pb], not_used = util.GetClusterInfo(wp_pb, param)
             if not orig_clusters[wp_pb]:
                 if options.mode == config.MPI_MT_MODE:
                     # If running in this mode, it's possible to not have data
@@ -1498,8 +1544,8 @@ class Phases(object):
 
         all_regions = {}
         another_iteration = True
+        local_max_num_clusters = self.max_num_clusters
         while another_iteration:
-
             # Must delete any pinballs in class attribute 'self.pb_list' which
             # were used in a previous iteration.  Method util.GetClusterInfo()
             # only appends pinballs to the list in each iteration, so must be
@@ -1529,16 +1575,15 @@ class Phases(object):
             # directories.  A region is represented as a tuple containing:
             #   (icount from pinball, icount from sum of all file name fields)
             #
-            # import pdb;  pdb.set_trace()
+            #import pdb;  pdb.set_trace()
             for wp_pb in wp_pb_list:
                 # for testing only
                 #if iteration == 1:
                 #    print 'Remove pinballs'
-                #    import pdb;  pdb.set_trace()
-
+                #import pdb;  pdb.set_trace()
                 region_pinballs = glob.glob(os.path.join(wp_pb + '.pp',
                                                          '*.result'))
-                region_pinballs = util.GetHighestIcountRegions(region_pinballs)
+                region_pinballs = util.GetHighestIcountRegions(region_pinballs, options)
                 region_pinballs = [p.replace('.result', '')
                                    for p in region_pinballs]
                 regions = {}
@@ -1550,7 +1595,7 @@ class Phases(object):
                     #
                     # import pdb;  pdb.set_trace()
                     total_icount, warmup_icount, prolog_icount, region_icount, epilog_icount, TID, region_num = \
-                        util.GetRegionInfo(pb, use_file_fields=True)
+                        util.GetRegionInfo(pb, options, use_file_fields=True)
                     regions[region_num] = (total_icount,
                                            warmup_icount + prolog_icount +
                                            region_icount + epilog_icount)
@@ -1568,6 +1613,7 @@ class Phases(object):
                 #  Get clusters/regions for current WP pinball
                 #
                 cur_clusters = orig_clusters[wp_pb]
+                cur_warmup_records = orig_warmup_records[wp_pb]
                 cur_regions = all_regions[wp_pb]
 
                 # Make sets of the current clusters and regions.  Cluster
@@ -1579,6 +1625,7 @@ class Phases(object):
                 cluster_set = set(cur_clusters.keys())
                 region_set = set([r - 1 for r in cur_regions.keys()])
                 new_clusters = {}
+                new_warmup_records = {}
                 # for testing only
                 #
                 #if iteration == 1 and 0 in region_set:
@@ -1589,6 +1636,7 @@ class Phases(object):
                 # import pdb;  pdb.set_trace()
                 for c in cluster_set - region_set:
                     new_clusters[c] = cur_clusters[c]
+                    new_warmup_records[c] = cur_warmup_records[c]
                     another_iteration = True
                     print_new_clusters = True
                 if new_clusters and not options.list:
@@ -1602,14 +1650,21 @@ class Phases(object):
                 #
                 delta = 100000
                 new_region_clusters = {}
+                new_region_warmup_records = {}
                 for r in region_set:
                     # Use r+1 because cur_regions is 1 based, while the region
                     # set is 0 based.
                     #
                     total_icount = cur_regions[r + 1][0]
                     field_icount = cur_regions[r + 1][1]
-                    if total_icount < field_icount - delta:
+                    if total_icount < (field_icount - delta):
+                      if options.global_regions:
+                        #print "WARNING: region ",r+1, " total_icount ", total_icount, " < (field_icount ", field_icount, " + delta ",delta, " )"
+                        msg.PrintMsgPlus('WARNING: region %d total_icount %d < (field_icount %d + delta %d)' % (r+1, \
+                            total_icount, field_icount, delta))
+                      else:
                         new_region_clusters[r] = cur_clusters[r]
+                        new_region_warmup_records[r] = cur_warmup_records[r]
                         another_iteration = True
                         print_new_clusters = True
 
@@ -1623,17 +1678,19 @@ class Phases(object):
                     # import pdb;  pdb.set_trace()
                 if new_region_clusters:
                     if not options.list:
-                        msg.PrintMsgPlus('Region pinballs with too few instructions, %s: %s' % (wp_pb, \
+                        msg.PrintMsgPlus('IGNORING: Region pinballs with too few instructions, %s: %s' % (wp_pb, \
                             str([c + 1 for c in new_region_clusters.keys()])))
-                    new_clusters.update(new_region_clusters)
+                    #new_clusters.update(new_region_clusters)
+                    #new_warmup_records.update(new_region_warmup_records)
 
                 # import pdb;  pdb.set_trace()
                 if print_new_clusters:
                     # Save the files from the previous interation and
                     # generate the new CSV file with the missing clusters.
                     #
-                    result = self.WriteMissingClusters(new_clusters, wp_pb,
-                                                       iteration, options)
+                    result = self.WriteMissingClusters(new_clusters, 
+                                                new_warmup_records,  wp_pb,
+                                                iteration, options)
                     if result != 0:
                         msg.PrintMsg(
                             '\nERROR: Problem writing missing cluster data for iteration: %d'
@@ -1646,7 +1703,7 @@ class Phases(object):
                     # Check to make sure we are not trying to execute more iterations than there
                     # are clusters in the original CSV files.
                     #
-            if iteration >= self.max_num_clusters:
+            if iteration >= local_max_num_clusters:
                 another_iteration = False
             iteration += 1
 
@@ -1698,17 +1755,24 @@ class Phases(object):
         # import pdb;  pdb.set_trace()
         predict_metric = 0.0
         if hasattr(options, 'verbose') and options.verbose:
-            print 'Metric:\t\t    Weight:\tFile:'
+            print('Metric:\t\t    Weight:\tFile:')
         for name in files:
             # Get the fields from the file name.
             #
             # import pdb ; pdb.set_trace()
             fields = util.ParseFileName(name)
-            try:
-                warmup = fields['warmup']
-            except:
-                err_msg('warmup', name)
-                return -1.0
+            if hasattr(options, 'pccount_regions') and options.pccount_regions:
+                try:
+                    warmup = fields['warmuplength']
+                except:
+                    err_msg('warmuplength', name)
+                    return -1.0
+            else:
+                try:
+                    warmup = fields['warmup']
+                except:
+                    err_msg('warmup', name)
+                    return -1.0
             try:
                 weight = fields['weight']
             except:
@@ -1723,8 +1787,8 @@ class Phases(object):
             else:
                 metric = sim_kit.GetRegionMetric(name, warmup, 0, options)
             if hasattr(options, 'verbose') and options.verbose:
-                print '%10.5f \t%10.4f \t%s' % (metric, weight,
-                                                os.path.basename(name))
+                print('%10.5f \t%10.4f \t%s' % (metric, weight,
+                                                os.path.basename(name)))
 
             if metric == -1.0:
                 # An error was found. Print a warning message, but continue processing.
@@ -1757,7 +1821,7 @@ class Phases(object):
         wp_pb = util.GetWPPinballs(options)
         sim_files = [glob.glob(w + '*' + sim_kit.file_ext + '*') for w in wp_pb]
 
-        # import pdb;  pdb.set_trace()
+        #import pdb;  pdb.set_trace()
         for pb_name in sim_files:
 
             # Check to make sure there really is a file.

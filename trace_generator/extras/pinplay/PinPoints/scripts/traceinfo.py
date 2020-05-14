@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -92,7 +92,7 @@ def GetOptions():
     # Check to make sure the required 'blank' XML file are in the
     # current directory.
     #
-    # import pdb;  pdb.set_trace()
+    #import pdb;  pdb.set_trace()
     for blank_file in config.traceinfo_blank_files:
         if not os.path.isfile(blank_file):
             msg.PrintAndExit(
@@ -137,8 +137,8 @@ param = {'options': options, 'in_lit_dir': True}
 # Get the cluster information from the regions CSV file.  Check to make sure we
 # have parsed data for every cluster.
 #
-# import pdb;  pdb.set_trace()
-cluster_info, total_instr = util.GetClusterInfo(base_name, param)
+#import pdb;  pdb.set_trace()
+cluster_info, not_used, total_instr = util.GetClusterInfo(base_name, param)
 if cluster_info == {}:
     msg.PrintAndExit('Error reading file: ' + base_name)
 cluster_list = util.ParseClusterInfo(cluster_info)
@@ -166,32 +166,37 @@ msg.PrintMsg('<trace-details trace-count="%d" total-instruction-count="%d" publi
 err_msg = lambda string: msg.PrintAndExit('traceinfo.py() encountered '
                                           'an error parsing \'' + string)
 for cl in cluster_list:
-    if (cl.has_key('cluster_num')):
+    if ('cluster_num' in cl):
         cluster_num = cl['cluster_num']
     else:
         err_msg('cluster_num')
-    if (cl.has_key('tid')):
+    if ('tid' in cl):
         tid = cl['tid']
     else:
         err_msg('tid')
-    if (cl.has_key('region')):
+    if ('region' in cl):
         region = cl['region']
     else:
         err_msg('region')
-    if (cl.has_key('first_icount')):
-        first_icount = cl['first_icount']
+    if ('first_icount' in cl):
+        if ('first_icount' in cl):
+            first_icount = cl['first_icount']
+        else:
+            err_msg('first_icount')
+        if ('last_icount' in cl):
+            last_icount = cl['last_icount']
+        else:
+            err_msg('last_icount')
+        icount = last_icount - first_icount
     else:
-        err_msg('first_icount')
-    if (cl.has_key('last_icount')):
-        last_icount = cl['last_icount']
-    else:
-        err_msg('last_icount')
-    if (cl.has_key('weight')):
+        if ('length' in cl):
+            first_icount = 0
+            icount = cl['length']
+    if ('weight' in cl):
         weight = cl['weight']
     else:
         err_msg('weight')
 
-    icount = last_icount - first_icount
     msg.PrintMsg('<trace-data trace-name="%s_%03d" instruction-offset="%s" instruction-count="%s">' % \
           (base_name, region, first_icount, icount))
     msg.PrintMsg(

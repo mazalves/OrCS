@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -111,7 +111,6 @@ class Kit(object):
     # Path to the shell scripts in this kit
     #
     script_path = config.pin_script_path
-    script_path = os.path.join('extras', 'pinplay','PinPoints', 'scripts')
 
     # Path to simpoint
     #
@@ -127,6 +126,9 @@ class Kit(object):
     knob_regions_out = '-log:regions:out'
     knob_regions_prolog = '-log:regions:prolog'
     knob_regions_warmup = '-log:regions:warmup'
+    knob_pcregions_in = '-log:pcregions:in'
+    knob_pcregions_out = '-log:pcregions:out'
+    knob_pcregions_merge_warmup = '-log:pcregions:merge_warmup'
 
     # Is the binary 32-bit or 64-bit?  Only needed for the logging phase.
     #
@@ -331,7 +333,7 @@ class Kit(object):
         if os.path.isfile(os.path.realpath(user_pintool)):
             self.pintool = user_pintool
         else:
-            # If pinball is given, use it to find the architecture specific directory,
+            # If pinball is given, use it to find the architecture specific directory, 
             # othwise just use the parameter 'binary_type'.
             #
             if pinball:
@@ -406,7 +408,7 @@ class Kit(object):
         platform = util.Platform()
         if platform == config.WIN_CYGWIN:
             # Need to get path to nullapp using Windows format.  This is required
-            # because SDE is a native Windows app and requires the path to be
+            # because SDE is a native Windows app and requires the path to be 
             # in Windows format.  However, the path set above is in Cygwin format,
             # hence it must be converted.
             #

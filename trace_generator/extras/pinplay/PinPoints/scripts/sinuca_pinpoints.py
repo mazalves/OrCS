@@ -82,7 +82,8 @@ class Sinuca_TracerPinPoints(pinpoints.PinPoints):
 
     # Simulator replay script
     #
-    sim_replay_cmd  = 'sinuca_replay_dir.py'
+
+    sim_replay_cmd  = config.all_scripts_path + 'sinuca_replay_dir.py'
 
     # Local simulator object.
     #

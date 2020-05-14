@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # BEGIN_LEGAL
 # BSD License
@@ -42,6 +42,7 @@ import sys
 #
 import sinuca_kit
 import replay_dir
+import config
 
 class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
 
@@ -54,7 +55,7 @@ class Sinuca_TracerReplayMulti(replay_dir.ReplayMulti):
 
         # Branch predictor simulator python script to replay one pinball.
         #
-        replayer_cmd = 'sinuca_replayer.py'
+        replayer_cmd = config.all_scripts_path + 'sinuca_replayer.py'
 
         def GetKit(self):
             """ Get the Branch predictor kit. """

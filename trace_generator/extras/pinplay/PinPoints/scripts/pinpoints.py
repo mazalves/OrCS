@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -321,6 +321,9 @@ class PinPoints(object):
         cmd_options.ldv(parser, simpoint_phase_group)
         cmd_options.maxk(parser, simpoint_phase_group)
         cmd_options.slice_size(parser, simpoint_phase_group)
+        cmd_options.warmup_factor(parser, simpoint_phase_group)
+        cmd_options.pccount_regions(parser, simpoint_phase_group)
+        cmd_options.global_regions(parser, simpoint_phase_group)
         cmd_options.simpoint_options(parser, simpoint_phase_group)
 
         parser.add_option_group(simpoint_phase_group)
@@ -450,8 +453,6 @@ class PinPoints(object):
             config.maxk = 20
         if config.slice_size == 0:
             config.slice_size = 30000000
-        if config.warmup_length == 0:
-            config.warmup_length = 500000000
         if config.cutoff == 0.0:
             config.cutoff = 1.0
 
@@ -507,7 +508,8 @@ class PinPoints(object):
         # occur when the start of a warmup region and the end of the previous
         # region are in the same basic block.
         #
-        config.warmup_length += 1500
+        if not config.global_regions:
+          config.warmup_length += 1500
 
         # Get variables used in many phases.
         #

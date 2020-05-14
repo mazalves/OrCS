@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 # BEGIN_LEGAL
 # BSD License
 #
@@ -37,7 +36,7 @@
 #
 # $Id: config.py,v 1.122 2016/03/30 14:52:42 tmstall Exp tmstall $
 
-import ConfigParser
+import configparser
 import optparse
 import os
 import pickle
@@ -47,14 +46,13 @@ import shutil
 import subprocess
 import tempfile
 import types
-
 # Local modules
 #
 import msg
-
+from msg import ensure_string
 #####################################################################################
 #
-# The 'config' module is imported by all tracing modules.
+# The 'config' module is imported by all tracing modules.  
 #
 # Global data attributes which is used by every module is stored here.  The
 # class GlobalVar reads/writes pickle files, i.e. 'global data' files which are
@@ -113,6 +111,9 @@ read_pickle_vars = False
 verbose = False
 debug   = False
 
+# Scripts location from trace_generator folder
+all_scripts_path = '/home/war/OrCS/trace_generator/extras/pinplay/PinPoints/scripts/'
+
 #####################################################################################
 #
 # Attributes which are constants used throughout the scripts.
@@ -133,7 +134,7 @@ default_config_file = 'tracing' + config_ext
 #
 msgfile_ext = ''
 
-# String used to differentiate the per instance cfg/status files from the
+# String used to differentiate the per instance cfg/status files from the 
 # remaining file/dir names.
 #
 instance_ext = '.info'
@@ -172,7 +173,7 @@ sniper_result_dir = 'sniper_results'
 # Char which is used as the separator between 'program_name' and 'input_name'
 # when generating the Data/pp/lit dir names for a given tracing instance.  Set
 # default value here.  It can be changed in config files or with a command line
-# option.
+# option.  
 #
 dir_separator = '.'
 
@@ -293,12 +294,16 @@ sim_kit_type = None
 #
 ldv = None
 
+# Should  create/use global regions
+#
+global_regions = None
+
 #####################################################################################
 
 # Number of instructions in a CMPSim 'phase'.  To calculate the number of
 # phases which should be given to the knob '-phaselen', divide the pinball
 # icount by this value.
-#
+# 
 instr_cmpsim_phase = 1000000
 
 # List of 'blank' XML file components required to generate a traceinfo.xml file.
@@ -580,6 +585,7 @@ class GlobalVar(object):
                 pickle.dump(focus_thread, pickle_file)
                 pickle.dump(input_name, pickle_file)
                 pickle.dump(ldv, pickle_file)
+                pickle.dump(global_regions, pickle_file)
                 pickle.dump(log_file, pickle_file)
                 pickle.dump(mode, pickle_file)
                 pickle.dump(mpi_options, pickle_file)
@@ -634,6 +640,7 @@ class GlobalVar(object):
         global focus_thread
         global input_name
         global ldv
+        global global_regions
         global log_file
         global maxk
         global mode
@@ -713,6 +720,7 @@ class GlobalVar(object):
                     focus_thread       = pickle.load(pickle_file)
                     input_name         = pickle.load(pickle_file)
                     ldv                = pickle.load(pickle_file)
+                    global_regions     = pickle.load(pickle_file)
                     log_file           = pickle.load(pickle_file)
                     mode               = pickle.load(pickle_file)
                     mpi_options        = pickle.load(pickle_file)
@@ -781,8 +789,8 @@ class GlobalVar(object):
             options.dir_separator = dir_separator
         if hasattr(options, 'epilog_length') and options.epilog_length == 0 and epilog_length > 0:
             options.epilog_length = epilog_length
-        if hasattr(options, 'focus_thread') and options.focus_thread == -1 and focus_thread > -1:
-            options.focus_thread = focus_thread
+        if hasattr(options, 'focus_thread') and options.focus_thread != "global" and  int(options.focus_thread) == -1 and int(focus_thread) > -1:
+            options.focus_thread = int(focus_thread)
         if hasattr(options, 'simhome') and options.simhome == '' and simhome:
             options.simhome = simhome
         if hasattr(options, 'simpoint_options') and options.simpoint_options == '' and simpoint_options:
@@ -799,6 +807,8 @@ class GlobalVar(object):
             options.maxk = maxk
         if hasattr(options, 'ldv') and not options.ldv and ldv:
             options.ldv = ldv
+        if hasattr(options, 'global_regions') and not options.global_regions and global_regions:
+            options.global_regions = global_regions
         if hasattr(options, 'log_file') and not options.log_file and log_file:
             options.log_file = log_file
         if hasattr(options, 'mode') and options.mode == '' and mode:
@@ -900,6 +910,7 @@ class GlobalVar(object):
         global focus_thread
         global input_name
         global ldv
+        global global_regions
         global log_file
         global maxk
         global mode
@@ -958,8 +969,10 @@ class GlobalVar(object):
             program_name = options.program_name
         if hasattr(options, 'ldv') and options.ldv:
             ldv = options.ldv
+        if hasattr(options, 'global_regions') and options.global_regions:
+            global_regions = options.global_regions
         if hasattr(options, 'log_file') and options.log_file:
-            ldv = options.log_file
+            log_file = options.log_file
         if hasattr(options, 'mode') and options.mode:
             mode = options.mode
         if hasattr(options, 'archsim_config_dir') and options.archsim_config_dir:
@@ -978,8 +991,8 @@ class GlobalVar(object):
             compressed = options.compressed
         if hasattr(options, 'dir_separator') and options.dir_separator:
              dir_separator = options.dir_separator
-        if hasattr(options, 'focus_thread') and options.focus_thread >= 0:
-             focus_thread = options.focus_thread
+        if hasattr(options, 'focus_thread') and options.focus_thread != "global" and  int(options.focus_thread) >= 0:
+             focus_thread = int(options.focus_thread)
         if hasattr(options, 'epilog_length') and options.epilog_length > 0:
              epilog_length = options.epilog_length
         if hasattr(options, 'simhome') and options.simhome:
@@ -1103,8 +1116,8 @@ class ConfigClass(object):
     # File parser object used to parse all configuration files for a PinPlay tracing
     # instance.
     #
-    import ConfigParser
-    parser = ConfigParser.ConfigParser()
+    import configparser
+    parser = configparser.ConfigParser()
 
     def GetVarStr(self, section, name, parser):
         """
@@ -1196,11 +1209,11 @@ class ConfigClass(object):
         """
 
         for section_name in parser.sections():
-            print 'Section:', section_name
+            print('Section:', section_name)
             # print '  Options:', parser.options(section_name)
             for name, value in parser.items(section_name):
-                print '  %s = %s' % (name, value)
-            print
+                print('  %s = %s' % (name, value))
+            print()
 
     def ParseCfgFile(self, parser):
         """
@@ -1441,11 +1454,11 @@ class ConfigClass(object):
         if os.path.isfile(cfg_file):
             try:
                 parser.read(cfg_file)
-            except ConfigParser.MissingSectionHeaderError:
+            except configparser.MissingSectionHeaderError:
                 msg.PrintAndExit('This configuration file does not have any'
                     ' sections.\nIt must at least contain the section '
                     '\'Parameters\'.\n' '   ' + cfg_file)
-            except ConfigParser.ParsingError:
+            except configparser.ParsingError:
                 msg.PrintAndExit('There was an error parsing the configuration file.\n' + \
                     '   ' + cfg_file)
             params = self.ParseCfgFile(parser)
@@ -1584,7 +1597,7 @@ class ConfigClass(object):
             """
 
             value = ''
-            if params.has_key(key) and params[key]:
+            if key in params and params[key]:
                 value = params[key]
             if hasattr(options, key) and getattr(options, key):
                 value = getattr(options, key)
@@ -1678,7 +1691,7 @@ class ConfigClass(object):
         # and not in the master CBSP config file, then need to set the
         # attribute in options (which came from master CBSP config file).
         #
-        # Parameters set in binary config files overwrite params defined in
+        # Parameters set in binary config files overwrite params defined in 
         # master CBSP config files.
         #
         if values.cbsp_name:
@@ -1728,7 +1741,7 @@ class ConfigClass(object):
             # Get parameters for binary from all config files
             #
             params = {}
-            parser = ConfigParser.ConfigParser()
+            parser = configparser.ConfigParser()
             for c_file in cfg_files:
                 if hasattr(options, 'verbose') and options.verbose:
                     msg.PrintMsg('Reading config file: ' + c_file)
@@ -1850,7 +1863,7 @@ class ConfigClass(object):
         # import pdb ; pdb.set_trace()
         gv.SetGlobalVars(options)
 
-        # If needed, check to see if required variables have been defined.
+        # If needed, check to see if required variables have been defined. 
         #
         if required_vars:
             if hasattr(options, 'log') and options.log:
@@ -1972,13 +1985,13 @@ class ConfigClass(object):
             # then it's not a valid config file.
             #
             # import pdb ; pdb.set_trace()
-            string = fp.read()
+            string = ensure_string(fp.read())
             fp.seek(0, 0)
             if string.find('Parameters') == -1:
 
                 # Not a valid file, just clean up & return without doing
                 # anything.  No need for an error msg, just a warning.
-                #
+                # 
                 # TODO - fix this so it does something reasonable
                 #
                 msg.PrintMsgPlus('WARNING: Tracing configuration file found, but not valid:\n' + \
@@ -1988,11 +2001,11 @@ class ConfigClass(object):
             else:
 
                 # Open a temporary file. This will be used to create a new
-                # config file.
+                # config file.  
                 #
-                # import pdb ; pdb.set_trace()
+                #import pdb ; pdb.set_trace()
                 tmp_file = tempfile.mkstemp()
-                tmp_fp = os.fdopen(tmp_file[0], 'wb')
+                tmp_fp = os.fdopen(tmp_file[0], 'w')
                 tmp_name = tmp_file[1]
 
                 # Backup file name for the current configuration file.
@@ -2007,7 +2020,7 @@ class ConfigClass(object):
                     # Generate a line with the param & new value.
                     #
                     new_line = ''
-                    for line in fp.readlines():
+                    for line in ensure_string(fp.readlines()):
                         if line.find(param) != -1:
                             new_line = param + ':\t' + value + '\n'
 
@@ -2027,7 +2040,7 @@ class ConfigClass(object):
 
                     # Parameter not in the old file.  Copy old file to the tmp file.
                     #
-                    for line in fp.readlines():
+                    for line in ensure_string(fp.readlines()):
                         tmp_fp.write(line)
 
                     # Add the new parameter/value to the end of tmp file.
@@ -2052,7 +2065,7 @@ class ConfigClass(object):
             # Config file does not exist so create it now.
             #
             try:
-                fp = open(config_file, 'wb')
+                fp = open(config_file, 'w')
             except IOError:
                 msg.PrintAndExit('SaveCfgParameter(), unable to open per instance config file: ' + \
                     config_file)
@@ -2074,7 +2087,7 @@ class ConfigClass(object):
         @return '' if the parameter is not found
         """
 
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         config_file = self.GetInstanceFileName(config_ext)
 
         result = ''

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -409,7 +409,7 @@ def CalcPredError(wp_pb_dir, sim_replay_cmd, options):
             percent_cpi.append((percent, cpi))
         if zero_cpi:
             continue
-        abs_diff_from_1 = abs(sum(map(lambda x: x[0], percent_cpi)) - 1.0)
+        abs_diff_from_1 = abs(sum([x[0] for x in percent_cpi]) - 1.0)
         if abs_diff_from_1 > 0.00005:
             msg.PrintMsgPlus(
                 'Warning: Weights for all regions don\'t sum up to 1.0, [abs(sum - 1.0) = %6.5f]'
@@ -417,7 +417,7 @@ def CalcPredError(wp_pb_dir, sim_replay_cmd, options):
 
         # import pdb;  pdb.set_trace()
         msg.PrintMsg('\n%s' % os.path.split(wpdir)[1])
-        predict_cpi = sum(map(lambda x: x[0] * x[1], percent_cpi))
+        predict_cpi = sum([x[0] * x[1] for x in percent_cpi])
         msg.PrintMsg('  Intermediate result, predicted CPI:           ' +
                      str(locale.format('%7.4f', predict_cpi, True)))
         if predict_cpi == 0.0:
@@ -516,7 +516,7 @@ class SniperPinPoints(pinpoints.PinPoints):
             # Print out Sniper results every warmup_length instructions.
             #
             for pp_dir in util.GetRegionPinballDir():
-                phase_length = options.warmup_length / config.instr_cmpsim_phase
+                phase_length = options.warmup_length // config.instr_cmpsim_phase
                 if phase_length == 0:
                     phase_length = 1
 
@@ -534,7 +534,7 @@ class SniperPinPoints(pinpoints.PinPoints):
         if options.whole_sim or options.default_phases:
             # Set phase_length to print out Sniper results every slice_size instructions.
             #
-            phase_length = options.slice_size / config.instr_cmpsim_phase
+            phase_length = options.slice_size // config.instr_cmpsim_phase
             if phase_length == 0:
                 phase_length = 1
 
@@ -550,6 +550,10 @@ class SniperPinPoints(pinpoints.PinPoints):
                     config.PhaseStr(config.sniper_whole))
 
         if options.pred_error or options.default_phases:
+            if options.pccount_regions:
+                msg.PrintMsg(
+                    '\n Prediction with PCregions is NIY')
+                return 0
             if not options.list:
                 msg.PrintMsgDate('Calculating prediction error %s' % \
                     config.PhaseStr(config.pred_error))
