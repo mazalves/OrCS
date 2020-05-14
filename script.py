@@ -9,10 +9,13 @@ config = sys.argv[3]
 output = ""
 folder = "resultados"
 suffix = ""
-if len(sys.argv) > 4: suffix = sys.argv[4]
 
 if os.path.exists(folder) == False: os.mkdir (folder)
 if os.path.exists(folder+"/"+benchmark) == False: os.mkdir (folder+"/"+benchmark)
+if len(sys.argv) > 4: 
+    suffix = sys.argv[4]
+    if os.path.exists(folder+"/"+benchmark+suffix) == False: os.mkdir (folder+"/"+benchmark+suffix)
+
 
 with open(filepath) as fp:
    for cnt, line in enumerate(fp):
