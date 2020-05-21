@@ -10,8 +10,9 @@ class vima_controller_t {
         float CORE_TO_BUS_CLOCK_RATIO;
         
         uint32_t lines;
+        uint32_t sets;
         uint32_t* vima_op_latencies;
-        vima_vector_t* cache;
+        vima_vector_t** cache;
         vima_vector_t* read1;
         vima_vector_t* read1_unbalanced;
         vima_vector_t* read2;
@@ -41,6 +42,7 @@ class vima_controller_t {
         INSTANTIATE_GET_SET_ADD (float, CORE_TO_BUS_CLOCK_RATIO)
 
         INSTANTIATE_GET_SET_ADD (uint32_t, lines)
+        INSTANTIATE_GET_SET_ADD (uint32_t, sets)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_hits)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_misses)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_accesses)

@@ -11,6 +11,9 @@ vima_controller_t::~vima_controller_t(){
     ORCS_PRINTF ("VIMA Cache Misses: %lu\n", get_cache_misses())
     ORCS_PRINTF ("VIMA Cache Accesses: %lu\n", get_cache_accesses())
     ORCS_PRINTF ("VIMA Cache Writebacks: %lu\n", get_cache_writebacks())
+    ORCS_PRINTF ("VIMA Cache Associativity: %u\n", get_VIMA_CACHE_ASSOCIATIVITY())
+    ORCS_PRINTF ("VIMA Cache Lines: %u\n", this->get_lines())
+    ORCS_PRINTF ("VIMA Cache Sets: %u\n", this->get_sets())
     ORCS_PRINTF ("#========================================================================#\n")
     /*free (read1);
     free (read1_unbalanced);
@@ -49,20 +52,34 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
     add_cache_accesses();
     uint64_t lru_cycle = UINT64_MAX;
     uint32_t lru_way = 0;
-    for (uint32_t i = 0; i < get_lines(); i++){
-        if (get_index(cache[i].get_address()) == get_index (address) && get_tag(cache[i].get_address()) == get_tag (address)) {
-            add_cache_hits();
-            //ORCS_PRINTF ("%s HIT! %lu\n", cache[i].get_label(), address)
-            return &cache[i];
+    if (VIMA_CACHE_ASSOCIATIVITY == 1){
+        for (uint32_t i = 0; i < get_lines(); i++){
+            if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
+                add_cache_hits();
+                //ORCS_PRINTF ("%s HIT! %lu\n", cache[i].get_label(), address)
+                return &cache[i][0];
+            }
+            else if (cache[i][0].lru < lru_cycle) {
+                lru_cycle = cache[i][0].lru;
+                lru_way = i;
+            }
         }
-        else if (cache[i].lru < lru_cycle) {
-            lru_cycle = cache[i].lru;
-            lru_way = i;
+    } else {
+        uint32_t index = get_index (address);
+        for (uint32_t i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
+            if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
+                add_cache_hits();
+                return &cache[index][i];
+            }
+            else if (cache[index][i].lru < lru_cycle) {
+                lru_cycle = cache[index][i].lru;
+                lru_way = i;
+            }
         }
     }
-    add_cache_misses();
     //ORCS_PRINTF ("%s MISS! %lu\n", cache[lru_way].get_label(), address)
-    return &cache[lru_way];
+    add_cache_misses();
+    return &cache[lru_way][0];
 }
 
 void vima_controller_t::check_cache(){
@@ -262,7 +279,7 @@ void vima_controller_t::allocate(){
     set_VIMA_UNBALANCED (cfg_processor["VIMA_UNBALANCED"]);
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
-    //uint64_t sets = lines/this->get_VIMA_CACHE_ASSOCIATIVITY();
+    this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
 
     read1 = (vima_vector_t*) malloc (sizeof (vima_vector_t));
     read1_unbalanced = (vima_vector_t*) malloc (sizeof (vima_vector_t));
@@ -271,17 +288,23 @@ void vima_controller_t::allocate(){
     write = (vima_vector_t*) malloc (sizeof (vima_vector_t));
     write_unbalanced = (vima_vector_t*) malloc (sizeof (vima_vector_t));
 
-    this->cache = (vima_vector_t*) malloc (sizeof (vima_vector_t)*lines);
-    std::memset ((void *)this->cache, 0, sizeof (vima_vector_t)*lines);
+    this->cache = (vima_vector_t**) malloc (sizeof (vima_vector_t*)*sets);
+    std::memset ((void *) this->cache, 0, sizeof (vima_vector_t*)*sets);
+    for (uint32_t i = 0; i < sets; i++){
+        this->cache[i] = (vima_vector_t*) malloc (VIMA_CACHE_ASSOCIATIVITY * sizeof(vima_vector_t));
+        std::memset ((void *) this->cache[i], 0, VIMA_CACHE_ASSOCIATIVITY*sizeof (vima_vector_t));
+    }
 
-    for (size_t i = 0; i < lines; i++) this->cache[i].allocate();
+    for (size_t i = 0; i < sets; i++) {
+        for (size_t j = 0; j < VIMA_CACHE_ASSOCIATIVITY; j++) this->cache[i][j].allocate();
+    }
     
     this->index_bits_shift = utils_t::get_power_of_two(this->get_VIMA_VECTOR_SIZE());
-    this->tag_bits_shift = index_bits_shift + utils_t::get_power_of_two(lines);
+    this->tag_bits_shift = index_bits_shift + utils_t::get_power_of_two(sets);
 
     uint64_t i;
     /// INDEX MASK
-    for (i = 0; i < utils_t::get_power_of_two(lines); i++) {
+    for (i = 0; i < utils_t::get_power_of_two(sets); i++) {
         this->index_bits_mask |= 1 << (i + index_bits_shift);
     }
 
