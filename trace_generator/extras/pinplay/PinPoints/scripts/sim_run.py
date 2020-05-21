@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -157,7 +157,7 @@ class SimRun(object):
         # Print out the version number
         #
         if config.debug:
-            print os.path.basename(sys.argv[0]) + " $Revision: 1.16 $"
+            print(os.path.basename(sys.argv[0]) + " $Revision: 1.16 $")
 
         # Print out all the parsed options
         #

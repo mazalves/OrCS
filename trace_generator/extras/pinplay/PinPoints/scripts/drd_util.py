@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -52,6 +52,7 @@ import cmd_options
 import config
 import msg
 import util
+from msg import ensure_string
 """
 @package drd_util
 
@@ -124,6 +125,8 @@ def CheckGdb(options, check_version=True):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
+        stdout = ensure_string(stdout)
+        stderr = ensure_string(stderr)
 
         return stdout, stderr
 
@@ -511,9 +514,9 @@ def FinalizeGDB(kit_script_path, options):
     time.sleep(1)
     os.environ["PYTHONPATH"] = kit_script_path
     if options.verbose:
-        print "\nGDB cmd file:"
+        print("\nGDB cmd file:")
         os.system('cat ' + config.gdb_cmd_file)
-        print
+        print()
 
     # Format command and run GDB
     #

@@ -1,0 +1,46 @@
+################################################################################
+## NAS OMP
+################################################################################
+# BT # 1/200 iterations - 238 MInst - No Spinwait
+# CG # 1/15 iterations - 44 MInst - No Spinwait
+# EP # 2/3 parallel regions - 0.9 MInst - No Spinwait
+# FT # 1/6 iterations - 384 MInst - No Spinwait
+# IS # 1/10 iterations - 32 MInst - No Spinwait
+# LU # 1/250 iterations - 132 MInst - No Spinwait
+# MG # 1/4 iterations - 261 MInst - No Spinwait
+# SP # 1/400 iterations - 60 MInst - No Spinwait
+# UA # 1/200 iterations - 87 MInst - No Spinwait
+################################################################################
+## NAS OMP - A -- (1 - 7)
+bt;A;14;18;$BENCHMARK_DIR/bt.A.x;1
+cg;A;11;13;$BENCHMARK_DIR/cg.A.x;2
+ft;A;22;26;$BENCHMARK_DIR/ft.A.x;3
+is;A;4;4;$BENCHMARK_DIR/is.A.x;4
+lu;A;16;17;$BENCHMARK_DIR/lu.A.x;5
+mg;A;122;145;$BENCHMARK_DIR/mg.A.x;6
+sp;A;24;32;$BENCHMARK_DIR/sp.A.x;7
+#### ua;A;298;447;$BENCHMARK_DIR/ua.A.x;
+#### ep;A;1;2;$BENCHMARK_DIR/ep.A.x;
+################################################################################
+## NAS OMP - Full W -- (19 - 27)
+ep;FullW;-1;-1;$BENCHMARK_DIR/ep.W.x;8
+bt;FullW;-1;-1;$BENCHMARK_DIR/bt.W.x;9
+cg;FullW;-1;-1;$BENCHMARK_DIR/cg.W.x;10
+ft;FullW;-1;-1;$BENCHMARK_DIR/ft.W.x;11
+is;FullW;-1;-1;$BENCHMARK_DIR/is.W.x;12
+lu;FullW;-1;-1;$BENCHMARK_DIR/lu.W.x;13
+mg;FullW;-1;-1;$BENCHMARK_DIR/mg.W.x;14
+sp;FullW;-1;-1;$BENCHMARK_DIR/sp.W.x;15
+################################################################################
+## NAS OMP - A -- (1 - 7)
+bt;A5;18;42;$BENCHMARK_DIR/bt.A.x;16
+cg;A5;11;13;$BENCHMARK_DIR/cg.A.x;17
+ft;A5;22;26;$BENCHMARK_DIR/ft.A.x;18
+is;A5;4;4;$BENCHMARK_DIR/is.A.x;19
+lu;A5;16;17;$BENCHMARK_DIR/lu.A.x;20
+mg;A5;122;145;$BENCHMARK_DIR/mg.A.x;21
+sp;A5;24;32;$BENCHMARK_DIR/sp.A.x;22
+#### ua;A;298;447;$BENCHMARK_DIR/ua.A.x;
+#### ep;A;1;2;$BENCHMARK_DIR/ep.A.x;
+################################################################################
+## END OF FILE

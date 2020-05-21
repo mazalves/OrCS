@@ -1,0 +1,45 @@
+################################################################################
+## SPEC OMP 2001
+################################################################################
+################################################################################
+## SPEC OMP 2001 - MEDIUM -- (1 - 11)
+# 350.md -  Parallel Regions - Fortran -
+# 351.bwaves -  Parallel Regions
+# 352.nab -  Parallel Regions
+# 357.bt331 -  Parallel Regions
+# 358.botsalgn -  Parallel Regions
+# 359.botsspar -  Parallel Regions
+# 360.ilbdc -  Parallel Regions
+# 362.fma3d -  Parallel Regions
+# 363.swim -  Parallel Regions
+# 367.imagick -  Parallel Regions
+# 370.mgrid331 -  Parallel Regions
+# 371.applu331 -  Parallel Regions
+# 372.smithwa -  Parallel Regions
+# 376.kdtree -  Parallel Regions
+################################################################################
+## SPEC OMP 2001
+################################################################################
+applu331;R;-1;-1;$BENCHMARK_DIR/OMP2012/371.applu331/exe/lu_base.x86-gcc
+botsalgn;R;-1;-1;$BENCHMARK_DIR/OMP2012/358.botsalgn/exe/bots-alignment_base.x86-gcc -f botsalgn
+botsspar;R;-1;-1;$BENCHMARK_DIR/OMP2012/359.botsspar/exe/bots-sparselu_base.x86-gcc -n 120 -m 501
+bt331;R;-1;-1;$BENCHMARK_DIR/OMP2012/357.bt331/exe/bt_base.x86-gcc
+bwaves;R;-1;-1;$BENCHMARK_DIR/OMP2012/351.bwaves/exe/bwaves_base.x86-gcc
+fma3d;R;-1;-1;$BENCHMARK_DIR/OMP2012/362.fma3d/exe/fma3d_base.x86-gcc
+ilbdc;R;-1;-1;$BENCHMARK_DIR/OMP2012/360.ilbdc/exe/ilbdc_base.x86-gcc
+kdtree;R;-1;-1;$BENCHMARK_DIR/OMP2012/376.kdtree/exe/kdtree_base.x86-gcc 1400000 4 2
+md;R;-1;-1;$BENCHMARK_DIR/OMP2012/350.md/exe/md_omp_base.x86-gcc
+mgrid331;R;-1;-1;$BENCHMARK_DIR/OMP2012/370.mgrid331/exe/mg_base.x86-gcc
+nab;R;-1;-1;$BENCHMARK_DIR/OMP2012/352.nab/exe/nabmd_base.x86-gcc 1ea0 281910391
+smithwa;R;-1;-1;$BENCHMARK_DIR/OMP2012/372.smithwa/exe/smithwaterman_base.x86-gcc 41
+swim;R;-1;-1;$BENCHMARK_DIR/OMP2012/363.swim/exe/swim_base.x86-gcc
+### END OF FILE
+#############
+## imagick;R;-1;-1;$BENCHMARK_DIR/OMP2012/367.imagick/exe/convert_base.x86-gcc input2.tga -shear 31 -resize 12000x9000 -negate -edge 14 -implode 1.2 -flop -convolve 1,2,1,4,3,4,1,2,1 -edge 100 -resize 800x600 output2.tga
+#############
+#../run_base_ref_x86-gcc.0000/convert_base.x86-gcc input2.tga -shear 31 -resize 12000x9000 -negate -edge 14 -implode 1.2 -flop -convolve 1,2,1,4,3,4,1,2,1 -edge 100 -resize 800x600 output2.tga
+#../run_base_ref_x86-gcc.0000/convert_base.x86-gcc checks.tga -shear 31x14 -negate -edge 14 -resize 12288x12288 -implode 1.2 -flop -convolve 1,2,1,4,3,4,1,2,1 -edge 100 -resize 900x900 output9.tga
+#../run_base_ref_x86-gcc.0000/convert_base.x86-gcc checks.tga -resize 12000x12000 -morphology Convolve 5x5: 1.0,1.0,1.0,1.0,1.0 1.0,0.0,0.0,0.0,1.0 1.0,0.0,0.0,0.0,1.0 1.0,0.0,0.0,0.0,1.0 1.0,1.0,1.0,1.0,1.0  -edge 60 -morphology Convolve Log:0x2 -negate -morphology Convolve Laplacian:7 -sharpen 10x0.2-32 -resize 600x600 output11.tga
+#../run_base_ref_x86-gcc.0000/ImageValidator_base.x86-gcc expected2.tga output2.tga
+#../run_base_ref_x86-gcc.0000/ImageValidator_base.x86-gcc expected9.tga output9.tga
+#../run_base_ref_x86-gcc.0000/ImageValidator_base.x86-gcc expected11.tga output11.tga

@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # BEGIN_LEGAL
 # BSD License
 #
-# Copyright (c)2015 Intel Corporation. All rights reserved.
+# Copyright (c)2018 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -110,13 +110,6 @@ class Log(object):
 
         pintool_options = self.AddOptionIfNotPresent(options, '-log:mp_mode', '')
 
-        # print out information about shared-segments and allow MP apps to attach
-        # to memory pool
-        #
-        pintool_options += self.AddOptionIfNotPresent(options,
-                                                      '-log:mp_verbose', '1')
-        pintool_options += ' -log:mp_attach '
-
         return pintool_options
 
     def ParseCommandLine(self):
@@ -219,89 +212,6 @@ class Log(object):
 
         return options
 
-    def RunMPCreate(self, kit, options):
-        """
-        Create mp_pool when logging MPI apps.
-
-        @param kit     Kit instance for these scripts
-        @param options Options given on cmd line
-
-        @return String with MP key and a knob required for mp_pools, or null string
-        """
-
-        # Start command with pin and pintool.
-        #
-        # import pdb;  pdb.set_trace()
-        cmd = os.path.join(kit.path, kit.pin)
-        cmd += kit.GetPinToolKnob()
-
-        # Logging mp_pool creation knobs.
-        #
-        log_key = ' -log:mp_key ' + str(random.randint(0, 32728))
-        cmd += ' -log '
-        cmd += log_key
-        cmd += ' -log:mp_create_pool '
-        cmd += ' -- echo'
-
-        # Execute the cmd
-        #
-        if (not hasattr(options, 'no_print_cmd') or not options.no_print_cmd) or\
-            hasattr(options, 'verbose') and options.verbose:
-            msg.PrintMsgPlus('Creating mp_pools for MPI tracing')
-            msg.PrintMsg(cmd)
-        if not config.debug:
-            p = subprocess.Popen(cmd, shell=True)
-            p.communicate()
-            del p
-
-        # Return the key to the memory pool just created.
-        #
-        return log_key
-
-    def RunMPDelete(self, kit, log_key, options):
-        """
-        Delete mp_pool when logging MPI apps.
-
-        @param kit     Kit instance for these scripts
-        @param log_key  Key to mp_pool to delete
-        @param options Options given on cmd line
-
-        @return No return value
-        """
-
-        # Start command with pin and pintool.
-        #
-        # import pdb;  pdb.set_trace()
-        cmd = os.path.join(kit.path, kit.pin)
-        cmd += kit.GetPinToolKnob()
-
-        # Remove the string '-log:mode_attach' because it's only
-        # used for logging.
-        #
-        pos = log_key.find('-log:mode_attach')
-        if pos != -1:
-            log_key = log_key[0:pos]
-
-        # Logging mp_pool deletion knobs.
-        #
-        cmd += ' -log '
-        cmd += log_key
-        cmd += ' -log:mp_delete_pool '
-        cmd += ' -- echo'
-
-        # Execute the cmd
-        #
-        if (not hasattr(options, 'no_print_cmd') or not options.no_print_cmd) or\
-            hasattr(options, 'verbose') and options.verbose:
-            msg.PrintMsgPlus('Deleting mp_pools for MPI tracing')
-            msg.PrintMsg(cmd)
-        if not config.debug:
-            p = subprocess.Popen(cmd, shell=True)
-            p.communicate()
-            del p
-
-        return
-
     def Run(self):
         """
         Get all the user options and run the logger.
@@ -392,9 +302,6 @@ class Log(object):
             if hasattr(options, 'log_options') and options.log_options:
                 cmd += options.log_options
 
-        # Need to add shared memory knobs and create memory pools for MPI/MP apps.
-        #
-        create_mem_pool = False
         if options.mode == config.MPI_MODE or options.mode == config.MPI_MT_MODE or \
            options.mode == config.MP_MODE or options.mode == config.MP_MT_MODE:
 
@@ -403,20 +310,11 @@ class Log(object):
             #
             if not (hasattr(options, 'no_log') and options.no_log):
                 cmd += self.MpModeOptions(options)
-                create_mem_pool = True
-            else:
-                create_mem_pool = False
 
         # Format the MPI command line, if required to run the command line.
         #
         if options.mode == config.MPI_MODE or options.mode == config.MPI_MT_MODE:
             cmd = util.MPICmdLine(options) + ' ' + cmd
-
-        # If logging enabled for multi-threaded app, generate the mp_pool.
-        #
-        if create_mem_pool:
-            log_key = self.RunMPCreate(kit, options)
-            cmd += log_key
 
         # Add program and arguments 
         #
@@ -443,11 +341,6 @@ class Log(object):
             p = subprocess.Popen(cmd, shell=True)
             p.communicate()
             result = p.returncode
-
-        # If logging enabled for multi-threaded app, delete the mp_pool.
-        #
-        if create_mem_pool:
-            self.RunMPDelete(kit, log_key, options)
 
         return result
 

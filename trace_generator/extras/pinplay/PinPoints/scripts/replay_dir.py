@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # BEGIN_LEGAL
 # BSD License
@@ -160,7 +160,7 @@ class ReplayMulti(object):
         #
         # import pdb;  pdb.set_trace()
         if config.debug:
-            print os.path.basename(sys.argv[0]) + " $Revision: 1.78 $"
+            print(os.path.basename(sys.argv[0]) + " $Revision: 1.78 $")
 
         # Some error checking.
         #
@@ -194,7 +194,7 @@ class ReplayMulti(object):
         @return Exit code from the replayer script.
         """
 
-        if param.has_key('options'):
+        if 'options' in param:
             options = param['options']
         else:
             msg.PrintAndExit(
@@ -269,7 +269,7 @@ class ReplayMulti(object):
         log_opt = log_opt.replace('"', '')
 
         # If relogging WP pinballs, need to add the -log:basename knob with
-        # the relogged pinball path/name.
+        # the relogged pinball path/name. 
         #
         # import pdb ; pdb.set_trace()
         if options.wp_relog_dir:
@@ -281,7 +281,7 @@ class ReplayMulti(object):
                 # resulting pinballs were 'per thread', not 'cooperative'.  If
                 # relogging with a different filter (i.e. options.relog_focus ==
                 # False) then need to remove TID from base file name given to
-                # the knob -log:basename.
+                # the knob -log:basename.  
                 #
                 file_name = os.path.basename(util.RemoveTID(basename_file))
             else:
@@ -351,7 +351,7 @@ class ReplayMulti(object):
         """
 
         if config.debug:
-            print 'Replaying all pinballs matching patern.'
+            print('Replaying all pinballs matching patern.')
 
         import glob
 
