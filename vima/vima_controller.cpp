@@ -41,7 +41,7 @@ void vima_controller_t::instruction_ready (size_t index){
         write_unbalanced->set = false;
     }
     vima_buffer[index]->status = PACKAGE_STATE_WAIT;
-    vima_buffer[index]->readyAt = orcs_engine.get_global_cycle();
+    vima_buffer[index]->readyAt = orcs_engine.get_global_cycle() + vima_op_latencies[vima_buffer[index]->memory_operation];
     if (VIMA_DEBUG) {
         ORCS_PRINTF ("VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
     }
