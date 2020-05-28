@@ -10,8 +10,8 @@ class opcode_package_t : public memory_request_client_t {
         uint64_t opcode_address;
         uint32_t opcode_size;
 
-        int32_t read_regs[16];
-        int32_t write_regs[16];
+        int32_t read_regs[MAX_REGISTERS];
+        int32_t write_regs[MAX_REGISTERS];
 
         uint32_t base_reg;
         uint32_t index_reg;
@@ -35,9 +35,9 @@ class opcode_package_t : public memory_request_client_t {
         bool is_prefetch;
 
         bool is_hive;
-        int32_t hive_read1;
-        int32_t hive_read2;
-        int32_t hive_write;
+        int32_t hive_read1 = -1;
+        int32_t hive_read2 = -1;
+        int32_t hive_write = -1;
 
         bool is_vima;
 

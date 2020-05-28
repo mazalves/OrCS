@@ -300,7 +300,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
 
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
 
-        // HMC Traces
+        // Trace for different architectures
         if (((KnobTrace.Value().compare(0, 3, "x86")) != 0) && icheck_conditions(rtn_name))
             continue;
 
@@ -375,7 +375,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
             }
         }
 
-        // HMC Traces
+        // Trace for different architectures
         if (((KnobTrace.Value().compare(0, 3, "x86")) != 0) && icheck_conditions(rtn_name))
             continue;
 
@@ -512,7 +512,7 @@ VOID DynamicOMP_char(char *sync_str, THREADID threadid, bool is_spawn) {
 VOID ImageLoad(IMG img, VOID *) {
     printf("Loading %s, Image id = %d\n", IMG_Name(img).c_str(), IMG_Id(img));
 
-    // HMC data initialization - HMC Traces
+    // Data initialization - Architecture Traces
     data_instr hmc_x86_data[20], vim_x86_data[112], mps_x86_data[28];
     initialize_intrinsics(hmc_x86_data, vim_x86_data, mps_x86_data);
 

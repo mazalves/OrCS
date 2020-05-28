@@ -14,7 +14,7 @@ opcode_package_t::opcode_package_t() {
     this->opcode_address = 0;
     this->opcode_size = 0;
 
-	for (uint32_t i=0; i < 16; i++){
+	for (uint32_t i=0; i < MAX_REGISTERS; i++){
 		read_regs[i] = 0;
 		write_regs[i] = 0;
 	}

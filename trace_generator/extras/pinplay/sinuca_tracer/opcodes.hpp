@@ -36,7 +36,7 @@ namespace opcodes {
             }
         }
 
-        str << " " << reg_count  << " "         \
+        str << " " << reg_count         \
             << reg_str.str();
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, reg_count);
@@ -54,7 +54,7 @@ namespace opcodes {
             }
         }
 
-        str << " " << reg_count  << " "         \
+        str << " " << reg_count        \
             << reg_str.str();
 
         /*

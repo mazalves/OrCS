@@ -36,34 +36,58 @@ VOID write_static_char(char *stat_str) {
 
 // =====================================================================
 
-VOID hmc_write_memory_2param(ADDRINT *read, ADDRINT *write, UINT32 size, UINT32 bbl, THREADID threadid) {
+VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory()\n");
 
     if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
 
     char mem_str[TRACE_LINE_SIZE];
 
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)&read, bbl);
+    // printf("read: %" PRIu64 "\n", (uint64_t)&read);
+
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)&write, bbl);
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)read, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 };
 
-VOID hmc_write_memory_3param(ADDRINT *read1, ADDRINT *read2, ADDRINT *write, UINT32 size, UINT32 bbl, THREADID threadid) {
+VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid) {
+    TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory()\n");
+
+    if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
+
+    char mem_str[TRACE_LINE_SIZE];
+
+    // printf("read1: %" PRIu64 "\n", (uint64_t)&read);
+    // printf("write: %" PRIu64 "\n", (uint64_t)&write);
+
+
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read, bbl);
+    gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
+
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)write, bbl);
+    gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
+};
+
+VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory_3param()\n");
 
     if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
 
     char mem_str[TRACE_LINE_SIZE];
+
+    // printf("read1: %" PRIu64 "\n", (uint64_t)&read1);
+    // printf("read2: %" PRIu64 "\n", (uint64_t)&read2);
+    // printf("write: %" PRIu64 "\n", (uint64_t)&write);
  
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)&read1, bbl);
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read1, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
     
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)&read2, bbl);
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read2, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
     
-    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)&write, bbl);
+    sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)write, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 };
 
@@ -494,6 +518,20 @@ INT icheck_2parameters(std::string rtn_name) {
     return 0;
 }
 
+INT icheck_1parameter(std::string rtn_name) {
+    if ((rtn_name.compare(4, cmp_name80.size(), cmp_name80.c_str()) == 0) || //move immediate int
+        (rtn_name.compare(4, cmp_name81.size(), cmp_name81.c_str()) == 0) ||
+        (rtn_name.compare(4, cmp_name82.size(), cmp_name82.c_str()) == 0) ||
+        (rtn_name.compare(4, cmp_name83.size(), cmp_name83.c_str()) == 0) ||
+        (rtn_name.compare(4, cmp_name106.size(), cmp_name106.c_str()) == 0) || //move immediate float
+        (rtn_name.compare(4, cmp_name107.size(), cmp_name107.c_str()) == 0) ||
+        (rtn_name.compare(4, cmp_name130.size(), cmp_name130.c_str()) == 0) || //move immediate double
+        (rtn_name.compare(4, cmp_name131.size(), cmp_name131.c_str()) == 0)) {
+            return 1;
+    }
+    return 0;
+}
+
 VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
     opcode_package_t NewInstruction;
     char bbl_count_str[TRACE_LINE_SIZE];
@@ -501,7 +539,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
     uint32_t i, j, bicount;
     int ireg, breg, rreg, wreg;
     std::string rtn_name;
-    bool read_regs[MAX_REGISTERS], write_regs[MAX_REGISTERS];
+    bool read_regs[MAX_REGISTER_NUMBER], write_regs[MAX_REGISTER_NUMBER];
     // Open HMC routine
     if (RTN_Valid(arch_rtn)) {
         RTN_Open(arch_rtn);
@@ -517,7 +555,12 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
 
         RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)write_dynamic_char, IARG_PTR, hmc_bbl_str, IARG_THREAD_ID, IARG_END);
         
-        if (icheck_2parameters(rtn_name) == 1) {
+        if (icheck_1parameter(rtn_name) == 1) {
+            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_1param, 
+                            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                            IARG_UINT32, archx_x86_data.instr_len, 
+                            IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
+        } else if (icheck_2parameters(rtn_name) == 1) {
             RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_2param, 
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
@@ -532,7 +575,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                             IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);            
         }
 
-        for (i = 0; i < MAX_REGISTERS; i++) {
+        for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
             read_regs[i] = false;
             write_regs[i] = false;
         }
@@ -540,7 +583,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         // Identify read/write registers
         for(INS ins = RTN_InsHead(arch_rtn); INS_Valid(ins); ins = INS_Next(ins)) {
 
-            // record all read registers
+             // record all read registers
             for (i = 0; i < INS_MaxNumRRegs(ins); i++) {
                 rreg = INS_RegR(ins, i);
                 if (rreg > 0 && read_regs[rreg] == false && write_regs[rreg] == false) {
@@ -573,7 +616,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
 
         // Record all read and write registers into read and write register's list
         int r_index = 0, w_index = 0;
-        for (i = 0; i < MAX_REGISTERS; i++) {
+        for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
             if (read_regs[i] == true) {
                 NewInstruction.read_regs[r_index++] = i;
             }
@@ -739,7 +782,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
         }
 
-        if (icheck_2parameters(rtn_name) == 1) {
+        if ((icheck_2parameters(rtn_name) == 1) || icheck_1parameter(rtn_name) == 1) {
             NewInstruction.is_read = 1;
             NewInstruction.is_read2 = 0;
             NewInstruction.is_write = 1;
@@ -754,9 +797,10 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         // NewInstruction.is_prefetch = 0;
         opcodes::opcode_to_trace_string(NewInstruction, opcode_str);
         write_static_char(opcode_str);
+        printf("opc_str: %s\n", opcode_str);
         RTN_Close(arch_rtn);
     }
-};
+}; 
 
 // =====================================================================
 
