@@ -290,8 +290,8 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 // =============
 // Setting init values to read and write regs
 // =============
-    memset(opcode->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
-    memset(opcode->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
+    // memset(opcode->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
+    // memset(opcode->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
     /// Number of Read Registers
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
@@ -299,7 +299,8 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 
     for (i = 0; i < sub_fields; i++) {
         sub_string = strtok_r(NULL, " ", &tmp_ptr);
-        opcode->read_regs[i] = strtoul(sub_string, NULL, 10);
+        opcode->read_regs.push_back(strtoul(sub_string, NULL, 10));
+        // opcode->read_regs[i] = strtoul(sub_string, NULL, 10);
     }
 
     /// Number of Write Registers
@@ -308,7 +309,8 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 
     for (i = 0; i < sub_fields; i++) {
         sub_string = strtok_r(NULL, " ", &tmp_ptr);
-        opcode->write_regs[i] = strtoul(sub_string, NULL, 10);
+        opcode->write_regs.push_back(strtoul(sub_string, NULL, 10));
+        // opcode->write_regs[i] = strtoul(sub_string, NULL, 10);
     }
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);

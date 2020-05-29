@@ -64,8 +64,8 @@ void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t u
     this->opcode_address = opcode.opcode_address;
     this->opcode_size = opcode.opcode_size;
     this->opcode_number = opcode.opcode_number;
-    memcpy(this->read_regs, opcode.read_regs, sizeof(int32_t) * MAX_REGISTERS);
-    memcpy(this->write_regs, opcode.write_regs, sizeof(int32_t) * MAX_REGISTERS);
+    // memcpy(this->read_regs, opcode.read_regs, sizeof(int32_t) * MAX_REGISTERS);
+    // memcpy(this->write_regs, opcode.write_regs, sizeof(int32_t) * MAX_REGISTERS);
 
     this->uop_operation = uop_operation;
     this->memory_address = memory_address;

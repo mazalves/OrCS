@@ -615,15 +615,25 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         }
 
         // Record all read and write registers into read and write register's list
-        int r_index = 0, w_index = 0;
+        // int r_index = 0, w_index = 0;
+        NewInstruction.read_regs.clear();
+        NewInstruction.write_regs.clear();
         for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
             if (read_regs[i] == true) {
-                NewInstruction.read_regs[r_index++] = i;
+                // NewInstruction.read_regs[r_index++] = i;
+                NewInstruction.read_regs.push_back(i);
             }
             if (write_regs[i] == true) {
-                NewInstruction.write_regs[w_index++] = i;
+                // NewInstruction.write_regs[w_index++] = i;
+                NewInstruction.write_regs.push_back(i);
             }
         }
+
+        printf("read_regs: ");
+        for (i = 0; i < NewInstruction.read_regs.size(); ++i) {
+            printf("%d ", NewInstruction.read_regs[i]);
+        }
+        printf("\n");
 
         // Record opcode address
         NewInstruction.opcode_address = RTN_Address(arch_rtn);
@@ -797,7 +807,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         // NewInstruction.is_prefetch = 0;
         opcodes::opcode_to_trace_string(NewInstruction, opcode_str);
         write_static_char(opcode_str);
-        printf("opc_str: %s\n", opcode_str);
+        // printf("opc_str: %s\n", opcode_str);
         RTN_Close(arch_rtn);
     }
 }; 
