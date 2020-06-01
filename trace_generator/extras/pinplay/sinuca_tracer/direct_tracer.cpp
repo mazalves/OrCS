@@ -126,8 +126,15 @@ void print(opcode_package_t *op) {
                 << op->opcode_address                           << " "
                 << op->opcode_size                              << " ";
 
-    for (uint32_t i = 0; i < op->read_regs.size() || op->write_regs.size(); ++i) {
-        streamOut << op->read_regs[i] << " " << op->write_regs[i]   << " ";
+    // for (int i = 0; i < MAX_REGISTERS; ++i) {
+    //     streamOut << op->read_regs[i] << " " << op->write_regs[i]   << " ";
+    // }
+    for (uint32_t i = 0; i < op->read_regs.size(); ++i) {
+        streamOut << op->read_regs[i] << " ";
+    }
+    for (uint32_t i = 0; i < op->write_regs.size(); ++i) {
+        streamOut << op->write_regs[i] << " ";
+
     }
 
     streamOut << op->base_reg << " " << op->index_reg               << " ";

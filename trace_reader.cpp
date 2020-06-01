@@ -292,6 +292,8 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 // =============
     // memset(opcode->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
     // memset(opcode->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
+    opcode->read_regs.clear();
+    opcode->write_regs.clear();
 
     /// Number of Read Registers
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
@@ -492,13 +494,19 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_size = std::strtoul(sub_string, NULL, 10);
 
-    for (int i = 0; i < MAX_REGISTERS; ++i) {
-        sub_string = strtok_r(NULL, " ", &tmp_ptr);
-        m->read_regs[i] = std::atoi(sub_string);
-
-        sub_string = strtok_r(NULL, " ", &tmp_ptr);
-        m->write_regs[i] = std::atoi(sub_string);
+    for (int i = 0; i < m->read_regs.size(); i++) {
+        m->read_regs.push_back(std::atoi(sub_string));
     }
+    for (int i = 0; i < m->write_regs.size(); i++) {
+        m->write_regs.push_back(std::atoi(sub_string));
+    }
+    // for (int i = 0; i < MAX_REGISTERS; ++i) {
+    //     sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    //     m->read_regs[i] = std::atoi(sub_string);
+
+    //     sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    //     m->write_regs[i] = std::atoi(sub_string);
+    // }
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->base_reg = std::strtoul(sub_string, NULL, 10);

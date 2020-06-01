@@ -629,12 +629,6 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             }
         }
 
-        printf("read_regs: ");
-        for (i = 0; i < NewInstruction.read_regs.size(); ++i) {
-            printf("%d ", NewInstruction.read_regs[i]);
-        }
-        printf("\n");
-
         // Record opcode address
         NewInstruction.opcode_address = RTN_Address(arch_rtn);
 

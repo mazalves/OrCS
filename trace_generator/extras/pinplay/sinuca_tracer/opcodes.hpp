@@ -26,13 +26,12 @@ namespace opcodes {
         sprintf(trace_string, "%s %" PRId32 "", trace_string, op.opcode_size);
         */
 
-        reg_str.str(std::string());
+        // reg_str.str(std::string());
         //register_string[0] = '\0';
         // reg_count = 0;
-        printf("read_regs_op: ");
+        str << " " << op.read_regs.size();
         for (uint32_t i = 0; i < op.read_regs.size(); ++i) {
-            reg_str << " " << op.read_regs[i];
-            printf("%d ", op.read_regs[i]);
+            str << " " << op.read_regs[i];
         }                                                                                                                   
         // for (uint32_t i = 0; i < 16; i++) {
         //     printf("%d ", op.read_regs[i]);
@@ -42,22 +41,21 @@ namespace opcodes {
         //         //sprintf(register_string, "%s %" PRId32 "", register_string, op.read_regs[i]);
         //     }
         // }
-        printf("\n\n");
 
         /* str << " " << reg_count         \
                << reg_str.str(); */
-        str << " " << op.read_regs.size()        \
-            << reg_str.str();
+
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, reg_count);
         sprintf(trace_string, "%s%s", trace_string, register_string);
         */
 
-        reg_str.str(std::string());
+        // reg_str.str(std::string());
         //register_string[0] = '\0';
         // reg_count = 0;
+        str << " " << op.write_regs.size();
         for (uint32_t i = 0; i < op.write_regs.size(); ++i) {
-            reg_str << " " << op.write_regs[i];
+            str << " " << op.write_regs[i];
         }    
         // for (uint32_t i = 0; i < 16; i++) {
         //     if (op.write_regs[i] > 0) {
@@ -69,8 +67,6 @@ namespace opcodes {
 
         /* str << " " << reg_count        \
                << reg_str.str(); */
-        str << " " << op.write_regs.size()        \
-            << reg_str.str();
 
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, reg_count);
