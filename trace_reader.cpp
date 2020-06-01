@@ -494,10 +494,10 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_size = std::strtoul(sub_string, NULL, 10);
 
-    for (int i = 0; i < m->read_regs.size(); i++) {
+    for (uint32_t i = 0; i < m->read_regs.size(); i++) {
         m->read_regs.push_back(std::atoi(sub_string));
     }
-    for (int i = 0; i < m->write_regs.size(); i++) {
+    for (uint32_t i = 0; i < m->write_regs.size(); i++) {
         m->write_regs.push_back(std::atoi(sub_string));
     }
     // for (int i = 0; i < MAX_REGISTERS; ++i) {
