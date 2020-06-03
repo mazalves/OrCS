@@ -1,5 +1,4 @@
 // INTRINSICS EXTENSION HEADER
-
 #include "../../../../utils/enumerations.hpp"
 #include "opcodes.hpp"
 #include <zlib.h>
@@ -104,8 +103,8 @@ std::string cmp_name68("_vim64_imuls");     std::string cmp_name69("_vim2K_imuls
 std::string cmp_name70("_vim64_imulu");     std::string cmp_name71("_vim2K_imulu");
 std::string cmp_name72("_vim32_imuls");     std::string cmp_name73("_vim1K_imuls");
 std::string cmp_name74("_vim32_imulu");     std::string cmp_name75("_vim1K_imulu");
-std::string cmp_name76("_vim64_imadu");     std::string cmp_name77("_vim2K_imadu");
-std::string cmp_name78("_vim64_imads");     std::string cmp_name79("_vim2K_imads");
+std::string cmp_name76("_vim64_icumu");     std::string cmp_name77("_vim2K_icumu");
+std::string cmp_name78("_vim64_icums");     std::string cmp_name79("_vim2K_icums");
 std::string cmp_name80("_vim64_imovs");     std::string cmp_name81("_vim2K_imovs");
 std::string cmp_name82("_vim64_imovu");     std::string cmp_name83("_vim2K_imovu");
 std::string cmp_name84("_vim64_fadds");     std::string cmp_name85("_vim2K_fadds");
@@ -118,7 +117,7 @@ std::string cmp_name96("_vim64_fslts");     std::string cmp_name97("_vim2K_fslts
 std::string cmp_name98("_vim64_fcmqs");     std::string cmp_name99("_vim2K_fcmqs");
 std::string cmp_name100("_vim64_fdivs");     std::string cmp_name101("_vim2K_fdivs");
 std::string cmp_name102("_vim64_fmuls");     std::string cmp_name103("_vim2K_fmuls");
-std::string cmp_name104("_vim64_fmads");     std::string cmp_name105("_vim2K_fmads");
+std::string cmp_name104("_vim64_fcums");     std::string cmp_name105("_vim2K_fcums");
 std::string cmp_name106("_vim64_fmovs");     std::string cmp_name107("_vim2K_fmovs");
 std::string cmp_name108("_vim32_dadds");     std::string cmp_name109("_vim1K_dadds");
 std::string cmp_name110("_vim32_dsubs");     std::string cmp_name111("_vim1K_dsubs");
@@ -130,7 +129,7 @@ std::string cmp_name120("_vim32_dslts");     std::string cmp_name121("_vim1K_dsl
 std::string cmp_name122("_vim32_dcmqs");     std::string cmp_name123("_vim1K_dcmqs");
 std::string cmp_name124("_vim32_ddivs");     std::string cmp_name125("_vim1K_ddivs");
 std::string cmp_name126("_vim32_dmuls");     std::string cmp_name127("_vim1K_dmuls");
-std::string cmp_name128("_vim32_dmads");     std::string cmp_name129("_vim1K_dmads");
+std::string cmp_name128("_vim32_dcums");     std::string cmp_name129("_vim1K_dcums");
 std::string cmp_name130("_vim32_dmovs");     std::string cmp_name131("_vim1K_dmovs");
 
 
@@ -174,13 +173,11 @@ INT icheck_conditions(std::string rtn_name);
 INT icheck_conditions_hmc(std::string rtn_name);
 INT icheck_conditions_vima(std::string rtn_name);
 INT icheck_conditions_mips(std::string rtn_name);
-INT icheck_1parameter(std::string rtn_name);
 INT icheck_2parameters(std::string rtn_name);
 VOID write_dynamic_char(char *dyn_str, THREADID threadid);
 VOID write_static_char(char *stat_str);
-VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, THREADID threadid);
-VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid);
-VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid);
+VOID hmc_write_memory_2param(ADDRINT *read, ADDRINT *write, UINT32 size, UINT32 bbl, THREADID threadid);
+VOID hmc_write_memory_3param(ADDRINT *read1, ADDRINT *read2, ADDRINT *write, UINT32 size, UINT32 bbl, THREADID threadid);
 VOID arch_x86_set_data_instr(data_instr *hmc_x86_data, char const *rtn_name, char const *hmc_instr_name, char const *x86_instr_name, UINT32 instr_len);
 VOID arch_x86_trace_instruction(RTN hmc_x86_rtn, data_instr *hmc_x86_data);
 VOID synthetic_trace_generation(std::string rtn_name, data_instr hmc_x86_data[20], data_instr vim_x86_data[112], data_instr mps_x86_data[28], RTN rtn);

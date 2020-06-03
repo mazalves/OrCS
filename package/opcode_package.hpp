@@ -10,11 +10,8 @@ class opcode_package_t : public memory_request_client_t {
         uint64_t opcode_address;
         uint32_t opcode_size;
 
-        std::vector <int32_t> read_regs;
-        std::vector <int32_t> write_regs;
-
-        // int32_t read_regs[16];
-        // int32_t write_regs[16];
+        int32_t read_regs[MAX_REGISTERS];
+        int32_t write_regs[MAX_REGISTERS];
 
         uint32_t base_reg;
         uint32_t index_reg;

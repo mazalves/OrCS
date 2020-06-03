@@ -14,12 +14,10 @@ opcode_package_t::opcode_package_t() {
     this->opcode_address = 0;
     this->opcode_size = 0;
 
-    this->read_regs.clear();
-    this->write_regs.clear();
-	// for (uint32_t i=0; i < MAX_REGISTERS; i++){
-	// 	read_regs[i] = 0;
-	// 	write_regs[i] = 0;
-	// }
+	for (uint32_t i=0; i < MAX_REGISTERS; i++){
+		read_regs[i] = 0;
+		write_regs[i] = 0;
+	}
 	
     this->base_reg = 0;
     this->index_reg = 0;
@@ -65,10 +63,8 @@ void opcode_package_t::package_clean() {
     this->opcode_address = 0;
     this->opcode_size = 0;
 
-    this->read_regs.clear();
-    this->write_regs.clear();
-    // memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
-    // memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
+    memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
+    memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
     this->base_reg = 0;
     this->index_reg = 0;
@@ -117,24 +113,18 @@ std::string opcode_package_t::content_to_string() {
 
 
     content_string = content_string + " | RRegs[";
-    for (uint32_t i = 0; i < this->read_regs.size(); ++i) {
-        content_string = content_string + " " + utils_t::uint32_to_string(this->read_regs[i]);
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        if (this->read_regs[i] >= 0) {
+            content_string = content_string + " " + utils_t::uint32_to_string(this->read_regs[i]);
+        }
     }
-    // for (uint32_t i = 0; i < 16; i++) {
-    //     if (this->read_regs[i] >= 0) {
-    //         content_string = content_string + " " + utils_t::uint32_to_string(this->read_regs[i]);
-    //     }
-    // }
 
     content_string = content_string + " ] | WRegs[";
-    for (uint32_t i = 0; i < this->write_regs.size(); ++i) {
-        content_string = content_string + " " + utils_t::uint32_to_string(this->write_regs[i]);
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        if (this->write_regs[i] >= 0) {
+            content_string = content_string + " " + utils_t::uint32_to_string(this->write_regs[i]);
+        }
     }
-    // for (uint32_t i = 0; i < 16; i++) {
-    //     if (this->write_regs[i] >= 0) {
-    //         content_string = content_string + " " + utils_t::uint32_to_string(this->write_regs[i]);
-    //     }
-    // }
     content_string = content_string + " ]";
 
     return content_string;

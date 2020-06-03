@@ -4,13 +4,12 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
-#include <vector>
 #include "../../../../package/opcode_package.cpp"
 namespace opcodes {
     void opcode_to_trace_string(opcode_package_t &op, char *trace_string) {
 
         //char register_string[TRACE_LINE_SIZE];
-        // uint32_t reg_count;
+        uint32_t reg_count;
         std::stringstream str;
         std::stringstream reg_str;
 
@@ -26,47 +25,37 @@ namespace opcodes {
         sprintf(trace_string, "%s %" PRId32 "", trace_string, op.opcode_size);
         */
 
-        // reg_str.str(std::string());
+        reg_str.str(std::string());
         //register_string[0] = '\0';
-        // reg_count = 0;
-        str << " " << op.read_regs.size();
-        for (uint32_t i = 0; i < op.read_regs.size(); ++i) {
-            str << " " << op.read_regs[i];
-        }                                                                                                                   
-        // for (uint32_t i = 0; i < 16; i++) {
-        //     printf("%d ", op.read_regs[i]);
-        //     if (op.read_regs[i] > 0) {
-        //         reg_count++;
-        //         reg_str << " " << op.read_regs[i];
-        //         //sprintf(register_string, "%s %" PRId32 "", register_string, op.read_regs[i]);
-        //     }
-        // }
+        reg_count = 0;
+        for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+            if (op.read_regs[i] > 0) {
+                reg_count++;
+                reg_str << " " << op.read_regs[i];
+                //sprintf(register_string, "%s %" PRId32 "", register_string, op.read_regs[i]);
+            }
+        }
 
-        /* str << " " << reg_count         \
-               << reg_str.str(); */
-
+        str << " " << reg_count        \
+            << reg_str.str();
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, reg_count);
         sprintf(trace_string, "%s%s", trace_string, register_string);
         */
 
-        // reg_str.str(std::string());
+        reg_str.str(std::string());
         //register_string[0] = '\0';
-        // reg_count = 0;
-        str << " " << op.write_regs.size();
-        for (uint32_t i = 0; i < op.write_regs.size(); ++i) {
-            str << " " << op.write_regs[i];
-        }    
-        // for (uint32_t i = 0; i < 16; i++) {
-        //     if (op.write_regs[i] > 0) {
-        //         reg_count++;
-        //         reg_str << " " << op.write_regs[i];
-        //         //sprintf(register_string, "%s %" PRId32 "", register_string, op.write_regs[i]);
-        //     }
-        // }
+        reg_count = 0;
+        for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+            if (op.write_regs[i] > 0) {
+                reg_count++;
+                reg_str << " " << op.write_regs[i];
+                //sprintf(register_string, "%s %" PRId32 "", register_string, op.write_regs[i]);
+            }
+        }
 
-        /* str << " " << reg_count        \
-               << reg_str.str(); */
+        str << " " << reg_count         \
+            << reg_str.str();
 
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, reg_count);

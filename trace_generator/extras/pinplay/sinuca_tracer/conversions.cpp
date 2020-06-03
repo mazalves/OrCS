@@ -33,23 +33,19 @@ opcode_package_t x86_to_static(const INS& ins) {
     NewInstruction.opcode_address = INS_Address(ins);
     NewInstruction.opcode_size = INS_Size(ins);
 
-    // for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-    //     NewInstruction.read_regs[i] = POSITION_FAIL;
-    // }
-    NewInstruction.read_regs.clear();
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.read_regs[i] = POSITION_FAIL;
+    }
     for (i = 0; i < INS_MaxNumRRegs(ins); i++) {
-        NewInstruction.read_regs.push_back(INS_RegR(ins, i));
-        // NewInstruction.read_regs[i] = INS_RegR(ins, i);
+        NewInstruction.read_regs[i] = INS_RegR(ins, i);
     }
 
 
-    // for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-    //     NewInstruction.write_regs[i] = POSITION_FAIL;
-    // }
-    NewInstruction.write_regs.clear();
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.write_regs[i] = POSITION_FAIL;
+    }
     for (i = 0; i < INS_MaxNumWRegs(ins); i++) {
-        NewInstruction.write_regs.push_back(INS_RegW(ins, i));
-        // NewInstruction.write_regs[i] = INS_RegW(ins, i);
+        NewInstruction.write_regs[i] = INS_RegW(ins, i);
     }
 
     NewInstruction.base_reg = INS_MemoryBaseReg(ins);
@@ -575,23 +571,19 @@ opcode_package_t make_VGather_Vscatter(const INS& ins) {
     strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
 
 
-//    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-//         NewInstruction.read_regs[i] = POSITION_FAIL;
-//     }
-    NewInstruction.read_regs.clear();
+   for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.read_regs[i] = POSITION_FAIL;
+    }
     for (uint32_t i = 0; i < INS_MaxNumRRegs(ins); i++) {
-        NewInstruction.read_regs.push_back(INS_RegR(ins, i));
-        // NewInstruction.read_regs[i] = INS_RegR(ins, i);
+        NewInstruction.read_regs[i] = INS_RegR(ins, i);
     }
 
 
-    // for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-    //     NewInstruction.write_regs[i] = POSITION_FAIL;
-    // }
-    NewInstruction.write_regs.clear();
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        NewInstruction.write_regs[i] = POSITION_FAIL;
+    }
     for (uint32_t i = 0; i < INS_MaxNumWRegs(ins); i++) {
-        NewInstruction.write_regs.push_back(INS_RegW(ins, i));
-        // NewInstruction.write_regs[i] = INS_RegW(ins, i);
+        NewInstruction.write_regs[i] = INS_RegW(ins, i);
     }
     NewInstruction.base_reg = INS_MemoryBaseReg(ins);
     NewInstruction.index_reg = INS_MemoryIndexReg(ins);
