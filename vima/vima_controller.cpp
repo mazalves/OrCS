@@ -66,10 +66,10 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
             }
         }
     } else {
-        uint32_t index = get_index (address);
+        index = get_index (address);
         for (uint32_t i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
             if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
-		ORCS_PRINTF ("%lu HIT! index %lu tag %lu\n", address, get_index(address), get_tag(address))
+		        //ORCS_PRINTF ("%lu HIT! index %lu tag %lu\n", address, get_index(address), get_tag(address))
                 add_cache_hits();
                 return &cache[index][i];
             }
@@ -79,9 +79,11 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
             }
         }
     }
-    ORCS_PRINTF ("%lu MISS! index %lu tag %lu\n", address, get_index(address), get_tag(address))
+    //ORCS_PRINTF ("%lu MISS! index %lu tag %lu lru %lu way %u\n", address, get_index(address), get_tag(address), cache[index][lru_way].get_lru(), lru_way)
     add_cache_misses();
-    if (VIMA_CACHE_ASSOCIATIVITY != 1) return &cache[index][lru_way];
+    if (VIMA_CACHE_ASSOCIATIVITY != 1) {
+        return &cache[index][lru_way];
+    }
     else return &cache[lru_way][0];
 }
 
@@ -184,12 +186,18 @@ void vima_controller_t::check_cache(){
         }
     }
 
+    //this->install_cache (read1);
+    //if (VIMA_UNBALANCED) this->install_cache (read1_unbalanced);
+
     if (vima_buffer[0]->vima_read2 != 0){
         if (read2->status != PACKAGE_STATE_READY) return;
         if (VIMA_UNBALANCED && read2_unbalanced->set){
             if (read2_unbalanced->status != PACKAGE_STATE_READY) return;
         }
     }
+
+    //this->install_cache (read2);
+    //if (VIMA_UNBALANCED) this->install_cache (read2_unbalanced);
 
     if (vima_buffer[0]->vima_write != 0){
         if (!write->set) {

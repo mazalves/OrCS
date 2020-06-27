@@ -50,6 +50,7 @@ class vima_controller_t {
         
         void print_vima_instructions();
         void check_cache();
+        void install_cache (vima_vector_t* vector);
         vima_vector_t* search_cache (uint64_t address);
         void set_up_vectors();
         void execute();
