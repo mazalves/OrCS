@@ -22,6 +22,7 @@ cache_manager_t::~cache_manager_t() {
 }
 
 void cache_manager_t::check_cache(uint32_t cache_size, uint32_t cache_level) {
+    ORCS_PRINTF ("cache_size = %u, cache_level = %u\n", cache_size, cache_level)
     ERROR_ASSERT_PRINTF(utils_t::check_if_power_of_two(cache_size) == OK, "Error - Cache Size Array must be power of 2 value\n")
     if (cache_level == 0) {
         ERROR_ASSERT_PRINTF(NUMBER_OF_PROCESSORS == cache_size, "Error - # First level instruction Caches must be equal # PROCESSORS\n")
@@ -41,6 +42,7 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
     vector<uint32_t> clevels, camount;
     libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
     uint32_t N_CACHES = cfg_caches.getLength();
+    ORCS_PRINTF ("N_CACHES: %u\n", N_CACHES)
     for (uint32_t i = 0; i < N_CACHES; i++) {
         try {
             libconfig::Setting &cfg_cache = cfg_caches[i];
@@ -119,6 +121,7 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
         CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
         for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
             CACHE_AMOUNT[i] = ICACHE_AMOUNT[i];
+            //ORCS_PRINTF ("ICACHE_AMOUNT[%u] = %u\n", i, ICACHE_AMOUNT[i])
         }
     } else {
         set_DATA_LEVELS(DATA_LEVELS);
@@ -126,9 +129,11 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
         CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
         for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
             CACHE_AMOUNT[i] = DCACHE_AMOUNT[i];
+            //ORCS_PRINTF ("DCACHE_AMOUNT[%u] = %u\n", i, ICACHE_AMOUNT[i])
         }
     }
 
+    ORCS_PRINTF ("CACHE_LEVELS = %u\n", CACHE_LEVELS)
     cache_t **cache = new cache_t *[CACHE_LEVELS];
     for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
         cache[i] = new cache_t[CACHE_AMOUNT[i]];

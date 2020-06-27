@@ -30,7 +30,6 @@ processor_t::processor_t()
 	// Memory FUs
 	this->fu_mem_load = NULL;
 	this->fu_mem_store = NULL;
-
 }
 processor_t::~processor_t()
 {
@@ -199,6 +198,7 @@ void processor_t::allocate() {
 	set_PRINT_ROB(cfg_processor["PRINT_ROB"]);
 	set_COMMIT_DEBUG(cfg_processor["COMMIT_DEBUG"]);
 	set_MSHR_DEBUG(cfg_processor["MSHR_DEBUG"]);
+	set_MULTICORE_DEBUG(cfg_processor["MULTICORE_DEBUG"]);
 
 	set_WAIT_CYCLE(cfg_processor["WAIT_CYCLE"]);
 	// Load Units
@@ -412,7 +412,6 @@ void processor_t::allocate() {
 	this->unified_reservation_station.reserve(ROB_SIZE);
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_functional_units.reserve(ROB_SIZE);
-
 }
 // =====================================================================
 bool processor_t::isBusy(){
@@ -690,7 +689,7 @@ void processor_t::fetch(){
 			break;
 		}
 
-		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 
 		//if (!updated){
 			memory_package_t* request = new memory_package_t;
@@ -1124,7 +1123,7 @@ void processor_t::decode(){
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL, "Erro, Tentando decodificar mais uops que o maximo permitido")
 		}
 
-		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu decode(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), new_uop.uop_number, get_enum_instruction_operation_char (new_uop.uop_operation), new_uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u decode(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, new_uop.uop_number, get_enum_instruction_operation_char (new_uop.uop_operation), new_uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 		this->fetchBuffer.pop_front();
 	}
 }
@@ -1484,7 +1483,7 @@ void processor_t::rename(){
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
 		}
 
-		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_rob].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_rob].uop.uop_operation), this->reorderBuffer[pos_rob].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, this->reorderBuffer[pos_rob].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_rob].uop.uop_operation), this->reorderBuffer[pos_rob].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 	} //end for
 }
 // ============================================================================
@@ -1776,7 +1775,7 @@ void processor_t::dispatch(){
 					i--;
 				} //end if dispatched
 
-				if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu dispatch(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+				if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u dispatch(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 			}	 //end if robline is ready
 		}		  //end for
 		// sleep(1);
@@ -1996,7 +1995,7 @@ void processor_t::execute()
 				}
 			}
 
-			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu execute(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u execute(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 		} //end if ready package
 	}	 //end for
 	if (EXECUTE_DEBUG){
@@ -2471,7 +2470,7 @@ void processor_t::commit(){
 						this->add_core_ram_requests();
 					}
 					this->mem_req_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
-					if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+					//if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", this->processor_id, orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 					this->add_stat_inst_load_completed();
 					break;
 				}
@@ -2504,7 +2503,7 @@ void processor_t::commit(){
 			}
 
 			ERROR_ASSERT_PRINTF(uint32_t(pos_buffer) == this->robStart, "Commiting different from the position start\n");
-			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+			if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, this->reorderBuffer[pos_buffer].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_buffer].uop.uop_operation), this->reorderBuffer[pos_buffer].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 
 			if (COMMIT_DEBUG){
 				if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
@@ -2528,7 +2527,7 @@ void processor_t::commit(){
 		else
 		{
 			if (DEBUG){
-				ORCS_PRINTF ("=================================================\n")
+				ORCS_PRINTF ("=======Processor %u=========\n", this->processor_id+1)
 				for (uint32_t i = 0; i < this->robUsed; i++){
 					ORCS_PRINTF ("%u COMMIT: %s %s %s %lu %lu\n", i, get_enum_processor_stage_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].stage), get_enum_instruction_operation_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation), get_enum_package_state_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status), this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number, this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
 				}

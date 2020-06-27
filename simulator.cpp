@@ -76,6 +76,7 @@ static uint32_t process_argv(int argc, char **argv) {
 
     utils_t::process_mem_usage(&orcs_engine.stat_vm_start, &orcs_engine.stat_rss_start);
     if(orcs_engine.use_pin == false) {
+        ORCS_PRINTF ("traces_informados = %u, NUMBER_OF_PROCESSORS = %u\n", traces_informados, NUMBER_OF_PROCESSORS)
         ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
         if (orcs_engine.arg_trace_file_name.empty()) {
             ORCS_PRINTF("Trace file not defined.\n");
@@ -137,7 +138,7 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
 
     double kilo_instructions_simulated = 0;
     for (uint32_t cpu = 0 ; cpu < NUMBER_OF_PROCESSORS ; cpu++) {
-        snprintf(report,sizeof(report),"%s","==========================================================================\n");
+        snprintf(report,sizeof(report),"======================Processor %u of %u===============================\n",cpu+1, NUMBER_OF_PROCESSORS);
         final_report+=report;
         // Get benchmark name
         snprintf(report,sizeof(report),"Benchmark %s\n",(orcs_engine.use_pin) 
