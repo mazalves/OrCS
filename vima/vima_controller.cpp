@@ -52,6 +52,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
     add_cache_accesses();
     uint64_t lru_cycle = UINT64_MAX;
     uint32_t lru_way = 0;
+    uint32_t index = 0;
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
         for (uint32_t i = 0; i < get_lines(); i++){
             if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
@@ -68,6 +69,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         uint32_t index = get_index (address);
         for (uint32_t i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
             if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
+		ORCS_PRINTF ("%lu HIT! index %lu tag %lu\n", address, get_index(address), get_tag(address))
                 add_cache_hits();
                 return &cache[index][i];
             }
@@ -77,9 +79,10 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
             }
         }
     }
-    //ORCS_PRINTF ("%s MISS! %lu\n", cache[lru_way].get_label(), address)
+    ORCS_PRINTF ("%lu MISS! index %lu tag %lu\n", address, get_index(address), get_tag(address))
     add_cache_misses();
-    return &cache[lru_way][0];
+    if (VIMA_CACHE_ASSOCIATIVITY != 1) return &cache[index][lru_way];
+    else return &cache[lru_way][0];
 }
 
 void vima_controller_t::check_cache(){

@@ -76,6 +76,7 @@ static uint32_t process_argv(int argc, char **argv) {
 
     utils_t::process_mem_usage(&orcs_engine.stat_vm_start, &orcs_engine.stat_rss_start);
     if(orcs_engine.use_pin == false) {
+        ORCS_PRINTF ("traces_informados = %u, NUMBER_OF_PROCESSORS = %u\n", traces_informados, NUMBER_OF_PROCESSORS)
         ERROR_ASSERT_PRINTF(traces_informados==NUMBER_OF_PROCESSORS,"Erro, Numero de traces informados diferente do numero de cores\n")
         if (orcs_engine.arg_trace_file_name.empty()) {
             ORCS_PRINTF("Trace file not defined.\n");
