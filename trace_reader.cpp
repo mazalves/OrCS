@@ -65,7 +65,7 @@ void trace_reader_t::allocate(char *trace_file) {
     /// Open the Dynamic Trace File
     // =================================================================
     file_name[0] = '\0';
-    snprintf(file_name, sizeof(file_name), "%s.tid%d.dyn.out.gz", trace_file, 0);
+    snprintf(file_name, sizeof(file_name), "%s.tid%lu.dyn.out.gz", trace_file, this->processor_id);
     this->gzDynamicTraceFile = gzopen(file_name, "ro");    /// Open the .gz group
     ERROR_ASSERT_PRINTF(this->gzDynamicTraceFile != NULL, "Could not open the dynamic file.\n%s\n", file_name);
     DEBUG_PRINTF("Dynamic File = %s => READY !\n", file_name);
@@ -74,7 +74,7 @@ void trace_reader_t::allocate(char *trace_file) {
     /// Open the Memory Trace File
     // =================================================================
     file_name[0] = '\0';
-    snprintf(file_name, sizeof(file_name), "%s.tid%d.mem.out.gz", trace_file, 0);
+    snprintf(file_name, sizeof(file_name), "%s.tid%lu.mem.out.gz", trace_file, this->processor_id);
     this->gzMemoryTraceFile = gzopen(file_name, "ro");    /// Open the .gz group
     ERROR_ASSERT_PRINTF(this->gzMemoryTraceFile != NULL, "Could not open the memory file.\n%s\n", file_name);
     DEBUG_PRINTF("Memory File = %s => READY !\n", file_name);

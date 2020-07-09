@@ -11,6 +11,7 @@ memory_channel_t::memory_channel_t(){
     set_BANK_BUFFER_SIZE (cfg_memory_ctrl["BANK_BUFFER_SIZE"]);
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
+    set_CLOSED_ROW (cfg_memory_ctrl["CLOSED_ROW"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_BURST_WIDTH (cfg_memory_ctrl["BURST_WIDTH"]);
     set_ROW_BUFFER ((RANK*BANK)*1024);
@@ -98,7 +99,7 @@ void memory_channel_t::set_masks(){
         this->colrow_bits_mask |= 1 << (i + this->colrow_bits_shift);
     }
 
-    //this->not_column_bits_mask = ~(colbyte_bits_mask | colrow_bits_mask);
+    this->not_column_bits_mask = ~(colbyte_bits_mask | colrow_bits_mask);
 
     /// CHANNEL MASK
     for (i = 0; i < utils_t::get_power_of_two(this->CHANNEL); i++) {
@@ -208,7 +209,7 @@ void memory_channel_t::clock(){
     if (current_entry != NULL) {
         bank = this->get_bank(current_entry->memory_address);
         row = this->get_row(current_entry->memory_address);
-
+        
         if (!bank_is_ready[bank]){
             switch (bank_last_command[bank]){
                 case MEMORY_CONTROLLER_COMMAND_NUMBER:
@@ -298,6 +299,31 @@ void memory_channel_t::clock(){
                 break;
         }
         bank_is_ready[bank] = false;
+        if (this->get_CLOSED_ROW()) {
+            /// Select package to be treated
+            memory_package_t* next_entry = findNext(bank);
+            if (next_entry == NULL) {
+                uint64_t latency_ready_cycle = get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+                // Row precharge code here!!!!
+                this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_ROW_ACCESS;
+                this->bank_last_row[bank] = POSITION_FAIL;
+                this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
+                this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
+            }
+            else {
+                uint32_t next_row = get_row(next_entry->memory_address);
+                next_entry->row_buffer = true;
+                // If next package == row buffer miss --->>> RowPrecharge
+                if (this->bank_last_row[bank] != next_row) {
+                    uint64_t latency_ready_cycle = get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+                    this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_PRECHARGE;
+                    this->bank_last_row[bank] = next_row;
+                    this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
+                    this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
+                    this->add_stat_row_buffer_miss();
+                } else this->add_stat_row_buffer_hit();
+            }
+        }
     }
 }
 
@@ -317,7 +343,7 @@ uint64_t memory_channel_t::get_minimum_latency(uint32_t bank, memory_controller_
 
         case MEMORY_CONTROLLER_COMMAND_ROW_ACCESS:
         {
-            /// Obtain the 4th newer RAS+FAW command amoung the banks.
+            /// Obtain the 4th newer RAS+FAW command among the banks.
             uint64_t last_ras = 0;
             for (uint32_t i = 0; i < this->BANK; i++) {
                 last_ras = this->bank_last_command_cycle[i][MEMORY_CONTROLLER_COMMAND_ROW_ACCESS] + this->TIMING_FAW;

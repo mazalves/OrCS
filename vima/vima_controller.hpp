@@ -20,6 +20,7 @@ class vima_controller_t {
         vima_vector_t* write;
         vima_vector_t* write_unbalanced;
         std::vector<memory_package_t*> vima_buffer;
+        std::vector<vima_vector_t*> working_vectors;
 
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;
@@ -52,6 +53,7 @@ class vima_controller_t {
         void check_cache();
         void install_cache (vima_vector_t* vector);
         vima_vector_t* search_cache (uint64_t address);
+        void process_vector (vima_vector_t* address);
         void set_up_vectors();
         void execute();
 

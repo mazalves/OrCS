@@ -9,6 +9,7 @@ class memory_channel_t {
         uint64_t row_bits_mask;
         uint64_t colrow_bits_mask;
         uint64_t colbyte_bits_mask;
+        uint64_t not_column_bits_mask;
         
         // Shifts bits
         uint64_t channel_bits_shift;
@@ -43,6 +44,7 @@ class memory_channel_t {
         uint32_t BANK_ROW_BUFFER_SIZE;
         uint32_t CHANNEL;
         uint32_t ROW_BUFFER;
+        uint32_t CLOSED_ROW;
         uint32_t LINE_SIZE;
         uint32_t BURST_WIDTH;
         uint32_t DEBUG;
@@ -74,7 +76,7 @@ class memory_channel_t {
         }
         //get row accessed
         inline uint64_t get_row(uint64_t address){
-            return (address&this->row_bits_mask)>>this->row_bits_shift;
+            return (address & this->not_column_bits_mask);
         }
 
         memory_channel_t();
@@ -84,6 +86,7 @@ class memory_channel_t {
         memory_package_t* findNext (uint32_t bank);
         memory_package_t* findNextRead (uint32_t bank);
         memory_package_t* findNextWrite (uint32_t bank);
+        void row_precharge (uint32_t bank, uint32_t row);
         void addRequest (memory_package_t* request);
         void set_masks();
         void clock();
@@ -114,6 +117,7 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK_ROW_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t, ROW_BUFFER)
+        INSTANTIATE_GET_SET_ADD(uint32_t, CLOSED_ROW)
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, BURST_WIDTH)
         INSTANTIATE_GET_SET_ADD(uint32_t, DEBUG)
