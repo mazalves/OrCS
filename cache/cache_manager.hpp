@@ -56,7 +56,6 @@ class cache_manager_t {
         // instruction and data caches dynamically allocated
         cache_t **data_cache;
         cache_t **instruction_cache;
-        directory_t *directory;
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
 

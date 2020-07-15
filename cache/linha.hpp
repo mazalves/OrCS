@@ -13,7 +13,6 @@ class line_t {
         uint32_t prefetched;
         uint32_t valid;
         uint64_t ready_at;
-        // directory_line_t *directory_line;
         line_t ***line_ptr_caches;
 
         uint32_t NUMBER_OF_PROCESSORS;
@@ -34,7 +33,6 @@ class line_t {
                 delete[] line_ptr_caches[i];
             }
             delete[] line_ptr_caches;
-            //delete[] directory_line;
         }
 
         void allocate(uint32_t POINTER_LEVELS) {

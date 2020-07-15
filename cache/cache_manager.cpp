@@ -17,7 +17,7 @@ cache_manager_t::~cache_manager_t() {
 
     delete[] data_cache;
     delete[] instruction_cache;
-    delete[] directory;
+
     std::vector<memory_package_t *>().swap(requests);
 }
 
@@ -172,11 +172,6 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 
     set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
-    this->directory = new directory_t[NUMBER_OF_PROCESSORS];
-    for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        this->directory[i].allocate(this->data_cache[2][0], POINTER_LEVELS);
-    }
-
     //Read/Write counters
     this->set_reads(0);
     this->set_read_hit(0);
@@ -228,7 +223,7 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
-            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
+            line[0][i] = this->instruction_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, llc_idx, llc_line);
             //ORCS_PRINTF ("INST Installed addr: %lu, level: %u ", instructionAddress, i)
             //this->instruction_cache[i][cache_indexes[i]].printTagIdx (instructionAddress);
         }
@@ -236,32 +231,11 @@ void cache_manager_t::installCacheLines(uint64_t instructionAddress, int32_t *ca
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
-        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, &this->directory[0], llc_idx, llc_line);
+        line[0][i] = this->data_cache[i][cache_indexes[i]].installLine(instructionAddress, latency_request, llc_idx, llc_line);
         //ORCS_PRINTF ("DATA Installed addr: %lu, level: %u ", instructionAddress, i)
         //this->data_cache[i][cache_indexes[i]].printTagIdx (instructionAddress);
     }
 
-    // aqui deve ser o número de caches na arquitetura, exceto as LLCs
-    for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        for (size_t j = 0; j < POINTER_LEVELS; j++) {
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line = line[0][j];
-            this->directory[i].sets[llc_idx].lines[llc_line][j].shared = 1;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].cache_status = CACHED;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].id = cache_type;
-            this->directory[i].sets[llc_idx].lines[llc_line][j].tag = CACHE_TAGS[j];
-        }
-    }
-    for (size_t i = 0; i < POINTER_LEVELS; i++) {
-        line[0][i]->directory_line = &this->directory[0].sets[llc_idx].lines[llc_line][i];
-        // printf("level: %u, line_tag: %lu\n", line[0][i]->directory_line->level, line[0][i]->directory_line->tag);
-    }
-
-    for (size_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        for (size_t j = 0; j < POINTER_LEVELS; j++) {
-           // printf("set: %u, line: %u, line_tag: %lu\n", llc_idx, llc_line, line[0][j]->directory_line->tag);
-           // printf("set: %u, line: %u, dire_tag: %lu\n", llc_idx, llc_line, this->directory[i].sets[llc_idx].lines[llc_line][j].cache_line->tag);
-        }
-    }
     for (i = 0; i < POINTER_LEVELS; i++) {
         for (j = 0; j < POINTER_LEVELS; j++) {
             if (i == j) {
@@ -349,7 +323,7 @@ void cache_manager_t::install (memory_package_t* request){
             for (int32_t k = cache_level - 1; k >= 0; k--) {
                 this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
             }
-            this->data_cache[0][cache_indexes[0]].write(request->memory_address, &this->directory[0]);
+            this->data_cache[0][cache_indexes[0]].write(request->memory_address);
             break;
         }
         default:
@@ -447,7 +421,7 @@ cache_status_t cache_manager_t::recursiveInstructionSearch(memory_package_t* req
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(request->opcode_address, &this->instruction_cache[i][cache_indexes[i]], &this->directory[0]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(request->opcode_address, &this->instruction_cache[i][cache_indexes[i]]);
             }
         }
         request->updatePackageWait(latency_request);
@@ -468,7 +442,7 @@ cache_status_t cache_manager_t::recursiveDataSearch(memory_package_t *request, i
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request->memory_address, &this->data_cache[i][cache_indexes[i]]);
             this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
         //ORCS_PRINTF ("Cache HIT! %s uop: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->uop_number, cache_level)
@@ -493,9 +467,9 @@ cache_status_t cache_manager_t::recursiveDataWrite(memory_package_t *request, in
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request->memory_address, &this->data_cache[i][cache_indexes[i]], &this->directory[0]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request->memory_address, &this->data_cache[i][cache_indexes[i]]);
         }
-        this->data_cache[0][cache_indexes[0]].write(request->memory_address, &this->directory[0]);
+        this->data_cache[0][cache_indexes[0]].write(request->memory_address);
         //ORCS_PRINTF ("Cache HIT! %s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
         request->updatePackageWait(latency_request);
         return HIT;
