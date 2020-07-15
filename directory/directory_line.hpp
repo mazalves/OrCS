@@ -15,7 +15,9 @@ class directory_line_t {
             this->clean_line();
         }
 
-        ~directory_line_t()=default;
+        ~directory_line_t(){
+            free (cache_line);
+        }
 
         void clean_line() {
             this->id = 0;

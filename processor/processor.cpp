@@ -67,7 +67,7 @@ processor_t::~processor_t()
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_vima);
 	// =====================================================================
 
-	delete[] INST_ASSOCIATIVITY;
+	//delete[] INST_ASSOCIATIVITY;
 	delete[] INST_LATENCY;
 	delete[] INST_SIZE;
 	delete[] INST_SETS;

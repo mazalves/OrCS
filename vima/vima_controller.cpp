@@ -23,12 +23,16 @@ vima_controller_t::~vima_controller_t(){
     ORCS_PRINTF ("VIMA Cache Lines: %u\n", this->get_lines())
     ORCS_PRINTF ("VIMA Cache Sets: %u\n", this->get_sets())
     ORCS_PRINTF ("#========================================================================#\n")
-    /*free (read1);
-    free (read1_unbalanced);
-    free (read2);
-    free (read2_unbalanced);
-    free (write);
-    free (write_unbalanced);*/
+
+    for (uint32_t i = 0; i < sets; i++) free (this->cache[i]);
+    free (cache);
+
+    delete read1;
+    delete read1_unbalanced;
+    delete read2;
+    delete read2_unbalanced;
+    delete write;
+    delete write_unbalanced;
 }
 
 void vima_controller_t::print_vima_instructions(){
