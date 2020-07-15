@@ -13,7 +13,7 @@ class line_t {
         uint32_t prefetched;
         uint32_t valid;
         uint64_t ready_at;
-        directory_line_t *directory_line;
+        // directory_line_t *directory_line;
         line_t ***line_ptr_caches;
 
         uint32_t NUMBER_OF_PROCESSORS;
