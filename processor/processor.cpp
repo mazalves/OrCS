@@ -125,12 +125,14 @@ uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &c
 // =====================================================================
 void processor_t::allocate() {
 	libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-
+	
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
 
+	if (cfg_root["VIMA_CONTROLLER"].getLength() > 0) set_HAS_VIMA (1);
+	else set_HAS_VIMA (0);
+
 	set_HAS_HIVE (cfg_processor["HAS_HIVE"]);
-	set_HAS_VIMA (cfg_processor["HAS_VIMA"]);
 	
 	set_FETCH_WIDTH (cfg_processor["FETCH_WIDTH"]);
 	set_DECODE_WIDTH (cfg_processor["DECODE_WIDTH"]);

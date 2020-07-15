@@ -276,7 +276,7 @@ void vima_controller_t::clock(){
 
 void vima_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+    libconfig::Setting &cfg_processor = cfg_root["VIMA_CONTROLLER"];
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     set_VIMA_BUFFER (cfg_processor["VIMA_BUFFER"]);
     set_VIMA_DEBUG (cfg_processor["VIMA_DEBUG"]);
