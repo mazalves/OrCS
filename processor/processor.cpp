@@ -129,7 +129,7 @@ void processor_t::allocate() {
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
 
-	if (cfg_root["VIMA_CONTROLLER"].getLength() > 0) set_HAS_VIMA (1);
+	if (cfg_root.exists("VIMA_CONTROLLER")) set_HAS_VIMA (1);
 	else set_HAS_VIMA (0);
 
 	set_HAS_HIVE (cfg_processor["HAS_HIVE"]);
