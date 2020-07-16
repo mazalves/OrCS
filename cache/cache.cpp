@@ -75,12 +75,12 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 		this->sets[i].n_lines = this->associativity;
         for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
             this->sets[i].lines[j].allocate(POINTER_LEVELS);
+			this->sets[i].lines[j].clean_line();
             for (uint32_t k = 0; k < NUMBER_OF_PROCESSORS; k++) {
                 for (uint32_t l = 0; l < POINTER_LEVELS; l++) {
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
                 }
 			}
-			this->sets[i].lines[j].clean_line();
         }
     }
     this->set_cache_access(0);

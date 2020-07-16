@@ -33,15 +33,21 @@ processor_t::processor_t()
 }
 processor_t::~processor_t()
 {
+	for (size_t i = 0; i < MOB_READ; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_read[i].mem_deps_ptr_array);
+	for (size_t i = 0; i < MOB_WRITE; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_write[i].mem_deps_ptr_array);
+	if (this->get_HAS_HIVE()) for (size_t i = 0; i < MOB_HIVE; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_hive[i].mem_deps_ptr_array);
+	if (this->get_HAS_HIVE()) for (size_t i = 0; i < MOB_VIMA; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_vima[i].mem_deps_ptr_array);
 	//Memory structures
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_read);
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_write);
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_hive);
+	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_vima);
 	utils_t::template_delete_variable<desambiguation_t>(this->disambiguator);
 	//auxiliar var to maintain status oldest instruction
 	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_read_to_send);
 	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_write_to_send);
 	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_hive_to_send);
+	utils_t::template_delete_variable<memory_order_buffer_line_t>(this->oldest_vima_to_send);
 
 	//deleting deps array rob
 	for (size_t i = 0; i < ROB_SIZE; i++)

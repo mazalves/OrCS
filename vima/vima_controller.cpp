@@ -6,14 +6,6 @@ vima_controller_t::vima_controller_t(){
 }
 
 vima_controller_t::~vima_controller_t(){
-    /*for (uint32_t i = 0; i < 32; i++){
-        for (uint32_t j = 0; j < this->get_VIMA_CACHE_ASSOCIATIVITY(); j++){
-            ORCS_PRINTF ("index %u, way %u\n", i, j)
-            ORCS_PRINTF ("address: %lu, lru: %lu\n", cache[i][j].get_address(), cache[i][j].get_lru())
-        }
-    }*/
-
-
     ORCS_PRINTF ("#========================================================================#\n")
     ORCS_PRINTF ("VIMA Cache Hits: %lu\n", get_cache_hits())
     ORCS_PRINTF ("VIMA Cache Misses: %lu\n", get_cache_misses())
@@ -26,13 +18,6 @@ vima_controller_t::~vima_controller_t(){
 
     for (uint32_t i = 0; i < sets; i++) free (this->cache[i]);
     free (cache);
-
-    delete read1;
-    delete read1_unbalanced;
-    delete read2;
-    delete read2_unbalanced;
-    delete write;
-    delete write_unbalanced;
 }
 
 void vima_controller_t::print_vima_instructions(){
