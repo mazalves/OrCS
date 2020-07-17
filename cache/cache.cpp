@@ -82,7 +82,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
                 }
 			}
-			this->sets[i].lines[j].print_line();
+			//this->sets[i].lines[j].print_line();
         }
     }
     this->set_cache_access(0);
@@ -95,7 +95,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 }
 
 // Return address index in cache
-inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint64_t *tag) {
+inline void cache_t::tagIdxSetCalculation(uint64_t address, uint64_t *idx, uint64_t *tag) {
 	uint32_t get_bits = (this->n_sets) - 1;
 	*tag = (address >> this->offset);
 	*idx = *tag & get_bits;
@@ -113,11 +113,11 @@ void cache_t::printTagIdx (uint64_t address){
 
 // Reads a cache, updates cycles and return HIT or MISS status
 uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
-    uint32_t idx;
+    uint64_t idx;
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
-		printf("tag: %u\n", this->sets[idx].lines[i].dirty);
+		//printf("tag: %u\n", this->sets[idx].lines[i].dirty);
 		if(this->sets[idx].lines[i].tag == tag) {
 			// Se ready Cycle for menor que o ciclo atual, a latencia é apenas da leitura, sendo um hit.
 			if (this->sets[idx].lines[i].ready_at <= orcs_engine.get_global_cycle()){
@@ -230,7 +230,7 @@ inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
 }
 
 // Searches for a cache line to write data
-line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint32_t &idx, uint32_t &line) {
+line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64_t &idx, uint64_t &line) {
 	line = POSITION_FAIL;
     uint64_t tag;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
@@ -261,8 +261,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint32
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
-	uint32_t idx, idx_padding, line_padding;
-	uint64_t tag;
+	uint64_t tag, idx, idx_padding, line_padding;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
 	int32_t line = POSITION_FAIL;
 	// Selects a line in this cache
@@ -294,7 +293,7 @@ void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
 
 // write address
 uint32_t cache_t::write(memory_package_t* request){
-    uint32_t idx;
+    uint64_t idx;
     uint64_t tag;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
 	int32_t line = POSITION_FAIL;

@@ -1,8 +1,9 @@
 class piecewise_t : public predictor_t {
 private:
-    uint32_t N;
-    uint32_t M;
-    uint32_t H;
+    uint32_t processor_id;
+    uint64_t N;
+    uint64_t M;
+    uint64_t H;
 
     uint64_t THETA;
 
@@ -11,7 +12,7 @@ public:
     uint64_t *GA;
     uint8_t *GHR;
     float saida;
-    void allocate();
+    void allocate (uint32_t processor_id);
     taken_t predict(uint64_t address);
     void train(uint64_t address,taken_t predict, taken_t correct);
     piecewise_t();

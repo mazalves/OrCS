@@ -211,7 +211,8 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(memory_package_t* request, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
-    uint32_t i, j, llc_idx, llc_line;
+    uint32_t i, j;
+    uint64_t llc_idx, llc_line;
     uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
     line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {

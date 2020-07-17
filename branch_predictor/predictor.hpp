@@ -1,7 +1,9 @@
 class predictor_t {
     public:
         virtual ~predictor_t(){};
-        virtual void allocate(){};
+        virtual void allocate (uint32_t processor_id){
+            std::ignore = processor_id;
+        };
         virtual taken_t predict (uint64_t address){
             std::ignore = address;
             return NOT_TAKEN;

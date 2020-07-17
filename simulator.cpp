@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
         //==================
         //Branch Predictor
         //==================
-        orcs_engine.branchPredictor[i].allocate();
+        orcs_engine.branchPredictor[i].allocate (i);
     }
 
     if (orcs_engine.processor->get_HAS_HIVE()) orcs_engine.hive_controller->allocate();

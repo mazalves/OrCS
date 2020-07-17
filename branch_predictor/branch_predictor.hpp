@@ -1,5 +1,6 @@
 class branch_predictor_t{
     private:
+        uint32_t processor_id;
         uint32_t BTB_ENTRIES;
         uint32_t BTB_WAYS;
         uint32_t BTB_MISS_PENALITY;
@@ -39,7 +40,7 @@ class branch_predictor_t{
         //===================================
         branch_predictor_t();
         ~branch_predictor_t();
-        void allocate();
+        void allocate (uint32_t processor_id);
         uint32_t solveBranch(opcode_package_t instruction, opcode_package_t nextOpcode);
         void statistics();
         void reset_statistics();

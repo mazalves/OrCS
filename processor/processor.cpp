@@ -654,6 +654,7 @@ void processor_t::fetch(){
 		operation.opcode_number = this->fetchCounter;
 		operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 		this->fetchCounter++;
+
 		//============================
 		///Solve Branch
 		//============================
