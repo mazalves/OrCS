@@ -185,7 +185,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id) 
 // Writebacks an address from a specific cache to its next lower leveL
 inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
-        //ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
+        ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
     }
 	// L1 writeBack issues
 	if (this->level == 0) {
