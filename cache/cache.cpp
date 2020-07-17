@@ -103,16 +103,15 @@ inline void cache_t::tagIdxSetCalculation(uint64_t address, uint64_t *idx, uint6
 	// printf("tag: %lu idx: %u address: %lu\n", *tag, *idx, address);
 }
 
-void cache_t::printTagIdx (uint64_t address){
-	uint32_t get_bits = (this->n_sets) - 1;
-	uint64_t tag = (address >> this->offset);
-	uint32_t idx = tag & get_bits;
-	// tag >>= utils_t::get_power_of_two(this->n_sets);
-	printf("tag: %lu idx: %u\n", tag, idx);
-}
+// void cache_t::printTagIdx (uint64_t address){
+// 	uint32_t get_bits = (this->n_sets) - 1;
+// 	uint64_t tag = (address >> this->offset);
+// 	uint32_t idx = tag & get_bits;
+// 	// tag >>= utils_t::get_power_of_two(this->n_sets);
+// }
 
 // Reads a cache, updates cycles and return HIT or MISS status
-uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
+uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
     uint64_t idx;
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
