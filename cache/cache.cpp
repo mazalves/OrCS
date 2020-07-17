@@ -82,6 +82,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
                     this->sets[i].lines[j].line_ptr_caches[k][l] = NULL;
                 }
 			}
+			this->sets[i].lines[j].print_line();
         }
     }
     this->set_cache_access(0);
@@ -98,15 +99,15 @@ inline void cache_t::tagIdxSetCalculation(uint64_t address, uint32_t *idx, uint6
 	uint32_t get_bits = (this->n_sets) - 1;
 	*tag = (address >> this->offset);
 	*idx = *tag & get_bits;
-	*tag >>= utils_t::get_power_of_two(this->n_sets);
-	//printf("tag: %lu idx: %lu\n", get_tag(address), get_index(address));
+	// *tag >>= utils_t::get_power_of_two(this->n_sets);
+	// printf("tag: %lu idx: %u address: %lu\n", *tag, *idx, address);
 }
 
 void cache_t::printTagIdx (uint64_t address){
 	uint32_t get_bits = (this->n_sets) - 1;
 	uint64_t tag = (address >> this->offset);
 	uint32_t idx = tag & get_bits;
-	tag >>= utils_t::get_power_of_two(this->n_sets);
+	// tag >>= utils_t::get_power_of_two(this->n_sets);
 	printf("tag: %lu idx: %u\n", tag, idx);
 }
 
@@ -116,6 +117,7 @@ uint32_t cache_t::read(uint64_t address,uint32_t &ttc){
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
+		printf("tag: %u\n", this->sets[idx].lines[i].dirty);
 		if(this->sets[idx].lines[i].tag == tag) {
 			// Se ready Cycle for menor que o ciclo atual, a latencia é apenas da leitura, sendo um hit.
 			if (this->sets[idx].lines[i].ready_at <= orcs_engine.get_global_cycle()){
