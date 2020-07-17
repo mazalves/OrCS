@@ -185,6 +185,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id) 
 
 // Writebacks an address from a specific cache to its next lower leveL
 inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
+	// printf("writeback in processor %d\n", processor_id);
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
         ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
     }
@@ -230,6 +231,7 @@ inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
 
 // Searches for a cache line to write data
 line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64_t &idx, uint64_t &line) {
+	// printf("installLine %lu in processor %u\n", request->memory_address, request->processor_id);
 	line = POSITION_FAIL;
     uint64_t tag;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
@@ -260,6 +262,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
+	// printf("returnLine %lu in processor %u\n", request->memory_address, request->processor_id);
 	uint64_t tag, idx, idx_padding, line_padding;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
 	int32_t line = POSITION_FAIL;
@@ -292,6 +295,7 @@ void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
 
 // write address
 uint32_t cache_t::write(memory_package_t* request){
+	// printf("write %lu in processor %u\n", request->memory_address, request->processor_id);
     uint64_t idx;
     uint64_t tag;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);

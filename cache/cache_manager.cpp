@@ -211,6 +211,7 @@ void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_i
 
 // Install an address in every cache using pointers
 void cache_manager_t::installCacheLines(memory_package_t* request, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type) {
+    // printf("installCacheLines %lu in processor %u\n", request->memory_address, request->processor_id);
     uint32_t i, j;
     uint64_t llc_idx, llc_line;
     uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
@@ -223,6 +224,7 @@ void cache_manager_t::installCacheLines(memory_package_t* request, int32_t *cach
     }
     if (cache_type == INSTRUCTION) {
         for (i = 0; i < INSTRUCTION_LEVELS; i++) {
+            // printf("cache[%d][%d]\n", i, cache_indexes[i]);
             line[request->processor_id][i] = this->instruction_cache[i][cache_indexes[i]].installLine(request, latency_request, llc_idx, llc_line);
             //ORCS_PRINTF ("INST Installed addr: %lu, level: %u ", instructionAddress, i)
             //this->instruction_cache[i][cache_indexes[i]].printTagIdx (instructionAddress);
@@ -231,6 +233,7 @@ void cache_manager_t::installCacheLines(memory_package_t* request, int32_t *cach
         i = 0;
     }
     for (; i < POINTER_LEVELS; i++) {
+        // printf("cache[%d][%d]\n", i, cache_indexes[i]);
         line[request->processor_id][i] = this->data_cache[i][cache_indexes[i]].installLine(request, latency_request, llc_idx, llc_line);
         //ORCS_PRINTF ("DATA Installed addr: %lu, level: %u ", instructionAddress, i)
         //this->data_cache[i][cache_indexes[i]].printTagIdx (instructionAddress);
@@ -306,24 +309,28 @@ void cache_manager_t::finishRequest (memory_package_t* request){
 }
 
 void cache_manager_t::install (memory_package_t* request){
+    // printf("installCache %lu in processor %u\n", request->memory_address, request->processor_id);
     int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
     this->generateIndexArray(request->processor_id, cache_indexes);
     switch (request->memory_operation){
         case MEMORY_OPERATION_INST:{
+            // printf("instruction");
             this->installCacheLines(request, cache_indexes, 0, INSTRUCTION);
             break;
         }
         case MEMORY_OPERATION_READ:{
+            // printf("read");
             this->installCacheLines(request, cache_indexes, 0, DATA);
             break;
         }
         case MEMORY_OPERATION_WRITE:{
+            // printf("write");
             this->installCacheLines(request, cache_indexes, 0, DATA);
             int cache_level = DATA_LEVELS - 1;
             for (int32_t k = cache_level - 1; k >= 0; k--) {
-                this->data_cache[k+1][cache_indexes[request->processor_id]].add_cache_write();
+                this->data_cache[k+1][cache_indexes[k+1]].add_cache_write();
             }
-            this->data_cache[0][cache_indexes[request->processor_id]].write(request);
+            this->data_cache[0][cache_indexes[0]].write(request);
             break;
         }
         default:
@@ -345,6 +352,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
 }
 
 void cache_manager_t::clock() {
+    // printf("clock executing\n");
     if (requests.size() > 0) {
         //ORCS_PRINTF ("%lu ", requests.size())
         for (size_t i = 0; i < requests.size(); i++){
@@ -415,13 +423,14 @@ uint32_t cache_manager_t::searchAddress(uint64_t instructionAddress, cache_t *ca
 
 // Searches an instruction in cache levels
 cache_status_t cache_manager_t::recursiveInstructionSearch(memory_package_t* request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level) {
+    // printf("recursiveInstructionSearch %lu in processor %u\n", request->memory_address, request->processor_id);
     uint32_t cache_status = this->searchAddress(request->opcode_address, &this->instruction_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     if (cache_status == HIT) {
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         this->instruction_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
         if (cache_level != 0) {
             for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
-                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(request, &this->instruction_cache[i][cache_indexes[cache_level]]);
+                this->instruction_cache[cache_level][cache_indexes[cache_level]].returnLine(request, &this->instruction_cache[i][cache_indexes[i]]);
             }
         }
         request->updatePackageWait(latency_request);
@@ -436,14 +445,15 @@ cache_status_t cache_manager_t::recursiveInstructionSearch(memory_package_t* req
 }
 
 cache_status_t cache_manager_t::recursiveDataSearch(memory_package_t *request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
+    // printf("recursiveDataSearch %lu in processor %u\n", request->memory_address, request->processor_id);
     uint32_t cache_status = this->searchAddress(request->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     //ORCS_PRINTF ("%s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[cache_level]].returnLine(request, &this->data_cache[i][cache_indexes[cache_level]]);
-            this->data_cache[i+1][cache_indexes[cache_level]].add_cache_write();
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request, &this->data_cache[i][cache_indexes[i]]);
+            this->data_cache[i+1][cache_indexes[i+1]].add_cache_write();
         }
         //ORCS_PRINTF ("Cache HIT! %s uop: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->uop_number, cache_level)
         request->updatePackageWait(latency_request);
@@ -461,15 +471,16 @@ cache_status_t cache_manager_t::recursiveDataSearch(memory_package_t *request, i
 
 cache_status_t cache_manager_t::recursiveDataWrite(memory_package_t *request, int32_t *cache_indexes,
                                              uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type) {
+    // printf("recursiveDataWrite %lu in processor %u\n", request->memory_address, request->processor_id);
     uint32_t cache_status = this->searchAddress(request->memory_address, &this->data_cache[cache_level][cache_indexes[cache_level]], &latency_request, &ttc);
     this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_read();
     //ORCS_PRINTF ("%s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
     if (cache_status == HIT) {
         this->data_cache[cache_level][cache_indexes[cache_level]].add_cache_hit();
         for (int32_t i = cache_level - 1; i >= 0; i--) {
-            this->data_cache[i+1][cache_indexes[cache_level]].returnLine(request, &this->data_cache[i][cache_indexes[cache_level]]);
+            this->data_cache[i+1][cache_indexes[i+1]].returnLine(request, &this->data_cache[i][cache_indexes[i]]);
         }
-        this->data_cache[0][cache_indexes[cache_level]].write(request);
+        this->data_cache[0][cache_indexes[0]].write(request);
         //ORCS_PRINTF ("Cache HIT! %s address: %lu cache level: %u ", get_enum_memory_operation_char (request->memory_operation), request->memory_address, cache_level)
         request->updatePackageWait(latency_request);
         return HIT;
