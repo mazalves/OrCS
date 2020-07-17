@@ -72,18 +72,6 @@ processor_t::~processor_t()
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_hive);
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_vima);
 	// =====================================================================
-
-	//delete[] INST_ASSOCIATIVITY;
-	delete[] INST_LATENCY;
-	delete[] INST_SIZE;
-	delete[] INST_SETS;
-	delete[] INST_LEVEL;
-
-	delete[] DATA_ASSOCIATIVITY;
-	delete[] DATA_LATENCY;
-	delete[] DATA_SIZE;
-	delete[] DATA_SETS;
-	delete[] DATA_LEVEL;
 }
 
 uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {

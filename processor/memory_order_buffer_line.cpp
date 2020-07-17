@@ -9,7 +9,7 @@ memory_order_buffer_line_t::memory_order_buffer_line_t() {
 
 // ============================================================================
 memory_order_buffer_line_t::~memory_order_buffer_line_t() {
-    utils_t::template_delete_array<memory_order_buffer_line_t*>(mem_deps_ptr_array);
+    //utils_t::template_delete_array<memory_order_buffer_line_t*>(mem_deps_ptr_array);
 }
 
 
