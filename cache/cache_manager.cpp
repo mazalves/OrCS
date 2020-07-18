@@ -530,10 +530,10 @@ void cache_manager_t::statistics(uint32_t core_id) {
 	if(close) fclose(output);
     this->generateIndexArray(core_id, cache_indexes);
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
-        this->instruction_cache[i][cache_indexes[core_id]].statistics();
+        this->instruction_cache[i][cache_indexes[i]].statistics();
     }
     for (uint32_t i = 0; i < DATA_LEVELS; i++) {
-        this->data_cache[i][cache_indexes[core_id]].statistics();
+        this->data_cache[i][cache_indexes[i]].statistics();
     }
     // Prefetcher
     if (PREFETCHER_ACTIVE){
