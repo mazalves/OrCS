@@ -336,11 +336,15 @@ void vima_controller_t::allocate(){
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){
-    request->sent_to_ram = true;
     if (vima_buffer.size() < this->VIMA_BUFFER) {
+        request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);
         return true;
-    } else if (VIMA_DEBUG) ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
+    } else {
+        request->sent_to_cache = false;
+        request->sent_to_ram = false;
+        if (VIMA_DEBUG) ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
+    }
     return false;
 }
