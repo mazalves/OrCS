@@ -41,6 +41,8 @@ class memory_controller_t{
 
         memory_channel_t *channels;
 
+        uint64_t i;
+
     public:
         // ==========================================================================
         // Memory Controller Atributes

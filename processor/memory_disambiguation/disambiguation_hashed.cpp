@@ -1,9 +1,25 @@
 #include"../../simulator.hpp"
 // 
 disambiguation_hashed_t::disambiguation_hashed_t(/* args */) {
+	this->ROB_SIZE = 0;
+    this->LOAD_HASH_SIZE = 0;
+    this->STORE_HASH_SIZE = 0;
+    this->DESAMBIGUATION_BLOCK_SIZE = 0;
+    this->ADDRESS_TO_ADDRESS = 0;
+    this->REGISTER_FORWARD = 0;
+    this->MOB_DEBUG = 0;
+    this->WAIT_CYCLE = 0;
+    this->DEBUG = 0;
     // HASHED LOAD/STORE
     this->disambiguation_load_hash = NULL;
     this->disambiguation_store_hash = NULL;
+
+	// LOAD/STORE Hash mask
+    this->disambiguation_load_hash_bits_mask = 0;
+    this->disambiguation_store_hash_bits_mask = 0;
+    // LOAD/STORE Hash shift
+    this->disambiguation_load_hash_bits_shift = 0;
+    this->disambiguation_store_hash_bits_shift = 0;
 }  
 
 disambiguation_hashed_t::~disambiguation_hashed_t() {  
@@ -23,13 +39,6 @@ void disambiguation_hashed_t::allocate() {
     set_REGISTER_FORWARD (cfg_processor["REGISTER_FORWARD"]);
     set_MOB_DEBUG (cfg_processor["MOB_DEBUG"]);
     set_WAIT_CYCLE (cfg_processor["WAIT_CYCLE"]);
-
-    // LOAD/STORE Hash mask
-    this->disambiguation_load_hash_bits_mask = 0;
-    this->disambiguation_store_hash_bits_mask = 0;
-    // LOAD/STORE Hash shift
-    this->disambiguation_load_hash_bits_shift = 0;
-    this->disambiguation_store_hash_bits_shift = 0;
 
 	// DISAMBIGUATION 
 	ERROR_ASSERT_PRINTF(utils_t::check_if_power_of_two(LOAD_HASH_SIZE), "Wrong disambiguation_load_hash_size.\n")

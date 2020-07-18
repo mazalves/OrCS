@@ -5,9 +5,37 @@ memory_controller_t::memory_controller_t(){
     this->requests_made = 0; //Data Requests made
     this->operations_executed = 0; // number of operations executed
     this->requests_llc = 0; //Data Requests made to LLC
+    this->requests_hive = 0;
+    this->requests_vima = 0;
     this->requests_prefetcher = 0; //Data Requests made by prefetcher
     this->row_buffer_miss = 0; //Counter row buffer misses
     this->row_buffer_hit = 0;
+
+    this->channel_bits_mask = 0;
+    this->channel_bits_shift = 0;
+        
+    this->CHANNEL = 0;
+    this->WAIT_CYCLE = 0;
+    this->LINE_SIZE = 0;
+    this->DEBUG = 0;
+
+    this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
+    this->TIMING_AL = 0;     // Added Latency for column accesses
+    this->TIMING_CAS = 0;    // Column Access Strobe (CL) latency
+    this->TIMING_CCD = 0;    // Column to Column Delay
+    this->TIMING_CWD = 0;    // Column Write Delay (CWL) or simply WL
+    this->TIMING_FAW = 0;   // Four (row) Activation Window
+    this->TIMING_RAS = 0;   // Row Access Strobe
+    this->TIMING_RC = 0;    // Row Cycle
+    this->TIMING_RCD = 0;    // Row to Column comand Delay
+    this->TIMING_RP = 0;     // Row Precharge
+    this->TIMING_RRD = 0;    // Row activation to Row activation Delay
+    this->TIMING_RTP = 0;    // Read To Precharge
+    this->TIMING_WR = 0;    // Write Recovery time
+    this->TIMING_WTR = 0;
+
+    this->channels = NULL;
+    this->i = 0;
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
@@ -42,8 +70,12 @@ void memory_controller_t::allocate(){
     set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
     
-    this->channels = new memory_channel_t[CHANNEL];
-    for (size_t i = 0; i < CHANNEL; i++){
+    this->channels = (memory_channel_t*) malloc (this->CHANNEL*sizeof (memory_channel_t));
+    std::memset (this->channels, 0, this->CHANNEL*sizeof (memory_channel_t));
+
+    for (i = 0; i < this->CHANNEL; i++) this->channels[i].allocate();
+
+    for (i = 0; i < CHANNEL; i++){
         channels[i].set_TIMING_AL (ceil (this->TIMING_AL * this->CORE_TO_BUS_CLOCK_RATIO));
         channels[i].set_TIMING_CAS (ceil (this->TIMING_CAS * this->CORE_TO_BUS_CLOCK_RATIO));
         channels[i].set_TIMING_CCD (ceil (this->TIMING_CCD * this->CORE_TO_BUS_CLOCK_RATIO));
@@ -89,13 +121,12 @@ void memory_controller_t::statistics(){
 }
 // ============================================================================
 void memory_controller_t::clock(){
-    for (uint32_t i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
+    for (i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
 }
 // ============================================================================
 void memory_controller_t::set_masks(){
         
     ERROR_ASSERT_PRINTF(CHANNEL > 1 && utils_t::check_if_power_of_two(CHANNEL),"Wrong number of memory_channels (%u).\n",CHANNEL);
-    uint64_t i;
     // =======================================================
     // Setting to zero
     // =======================================================

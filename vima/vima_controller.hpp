@@ -33,6 +33,8 @@ class vima_controller_t {
         uint64_t cache_accesses;
         uint64_t cache_writebacks;
 
+        uint64_t i;
+
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_DEBUG)

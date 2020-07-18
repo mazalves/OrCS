@@ -2,7 +2,18 @@
 #include <string>
 
 vima_controller_t::vima_controller_t(){
+    read1 = NULL;
+    read2 = NULL;
+    write = NULL;
 
+    this->VIMA_BUFFER = 0;
+    this->VIMA_VECTOR_SIZE = 0;
+    this->VIMA_DEBUG = 0;
+    this->VIMA_CACHE_ASSOCIATIVITY = 0;
+    this->VIMA_CACHE_LATENCY = 0;
+    this->VIMA_CACHE_SIZE = 0;
+    this->VIMA_UNBALANCED = 0;
+    this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
 }
 
 vima_controller_t::~vima_controller_t(){
@@ -61,7 +72,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         }
     } else {
         index = get_index (address);
-        for (uint32_t i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
+        for (i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
             if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
 		        add_cache_hits();
                 return &cache[index][i];
@@ -311,8 +322,9 @@ void vima_controller_t::allocate(){
         this->tag_bits_mask |= 1 << i;
     }
 
-    vima_op_latencies = utils_t::template_allocate_initialize_array<uint32_t>(MEMORY_OPERATION_VIMA_FP_MUL, 0);
-
+    vima_op_latencies = (uint32_t*) malloc (MEMORY_OPERATION_LAST*sizeof (uint32_t));
+    std::memset (vima_op_latencies, 0, MEMORY_OPERATION_LAST);
+    
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] = cfg_processor["VIMA_LATENCY_INT_ALU"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] * this->CORE_TO_BUS_CLOCK_RATIO);
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_DIV] = cfg_processor["VIMA_LATENCY_INT_DIV"];

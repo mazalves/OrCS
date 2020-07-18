@@ -1,6 +1,72 @@
 #include "../simulator.hpp"
 
 memory_channel_t::memory_channel_t(){
+    this->channel_bits_mask = 0;
+    this->rank_bits_mask = 0;
+    this->bank_bits_mask = 0;
+    this->row_bits_mask = 0;
+    this->colrow_bits_mask = 0;
+    this->colbyte_bits_mask = 0;
+    this->not_column_bits_mask = 0;
+        
+    // Shifts bits
+    this->channel_bits_shift = 0;
+    this->colbyte_bits_shift = 0;
+    this->colrow_bits_shift = 0;
+    this->bank_bits_shift = 0;
+    this->row_bits_shift = 0;
+    this->controller_bits_shift = 0;
+
+    this->last_bank_selected = 0;
+
+    this->stat_row_buffer_hit = 0;
+    this->stat_row_buffer_miss = 0;
+
+    this->latency_burst = 0;
+    this->i = 0;
+    this->RANK = 0;
+    this->BANK = 0;
+    this->BANK_BUFFER_SIZE = 0;
+    this->BANK_ROW_BUFFER_SIZE = 0;
+    this->CHANNEL = 0;
+    this->ROW_BUFFER = 0;
+    this->CLOSED_ROW = 0;
+    this->LINE_SIZE = 0;
+    this->BURST_WIDTH = 0;
+    this->DEBUG = 0;
+
+    this->TIMING_AL = 0;     // Added Latency for column accesses
+    this->TIMING_CAS = 0;    // Column Access Strobe (CL) latency
+    this->TIMING_CCD = 0;    // Column to Column Delay
+    this->TIMING_CWD = 0;    // Column Write Delay (CWL) or simply WL
+    this->TIMING_FAW = 0;   // Four (row) Activation Window
+    this->TIMING_RAS = 0;   // Row Access Strobe
+    this->TIMING_RC = 0;    // Row Cycle
+    this->TIMING_RCD = 0;    // Row to Column comand Delay
+    this->TIMING_RP = 0;     // Row Precharge
+    this->TIMING_RRD = 0;    // Row activation to Row activation Delay
+    this->TIMING_RTP = 0;    // Read To Precharge
+    this->TIMING_WR = 0;    // Write Recovery time
+    this->TIMING_WTR = 0;        
+}
+
+memory_channel_t::~memory_channel_t(){
+    utils_t::template_delete_array<uint64_t>(this->bank_last_row);
+    utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
+    utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
+    utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
+    utils_t::template_delete_array<bool>(this->bank_is_ready);
+    utils_t::template_delete_array<bool>(this->bank_is_drain_write);
+
+    for (size_t i = 0; i < this->BANK; i++){
+        vector<memory_package_t*>().swap(this->bank_read_requests[i]);  
+        vector<memory_package_t*>().swap(this->bank_write_requests[i]);  
+    }
+    free (this->bank_read_requests);
+    free (this->bank_write_requests);
+}
+
+void memory_channel_t::allocate() {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
@@ -31,12 +97,17 @@ memory_channel_t::memory_channel_t(){
     set_latency_burst (LINE_SIZE/BURST_WIDTH);
 
     this->bank_last_transmission = 0;
-    this->bank_is_ready = utils_t::template_allocate_initialize_array<bool>(this->BANK, 0);
-    this->bank_last_row = utils_t::template_allocate_initialize_array<uint64_t>(this->BANK, 0);
-    this->bank_is_drain_write = utils_t::template_allocate_initialize_array<bool>(this->BANK, 0);
-    this->bank_last_command = utils_t::template_allocate_initialize_array<memory_controller_command_t>(this->BANK, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+    this->bank_is_ready = (bool*) malloc (this->BANK*sizeof(bool));
+    std::memset (this->bank_is_ready, 0, this->BANK);
+    this->bank_last_row = (uint64_t*) malloc (this->BANK*sizeof(uint64_t));
+    std::memset (this->bank_last_row, 0, this->BANK);
+    this->bank_is_drain_write = (bool*) malloc (this->BANK*sizeof(bool));
+    std::memset (this->bank_is_drain_write, false, this->BANK);
+    this->bank_last_command = (memory_controller_command_t*) malloc (MEMORY_CONTROLLER_COMMAND_ROW_ACCESS*sizeof(memory_controller_command_t));
+    std::memset(this->bank_last_command, 1, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
+    this->channel_last_command_cycle = (uint64_t*) malloc (this->BANK*sizeof(uint64_t));
+    std::memset (this->channel_last_command_cycle, 0, this->BANK);
     this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, 5, 0);
-    this->channel_last_command_cycle = utils_t::template_allocate_initialize_array<uint64_t>(MEMORY_CONTROLLER_COMMAND_NUMBER, 0);
 
     this->bank_read_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
     std::memset((void *)this->bank_read_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
@@ -46,25 +117,8 @@ memory_channel_t::memory_channel_t(){
     this->set_masks();
 }
 
-memory_channel_t::~memory_channel_t(){
-    utils_t::template_delete_array<uint64_t>(this->bank_last_row);
-    utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
-    utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
-    utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
-    utils_t::template_delete_array<bool>(this->bank_is_ready);
-    utils_t::template_delete_array<bool>(this->bank_is_drain_write);
-
-    for (size_t i = 0; i < this->BANK; i++){
-        vector<memory_package_t*>().swap(this->bank_read_requests[i]);  
-        vector<memory_package_t*>().swap(this->bank_write_requests[i]);  
-    }
-    free (this->bank_read_requests);
-    free (this->bank_write_requests);
-}
-
 void memory_channel_t::set_masks(){       
     ERROR_ASSERT_PRINTF(CHANNEL > 1 && utils_t::check_if_power_of_two(CHANNEL),"Wrong number of memory_channels (%u).\n",CHANNEL);
-    uint64_t i;
     
     this->channel_bits_shift=0;
     this->colbyte_bits_shift=0;

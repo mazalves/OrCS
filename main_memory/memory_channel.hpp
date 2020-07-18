@@ -38,6 +38,8 @@ class memory_channel_t {
 
         uint64_t latency_burst;
 
+        uint64_t i;
+
         uint32_t RANK;
         uint32_t BANK;
         uint32_t BANK_BUFFER_SIZE;
@@ -86,7 +88,7 @@ class memory_channel_t {
         memory_package_t* findNext (uint32_t bank);
         memory_package_t* findNextRead (uint32_t bank);
         memory_package_t* findNextWrite (uint32_t bank);
-        void row_precharge (uint32_t bank, uint32_t row);
+        void allocate();
         void addRequest (memory_package_t* request);
         void set_masks();
         void clock();

@@ -3,15 +3,204 @@
 // =====================================================================
 processor_t::processor_t()
 {
+	this->stall_full_FetchBuffer = 0;
+    this->stall_wrong_branch = 0;
+	//=============
+	//Statistics Decode
+	//=============
+    this->stall_full_DecodeBuffer = 0;
+	//=============
+	//Statistics Rename
+	//=============
+	this->registerWrite = 0;
+	this->stall_full_MOB_Read = 0;
+	this->stall_full_MOB_Write = 0;
+	this->stall_full_ROB = 0;
+	//=============
+	//Statistics Dispatch
+	//=============
+	this->stall_empty_RS = 0;
+	//=============
+	//Statistics Execute
+	//=============
+	this->stat_disambiguation_read_false_positive = 0;
+	this->stat_disambiguation_write_false_positive = 0;
+	this->stat_address_to_address = 0;
+	this->times_reach_parallel_requests_read = 0;
+	this->times_reach_parallel_requests_write = 0;
+	this->instruction_per_cycle = 0;
+	this->ended_cycle = 0;
+	this->mem_req_wait_cycles = 0;
+	this->core_ram_request_wait_cycles = 0;
+	this->core_ram_requests = 0;
+	//=============
+	//Statistics Commit
+	//=============
+	this->stat_inst_int_alu_completed = 0;
+	this->stat_inst_mul_alu_completed = 0;
+	this->stat_inst_div_alu_completed = 0;
+	this->stat_inst_int_fp_completed = 0;
+	this->stat_inst_mul_fp_completed = 0;
+	this->stat_inst_div_fp_completed = 0;
+	this->stat_inst_hive_completed = 0;
+	this->stat_inst_vima_completed = 0;
+	this->stat_inst_nop_completed = 0;
+	this->stat_inst_load_completed = 0;
+	this->stat_inst_store_completed = 0;
+	this->stat_inst_branch_completed = 0;
+	this->stat_inst_other_completed = 0;
+
+	this->HAS_HIVE = 0;
+	this->HAS_VIMA = 0;
+
+	this->FETCH_WIDTH = 0;
+	this->DECODE_WIDTH = 0;
+	this->RENAME_WIDTH = 0;
+	this->DISPATCH_WIDTH = 0;
+	this->EXECUTE_WIDTH = 0;
+	this->COMMIT_WIDTH = 0;
+
+	this->FETCH_LATENCY = 0;
+	this->DECODE_LATENCY = 0;
+	this->RENAME_LATENCY = 0;
+	this->DISPATCH_LATENCY = 0;
+	this->EXECUTE_LATENCY = 0;
+	this->COMMIT_LATENCY = 0;
+
+	this->LATENCY_INTEGER_ALU = 0;
+	this->WAIT_NEXT_INT_ALU = 0;
+	this->INTEGER_ALU = 0;
+	// INTEGER MUL
+	this->LATENCY_INTEGER_MUL = 0;
+	this->WAIT_NEXT_INT_MUL = 0;
+	this->INTEGER_MUL = 0;
+	// INTEGER DIV
+	this->LATENCY_INTEGER_DIV = 0;
+	this->WAIT_NEXT_INT_DIV = 0;
+	this->INTEGER_DIV = 0;
+
+	this->QTDE_INTEGER_FU = 0;
+
+	//FP ULAS LATENCY 
+	// FLOATING POINT DIV
+	this->LATENCY_FP_DIV = 0;
+	this->WAIT_NEXT_FP_DIV = 0;
+	this->FP_DIV = 0;
+	// FLOATING POINT MUL
+	this->LATENCY_FP_MUL = 0;
+	this->WAIT_NEXT_FP_MUL = 0;
+	this->FP_MUL = 0;
+	// FLOATING POINT ALU
+	this->LATENCY_FP_ALU = 0;
+	this->WAIT_NEXT_FP_ALU = 0;
+	this->FP_ALU = 0;
+
+	this->QTDE_FP_FU = 0;
+
+	this->PARALLEL_LOADS = 0;
+	this->PARALLEL_STORES = 0;
+
+	// ======================
+	///UNIFIED FUS
+
+	// PROCESSOR BUFFERS SIZE
+	this->FETCH_BUFFER = 0;
+	this->DECODE_BUFFER = 0;
+	this->RAT_SIZE = 0;
+	this->ROB_SIZE = 0;
+	this->UNIFIED_RS = 0;
+	//MOB
+	this->MOB_READ = 0;
+	this->MOB_WRITE = 0;
+	this->MOB_HIVE = 0;
+	this->MOB_VIMA = 0;
+	// =====================
+
+	// =====================
+	// MEMORY FU
+	// =====================
+	// Load Units
+	this->LOAD_UNIT = 0;
+	this->WAIT_NEXT_MEM_LOAD = 0;
+	this->LATENCY_MEM_LOAD = 0;
+	// Store Units
+	this->STORE_UNIT = 0;
+	this->WAIT_NEXT_MEM_STORE = 0;
+	this->LATENCY_MEM_STORE = 0;
+	// HIVE Units
+	this->HIVE_UNIT = 0;
+	this->WAIT_NEXT_MEM_HIVE = 0;
+	this->LATENCY_MEM_HIVE = 0;
+	// VIMA Units
+	this->VIMA_UNIT = 0;
+	this->WAIT_NEXT_MEM_VIMA = 0;
+	this->LATENCY_MEM_VIMA = 0;
+
+	this->QTDE_MEMORY_FU = 0;
+
+	//this->KILO = 1024 = 0;
+	//this->MEGA = KILO*KILO = 0;
+
+	this->LINE_SIZE = 0;
+	this->DATA_CACHES = 0;
+	// I$
+	this->INSTRUCTION_CACHES = 0;
+	this->RAM_LATENCY = 0;
+	this->PARALLEL_LIM_ACTIVE = 0;
+	this->MAX_PARALLEL_REQUESTS_CORE = 0;
+
+	this->PREFETCHER_ACTIVE = 0;
+
+	this->DISAMBIGUATION_ENABLED = 0;
+
+	this->DEBUG = 0;
+	this->PROCESSOR_DEBUG = 0;
+	this->FETCH_DEBUG = 0;
+	this->DECODE_DEBUG = 0;
+	this->RENAME_DEBUG = 0;
+	this->DISPATCH_DEBUG = 0;
+	this->EXECUTE_DEBUG = 0;
+	this->MOB_DEBUG = 0;
+	this->PRINT_MOB = 0;
+	this->PRINT_ROB = 0;
+	this->HIVE_DEBUG = 0;
+	this->VIMA_DEBUG = 0;
+	this->COMMIT_DEBUG = 0;
+	this->MSHR_DEBUG = 0;
+	this->MULTICORE_DEBUG = 0;
+
+	this->WAIT_CYCLE = 0;
+
+	this->memory_read_executed = 0;
+	this->memory_write_executed = 0;
+	this->memory_vima_executed = 0;
+	this->memory_hive_executed = 0;
+
+	this->robUsed = 0;
 	//Setting Pointers to NULL
 	// ========OLDEST MEMORY OPERATIONS POINTER======
 	this->oldest_read_to_send = NULL;
 	this->oldest_write_to_send = NULL;
 	this->oldest_hive_to_send = NULL;
+	this->oldest_vima_to_send = NULL;
 	// ========MOB======
 	this->memory_order_buffer_read = NULL;
 	this->memory_order_buffer_write = NULL;
 	this->memory_order_buffer_hive = NULL;
+	this->memory_order_buffer_vima = NULL;
+
+	this->memory_order_buffer_read_start = 0;
+	this->memory_order_buffer_read_used = 0;
+	this->memory_order_buffer_read_end = 0;
+	this->memory_order_buffer_write_start = 0;
+	this->memory_order_buffer_write_used = 0;
+	this->memory_order_buffer_write_end = 0;
+	this->memory_order_buffer_hive_start = 0;
+	this->memory_order_buffer_hive_used = 0;
+	this->memory_order_buffer_hive_end = 0;
+	this->memory_order_buffer_vima_start = 0;
+	this->memory_order_buffer_vima_used = 0;
+	this->memory_order_buffer_vima_end = 0;
 	//=========DESAMBIGUATION ============
 	this->disambiguator = NULL;
 	// ==========RAT======

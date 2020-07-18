@@ -2,7 +2,22 @@
 #include <string>
 
 vima_vector_t::vima_vector_t(){
+    sub_requests = NULL;
+    this->no_sub_requests = 0;
+    this->sub_ready = 0;
+    this->last_ready = 0;
+    this->address = 0;
+    this->sub_req_offset = 0;
 
+    this->LINE_SIZE = 0;
+    this->VIMA_VECTOR_SIZE = 0;
+    this->VIMA_DEBUG = 0;
+
+    status = PACKAGE_STATE_FREE;
+    this->tag = 0;
+    this->lru = 0;
+    this->dirty = false;
+    this->set = false;
 }
 vima_vector_t::~vima_vector_t(){
     free (sub_requests);
