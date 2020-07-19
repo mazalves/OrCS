@@ -182,13 +182,6 @@ extern orcs_engine_t orcs_engine;
 #include "./cache/cache.hpp"
 #include "./cache/cache_manager.hpp"
 //  =========================================//
-// Directory Classes
-//  =========================================//
-// // DIRECTORY INCLUDES
-#include "./directory/directory.hpp"
-#include "./directory/directory_line.hpp"
-#include "./directory/directory_set.hpp"
-//  =========================================//
 // // Prefetcher INCLUDES
 #include "./prefetcher/prefetcher.hpp"
 #include "./prefetcher/stride_table.hpp"

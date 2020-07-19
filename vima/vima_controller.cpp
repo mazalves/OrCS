@@ -70,6 +70,7 @@ void vima_controller_t::instruction_ready (size_t index){
     if (VIMA_DEBUG) {
         ORCS_PRINTF ("VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
     }
+    //ORCS_PRINTF ("%lu VIMA request from processor %u READY\n", vima_buffer.size(), vima_buffer[index]->processor_id)
     vima_buffer.erase (std::remove (vima_buffer.begin(), vima_buffer.end(), vima_buffer[index]), vima_buffer.end());
 }
 
@@ -264,6 +265,7 @@ void vima_controller_t::check_cache(){
 }
 
 void vima_controller_t::clock(){
+    //ORCS_PRINTF ("%lu\n", vima_buffer.size())
     for (size_t i = 0; i < working_vectors.size(); i++){
         if (working_vectors[i]->status != PACKAGE_STATE_READY) working_vectors[i]->clock();
         else working_vectors.erase (std::remove (working_vectors.begin(), working_vectors.end(), working_vectors[i]), working_vectors.end());
@@ -359,6 +361,7 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);
+        //ORCS_PRINTF ("%lu %lu NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), vima_buffer.size(), request->processor_id)
         return true;
     } else {
         request->sent_to_cache = false;

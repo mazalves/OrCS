@@ -42,20 +42,13 @@ void vima_vector_t::clock() {
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
                 } else {
-                    //print_vector();
-                    while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
-                        //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle())
-                        sub_ready++;
-                    }
+                    while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) sub_ready++;
                 }
                 if (sub_ready >= no_sub_requests) {
                     if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle())
                     status = PACKAGE_STATE_WAIT;
                 }
-            } else {
-                //ORCS_PRINTF ("%lu %s %lu WRITEBACK NOT NEEDED, NOT DIRTY!\n", orcs_engine.get_global_cycle(), label, address)
-                status = PACKAGE_STATE_WAIT;
-            }
+            } else status = PACKAGE_STATE_WAIT;
             //setar todas as instruções para STORE
             //enviar todas as instruções para a DRAM
             //contar quantas estão prontas
@@ -78,10 +71,7 @@ void vima_vector_t::clock() {
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 
             } else {
-                while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
-                    //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-sub_requests[sub_ready].born_cycle)
-                    sub_ready++;
-                }
+                while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) sub_ready++;
             }
             if (sub_ready >= no_sub_requests) {
                 if (VIMA_DEBUG) ORCS_PRINTF ("%lu %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), address)
