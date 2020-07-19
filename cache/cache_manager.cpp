@@ -68,7 +68,8 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
         for (uint32_t i = 0; i < DATA_LEVELS; i++) {
             DCACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
-        POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+        POINTER_LEVELS = 3;
+        // POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
     std::vector<uint32_t>().swap(clevels);
     std::vector<uint32_t>().swap(camount);
