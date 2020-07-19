@@ -2,11 +2,11 @@
 #include <string>
 
 vima_vector_t::vima_vector_t(){
-    sub_requests = NULL;
     this->no_sub_requests = 0;
     this->sub_ready = 0;
     this->address = 0;
     this->sub_req_offset = 0;
+    this->sub_requests = NULL;
 
     this->LINE_SIZE = 0;
     this->VIMA_VECTOR_SIZE = 0;
@@ -31,7 +31,7 @@ void vima_vector_t::clock() {
         case PACKAGE_STATE_TRANSMIT:
             //writeback
             if (dirty) {
-                if (sub_ready >= no_sub_requests){
+                if (sub_ready == no_sub_requests){
                     sub_ready = 0;
                     for (uint32_t i = 0; i < get_no_sub_requests(); i++){
                         sub_requests[i].memory_operation = MEMORY_OPERATION_WRITE;
@@ -43,8 +43,8 @@ void vima_vector_t::clock() {
                     }
                 } else {
                     //print_vector();
-                    while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
-                        //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-sub_requests[sub_ready].born_cycle)
+                    while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
+                        //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle())
                         sub_ready++;
                     }
                 }
@@ -63,7 +63,7 @@ void vima_vector_t::clock() {
             break;
         case PACKAGE_STATE_WAIT:
             //fetch
-            if (sub_ready >= no_sub_requests){
+            if (sub_ready == no_sub_requests){
                 sub_ready = 0;
                 uint64_t memory_address = address >> sub_req_offset;
                 for (uint32_t i = 0; i < get_no_sub_requests(); i++){
@@ -78,7 +78,7 @@ void vima_vector_t::clock() {
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 
             } else {
-                while (sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
+                while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) {
                     //ORCS_PRINTF ("%lu sub-request %u born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), sub_ready, sub_requests[sub_ready].born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-sub_requests[sub_ready].born_cycle)
                     sub_ready++;
                 }
@@ -113,7 +113,7 @@ void vima_vector_t::allocate() {
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
-    this->sub_requests = new memory_package_t[get_no_sub_requests()]();
+    this->sub_requests = new memory_package_t[this->no_sub_requests]();
 
     for (size_t i = 0; i < get_no_sub_requests(); i++) {
         sub_requests[i].is_vima = true;
@@ -123,6 +123,4 @@ void vima_vector_t::allocate() {
     status = PACKAGE_STATE_FREE;
     sub_ready = no_sub_requests;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
-    set = false;
-    lru = 0;
 }

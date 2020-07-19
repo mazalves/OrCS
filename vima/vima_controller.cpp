@@ -2,10 +2,16 @@
 #include <string>
 
 vima_controller_t::vima_controller_t(){
-    i = 0;
-    read1 = NULL;
-    read2 = NULL;
-    write = NULL;
+    this->i = 0;
+    this->read1 = NULL;
+    this->read2 = NULL;
+    this->write = NULL;
+
+    this->lines = 0;
+    this->sets = 0;
+
+    this->cache = NULL;
+    this->vima_op_latencies = NULL;
 
     this->index_bits_mask = 0;
     this->index_bits_shift = 0;
@@ -39,7 +45,7 @@ vima_controller_t::~vima_controller_t(){
     ORCS_PRINTF ("VIMA Cache Sets: %u\n", this->get_sets())
     ORCS_PRINTF ("#========================================================================#\n")
 
-    for (uint32_t i = 0; i < sets; i++) delete[] this->cache[i];
+    for (i = 0; i < sets; i++) delete[] this->cache[i];
     delete[] cache;
     delete[] vima_op_latencies;
 }

@@ -219,6 +219,8 @@ processor_t::processor_t()
 	// Memory FUs
 	this->fu_mem_load = NULL;
 	this->fu_mem_store = NULL;
+	this->fu_mem_hive = NULL;
+	this->fu_mem_vima = NULL;
 }
 processor_t::~processor_t()
 {
