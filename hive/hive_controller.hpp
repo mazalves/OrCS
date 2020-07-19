@@ -8,6 +8,8 @@ class hive_controller_t {
         uint32_t LINE_SIZE;
         uint32_t HIVE_DEBUG;
         cache_t **data_cache;
+
+        uint64_t i;
         
         uint32_t offset;
         uint32_t last_instruction;

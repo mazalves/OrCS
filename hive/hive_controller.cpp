@@ -2,17 +2,35 @@
 #include <string>
 
 hive_controller_t::hive_controller_t(){
+    this->HIVE_BUFFER = 0;
+    this->HIVE_REGISTERS = 0;
+    this->HIVE_REGISTER_SIZE = 0;
+    this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
+        
+    this->LINE_SIZE = 0;
+    this->HIVE_DEBUG = 0;
+    this->data_cache = NULL;
 
+    this->i = 0;
+        
+    this->offset = 0;
+    this->last_instruction = 0;
+    this->hive_lock = false;
+    this->hive_register_free = NULL;
+    this->nano_requests_number = 0;
+    this->nano_requests_ready = NULL;
+    this->hive_op_latencies = NULL;
+    this->hive_register_state = NULL;
+    this->hive_sub_requests = NULL;
 }
 
 hive_controller_t::~hive_controller_t(){
-    free (this->nano_requests_ready);
-    free (this->hive_register_state);
-    for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
-        free (this->hive_sub_requests[i]);
-    }
-    free (this->hive_sub_requests);
-    utils_t::template_delete_array<uint32_t>(this->hive_op_latencies);
+    delete[] this->nano_requests_ready;
+    delete[] this->hive_register_state;
+    delete[] this->hive_op_latencies;
+    for (i = 0; i < this->HIVE_REGISTERS; i++) delete[] this->hive_sub_requests[i];
+    delete[] this->hive_sub_requests;
+    std::vector<memory_package_t*>().swap (hive_instructions);
 }
 
 void hive_controller_t::print_hive_instructions(){
@@ -224,17 +242,12 @@ void hive_controller_t::allocate(){
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
     this->nano_requests_number = this->HIVE_REGISTER_SIZE/this->LINE_SIZE;
 
-    this->nano_requests_ready = (uint32_t*) malloc (this->HIVE_REGISTERS*sizeof (uint32_t));
-    this->hive_register_state = (package_state_t*) malloc (this->HIVE_REGISTERS*sizeof (package_state_t));
-    this->hive_op_latencies = utils_t::template_allocate_initialize_array<uint32_t>(MEMORY_OPERATION_HIVE_FP_MUL, 0);
-    this->hive_sub_requests = (memory_package_t**) malloc (sizeof (memory_package_t*)*this->HIVE_REGISTERS);
-    std::memset (this->hive_sub_requests, 0, this->HIVE_REGISTERS*sizeof(memory_package_t*));
-    for (size_t i = 0; i < this->HIVE_REGISTERS; i++){
-        this->hive_sub_requests[i] = (memory_package_t*) malloc (this->nano_requests_number*sizeof (memory_package_t));
-        std::memset ((void *)this->hive_sub_requests[i], 0, this->nano_requests_number*sizeof(memory_package_t));
-    }
-
-    for (uint32_t i = 0; i < this->HIVE_REGISTERS; i++){
+    this->nano_requests_ready = new uint32_t[this->HIVE_REGISTERS]();
+    this->hive_register_state = new package_state_t[this->HIVE_REGISTERS]();
+    this->hive_op_latencies = new uint32_t[MEMORY_OPERATION_LAST]();;
+    this->hive_sub_requests = new memory_package_t*[this->HIVE_REGISTERS]();
+    for (i = 0; i < this->HIVE_REGISTERS; i++) this->hive_sub_requests[i] = new memory_package_t[this->nano_requests_number]();
+    for (i = 0; i < this->HIVE_REGISTERS; i++){
         this->hive_register_state[i] = PACKAGE_STATE_FREE;
         this->nano_requests_ready[i] = 0;
     }
