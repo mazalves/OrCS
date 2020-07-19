@@ -1,7 +1,45 @@
 #include "./../simulator.hpp"
 
 // Constructor
-cache_manager_t::cache_manager_t() {}
+cache_manager_t::cache_manager_t() {
+    i = 0;
+
+    this->reads = 0;
+    this->read_miss = 0;
+    this->read_hit = 0;
+    this->writes = 0;
+    this->write_miss = 0;
+    this->write_hit = 0;
+    this->offset = 0;
+    this->mshr_index = 0;
+    op_count = NULL;
+    op_max = NULL;
+
+    this->sent_ram = 0;
+    this->sent_ram_cycles = 0;
+    this->sent_hive = 0;
+    this->sent_hive_cycles = 0;
+    this->sent_vima = 0;
+    this->sent_vima_cycles = 0;
+
+    this->LINE_SIZE = 0;
+    this->PREFETCHER_ACTIVE = 0;
+    this->DATA_LEVELS = 0;
+    this->INSTRUCTION_LEVELS = 0;
+    this->POINTER_LEVELS = 0;
+    this->LLC_CACHES = 0;
+    this->CACHE_MANAGER_DEBUG = 0;
+    this->WAIT_CYCLE = 0;
+    this->DEBUG = 0;
+
+    this->NUMBER_OF_PROCESSORS = 0;
+    this->MAX_PARALLEL_REQUESTS_CORE = 0;
+
+    data_cache = NULL;
+    instruction_cache = NULL;
+    ICACHE_AMOUNT = NULL;
+    DCACHE_AMOUNT = NULL;
+}
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
@@ -17,6 +55,9 @@ cache_manager_t::~cache_manager_t() {
 
     delete[] data_cache;
     delete[] instruction_cache;
+
+    delete[] op_max;
+    delete[] op_count;
 
     std::vector<memory_package_t *>().swap(requests);
 }
@@ -58,13 +99,13 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
 
     if (cache_type == 0) {
         set_INSTRUCTION_LEVELS(clevels.size());
-        ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS];
+        ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS]();
         for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
             ICACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
     } else {
         set_DATA_LEVELS(clevels.size());
-        DCACHE_AMOUNT = new uint32_t[DATA_LEVELS];
+        DCACHE_AMOUNT = new uint32_t[DATA_LEVELS]();
         for (uint32_t i = 0; i < DATA_LEVELS; i++) {
             DCACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
@@ -117,7 +158,7 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
     if (cache_type == INSTRUCTION) {
         set_INSTRUCTION_LEVELS(INSTRUCTION_LEVELS);
         CACHE_LEVELS = INSTRUCTION_LEVELS;
-        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
+        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS]();
         for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
             CACHE_AMOUNT[i] = ICACHE_AMOUNT[i];
             //ORCS_PRINTF ("ICACHE_AMOUNT[%u] = %u\n", i, ICACHE_AMOUNT[i])
@@ -125,7 +166,7 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
     } else {
         set_DATA_LEVELS(DATA_LEVELS);
         CACHE_LEVELS = DATA_LEVELS;
-        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS];
+        CACHE_AMOUNT = new uint32_t[CACHE_LEVELS]();
         for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
             CACHE_AMOUNT[i] = DCACHE_AMOUNT[i];
             //ORCS_PRINTF ("DCACHE_AMOUNT[%u] = %u\n", i, ICACHE_AMOUNT[i])
@@ -133,9 +174,9 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
     }
 
     // ORCS_PRINTF ("CACHE_LEVELS = %u\n", CACHE_LEVELS)
-    cache_t **cache = new cache_t *[CACHE_LEVELS];
+    cache_t **cache = new cache_t *[CACHE_LEVELS]();
     for (uint32_t i = 0; i < CACHE_LEVELS; i++) {
-        cache[i] = new cache_t[CACHE_AMOUNT[i]];
+        cache[i] = new cache_t[CACHE_AMOUNT[i]]();
         this->get_cache_info(cache_type, cfg_cache_defs, cache[i], i, CACHE_AMOUNT[i]);
         this->check_cache(CACHE_AMOUNT[i], i);
         for (uint32_t j = 0; j < CACHE_AMOUNT[i]; j++) {
@@ -187,9 +228,9 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_sent_vima(0);
     this->set_sent_vima_cycles(0);
 
-    this->op_count = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof (uint64_t));
-    this->op_max = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof (uint64_t));
-    for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+    this->op_count = new uint64_t[MEMORY_OPERATION_LAST]();
+    this->op_max = new uint64_t[MEMORY_OPERATION_LAST]();
+    for (i = 0; i < MEMORY_OPERATION_LAST; i++){
         this->op_count[i] = 0;
         this->op_max[i] = UINT64_MAX;
     }
@@ -198,15 +239,15 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 
     //Allocate Prefetcher
     if (PREFETCHER_ACTIVE) {
-        this->prefetcher = new prefetcher_t;
+        this->prefetcher = new prefetcher_t();
         this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     }
 }
 
 // Dependending on processor_id, returns its correspondent cache
 void cache_manager_t::generateIndexArray(uint32_t processor_id, int32_t *cache_indexes) {
-    for (uint32_t i = 0; i < POINTER_LEVELS; i++) {
-        cache_indexes[i] = processor_id & (DCACHE_AMOUNT[i] - 1);
+    for (i = 0; i < POINTER_LEVELS; i++) {
+        cache_indexes[i] = (int32_t) processor_id & (DCACHE_AMOUNT[i] - 1);
     }
 }
 
@@ -215,10 +256,10 @@ void cache_manager_t::installCacheLines(memory_package_t* request, int32_t *cach
     // printf("installCacheLines %lu in processor %u\n", request->memory_address, request->processor_id);
     uint32_t i, j;
     uint64_t llc_idx, llc_line;
-    uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS];
-    line_t ***line = new line_t**[NUMBER_OF_PROCESSORS];
+    uint64_t *CACHE_TAGS = new uint64_t[POINTER_LEVELS]();
+    line_t ***line = new line_t**[NUMBER_OF_PROCESSORS]();
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-        line[i] = new line_t*[POINTER_LEVELS];
+        line[i] = new line_t*[POINTER_LEVELS]();
         for (j = 0; j < POINTER_LEVELS; j++) {
             line[i][j] = NULL;
         }
@@ -311,7 +352,7 @@ void cache_manager_t::finishRequest (memory_package_t* request){
 
 void cache_manager_t::install (memory_package_t* request){
     // printf("installCache %lu in processor %u\n", request->memory_address, request->processor_id);
-    int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
+    int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
     this->generateIndexArray(request->processor_id, cache_indexes);
     switch (request->memory_operation){
         case MEMORY_OPERATION_INST:{
@@ -373,7 +414,7 @@ void cache_manager_t::requestCache (memory_package_t* request){
     request->sent_to_cache = true;
     
     uint32_t ttc = 0, latency_request = 0;
-        int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
+        int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
         this->generateIndexArray(request->processor_id, cache_indexes);
         
         switch (request->memory_operation){
@@ -500,7 +541,7 @@ bool cache_manager_t::available (memory_operation_t op){
 }
 
 void cache_manager_t::statistics(uint32_t core_id) {
-    int32_t *cache_indexes = new int32_t[POINTER_LEVELS];
+    int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
     bool close = false;
     FILE *output = stdout;
 	if (orcs_engine.output_file_name != NULL) {

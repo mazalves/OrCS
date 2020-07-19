@@ -44,11 +44,11 @@ void branch_predictor_t::allocate (uint32_t processor_id) {
 	this->processor_id = processor_id;
 
 	uint32_t size  = BTB_ENTRIES/BTB_WAYS;
-    this->btb = new btb_t[size];
+    this->btb = new btb_t[size]();
 	this->index = 0;
 	this->way = 0;
     for (size_t i = 0; i < size; i++) {
-        this->btb[i].btb_entry = new btb_line_t[BTB_WAYS];
+        this->btb[i].btb_entry = new btb_line_t[BTB_WAYS]();
     	std::memset(&this->btb[i].btb_entry[0],0,(BTB_WAYS*sizeof(btb_line_t)));
     }
     switch (this->BRANCH_PREDICTION_METHOD) {

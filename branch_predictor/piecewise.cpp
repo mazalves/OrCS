@@ -35,16 +35,16 @@ void piecewise_t::allocate (uint32_t processor_id) {
     this->processor_id = processor_id;
 
     THETA = ((2.14*(H)) + 20.58);
-    this->W = new int8_t**[N];
+    this->W = new int8_t**[N]();
     for (size_t i = 0; i < N; i++) {
-        this->W[i] = new int8_t*[M];
+        this->W[i] = new int8_t*[M]();
         for (size_t j = 0; j < M; j++) {
-            this->W[i][j] = new int8_t[H+1];
+            this->W[i][j] = new int8_t[H+1]();
             std::memset(&this->W[i][j][0],0,((H+1)*sizeof(int8_t)));
         }
     }
-    this->GA = new uint64_t[M];
-    this->GHR = new uint8_t[H];
+    this->GA = new uint64_t[M]();
+    this->GHR = new uint8_t[H]();
     std::memset(&this->GA[0],0,(M*sizeof(uint64_t)));
     std::memset(&this->GHR[0],0,(H*sizeof(uint8_t)));
     this->saida = 0;

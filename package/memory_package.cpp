@@ -2,10 +2,38 @@
 #include <string>
 
 memory_package_t::memory_package_t() {
+    this->processor_id = 0;                  /// if (read / write) PROCESSOR.ID   else if (write-back / prefetch) CACHE_MEMORY.ID
+    this->opcode_number = 0;                 /// initial opcode number
+    this->opcode_address = 0;                /// initial opcode address
+    this->uop_number = 0;                    /// initial uop number (Instruction == 0)
+    this->memory_address = 0;                /// memory address
+    this->memory_size = 0;                   /// operation size after offset
+
+    status = PACKAGE_STATE_FREE;                  /// package state
+    this->readyAt = 0;                   /// package latency
+    this->born_cycle = 0;                    /// package create time
+       
+    sent_to_cache = false;
+    sent_to_ram = false;
+    is_hive = false;
+    hive_read1 = 0;
+    hive_read2 = 0;
+    hive_write = 0;
+
+    is_vima = false;
+    this->vima_read1 = 0;
+    this->vima_read2 = 0;
+    this->vima_write = 0;
+
+    row_buffer = false;
+    type = DATA;
+    op_count = new uint64_t[MEMORY_OPERATION_LAST]();
     this->latency = 0;
-    this->row_buffer = false;
-    this->op_count = (uint64_t*) malloc (MEMORY_OPERATION_LAST*sizeof(uint64_t));
-    for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++) this->op_count[i] = 0;
+
+    memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
+
+    this->DEBUG = 0;
+    this->MSHR_DEBUG = 0;
 
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
@@ -14,7 +42,7 @@ memory_package_t::memory_package_t() {
 
 memory_package_t::~memory_package_t(){
     vector<memory_request_client_t*>().swap(this->clients);
-    free (op_count);
+    delete[] op_count;
 }
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){

@@ -222,10 +222,22 @@ processor_t::processor_t()
 }
 processor_t::~processor_t()
 {
-	for (size_t i = 0; i < MOB_READ; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_read[i].mem_deps_ptr_array);
-	for (size_t i = 0; i < MOB_WRITE; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_write[i].mem_deps_ptr_array);
-	if (this->get_HAS_HIVE()) for (size_t i = 0; i < MOB_HIVE; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_hive[i].mem_deps_ptr_array);
-	if (this->get_HAS_HIVE()) for (size_t i = 0; i < MOB_VIMA; i++) utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_vima[i].mem_deps_ptr_array);
+	for (size_t i = 0; i < MOB_READ; i++) {
+		utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_read[i].mem_deps_ptr_array);
+	}
+	for (size_t i = 0; i < MOB_WRITE; i++) {
+		utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_write[i].mem_deps_ptr_array);
+	}
+	if (this->get_HAS_HIVE()) {
+		for (size_t i = 0; i < MOB_HIVE; i++) {
+			utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_hive[i].mem_deps_ptr_array);
+		}
+	}
+	if (this->get_HAS_VIMA()) {
+		for (size_t i = 0; i < MOB_VIMA; i++) {
+			utils_t::template_delete_array<memory_order_buffer_line_t *>(this->memory_order_buffer_vima[i].mem_deps_ptr_array);
+		}
+	}
 	//Memory structures
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_read);
 	utils_t::template_delete_array<memory_order_buffer_line_t>(this->memory_order_buffer_write);
@@ -275,11 +287,11 @@ uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &c
     libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
     uint32_t N_CACHES = cfg_caches.getLength();
 
-	ASSOCIATIVITY = new uint32_t[N_CACHES];
-	LATENCY = new uint32_t[N_CACHES];
-	SIZE = new uint32_t[N_CACHES];
-	SETS = new uint32_t[N_CACHES];
-	LEVEL = new uint32_t[N_CACHES];
+	ASSOCIATIVITY = new uint32_t[N_CACHES]();
+	LATENCY = new uint32_t[N_CACHES]();
+	SIZE = new uint32_t[N_CACHES]();
+	SETS = new uint32_t[N_CACHES]();
+	LEVEL = new uint32_t[N_CACHES]();
 
 	// Get information of each instruction cache
 	for (uint32_t i = 0; i < N_CACHES; i++) {
@@ -882,7 +894,7 @@ void processor_t::fetch(){
 		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %u fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 
 		//if (!updated){
-			memory_package_t* request = new memory_package_t;
+			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (fetchBuffer.back());
 			request->processor_id = this->processor_id;
@@ -2288,7 +2300,7 @@ uint32_t processor_t::mob_read(){
 		}
 		
 		if (!oldest_read_to_send->sent){
-			memory_package_t* request = new memory_package_t;
+			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (oldest_read_to_send);
 			request->opcode_address = oldest_read_to_send->opcode_address;
@@ -2395,7 +2407,7 @@ uint32_t processor_t::mob_hive(){
 	
 	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (oldest_hive_to_send->memory_operation)){
 		if (!this->oldest_hive_to_send->sent){
-			memory_package_t* request = new memory_package_t;
+			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (oldest_hive_to_send);
 			request->opcode_address = oldest_hive_to_send->opcode_address;
@@ -2437,7 +2449,7 @@ uint32_t processor_t::mob_vima(){
 	}
 	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (oldest_vima_to_send->memory_operation)){
 		if (!this->oldest_vima_to_send->sent){
-			memory_package_t* request = new memory_package_t;
+			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (oldest_vima_to_send);
 			request->opcode_address = oldest_vima_to_send->opcode_address;
@@ -2528,7 +2540,7 @@ uint32_t processor_t::mob_write(){
 
 		//sendind to write data
 		if (!this->oldest_write_to_send->sent){
-			memory_package_t* request = new memory_package_t;
+			memory_package_t* request = new memory_package_t();
 			
 			//request->clients.push_back (oldest_write_to_send);
 			request->opcode_address = oldest_write_to_send->opcode_address;
@@ -2801,7 +2813,7 @@ void processor_t::statistics(){
 		utils_t::largestSeparator(output);
 		fprintf(output, "Instruction_Per_Cycle: %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
 		// accessing LLC cache level
-		int32_t *cache_indexes = new int32_t[3];
+		int32_t *cache_indexes = new int32_t[3]();
 		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
 		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());

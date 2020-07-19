@@ -70,11 +70,8 @@ void memory_controller_t::allocate(){
     set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
     
-    this->channels = (memory_channel_t*) malloc (this->CHANNEL*sizeof (memory_channel_t));
-    std::memset (this->channels, 0, this->CHANNEL*sizeof (memory_channel_t));
-
+    this->channels = new memory_channel_t[CHANNEL]();
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].allocate();
-
     for (i = 0; i < CHANNEL; i++){
         channels[i].set_TIMING_AL (ceil (this->TIMING_AL * this->CORE_TO_BUS_CLOCK_RATIO));
         channels[i].set_TIMING_CAS (ceil (this->TIMING_CAS * this->CORE_TO_BUS_CLOCK_RATIO));

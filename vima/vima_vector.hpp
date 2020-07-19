@@ -3,10 +3,8 @@ class vima_vector_t {
         memory_package_t* sub_requests;
         uint32_t no_sub_requests;
         uint32_t sub_ready;
-        uint32_t last_ready;
         uint64_t address;
         uint64_t sub_req_offset;
-        const char* label;
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;
@@ -28,7 +26,6 @@ class vima_vector_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t,no_sub_requests)
         INSTANTIATE_GET_SET_ADD (uint64_t,address)
-        INSTANTIATE_GET_SET_ADD (const char*,label)
         INSTANTIATE_GET_SET_ADD (uint64_t,tag)
         INSTANTIATE_GET_SET_ADD (uint64_t,lru)
 

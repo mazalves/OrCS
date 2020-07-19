@@ -19,7 +19,7 @@ void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
     this->set_latePrefetches(0);
     this->set_totalCycleLate(0);
     //#if STRIDE
-        this->prefetcher = new stride_prefetcher_t;
+        this->prefetcher = new stride_prefetcher_t();
         this->prefetcher->allocate(NUMBER_OF_PROCESSORS);
     //#endif  
     // List of cycle completation prefetchs. Allows control issue prefetchers

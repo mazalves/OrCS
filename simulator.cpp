@@ -70,7 +70,7 @@ static uint32_t process_argv(int argc, char **argv) {
         ORCS_PRINTF("\n");
     }
 
-    orcs_engine.configuration = new configure_t;
+    orcs_engine.configuration = new configure_t();
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     uint32_t NUMBER_OF_PROCESSORS = cfg_root["PROCESSOR"].getLength();
 
@@ -320,21 +320,17 @@ int main(int argc, char **argv) {
 
     ORCS_PRINTF("Deleting Trace Reader\n")
     delete[] orcs_engine.trace_reader;
-    //delete orcs_engine.configuration;
+    delete orcs_engine.configuration;
+    ORCS_PRINTF("Deleting Memory Controller\n")
+    delete orcs_engine.memory_controller;
     ORCS_PRINTF("Deleting Branch predictor\n")
     delete[] orcs_engine.branchPredictor;
     ORCS_PRINTF("Deleting Cache manager\n")
     delete orcs_engine.cacheManager;
-    if (orcs_engine.processor->get_HAS_HIVE()){
-        ORCS_PRINTF("Deleting HIVE Controller\n")
-        delete orcs_engine.hive_controller;
-    } 
-    if (orcs_engine.processor->get_HAS_VIMA()){
-        ORCS_PRINTF ("Deleting VIMA Controller\n")
-        delete orcs_engine.vima_controller;
-    }
-    ORCS_PRINTF("Deleting Memory Controller\n")
-    delete orcs_engine.memory_controller;
+    ORCS_PRINTF("Deleting HIVE Controller\n")
+    delete orcs_engine.hive_controller;
+    ORCS_PRINTF ("Deleting VIMA Controller\n")
+    delete orcs_engine.vima_controller;
     ORCS_PRINTF("Deleting Processor\n")
     delete[] orcs_engine.processor;
 }

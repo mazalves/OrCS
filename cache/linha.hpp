@@ -37,9 +37,9 @@ class line_t {
 
         void allocate(uint32_t POINTER_LEVELS) {
             set_POINTER_LEVELS(POINTER_LEVELS);
-            this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS];
+            this->line_ptr_caches = new line_t**[NUMBER_OF_PROCESSORS]();
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
-                this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS];
+                this->line_ptr_caches[i] = new line_t*[POINTER_LEVELS]();
             }
         }
 

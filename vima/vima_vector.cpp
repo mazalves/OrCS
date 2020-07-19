@@ -5,7 +5,6 @@ vima_vector_t::vima_vector_t(){
     sub_requests = NULL;
     this->no_sub_requests = 0;
     this->sub_ready = 0;
-    this->last_ready = 0;
     this->address = 0;
     this->sub_req_offset = 0;
 
@@ -20,7 +19,7 @@ vima_vector_t::vima_vector_t(){
     this->set = false;
 }
 vima_vector_t::~vima_vector_t(){
-    free (sub_requests);
+    delete[] sub_requests;
 }
 
 void vima_vector_t::print_vector(){
@@ -50,7 +49,7 @@ void vima_vector_t::clock() {
                     }
                 }
                 if (sub_ready >= no_sub_requests) {
-                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu %s WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle(), label)
+                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle())
                     status = PACKAGE_STATE_WAIT;
                 }
             } else {
@@ -85,7 +84,7 @@ void vima_vector_t::clock() {
                 }
             }
             if (sub_ready >= no_sub_requests) {
-                if (VIMA_DEBUG) ORCS_PRINTF ("%lu %s %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), label, address)
+                if (VIMA_DEBUG) ORCS_PRINTF ("%lu %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), address)
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
                 status = PACKAGE_STATE_READY;
@@ -114,11 +113,7 @@ void vima_vector_t::allocate() {
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
-    this->sub_requests = (memory_package_t*) malloc (get_no_sub_requests()*sizeof (memory_package_t));
-    std::memset ((void *)this->sub_requests, 0, get_no_sub_requests()*sizeof(memory_package_t));
-
-    this->label = (const char*) malloc (127*sizeof(const char));
-    //std::memset (this->label, 0, 127*sizeof(const char));
+    this->sub_requests = new memory_package_t[get_no_sub_requests()]();
 
     for (size_t i = 0; i < get_no_sub_requests(); i++) {
         sub_requests[i].is_vima = true;
@@ -127,7 +122,6 @@ void vima_vector_t::allocate() {
 
     status = PACKAGE_STATE_FREE;
     sub_ready = no_sub_requests;
-    last_ready = 0;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
     set = false;
     lru = 0;

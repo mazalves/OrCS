@@ -12,7 +12,7 @@ void stride_prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     set_DISTANCE(cfg_prefetcher["DISTANCE"]);
 
     set_STRIDE_TABLE_SIZE (NUMBER_OF_PROCESSORS * 32);
-    this->stride_table = new stride_table_t[STRIDE_TABLE_SIZE];
+    this->stride_table = new stride_table_t[STRIDE_TABLE_SIZE]();
 }
 
 inline uint32_t stride_prefetcher_t::searchLRU() {

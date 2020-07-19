@@ -22,6 +22,12 @@ memory_channel_t::memory_channel_t(){
     this->stat_row_buffer_hit = 0;
     this->stat_row_buffer_miss = 0;
 
+    bank_is_ready = NULL;
+    bank_last_row = NULL;
+    bank_is_drain_write = NULL;
+    bank_last_command_cycle = NULL;      /// Cycle of the Last command sent to each bank
+    channel_last_command_cycle = NULL;      /// Cycle of the last command type
+    
     this->latency_burst = 0;
     this->i = 0;
     this->RANK = 0;
@@ -51,19 +57,16 @@ memory_channel_t::memory_channel_t(){
 }
 
 memory_channel_t::~memory_channel_t(){
-    utils_t::template_delete_array<uint64_t>(this->bank_last_row);
-    utils_t::template_delete_array<memory_controller_command_t>(this->bank_last_command);
-    utils_t::template_delete_matrix<uint64_t>(this->bank_last_command_cycle, this->BANK);
-    utils_t::template_delete_array<uint64_t>(this->channel_last_command_cycle);
-    utils_t::template_delete_array<bool>(this->bank_is_ready);
-    utils_t::template_delete_array<bool>(this->bank_is_drain_write);
-
-    for (size_t i = 0; i < this->BANK; i++){
-        vector<memory_package_t*>().swap(this->bank_read_requests[i]);  
-        vector<memory_package_t*>().swap(this->bank_write_requests[i]);  
-    }
-    free (this->bank_read_requests);
-    free (this->bank_write_requests);
+    delete[] this->bank_last_row;
+    delete[] this->bank_last_command;
+    for (i = 0; i < this->BANK; i++) delete[] this->bank_last_command_cycle[i];
+    delete[] this->bank_last_command_cycle;
+    delete[] this->channel_last_command_cycle;
+    delete[] this->bank_is_ready;
+    delete[] this->bank_is_drain_write;
+    
+    delete[] this->bank_read_requests;
+    delete[] this->bank_write_requests;
 }
 
 void memory_channel_t::allocate() {
@@ -97,23 +100,16 @@ void memory_channel_t::allocate() {
     set_latency_burst (LINE_SIZE/BURST_WIDTH);
 
     this->bank_last_transmission = 0;
-    this->bank_is_ready = (bool*) malloc (this->BANK*sizeof(bool));
-    std::memset (this->bank_is_ready, 0, this->BANK);
-    this->bank_last_row = (uint64_t*) malloc (this->BANK*sizeof(uint64_t));
-    std::memset (this->bank_last_row, 0, this->BANK);
-    this->bank_is_drain_write = (bool*) malloc (this->BANK*sizeof(bool));
-    std::memset (this->bank_is_drain_write, false, this->BANK);
-    this->bank_last_command = (memory_controller_command_t*) malloc (MEMORY_CONTROLLER_COMMAND_ROW_ACCESS*sizeof(memory_controller_command_t));
-    std::memset(this->bank_last_command, 1, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS);
-    this->channel_last_command_cycle = (uint64_t*) malloc (this->BANK*sizeof(uint64_t));
-    std::memset (this->channel_last_command_cycle, 0, this->BANK);
-    this->bank_last_command_cycle = utils_t::template_allocate_initialize_matrix<uint64_t>(this->BANK, 5, 0);
+    this->bank_is_ready = new bool[BANK]();
+    this->bank_is_drain_write = new bool[BANK]();
+    this->bank_last_row = new uint64_t[BANK]();
+    this->bank_last_command = new memory_controller_command_t[BANK]();
+    this->channel_last_command_cycle = new uint64_t[BANK]();
+    this->bank_last_command_cycle = new uint64_t*[BANK]();
+    for (i = 0; i < BANK; i++) this->bank_last_command_cycle[i] = new uint64_t[5]();
 
-    this->bank_read_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
-    std::memset((void *)this->bank_read_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
-    this->bank_write_requests = (std::vector<memory_package_t*>*) malloc (this->BANK*sizeof (std::vector<memory_package_t*>));
-    std::memset((void *)this->bank_write_requests,0,(this->BANK*sizeof(std::vector<memory_package_t*>)));
-
+    this->bank_read_requests = new std::vector<memory_package_t*>[BANK]();
+    this->bank_write_requests = new std::vector<memory_package_t*>[BANK]();
     this->set_masks();
 }
 

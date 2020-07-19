@@ -70,9 +70,9 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
         this->tag_bits_mask |= 1 << i;
     }
 	
-	this->sets = new cacheSet_t[this->n_sets];
+	this->sets = new cacheSet_t[this->n_sets]();
     for (size_t i = 0; i < this->n_sets; i++) {
-		this->sets[i].lines = new line_t[this->associativity];
+		this->sets[i].lines = new line_t[this->associativity]();
 		this->sets[i].n_lines = this->associativity;
         for (uint32_t j = 0; j < this->sets[i].n_lines; j++) {
             this->sets[i].lines[j].allocate(POINTER_LEVELS);

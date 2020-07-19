@@ -5,6 +5,7 @@ using namespace std;
 class cache_manager_t {
 
     private:
+        uint64_t i;
         uint64_t reads;
         uint64_t read_miss;
         uint64_t read_hit;

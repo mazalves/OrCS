@@ -1,14 +1,17 @@
 #include "../simulator.hpp"
 
 configure_t::configure_t(){
+    cfg = new libconfig::Config();
     loadConfig();
 }
 
-configure_t::~configure_t()=default;
+configure_t::~configure_t() {
+    delete cfg;
+}
 
 void configure_t::loadConfig(){
     try {
-        cfg.readFile (orcs_engine.config_file);
+        cfg->readFile (orcs_engine.config_file);
     } catch (const libconfig::FileIOException &fioex){
         std::cerr << "I/O error while reading file." << std::endl;
     } catch (const libconfig::ParseException &pex){
@@ -17,6 +20,6 @@ void configure_t::loadConfig(){
 }
 
 libconfig::Setting &configure_t::getConfig(){
-    libconfig::Setting &cfg_root = cfg.getRoot();
+    libconfig::Setting &cfg_root = cfg->getRoot();
     return cfg_root;
 }

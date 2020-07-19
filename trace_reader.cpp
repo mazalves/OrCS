@@ -91,7 +91,7 @@ void trace_reader_t::allocate(char *trace_file) {
 	this->get_total_bbls();
 
 	/// Allocate the vector of BBL sizes
-	this->binary_bbl_size = new uint32_t[this->binary_total_bbls];
+	this->binary_bbl_size = new uint32_t[this->binary_total_bbls]();
 	ERROR_ASSERT_PRINTF(this->binary_bbl_size != NULL, "Could not allocate memory\n");
 	/// Initialize
 	for (uint32_t bbl = 0; bbl < this->binary_total_bbls; bbl++) {
@@ -102,7 +102,7 @@ void trace_reader_t::allocate(char *trace_file) {
 	this->define_binary_bbl_size();
 
 	/// Create the opcode for each BBL
-	this->binary_dict = new opcode_package_t*[this->binary_total_bbls];
+	this->binary_dict = new opcode_package_t*[this->binary_total_bbls]();
 	ERROR_ASSERT_PRINTF(this->binary_dict != NULL, "Could not allocate memory\n");
 	for (uint32_t bbl = 1; bbl < this->binary_total_bbls; bbl++) {
 		this->binary_dict[bbl] = new opcode_package_t[this->binary_bbl_size[bbl]];

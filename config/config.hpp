@@ -1,6 +1,6 @@
 class configure_t {
     private:
-        libconfig::Config cfg;
+        libconfig::Config* cfg;
 
     public:
         configure_t();
