@@ -18,13 +18,18 @@ cache_t::cache_t() {
     this->cache_write = 0;
     this->cache_writeback = 0;
     this->change_line = 0;
+
+	this->LINE_SIZE = 0;
+    this->PREFETCHER_ACTIVE = 0;
+    this->INSTRUCTION_LEVELS = 0;
+    this->DATA_LEVELS = 0;
+    this->POINTER_LEVELS = 0;
+    this->CACHE_MANAGER_DEBUG = 0;
+    this->WAIT_CYCLE = 0;
 }
 
 cache_t::~cache_t(){
 	if (orcs_engine.get_global_cycle() == 0) return;
-	for (size_t i = 0; i < this->n_sets; i++) {
-		delete[] this->sets[i].lines;
-    }
 	delete[] sets;
 	//ORCS_PRINTF ("cycle: %lu\n", orcs_engine.get_global_cycle())
 }
@@ -92,6 +97,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
     this->set_cache_read(0);
     this->set_cache_write(0);
     this->set_cache_writeback(0);
+	this->set_change_line(0);
 }
 
 // Return address index in cache

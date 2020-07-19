@@ -17,14 +17,6 @@ class cache_t {
         void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb, uint32_t processor_id);
         void copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id);
 
-        uint64_t cacheHit;
-        uint64_t cacheMiss;
-        uint64_t cacheAccess;
-        uint64_t cacheRead;
-        uint64_t cacheWrite;
-        uint64_t cacheWriteBack;
-        uint64_t changeLine;
-
         uint64_t offset_bits_shift;
         uint64_t index_bits_shift;
         uint64_t tag_bits_shift;

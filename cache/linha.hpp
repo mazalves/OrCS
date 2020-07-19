@@ -28,7 +28,7 @@ class line_t {
         ~line_t() {
             for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++) {
                 for (uint32_t j = 0; j < POINTER_LEVELS; j++) {
-                    //free (line_ptr_caches[i][j]);
+                    delete line_ptr_caches[i][j];
                 }
                 delete[] line_ptr_caches[i];
             }
@@ -50,6 +50,8 @@ class line_t {
             this->prefetched = 0;
             this->valid = 0;
             this->ready_at = 0;
+
+            this->POINTER_LEVELS = 0;
         }
 
         void print_line(){

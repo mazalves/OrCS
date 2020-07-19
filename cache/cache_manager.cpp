@@ -2,7 +2,7 @@
 
 // Constructor
 cache_manager_t::cache_manager_t() {
-    i = 0;
+    this->i = 0;
 
     this->reads = 0;
     this->read_miss = 0;
@@ -12,8 +12,8 @@ cache_manager_t::cache_manager_t() {
     this->write_hit = 0;
     this->offset = 0;
     this->mshr_index = 0;
-    op_count = NULL;
-    op_max = NULL;
+    this->op_count = NULL;
+    this->op_max = NULL;
 
     this->sent_ram = 0;
     this->sent_ram_cycles = 0;
