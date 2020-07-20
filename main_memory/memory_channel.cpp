@@ -169,6 +169,7 @@ void memory_channel_t::set_masks(){
 
 void memory_channel_t::addRequest (memory_package_t* request){
     uint64_t bank = this->get_bank(request->memory_address);
+    //ORCS_PRINTF ("New DRAM request! row: %lu | bank: %lu | channel: %lu | column: %lu\n", get_row (request->memory_address), get_bank (request->memory_address), get_channel (request->memory_address), get_column (request->memory_address))
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_INST:
@@ -222,7 +223,7 @@ memory_package_t* memory_channel_t::findNextRead (uint32_t bank){
             break;
         }
         case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST:{
-            for (size_t i = 0; i < bank_read_requests[bank].size(); i++){
+            for (i = 0; i < bank_read_requests[bank].size(); i++){
                 if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->memory_address)){
                     return bank_read_requests[bank][i];
                 }

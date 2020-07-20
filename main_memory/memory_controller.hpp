@@ -15,9 +15,27 @@ class memory_controller_t{
         uint64_t row_buffer_miss; //Counter row buffer misses
         uint64_t row_buffer_hit; //Counter row buffer hits
 
+        // =================================================
+        // attr DRAM
+        // =================================================
         uint64_t channel_bits_mask;
-        uint64_t channel_bits_shift;
+        uint64_t rank_bits_mask;
+        uint64_t bank_bits_mask;
+        uint64_t row_bits_mask;
+        uint64_t colrow_bits_mask;
+        uint64_t colbyte_bits_mask;
+        uint64_t not_column_bits_mask;
         
+        // Shifts bits
+        uint64_t channel_bits_shift;
+        uint64_t colbyte_bits_shift;
+        uint64_t colrow_bits_shift;
+        uint64_t bank_bits_shift;
+        uint64_t row_bits_shift;
+        uint64_t controller_bits_shift;
+        
+        uint32_t BANK;
+        uint32_t BANK_ROW_BUFFER_SIZE;
         uint32_t CHANNEL;
         uint32_t WAIT_CYCLE;
         uint32_t LINE_SIZE;
@@ -52,8 +70,21 @@ class memory_controller_t{
         // ==========================================================================
         void allocate();    //Aloca recursos do Memory Controller
         // Get channel to access DATA
+        // Get channel to access DATA
+        inline uint64_t get_column(uint64_t addr) {
+            return (addr & this->colrow_bits_mask) >> this->colrow_bits_shift;
+        }
+
         inline uint64_t get_channel(uint64_t addr) {
             return (addr & this->channel_bits_mask) >> this->channel_bits_shift;
+        }
+
+        inline uint64_t get_bank(uint64_t addr) {
+            return (addr & this->bank_bits_mask) >> this->bank_bits_shift;
+        }
+        //get row accessed
+        inline uint64_t get_row(uint64_t address){
+            return (address & this->not_column_bits_mask);
         }
 
         // ==========================================================================
@@ -74,6 +105,8 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint64_t,row_buffer_hit)
         
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
+        INSTANTIATE_GET_SET_ADD(uint32_t,BANK)
+        INSTANTIATE_GET_SET_ADD(uint32_t,BANK_ROW_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t,CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
         INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)

@@ -12,7 +12,20 @@ memory_controller_t::memory_controller_t(){
     this->row_buffer_hit = 0;
 
     this->channel_bits_mask = 0;
+    this->rank_bits_mask = 0;
+    this->bank_bits_mask = 0;
+    this->row_bits_mask = 0;
+    this->colrow_bits_mask = 0;
+    this->colbyte_bits_mask = 0;
+    this->not_column_bits_mask = 0;
+        
+    // Shifts bits
     this->channel_bits_shift = 0;
+    this->colbyte_bits_shift = 0;
+    this->colrow_bits_shift = 0;
+    this->bank_bits_shift = 0;
+    this->row_bits_shift = 0;
+    this->controller_bits_shift = 0;
         
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
@@ -51,6 +64,8 @@ void memory_controller_t::allocate(){
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     
     set_DEBUG (cfg_processor["DEBUG"]);
+    set_BANK (cfg_memory_ctrl["BANK"]);
+    set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
@@ -121,20 +136,56 @@ void memory_controller_t::clock(){
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
 }
 // ============================================================================
-void memory_controller_t::set_masks(){
-        
+void memory_controller_t::set_masks(){ 
     ERROR_ASSERT_PRINTF(CHANNEL > 1 && utils_t::check_if_power_of_two(CHANNEL),"Wrong number of memory_channels (%u).\n",CHANNEL);
-    // =======================================================
-    // Setting to zero
-    // =======================================================
-    this->channel_bits_shift = 0;
-    this->channel_bits_mask = 0;
-    // =======================================================
-    this->channel_bits_shift = utils_t::get_power_of_two(LINE_SIZE);
     
+    this->channel_bits_shift=0;
+    this->colbyte_bits_shift=0;
+    this->colrow_bits_shift=0;
+    
+    this->bank_bits_shift=0;
+    this->row_bits_shift=0;
+    this->colbyte_bits_shift = 0;
+
+    this->channel_bits_mask = 0;
+    this->bank_bits_mask = 0;
+    this->rank_bits_mask = 0;
+    this->row_bits_mask = 0;
+    this->colrow_bits_mask = 0;
+    this->colbyte_bits_mask = 0;
+    // =======================================================
+    this->controller_bits_shift = 0;
+    this->colbyte_bits_shift = 0;
+    this->colrow_bits_shift = utils_t::get_power_of_two(this->LINE_SIZE);
+    this->channel_bits_shift = utils_t::get_power_of_two(this->BANK_ROW_BUFFER_SIZE);
+    this->bank_bits_shift = this->channel_bits_shift + utils_t::get_power_of_two(this->CHANNEL);
+    this->row_bits_shift = this->bank_bits_shift + utils_t::get_power_of_two(this->BANK);
+    
+    /// COLBYTE MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->LINE_SIZE); i++) {
+        this->colbyte_bits_mask |= 1 << (i + this->colbyte_bits_shift);
+    }
+
+    /// COLROW MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK_ROW_BUFFER_SIZE / this->LINE_SIZE); i++) {
+        this->colrow_bits_mask |= 1 << (i + this->colrow_bits_shift);
+    }
+
+    this->not_column_bits_mask = ~(colbyte_bits_mask | colrow_bits_mask);
+
     /// CHANNEL MASK
-    for (i = 0; i < utils_t::get_power_of_two(CHANNEL); i++) {
-        this->channel_bits_mask |= 1 << (i + this->channel_bits_shift);
+    for (i = 0; i < utils_t::get_power_of_two(this->CHANNEL); i++) {
+        this->channel_bits_mask |= 1 << (i + channel_bits_shift);
+    }
+
+    /// BANK MASK
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {
+        this->bank_bits_mask |= 1 << (i + bank_bits_shift);
+    }
+
+    /// ROW MASK
+    for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
+        this->row_bits_mask |= 1 << i;
     }
 }
 //=====================================================================

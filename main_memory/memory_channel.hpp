@@ -69,6 +69,10 @@ class memory_channel_t {
         write_priority_t WRITE_PRIORITY;
         
         // Get channel to access DATA
+        inline uint64_t get_column(uint64_t addr) {
+            return (addr & this->colrow_bits_mask) >> this->colrow_bits_shift;
+        }
+
         inline uint64_t get_channel(uint64_t addr) {
             return (addr & this->channel_bits_mask) >> this->channel_bits_shift;
         }
