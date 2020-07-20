@@ -43,9 +43,9 @@ cache_manager_t::cache_manager_t() {
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
-    for (size_t i = 0; i < this->requests.size(); i++){
-        delete requests[i];
-    }
+    for (i = 0; i < this->requests.size(); i++) delete requests[i];
+    for (i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] this->op_count[i];
+    delete[] op_count;
 
     for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) delete[] instruction_cache[i];
     for (uint32_t i = 0; i < DATA_LEVELS; i++) delete[] data_cache[i];
@@ -57,7 +57,6 @@ cache_manager_t::~cache_manager_t() {
     delete[] instruction_cache;
 
     delete[] op_max;
-    delete[] op_count;
 
     std::vector<memory_package_t *>().swap(requests);
 }
@@ -190,7 +189,7 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
 void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     // Access configure file
     set_NUMBER_OF_PROCESSORS(NUMBER_OF_PROCESSORS);
-
+    
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     set_DEBUG (cfg_processor["DEBUG"]);
@@ -228,12 +227,13 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_sent_vima(0);
     this->set_sent_vima_cycles(0);
 
-    this->op_count = new uint64_t[MEMORY_OPERATION_LAST]();
-    this->op_max = new uint64_t[MEMORY_OPERATION_LAST]();
-    for (i = 0; i < MEMORY_OPERATION_LAST; i++){
-        this->op_count[i] = 0;
-        this->op_max[i] = UINT64_MAX;
+    this->op_count = new uint64_t*[NUMBER_OF_PROCESSORS]();
+    for (i = 0; i < NUMBER_OF_PROCESSORS; i++){
+        this->op_count[i] = new uint64_t[MEMORY_OPERATION_LAST]();
     }
+    
+    this->op_max = new uint64_t[MEMORY_OPERATION_LAST]();
+    for (i = 0; i < MEMORY_OPERATION_LAST; i++) this->op_max[i] = UINT64_MAX;
     op_max[MEMORY_OPERATION_READ] = this->get_MAX_PARALLEL_REQUESTS_CORE();
     op_max[MEMORY_OPERATION_WRITE] = this->get_MAX_PARALLEL_REQUESTS_CORE();
 
@@ -325,7 +325,7 @@ void cache_manager_t::print_requests(){
 
 void cache_manager_t::finishRequest (memory_package_t* request){
     for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++){
-        op_count[i] = op_count[i] - request->op_count[i];
+        this->op_count[request->processor_id][i] = this->op_count[request->processor_id][i] - request->op_count[i];
     }
 
     if (request->sent_to_ram && !request->is_hive && !request->is_vima){
@@ -383,8 +383,8 @@ void cache_manager_t::install (memory_package_t* request){
 }
 
 bool cache_manager_t::searchData(memory_package_t *request) {
-    if (op_count[request->memory_operation] >= op_max[request->memory_operation]) return false;
-    op_count[request->memory_operation]++;
+    if (op_count[request->processor_id][request->memory_operation] >= op_max[request->memory_operation]) return false;
+    op_count[request->processor_id][request->memory_operation]++;
     
     if (request->memory_operation == MEMORY_OPERATION_READ) this->add_reads();
     else if (request->memory_operation == MEMORY_OPERATION_WRITE) this->add_writes();
@@ -536,8 +536,8 @@ cache_status_t cache_manager_t::recursiveDataWrite(memory_package_t *request, in
     return recursiveDataWrite(request, cache_indexes, latency_request, ttc, cache_level + 1, cache_type);
 }
 
-bool cache_manager_t::available (memory_operation_t op){
-    return op_count[op] < op_max[op];
+bool cache_manager_t::available (uint32_t processor_id, memory_operation_t op){
+    return op_count[processor_id][op] < op_max[op];
 }
 
 void cache_manager_t::statistics(uint32_t core_id) {
@@ -551,8 +551,6 @@ void cache_manager_t::statistics(uint32_t core_id) {
 	if (output != NULL) {
         utils_t::largestSeparator(output);
         fprintf(output,"##############  Cache Memories ##################\n");
-        for (uint64_t i = 0; i < MEMORY_OPERATION_LAST; i++) ORCS_PRINTF ("%lu ", op_count[i]);
-        ORCS_PRINTF ("\n")
         if (this->get_sent_ram() > 0) {
             ORCS_PRINTF ("Total Reads: %lu\nTotal Writes: %lu\n", this->get_reads(), this->get_writes())
             ORCS_PRINTF ("Total RAM requests: %u\nTotal RAM request latency cycles: %u\n", this->get_sent_ram(), this->get_sent_ram_cycles())

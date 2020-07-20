@@ -170,6 +170,28 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "OrCS debug, avx512 1 core",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/orcs",
+            "args": [
+                "-t", "~/Experiment/benchmarks/traces/avx512_O2/memset.1MB.1t",
+                "-c", "configuration_files/sandy_bridge.cfg"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

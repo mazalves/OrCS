@@ -143,6 +143,17 @@ processor_t::processor_t()
 
 	this->LINE_SIZE = 0;
 	this->DATA_CACHES = 0;
+	this->DATA_SIZE = NULL;
+	this->DATA_ASSOCIATIVITY = NULL;
+	this->DATA_LATENCY = NULL;
+	this->DATA_SETS = NULL;
+	this->DATA_LEVEL = NULL;
+	// I$
+	this->INST_SIZE = NULL;
+	this->INST_ASSOCIATIVITY = NULL;
+	this->INST_LATENCY = NULL;
+	this->INST_SETS = NULL;
+	this->INST_LEVEL = NULL;
 	// I$
 	this->INSTRUCTION_CACHES = 0;
 	this->RAM_LATENCY = 0;
@@ -2291,7 +2302,7 @@ uint32_t processor_t::mob_read(){
 				}
 			}
 	}
-	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (oldest_read_to_send->memory_operation)){
+	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (this->processor_id, oldest_read_to_send->memory_operation)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
@@ -2407,7 +2418,7 @@ uint32_t processor_t::mob_hive(){
 	if(this->oldest_hive_to_send==NULL)
 		this->oldest_hive_to_send = this->get_next_op_hive();
 	
-	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (oldest_hive_to_send->memory_operation)){
+	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_hive_to_send->memory_operation)){
 		if (!this->oldest_hive_to_send->sent){
 			memory_package_t* request = new memory_package_t();
 			
@@ -2449,7 +2460,7 @@ uint32_t processor_t::mob_vima(){
 	if(this->oldest_vima_to_send==NULL){
 		this->oldest_vima_to_send = this->get_next_op_vima();
 	}
-	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (oldest_vima_to_send->memory_operation)){
+	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_vima_to_send->memory_operation)){
 		if (!this->oldest_vima_to_send->sent){
 			memory_package_t* request = new memory_package_t();
 			
@@ -2530,7 +2541,7 @@ uint32_t processor_t::mob_write(){
 			}
 		}
 	}
-	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (oldest_write_to_send->memory_operation)){
+	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_write_to_send->memory_operation)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
