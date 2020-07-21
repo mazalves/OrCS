@@ -12,6 +12,7 @@ vima_controller_t::vima_controller_t(){
 
     this->cache = NULL;
     this->vima_op_latencies = NULL;
+    this->current_cache_access_latency = 0;
 
     this->index_bits_mask = 0;
     this->index_bits_shift = 0;
@@ -79,6 +80,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
     uint64_t lru_cycle = UINT64_MAX;
     uint32_t lru_way = 0;
     uint32_t index = 0;
+    this->current_cache_access_latency += this->get_VIMA_CACHE_LATENCY();
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
         for (uint32_t i = 0; i < get_lines(); i++){
             if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
@@ -216,7 +218,8 @@ void vima_controller_t::check_cache(){
         }
     }
 
-    if (vima_buffer[0]->status != PACKAGE_STATE_WAIT) vima_buffer[0]->updatePackageWait(vima_op_latencies[vima_buffer[0]->memory_operation]);
+    if (vima_buffer[0]->status != PACKAGE_STATE_WAIT) vima_buffer[0]->updatePackageWait(vima_op_latencies[vima_buffer[0]->memory_operation] + this->current_cache_access_latency);
+    this->current_cache_access_latency = 0;
 
     if (vima_buffer[0]->vima_write != 0){
         if (write == NULL || !write->set) {
