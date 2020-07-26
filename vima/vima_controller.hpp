@@ -35,6 +35,7 @@ class vima_controller_t {
         uint64_t cache_writebacks;
 
         uint64_t i;
+        uint64_t current_index;
 
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
@@ -53,13 +54,11 @@ class vima_controller_t {
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_writebacks)
         
         void print_vima_instructions();
-        void check_cache();
-        void install_cache (vima_vector_t* vector);
+        void check_cache (int index);
         vima_vector_t* search_cache (uint64_t address);
-        void process_vector (vima_vector_t* address);
-        void set_up_vectors();
-        void execute();
-
+        void check_completion (int index);
+        void write_to_cache (int index);
+        
         // Get channel to access DATA
         inline uint64_t get_index(uint64_t addr) {
             return (addr & this->index_bits_mask) >> this->index_bits_shift;

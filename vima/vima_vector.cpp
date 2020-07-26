@@ -16,7 +16,6 @@ vima_vector_t::vima_vector_t(){
     this->tag = 0;
     this->lru = 0;
     this->dirty = false;
-    this->set = false;
 }
 vima_vector_t::~vima_vector_t(){
     delete[] sub_requests;

@@ -15,7 +15,6 @@ class vima_vector_t {
         uint64_t tag;
         uint64_t lru;
         bool dirty;
-        bool set;
         
         vima_vector_t();
         ~vima_vector_t();

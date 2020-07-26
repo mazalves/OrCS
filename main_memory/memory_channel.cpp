@@ -260,6 +260,7 @@ void memory_channel_t::clock(){
     if (current_entry != NULL) {
         bank = this->get_bank(current_entry->memory_address);
         row = this->get_row(current_entry->memory_address);
+        //if (current_entry->is_vima) ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
         
         if (!bank_is_ready[bank]){
             switch (bank_last_command[bank]){

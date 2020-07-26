@@ -115,6 +115,7 @@ void memory_controller_t::statistics(){
 		output = fopen(orcs_engine.output_file_name,"a+");
     }
 	if (output != NULL){
+        uint32_t total_rb_hits = 0, total_rb_misses = 0;
         utils_t::largestSeparator(output);
         fprintf(output,"#Memory Controller\n");
         utils_t::largestSeparator(output);
@@ -122,11 +123,16 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_from_Prefetcher:   %lu\n",this->get_requests_prefetcher());
         fprintf(output,"Requests_from_LLC:          %lu\n",this->get_requests_llc());
         fprintf(output,"Requests_from_HIVE:         %lu\n",this->get_requests_hive());
-        fprintf(output,"Requests from VIMA:         %lu\n",this->get_requests_vima());
-        for (uint32_t i = 0; i < CHANNEL; i++){
-            fprintf(output,"Row_Buffer_Hit, Channel %u:  %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
-            fprintf(output,"Row_Buffer_Miss, Channel %u: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+        fprintf(output,"Requests_from_VIMA:         %lu\n",this->get_requests_vima());
+        for (i = 0; i < CHANNEL; i++){
+            fprintf(output,"Row_Buffer_Hit, Channel %lu:  %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
+            fprintf(output,"Row_Buffer_Miss, Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+            total_rb_hits += this->channels[i].get_stat_row_buffer_hit();
+            total_rb_misses += this->channels[i].get_stat_row_buffer_miss();
         }
+        fprintf(output,"Requests_Made__RB_Hits:      %u\n",total_rb_hits);
+        fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
+        fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
         utils_t::largestSeparator(output);
         if(close) fclose(output);
     }

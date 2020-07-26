@@ -20,7 +20,7 @@ memory_package_t::memory_package_t() {
     hive_read2 = 0;
     hive_write = 0;
 
-    is_vima = false;
+    this->is_vima = false;
     this->vima_read1 = 0;
     this->vima_read2 = 0;
     this->vima_write = 0;
