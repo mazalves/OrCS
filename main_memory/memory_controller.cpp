@@ -130,7 +130,7 @@ void memory_controller_t::statistics(){
             total_rb_hits += this->channels[i].get_stat_row_buffer_hit();
             total_rb_misses += this->channels[i].get_stat_row_buffer_miss();
         }
-        fprintf(output,"Requests_Made__RB_Hits:      %u\n",total_rb_hits);
+        fprintf(output,"Requests_Made_RB_Hits:      %u\n",total_rb_hits);
         fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
         fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
         utils_t::largestSeparator(output);
