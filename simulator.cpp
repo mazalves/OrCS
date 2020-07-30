@@ -236,7 +236,6 @@ int main(int argc, char **argv) {
     //initializate simulator
     orcs_engine.simulator_alive = true;
 
-
     /// Start CLOCK for all the components
     while (orcs_engine.get_simulation_alive(NUMBER_OF_PROCESSORS)) {
         #if HEARTBEAT

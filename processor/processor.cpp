@@ -2302,7 +2302,7 @@ uint32_t processor_t::mob_read(){
 				}
 			}
 	}
-	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (this->processor_id, oldest_read_to_send->memory_operation)){
+	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")
@@ -2399,12 +2399,6 @@ memory_order_buffer_line_t* processor_t::get_next_op_vima(){
 			this->memory_order_buffer_vima[pos].sent==false &&
         	this->memory_order_buffer_vima[pos].wait_mem_deps_number == 0 &&
 			this->memory_order_buffer_vima[pos].readyToGo <= orcs_engine.get_global_cycle()){
-				//if (DEBUG) {
-					//ORCS_PRINTF ("Processor get_next_op_vima(): fetching next HIVE instruction from MOB.\n")
-					//for(uint32_t j = 0; j < this->memory_order_buffer_vima_used; j++){
-						//ORCS_PRINTF ("Processor get_next_op_vima(): %s %s %lu %u %lu.\n", get_enum_package_state_char (this->memory_order_buffer_vima[(this->memory_order_buffer_vima_start+j) % MOB_HIVE].status), get_enum_memory_operation_char (this->memory_order_buffer_vima[(this->memory_order_buffer_vima_start+j) % MOB_HIVE].memory_operation), this->memory_order_buffer_vima[(this->memory_order_buffer_vima_start+j) % MOB_HIVE].uop_number, this->memory_order_buffer_vima[(this->memory_order_buffer_vima_start+j) % MOB_HIVE].wait_mem_deps_number, this->memory_order_buffer_vima[(this->memory_order_buffer_vima_start+j) % MOB_HIVE].readyToGo)
-					//}
-				//}
 				return &this->memory_order_buffer_vima[pos];
 		} 
 		pos++;
@@ -2418,7 +2412,7 @@ uint32_t processor_t::mob_hive(){
 	if(this->oldest_hive_to_send==NULL)
 		this->oldest_hive_to_send = this->get_next_op_hive();
 	
-	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_hive_to_send->memory_operation)){
+	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
 		if (!this->oldest_hive_to_send->sent){
 			memory_package_t* request = new memory_package_t();
 			
@@ -2460,7 +2454,7 @@ uint32_t processor_t::mob_vima(){
 	if(this->oldest_vima_to_send==NULL){
 		this->oldest_vima_to_send = this->get_next_op_vima();
 	}
-	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_vima_to_send->memory_operation)){
+	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
 		if (!this->oldest_vima_to_send->sent){
 			memory_package_t* request = new memory_package_t();
 			
@@ -2541,7 +2535,7 @@ uint32_t processor_t::mob_write(){
 			}
 		}
 	}
-	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, oldest_write_to_send->memory_operation)){
+	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_WRITE)){
 		if (MOB_DEBUG){
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 				ORCS_PRINTF("=================================\n")

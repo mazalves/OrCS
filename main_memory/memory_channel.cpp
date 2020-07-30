@@ -22,12 +22,12 @@ memory_channel_t::memory_channel_t(){
     this->stat_row_buffer_hit = 0;
     this->stat_row_buffer_miss = 0;
 
-    bank_is_ready = NULL;
-    bank_last_row = NULL;
-    bank_is_drain_write = NULL;
-    bank_last_command_cycle = NULL;      /// Cycle of the Last command sent to each bank
-    channel_last_command_cycle = NULL;      /// Cycle of the last command type
-    
+    this->bank_is_ready = NULL;
+    this->bank_last_row = NULL;
+    this->bank_is_drain_write = NULL;
+    this->bank_last_command_cycle = NULL;      /// Cycle of the Last command sent to each bank
+    this->channel_last_command_cycle = NULL;      /// Cycle of the last command type
+
     this->latency_burst = 0;
     this->i = 0;
     this->RANK = 0;
@@ -260,7 +260,6 @@ void memory_channel_t::clock(){
     if (current_entry != NULL) {
         bank = this->get_bank(current_entry->memory_address);
         row = this->get_row(current_entry->memory_address);
-        //if (current_entry->is_vima) ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
         
         if (!bank_is_ready[bank]){
             switch (bank_last_command[bank]){
@@ -328,6 +327,7 @@ void memory_channel_t::clock(){
         current_entry = this->findNext (bank);
         if (this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] > orcs_engine.get_global_cycle() ||
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
+        //ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
 
         switch (current_entry->memory_operation){
             case MEMORY_OPERATION_INST:
