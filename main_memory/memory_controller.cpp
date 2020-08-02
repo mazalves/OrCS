@@ -149,25 +149,15 @@ void memory_controller_t::clock(){
 
     if (working.size() == 0) return;
 
-    //uint64_t oldest = UINT64_MAX;
-    //int64_t oldest_index = POSITION_FAIL;
-
     if (this->data_bus_availability <= orcs_engine.get_global_cycle()){
         for (i = 0; i < working.size(); i++){
-            if (working[i]->status == PACKAGE_STATE_DRAM_READY){
+            if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
                 working[i]->updatePackageWait (this->latency_burst);
                 this->data_bus_availability = working[i]->readyAt;
                 working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
             }
         }    
     }
-
-    /*if (oldest_index != POSITION_FAIL) {
-        if (working[oldest_index]->is_vima || working[oldest_index]->is_hive) working[oldest_index]->updatePackageWait (4);
-        else working[oldest_index]->updatePackageWait (this->latency_burst);
-        this->data_bus_availability = working[oldest_index]->readyAt;
-        working.erase(std::remove(working.begin(), working.end(), working[oldest_index]), working.end());
-    }*/
 }
 // ============================================================================
 void memory_controller_t::set_masks(){ 

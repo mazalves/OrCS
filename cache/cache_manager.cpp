@@ -397,7 +397,7 @@ void cache_manager_t::clock() {
         //ORCS_PRINTF ("%lu ", requests.size())
         for (size_t i = 0; i < requests.size(); i++){
             if (requests[i]->readyAt <= orcs_engine.get_global_cycle()) {
-                if (requests[i]->status == PACKAGE_STATE_WAIT) {
+                if (requests[i]->status == PACKAGE_STATE_WAIT && requests[i]->readyAt <= orcs_engine.get_global_cycle()) {
                     if (requests[i]->sent_to_ram) this->install (requests[i]);
                     this->finishRequest (requests[i]);
                 }
