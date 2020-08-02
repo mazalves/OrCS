@@ -37,6 +37,7 @@ class memory_channel_t {
         uint64_t stat_row_buffer_miss;
 
         uint64_t latency_burst;
+        uint64_t data_bus_availability;
 
         uint64_t i;
 

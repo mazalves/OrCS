@@ -28,6 +28,7 @@ memory_channel_t::memory_channel_t(){
     this->bank_last_command_cycle = NULL;      /// Cycle of the Last command sent to each bank
     this->channel_last_command_cycle = NULL;      /// Cycle of the last command type
 
+    this->data_bus_availability = 0;
     this->latency_burst = 0;
     this->i = 0;
     this->RANK = 0;
@@ -329,7 +330,7 @@ void memory_channel_t::clock(){
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->updatePackageDRAMReady (this->TIMING_CAS);
+                current_entry->updatePackageDRAMReady (this->TIMING_CAS + this->latency_burst);
                 if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 break;
@@ -337,13 +338,15 @@ void memory_channel_t::clock(){
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->updatePackageDRAMReady (this->TIMING_CWD);
+                current_entry->updatePackageDRAMReady (this->TIMING_CWD + this->latency_burst);
                 if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 break;
             default:
                 break;
         }
+        //if (current_entry->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu request will be ready, channel %lu, bank %lu\n", current_entry->readyAt, get_channel (current_entry->memory_address), get_bank (current_entry->memory_address))
+
         bank_is_ready[bank] = false;
         if (this->get_CLOSED_ROW()) {
             /// Select package to be treated

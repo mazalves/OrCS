@@ -37,6 +37,7 @@ class memory_controller_t{
         std::vector<memory_package_t*> working;
 
         uint64_t data_bus_availability;
+        uint64_t* channel_bus_availability;
         uint64_t latency_burst;
         
         uint32_t BANK;

@@ -28,6 +28,7 @@ memory_controller_t::memory_controller_t(){
     this->controller_bits_shift = 0;
 
     this->data_bus_availability = 0;
+    this->channel_bus_availability = NULL;
         
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
@@ -90,6 +91,7 @@ void memory_controller_t::allocate(){
     set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
     
+    this->channel_bus_availability = new uint64_t[CHANNEL]();
     this->channels = new memory_channel_t[CHANNEL]();
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].allocate();
     for (i = 0; i < this->CHANNEL; i++){
@@ -149,14 +151,14 @@ void memory_controller_t::clock(){
 
     if (working.size() == 0) return;
 
-    if (this->data_bus_availability <= orcs_engine.get_global_cycle()){
-        for (i = 0; i < working.size(); i++){
-            if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
+    for (i = 0; i < working.size(); i++){
+        if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
+            if (this->data_bus_availability <= orcs_engine.get_global_cycle()){
                 working[i]->updatePackageWait (this->latency_burst);
-                this->data_bus_availability = working[i]->readyAt;
-                working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
-            }
-        }    
+            } else working[i]->updatePackageWait ((this->data_bus_availability - orcs_engine.get_global_cycle()) + this->latency_burst);
+            this->data_bus_availability = working[i]->readyAt;
+            working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
+        }
     }
 }
 // ============================================================================
