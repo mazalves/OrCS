@@ -57,15 +57,13 @@ void vima_vector_t::clock() {
             //fetch
             if (sub_ready == no_sub_requests){
                 sub_ready = 0;
-                uint64_t memory_address = address >> sub_req_offset;
                 for (uint32_t i = 0; i < get_no_sub_requests(); i++){
                     sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
                     sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                     sub_requests[i].sent_to_ram = false;
                     sub_requests[i].row_buffer = false;
-                    sub_requests[i].memory_address = memory_address << sub_req_offset;
+                    sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
                     sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
-                    memory_address++;
 
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 

@@ -26,6 +26,8 @@ memory_controller_t::memory_controller_t(){
     this->bank_bits_shift = 0;
     this->row_bits_shift = 0;
     this->controller_bits_shift = 0;
+
+    this->data_bus_availability = 0;
         
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
@@ -67,9 +69,12 @@ void memory_controller_t::allocate(){
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
+    set_BURST_WIDTH (cfg_memory_ctrl["BURST_WIDTH"]);
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
+
+    set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
 
     set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
     set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
@@ -87,7 +92,8 @@ void memory_controller_t::allocate(){
     
     this->channels = new memory_channel_t[CHANNEL]();
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].allocate();
-    for (i = 0; i < CHANNEL; i++){
+    for (i = 0; i < this->CHANNEL; i++){
+        channels[i].set_latency_burst (this->latency_burst);
         channels[i].set_TIMING_AL (ceil (this->TIMING_AL * this->CORE_TO_BUS_CLOCK_RATIO));
         channels[i].set_TIMING_CAS (ceil (this->TIMING_CAS * this->CORE_TO_BUS_CLOCK_RATIO));
         channels[i].set_TIMING_CCD (ceil (this->TIMING_CCD * this->CORE_TO_BUS_CLOCK_RATIO));
@@ -140,6 +146,29 @@ void memory_controller_t::statistics(){
 // ============================================================================
 void memory_controller_t::clock(){
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
+
+    if (working.size() == 0) return;
+
+    uint64_t oldest = UINT64_MAX;
+    int64_t oldest_index = POSITION_FAIL;
+
+    if (this->data_bus_availability <= orcs_engine.get_global_cycle()){
+        for (i = 0; i < working.size(); i++){
+            if (working[i]->status == PACKAGE_STATE_DRAM_READY){
+                if (working[i]->born_cycle < oldest){
+                    oldest = working[i]->born_cycle;
+                    oldest_index = i;
+                }
+            }
+        }    
+    }
+
+    if (oldest_index != POSITION_FAIL) {
+        if (working[oldest_index]->is_vima || working[oldest_index]->is_hive) working[oldest_index]->updatePackageWait (4);
+        else working[oldest_index]->updatePackageWait (this->latency_burst);
+        this->data_bus_availability = working[oldest_index]->readyAt;
+        working.erase(std::remove(working.begin(), working.end(), working[oldest_index]), working.end());
+    }
 }
 // ============================================================================
 void memory_controller_t::set_masks(){ 
@@ -180,14 +209,10 @@ void memory_controller_t::set_masks(){
     this->not_column_bits_mask = ~(colbyte_bits_mask | colrow_bits_mask);
 
     /// CHANNEL MASK
-    for (i = 0; i < utils_t::get_power_of_two(this->CHANNEL); i++) {
-        this->channel_bits_mask |= 1 << (i + channel_bits_shift);
-    }
+    for (i = 0; i < utils_t::get_power_of_two(this->CHANNEL); i++) this->channel_bits_mask |= 1 << (i + channel_bits_shift);
 
     /// BANK MASK
-    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) {
-        this->bank_bits_mask |= 1 << (i + bank_bits_shift);
-    }
+    for (i = 0; i < utils_t::get_power_of_two(this->BANK); i++) this->bank_bits_mask |= 1 << (i + bank_bits_shift);
 
     /// ROW MASK
     for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
@@ -201,7 +226,9 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
     if (request->is_vima) this->add_requests_vima();
     if (request != NULL) {
         request->sent_to_ram = true;
+        request->updatePackageDRAMFetch (0);
         this->channels[get_channel (request->memory_address)].addRequest (request);
+        this->working.push_back (request);
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;
     }

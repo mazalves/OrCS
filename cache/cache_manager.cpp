@@ -303,10 +303,10 @@ bool cache_manager_t::isIn (memory_package_t* request){
     if (request->is_hive || request->is_vima) return false;
     uint64_t tag = (request->memory_address >> this->offset);
     //ORCS_PRINTF ("%lu %s\n", tag, get_enum_memory_operation_char (request->memory_operation))
-    for (std::size_t i = 0; i < requests.size(); i++){
+    for (i = 0; i < requests.size(); i++){
         if ((requests[i]->memory_address >> this->offset) == tag && requests[i]->type == request->type) {
             //ORCS_PRINTF ("%s %s\n", get_enum_memory_operation_char(request->memory_operation), get_enum_memory_operation_char (requests[i]->memory_operation))
-            //ORCS_PRINTF ("HIT! %lu %lu %s\n", request->memory_address, tag, get_enum_memory_operation_char (request->memory_operation))
+            //ORCS_PRINTF ("HIT! %lu %lu %s\n", requests[i]->memory_address >> this->offset, tag, get_enum_memory_operation_char (request->memory_operation))
             for (uint64_t j = 0; j < MEMORY_OPERATION_LAST; j++) requests[i]->op_count[j] += request->op_count[j];
             for (size_t j = 0; j < request->clients.size(); j++) requests[i]->clients.push_back (request->clients[j]);
             delete request;
@@ -331,22 +331,20 @@ void cache_manager_t::finishRequest (memory_package_t* request){
     if (request->sent_to_ram && !request->is_hive && !request->is_vima){
         sent_ram++;
         sent_ram_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
-        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
-    }
-    else if (request->is_hive){
+    } else if (request->is_hive){
         sent_hive++;
         sent_hive_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
-        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
-    }
-    else if (request->is_vima){
+    } else if (request->is_vima){
         sent_vima++;
         sent_vima_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
-        //ORCS_PRINTF ("%lu request %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
     }
+
+    //ORCS_PRINTF ("%lu request %s %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(request->memory_operation), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
 
     request->updatePackageReady();
     request->updateClients();
     requests.erase (std::remove (requests.begin(), requests.end(), request), requests.end());
+    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu Cache Manager: finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), request->memory_address, request->uop_number, get_enum_memory_operation_char (request->memory_operation))
     delete request;
 }
 
