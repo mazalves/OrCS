@@ -41,7 +41,9 @@ void vima_vector_t::clock() {
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
                 } else {
-                    while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) sub_ready++;
+                    while (sub_ready < no_sub_requests && 
+                        sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
+                        sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
                 }
                 if (sub_ready >= no_sub_requests) {
                     if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle())
@@ -68,7 +70,9 @@ void vima_vector_t::clock() {
                     orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                 } 
             } else {
-                while (sub_ready < no_sub_requests && sub_requests[sub_ready].status == PACKAGE_STATE_WAIT) sub_ready++;
+                while (sub_ready < no_sub_requests && 
+                        sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
+                        sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
             }
             if (sub_ready >= no_sub_requests) {
                 if (VIMA_DEBUG) ORCS_PRINTF ("%lu %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), address)
