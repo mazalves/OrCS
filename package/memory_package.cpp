@@ -83,9 +83,34 @@ void memory_package_t::updatePackageFree (uint32_t stallTime){
     this->latency += stallTime;
     if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
 }
+
 void memory_package_t::updatePackageHive (uint32_t stallTime){
     if (MSHR_DEBUG) ORCS_PRINTF ("%lu %lu %s %s -> ", orcs_engine.get_global_cycle(), uop_number, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     this->status = PACKAGE_STATE_HIVE;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    this->latency += stallTime;
+    if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+}
+
+void memory_package_t::updatePackageVima (uint32_t stallTime){
+    if (MSHR_DEBUG) ORCS_PRINTF ("%lu %lu %s %s -> ", orcs_engine.get_global_cycle(), uop_number, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    this->status = PACKAGE_STATE_VIMA;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    this->latency += stallTime;
+    if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+}
+
+void memory_package_t::updatePackageDRAMFetch (uint32_t stallTime){
+    if (MSHR_DEBUG) ORCS_PRINTF ("%lu %lu %s %s -> ", orcs_engine.get_global_cycle(), uop_number, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    this->status = PACKAGE_STATE_DRAM_FETCH;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    this->latency += stallTime;
+    if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+}
+
+void memory_package_t::updatePackageDRAMReady (uint32_t stallTime){
+    if (MSHR_DEBUG) ORCS_PRINTF ("%lu %lu %s %s -> ", orcs_engine.get_global_cycle(), uop_number, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    this->status = PACKAGE_STATE_DRAM_READY;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
     if (MSHR_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)

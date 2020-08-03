@@ -219,19 +219,22 @@ void vima_controller_t::clock(){
     if (vima_buffer.size() <= 0) return;
     switch (vima_buffer[current_index]->status){
         case PACKAGE_STATE_WAIT:
-            ///ORCS_PRINTF ("%lu %s -> ", vima_buffer[current_index]->uop_number, get_enum_package_state_char (vima_buffer[current_index]->status))
-            ///ORCS_PRINTF ("%s %lu\n", get_enum_package_state_char (vima_buffer[current_index]->status), orcs_engine.get_global_cycle())
+            //ORCS_PRINTF ("OUT VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+            //if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
+            //if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
+            //if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
+            //ORCS_PRINTF ("\n")
             this->instruction_ready (0);
             break;
         case PACKAGE_STATE_TRANSMIT:
             this->check_completion(0);
             break;
         case PACKAGE_STATE_VIMA:
-            /*ORCS_PRINTF ("VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->memory_address, vima_buffer[current_index]->processor_id)
-            if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
-            if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
-            if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
-            ORCS_PRINTF ("\n")*/
+            //ORCS_PRINTF ("IN  VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+            //if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
+            //if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
+            //if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
+            //ORCS_PRINTF ("\n")
             this->check_cache(0);
             break;
         default:

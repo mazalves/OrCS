@@ -42,7 +42,10 @@ class memory_package_t {
         void updatePackageWait(uint32_t stallTime);
         void updatePackageFree(uint32_t stallTime);
         void updatePackageHive(uint32_t stallTime);
+        void updatePackageVima(uint32_t stallTime);
         void updatePackageTransmit(uint32_t stallTime);
+        void updatePackageDRAMFetch(uint32_t stallTime);
+        void updatePackageDRAMReady(uint32_t stallTime);
         void updateClients();
         void printPackage();
 

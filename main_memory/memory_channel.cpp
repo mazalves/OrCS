@@ -28,6 +28,7 @@ memory_channel_t::memory_channel_t(){
     this->bank_last_command_cycle = NULL;      /// Cycle of the Last command sent to each bank
     this->channel_last_command_cycle = NULL;      /// Cycle of the last command type
 
+    this->data_bus_availability = 0;
     this->latency_burst = 0;
     this->i = 0;
     this->RANK = 0;
@@ -35,10 +36,8 @@ memory_channel_t::memory_channel_t(){
     this->BANK_BUFFER_SIZE = 0;
     this->BANK_ROW_BUFFER_SIZE = 0;
     this->CHANNEL = 0;
-    this->ROW_BUFFER = 0;
     this->CLOSED_ROW = 0;
     this->LINE_SIZE = 0;
-    this->BURST_WIDTH = 0;
     this->DEBUG = 0;
 
     this->TIMING_AL = 0;     // Added Latency for column accesses
@@ -78,13 +77,11 @@ void memory_channel_t::allocate() {
     set_RANK (cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_BUFFER_SIZE (cfg_memory_ctrl["BANK_BUFFER_SIZE"]);
+    set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_CLOSED_ROW (cfg_memory_ctrl["CLOSED_ROW"]);
-    set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
-    set_BURST_WIDTH (cfg_memory_ctrl["BURST_WIDTH"]);
-    set_ROW_BUFFER ((RANK*BANK)*1024);
-
+    
     if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
     } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
@@ -96,8 +93,6 @@ void memory_channel_t::allocate() {
     } else if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "SERVICE_AT_NO_READ")){
         this->WRITE_PRIORITY = WRITE_PRIORITY_SERVICE_AT_NO_READ;
     }
-
-    set_latency_burst (LINE_SIZE/BURST_WIDTH);
 
     this->bank_last_transmission = 0;
     this->bank_is_ready = new bool[BANK]();
@@ -167,22 +162,29 @@ void memory_channel_t::set_masks(){
     }
 }
 
-void memory_channel_t::addRequest (memory_package_t* request){
+bool memory_channel_t::addRequest (memory_package_t* request){
+    bool result = false;
     uint64_t bank = this->get_bank(request->memory_address);
-    //ORCS_PRINTF ("New DRAM request! row: %lu | bank: %lu | channel: %lu | column: %lu\n", get_row (request->memory_address), get_bank (request->memory_address), get_channel (request->memory_address), get_column (request->memory_address))
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_INST:
-            bank_read_requests[bank].push_back (request);
-            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            if (bank_read_requests[bank].size() < this->BANK_BUFFER_SIZE) {
+                bank_read_requests[bank].push_back (request);
+                result = true;
+                if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            }
             break;
         case MEMORY_OPERATION_WRITE:
-            bank_write_requests[bank].push_back (request);
-            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            if (bank_write_requests[bank].size() < this->BANK_BUFFER_SIZE) {
+                bank_write_requests[bank].push_back (request);
+                result = true;
+                if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            }
             break;
         default:
             break;
     }
+    return result;
 }
 
 memory_package_t* memory_channel_t::findNext (uint32_t bank){
@@ -335,21 +337,23 @@ void memory_channel_t::clock(){
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->updatePackageWait (this->TIMING_CAS + this->latency_burst);
-                if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                current_entry->updatePackageDRAMReady (this->TIMING_CAS + this->latency_burst);
+                if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 break;
             case MEMORY_OPERATION_WRITE:
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
-                current_entry->updatePackageWait (this->TIMING_CWD + this->latency_burst);
-                if (DEBUG) ORCS_PRINTF ("Memory Channel requestDRAM(): finished memory request %lu from uop %lu, %s.\n", current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                current_entry->updatePackageDRAMReady (this->TIMING_CWD + this->latency_burst);
+                if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 break;
             default:
                 break;
         }
+        //if (current_entry->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu request will be ready, channel %lu, bank %lu\n", current_entry->readyAt, get_channel (current_entry->memory_address), get_bank (current_entry->memory_address))
+
         bank_is_ready[bank] = false;
         if (this->get_CLOSED_ROW()) {
             /// Select package to be treated

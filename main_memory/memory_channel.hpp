@@ -37,6 +37,7 @@ class memory_channel_t {
         uint64_t stat_row_buffer_miss;
 
         uint64_t latency_burst;
+        uint64_t data_bus_availability;
 
         uint64_t i;
 
@@ -45,10 +46,8 @@ class memory_channel_t {
         uint32_t BANK_BUFFER_SIZE;
         uint32_t BANK_ROW_BUFFER_SIZE;
         uint32_t CHANNEL;
-        uint32_t ROW_BUFFER;
         uint32_t CLOSED_ROW;
         uint32_t LINE_SIZE;
-        uint32_t BURST_WIDTH;
         uint32_t DEBUG;
 
         uint32_t TIMING_AL;     // Added Latency for column accesses
@@ -93,7 +92,7 @@ class memory_channel_t {
         memory_package_t* findNextRead (uint32_t bank);
         memory_package_t* findNextWrite (uint32_t bank);
         void allocate();
-        void addRequest (memory_package_t* request);
+        bool addRequest (memory_package_t* request);
         void set_masks();
         void clock();
 
@@ -122,10 +121,8 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, BANK_ROW_BUFFER_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, CHANNEL)
-        INSTANTIATE_GET_SET_ADD(uint32_t, ROW_BUFFER)
         INSTANTIATE_GET_SET_ADD(uint32_t, CLOSED_ROW)
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
-        INSTANTIATE_GET_SET_ADD(uint32_t, BURST_WIDTH)
         INSTANTIATE_GET_SET_ADD(uint32_t, DEBUG)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses

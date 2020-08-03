@@ -33,9 +33,17 @@ class memory_controller_t{
         uint64_t bank_bits_shift;
         uint64_t row_bits_shift;
         uint64_t controller_bits_shift;
+
+        std::vector<memory_package_t*> working;
+
+        uint64_t data_bus_availability;
+        uint64_t* channel_bus_availability;
+        uint64_t latency_burst;
+        uint64_t max_requests;
         
         uint32_t BANK;
         uint32_t BANK_ROW_BUFFER_SIZE;
+        uint32_t BURST_WIDTH;
         uint32_t CHANNEL;
         uint32_t WAIT_CYCLE;
         uint32_t LINE_SIZE;
@@ -103,10 +111,13 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint64_t,requests_prefetcher)
         INSTANTIATE_GET_SET_ADD(uint64_t,row_buffer_miss)
         INSTANTIATE_GET_SET_ADD(uint64_t,row_buffer_hit)
+
+        INSTANTIATE_GET_SET_ADD(uint64_t,latency_burst)
         
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t,BANK)
         INSTANTIATE_GET_SET_ADD(uint32_t,BANK_ROW_BUFFER_SIZE)
+        INSTANTIATE_GET_SET_ADD(uint32_t,BURST_WIDTH)
         INSTANTIATE_GET_SET_ADD(uint32_t,CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
         INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
