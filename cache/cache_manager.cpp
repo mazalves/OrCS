@@ -81,6 +81,7 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
     vector<uint32_t> clevels, camount;
     libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
     uint32_t N_CACHES = cfg_caches.getLength();
+
     for (uint32_t i = 0; i < N_CACHES; i++) {
         try {
             libconfig::Setting &cfg_cache = cfg_caches[i];
@@ -97,19 +98,18 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
     clevels.erase(std::unique(clevels.begin(), clevels.end()), clevels.end());
 
     if (cache_type == 0) {
-        set_INSTRUCTION_LEVELS(clevels.size());
+        set_INSTRUCTION_LEVELS(N_CACHES);
         ICACHE_AMOUNT = new uint32_t[INSTRUCTION_LEVELS]();
         for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) {
             ICACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
     } else {
-        set_DATA_LEVELS(clevels.size());
+        set_DATA_LEVELS(N_CACHES);
         DCACHE_AMOUNT = new uint32_t[DATA_LEVELS]();
         for (uint32_t i = 0; i < DATA_LEVELS; i++) {
             DCACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
-        POINTER_LEVELS = 3;
-        // POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+        POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
     std::vector<uint32_t>().swap(clevels);
     std::vector<uint32_t>().swap(camount);
@@ -209,8 +209,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->instruction_cache = this->instantiate_cache(INSTRUCTION, cfg_cache_defs);
     this->data_cache = this->instantiate_cache(DATA, cfg_cache_defs);
 
-    // set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
-    set_POINTER_LEVELS(3);
+    set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
 
     //Read/Write counters
     this->set_reads(0);

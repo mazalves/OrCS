@@ -456,6 +456,8 @@ void processor_t::allocate() {
 	n_caches = get_cache_list(DATA, cfg_cache_mem, DATA_ASSOCIATIVITY, DATA_LATENCY, DATA_SIZE, DATA_SETS, DATA_LEVEL);
 	set_DATA_CACHES(n_caches);
 
+	set_CACHE_LEVELS((INSTRUCTION_CACHES > DATA_CACHES) ? INSTRUCTION_CACHES : DATA_CACHES);
+
 	// Memory controller defaults
 	libconfig::Setting &cfg_memory = cfg_root["MEMORY_CONTROLLER"];
 
@@ -2820,9 +2822,9 @@ void processor_t::statistics(){
 		utils_t::largestSeparator(output);
 		fprintf(output, "Instruction_Per_Cycle: %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
 		// accessing LLC cache level
-		int32_t *cache_indexes = new int32_t[3]();
+		int32_t *cache_indexes = new int32_t[CACHE_LEVELS]();
 		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
-		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
+		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[CACHE_LEVELS-1][cache_indexes[CACHE_LEVELS-1]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());
 		fprintf(output, "Core_Request_RAM_AVG_Cycle: %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
 		fprintf(output, "Total Load Requests: %lu\n", this->get_stat_inst_load_completed());

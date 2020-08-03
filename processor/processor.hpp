@@ -144,6 +144,7 @@ class processor_t {
 	//uint32_t MEGA = KILO*KILO;
 
 	uint32_t LINE_SIZE;
+	uint32_t CACHE_LEVELS;
 
 	uint32_t DATA_CACHES;
 	uint32_t *DATA_SIZE;
@@ -523,6 +524,7 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_CACHES)
 		INSTANTIATE_GET_SET_ADD(uint32_t,DATA_CACHES)
+		INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
 		
 		// ====================================================================
 };
