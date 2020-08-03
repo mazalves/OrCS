@@ -162,22 +162,29 @@ void memory_channel_t::set_masks(){
     }
 }
 
-void memory_channel_t::addRequest (memory_package_t* request){
+bool memory_channel_t::addRequest (memory_package_t* request){
+    bool result = false;
     uint64_t bank = this->get_bank(request->memory_address);
-    //ORCS_PRINTF ("New DRAM request! row: %lu | bank: %lu | channel: %lu | column: %lu\n", get_row (request->memory_address), get_bank (request->memory_address), get_channel (request->memory_address), get_column (request->memory_address))
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_INST:
-            bank_read_requests[bank].push_back (request);
-            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            if (bank_read_requests[bank].size() < this->BANK_BUFFER_SIZE) {
+                bank_read_requests[bank].push_back (request);
+                result = true;
+                if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            }
             break;
         case MEMORY_OPERATION_WRITE:
-            bank_write_requests[bank].push_back (request);
-            if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            if (bank_write_requests[bank].size() < this->BANK_BUFFER_SIZE) {
+                bank_write_requests[bank].push_back (request);
+                result = true;
+                if (DEBUG) ORCS_PRINTF ("Memory Channel addRequest(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+            }
             break;
         default:
             break;
     }
+    return result;
 }
 
 memory_package_t* memory_channel_t::findNext (uint32_t bank){

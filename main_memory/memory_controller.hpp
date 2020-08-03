@@ -39,6 +39,7 @@ class memory_controller_t{
         uint64_t data_bus_availability;
         uint64_t* channel_bus_availability;
         uint64_t latency_burst;
+        uint64_t max_requests;
         
         uint32_t BANK;
         uint32_t BANK_ROW_BUFFER_SIZE;

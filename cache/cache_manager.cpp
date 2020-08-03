@@ -339,7 +339,7 @@ void cache_manager_t::finishRequest (memory_package_t* request){
         sent_vima_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
     }
 
-    //if (request->is_vima) ORCS_PRINTF ("%lu request %s %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(request->memory_operation), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
+    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu request %s %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(request->memory_operation), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
 
     request->updatePackageReady();
     request->updateClients();

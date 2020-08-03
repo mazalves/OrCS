@@ -29,6 +29,7 @@ memory_controller_t::memory_controller_t(){
 
     this->data_bus_availability = 0;
     this->channel_bus_availability = NULL;
+    this->max_requests = 0;
         
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
@@ -141,6 +142,7 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_Made_RB_Hits:       %u\n",total_rb_hits);
         fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
         fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
+        fprintf(output,"Max_Requests:    %lu\n", this->max_requests);
         utils_t::largestSeparator(output);
         if(close) fclose(output);
     }
@@ -152,11 +154,12 @@ void memory_controller_t::clock(){
     if (working.size() == 0) return;
 
     for (i = 0; i < working.size(); i++){
-        if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
-            if (this->data_bus_availability <= orcs_engine.get_global_cycle()){
-                working[i]->updatePackageWait (this->latency_burst);
-            } else working[i]->updatePackageWait ((this->data_bus_availability - orcs_engine.get_global_cycle()) + this->latency_burst);
-            this->data_bus_availability = working[i]->readyAt;
+        if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY){
+            if (this->channels[get_channel (working[i]->memory_address)].addRequest (working[i])) {
+                working[i]->updatePackageDRAMFetch (0);
+            }
+        } else if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
+            working[i]->updatePackageWait (1);
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
         }
     }
@@ -212,13 +215,11 @@ void memory_controller_t::set_masks(){
 }
 //=====================================================================
 uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
-    this->add_requests_made();
-    if (request->is_hive) this->add_requests_hive();
-    if (request->is_vima) this->add_requests_vima();
     if (request != NULL) {
+        this->add_requests_made();
+        if (request->is_hive) this->add_requests_hive();
+        if (request->is_vima) this->add_requests_vima();
         request->sent_to_ram = true;
-        request->updatePackageDRAMFetch (0);
-        this->channels[get_channel (request->memory_address)].addRequest (request);
         this->working.push_back (request);
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;

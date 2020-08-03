@@ -92,7 +92,7 @@ class memory_channel_t {
         memory_package_t* findNextRead (uint32_t bank);
         memory_package_t* findNextWrite (uint32_t bank);
         void allocate();
-        void addRequest (memory_package_t* request);
+        bool addRequest (memory_package_t* request);
         void set_masks();
         void clock();
 
