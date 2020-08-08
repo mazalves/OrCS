@@ -105,7 +105,7 @@ void trace_reader_t::allocate(char *trace_file) {
 	this->binary_dict = new opcode_package_t*[this->binary_total_bbls]();
 	ERROR_ASSERT_PRINTF(this->binary_dict != NULL, "Could not allocate memory\n");
 	for (uint32_t bbl = 1; bbl < this->binary_total_bbls; bbl++) {
-		this->binary_dict[bbl] = new opcode_package_t[this->binary_bbl_size[bbl]];
+		this->binary_dict[bbl] = new opcode_package_t[this->binary_bbl_size[bbl]]();
 		ERROR_ASSERT_PRINTF(this->binary_dict[bbl] != NULL, "Could not allocate memory\n");
 	}
 
@@ -123,7 +123,8 @@ void trace_reader_t::allocate(char *trace_file) {
     this->trace_opcode_max=this->get_trace_size();
     // ====================================================================
     ///translation Address
-    this->address_translation =  this->get_processor_id() << 56;
+    //this->address_translation =  this->get_processor_id() << 56;
+    this->address_translation =  0;
     // ====================================================================  
 
 }
@@ -428,6 +429,8 @@ bool trace_reader_t::trace_next_memory(uint64_t *mem_address, uint32_t *mem_size
             return FAIL;
         }
 
+        //ORCS_PRINTF ("processor %lu | %s", processor_id, file_line)
+
         /// Analyze the trace line
         if (file_line[0] == '\0' || file_line[0] == '#') {
             DEBUG_PRINTF("Memory trace line (empty/comment): %s\n", file_line);
@@ -603,21 +606,26 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     bool mem_is_read;
     if (m->is_read) {
         trace_next_memory(&m->read_address, &m->read_size, &mem_is_read);
-        m->read_address |= this->address_translation; 
+        m->read_address |= this->address_translation;
+        //ORCS_PRINTF ("read1: %lu | ", m->read_address)
         ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read from memory trace\n");
     }
 
     if (m->is_read2) {
         trace_next_memory(&m->read2_address, &m->read2_size, &mem_is_read);
-        m->read2_address |= this->address_translation; 
+        m->read2_address |= this->address_translation;
+        //ORCS_PRINTF ("read2: %lu | ", m->read2_address) 
         ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read2 from memory trace\n");
     }
 
     if (m->is_write) {
         trace_next_memory(&m->write_address, &m->write_size, &mem_is_read);
         m->write_address |= this->address_translation; 
+        //ORCS_PRINTF ("write: %lu | ", m->write_address)
         ERROR_ASSERT_PRINTF(mem_is_read == false, "Expecting a write from memory trace\n");
     }
+
+    //if (m->is_read || m->is_read2 || m->is_write) ORCS_PRINTF (" operation = %s \n", get_enum_instruction_operation_char (m->opcode_operation))
 
 	this->fetch_instructions++;
     return OK;

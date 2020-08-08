@@ -128,13 +128,13 @@ void memory_controller_t::statistics(){
         utils_t::largestSeparator(output);
         fprintf(output,"#Memory Controller\n");
         utils_t::largestSeparator(output);
-        fprintf(output,"Requests_Made:              %lu\n",this->get_requests_made());
-        fprintf(output,"Requests_from_Prefetcher:   %lu\n",this->get_requests_prefetcher());
-        fprintf(output,"Requests_from_LLC:          %lu\n",this->get_requests_llc());
-        fprintf(output,"Requests_from_HIVE:         %lu\n",this->get_requests_hive());
-        fprintf(output,"Requests_from_VIMA:         %lu\n",this->get_requests_vima());
+        fprintf(output,"Requests_Made:                    %lu\n",this->get_requests_made());
+        fprintf(output,"Requests_from_Prefetcher:         %lu\n",this->get_requests_prefetcher());
+        fprintf(output,"Requests_from_LLC:                %lu\n",this->get_requests_llc());
+        fprintf(output,"Requests_from_HIVE:               %lu\n",this->get_requests_hive());
+        fprintf(output,"Requests_from_VIMA:               %lu\n",this->get_requests_vima());
         for (i = 0; i < CHANNEL; i++){
-            fprintf(output,"Row_Buffer_Hit, Channel %lu:  %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
+            fprintf(output,"Row_Buffer_Hit,  Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
             fprintf(output,"Row_Buffer_Miss, Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
             total_rb_hits += this->channels[i].get_stat_row_buffer_hit();
             total_rb_misses += this->channels[i].get_stat_row_buffer_miss();

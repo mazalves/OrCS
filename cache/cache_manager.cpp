@@ -29,6 +29,7 @@ cache_manager_t::cache_manager_t() {
     this->POINTER_LEVELS = 0;
     this->LLC_CACHES = 0;
     this->CACHE_MANAGER_DEBUG = 0;
+    this->PROCESSOR_DEBUG = 0;
     this->WAIT_CYCLE = 0;
     this->DEBUG = 0;
 
@@ -153,7 +154,7 @@ void cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &c
 cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs) {
     this->get_cache_levels(cache_type, cfg_cache_defs);
 
-    uint32_t CACHE_LEVELS, *CACHE_AMOUNT;
+    uint32_t CACHE_LEVELS, *CACHE_AMOUNT = NULL;
     if (cache_type == INSTRUCTION) {
         set_INSTRUCTION_LEVELS(INSTRUCTION_LEVELS);
         CACHE_LEVELS = INSTRUCTION_LEVELS;
@@ -193,6 +194,7 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     set_DEBUG (cfg_processor["DEBUG"]);
+    set_PROCESSOR_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
 
     // Get prefetcher info
     libconfig::Setting &prefetcher_defs = cfg_root["PREFETCHER"];
@@ -305,8 +307,7 @@ bool cache_manager_t::isIn (memory_package_t* request){
     //ORCS_PRINTF ("%lu %s\n", tag, get_enum_memory_operation_char (request->memory_operation))
     for (i = 0; i < requests.size(); i++){
         if ((requests[i]->memory_address >> this->offset) == tag && requests[i]->type == request->type) {
-            //ORCS_PRINTF ("%s %s\n", get_enum_memory_operation_char(request->memory_operation), get_enum_memory_operation_char (requests[i]->memory_operation))
-            //ORCS_PRINTF ("HIT! %lu %lu %s\n", requests[i]->memory_address >> this->offset, tag, get_enum_memory_operation_char (request->memory_operation))
+            if (requests[i]->processor_id != request->processor_id) return false;
             for (uint64_t j = 0; j < MEMORY_OPERATION_LAST; j++) requests[i]->op_count[j] += request->op_count[j];
             for (size_t j = 0; j < request->clients.size(); j++) requests[i]->clients.push_back (request->clients[j]);
             delete request;
@@ -339,7 +340,19 @@ void cache_manager_t::finishRequest (memory_package_t* request){
         sent_vima_cycles += (orcs_engine.get_global_cycle() - request->born_cycle);
     }
 
-    //if (request->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu request %s %lu born at %lu, finished at %lu. Took %lu cycles.\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(request->memory_operation), request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle)
+    if (PROCESSOR_DEBUG || CACHE_MANAGER_DEBUG) {
+        ORCS_PRINTF ("%lu request %s ", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(request->memory_operation))
+        if (request->is_vima){
+            if (request->vima_read1 != 0) ORCS_PRINTF ("READ1: %lu | ", request->vima_read1)
+            if (request->vima_read2 != 0) ORCS_PRINTF ("READ2: %lu | ", request->vima_read2)
+            if (request->vima_write != 0) ORCS_PRINTF ("WRITE: %lu | ", request->vima_write)
+        } else if (request->is_hive){
+            if (request->hive_read1 != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_read1)
+            if (request->hive_read2 != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_read2)
+            if (request->hive_write != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_write)
+        } else ORCS_PRINTF ("address: %lu ", request->memory_address)
+        ORCS_PRINTF ("%lu born at %lu, finished at %lu. Took %lu cycles, came from processor %u.\n", request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle, request->processor_id)
+    }
 
     request->updatePackageReady();
     request->updateClients();
@@ -394,7 +407,9 @@ bool cache_manager_t::searchData(memory_package_t *request) {
 void cache_manager_t::clock() {
     // printf("clock executing\n");
     if (requests.size() > 0) {
-        //ORCS_PRINTF ("%lu ", requests.size())
+        //ORCS_PRINTF ("%lu %lu requests inside the cache manager ", orcs_engine.get_global_cycle(), requests.size())
+        //for (i = 0; i < requests.size(); i++) ORCS_PRINTF ("%s [%lu] | ", get_enum_memory_operation_char (requests[i]->memory_operation), requests[i]->memory_address)
+        //ORCS_PRINTF ("\n")
         for (size_t i = 0; i < requests.size(); i++){
             if (requests[i]->readyAt <= orcs_engine.get_global_cycle()) {
                 if (requests[i]->status == PACKAGE_STATE_WAIT && requests[i]->readyAt <= orcs_engine.get_global_cycle()) {

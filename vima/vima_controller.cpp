@@ -140,7 +140,6 @@ void vima_controller_t::write_to_cache (int index) {
     write->set_tag (get_tag (vima_buffer[index]->vima_write));    
     write->set_lru (orcs_engine.get_global_cycle());
     write->dirty = true;
-    working_vectors.push_back (write);
     if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_write) != get_index(vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1))) {
         write_unbalanced = search_cache (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1);
         if (write_unbalanced->status == PACKAGE_STATE_FREE) write_unbalanced->status = PACKAGE_STATE_WAIT;
@@ -152,7 +151,6 @@ void vima_controller_t::write_to_cache (int index) {
         write_unbalanced->set_tag (get_tag (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1));    
         write_unbalanced->set_lru (orcs_engine.get_global_cycle());
         write_unbalanced->dirty = true;
-        working_vectors.push_back (write_unbalanced);
     }
 }
 
@@ -313,6 +311,7 @@ void vima_controller_t::allocate(){
 
 bool vima_controller_t::addRequest (memory_package_t* request){
     if (vima_buffer.size() < this->VIMA_BUFFER) {
+        //ORCS_PRINTF ("%lu requests inside the VIMA controller\n", vima_buffer.size())
         request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);

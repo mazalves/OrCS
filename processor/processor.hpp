@@ -191,7 +191,7 @@ class processor_t {
 		// ====================================================================
 		/// Attributes
 		// ====================================================================
-		uint32_t processor_id;
+		uint64_t processor_id;
 		//control Branches
 		bool hasBranch;
 		opcode_package_t previousBranch;
@@ -364,7 +364,7 @@ class processor_t {
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
-		INSTANTIATE_GET_SET(uint32_t,processor_id)
+		INSTANTIATE_GET_SET(uint64_t,processor_id)
 		// ====================================================================
 		// Statistics
 		// ====================================================================
