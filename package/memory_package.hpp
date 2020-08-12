@@ -9,7 +9,8 @@ class memory_package_t {
 
         package_state_t status;                  /// package state
         uint64_t readyAt;                   /// package latency
-        uint64_t born_cycle;                    /// package create time
+        uint64_t born_cycle;                    /// package creation time
+        uint64_t ram_cycle;
         
         bool sent_to_cache;
         bool sent_to_ram;

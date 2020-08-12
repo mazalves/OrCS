@@ -29,7 +29,9 @@ memory_controller_t::memory_controller_t(){
 
     this->data_bus_availability = 0;
     this->channel_bus_availability = NULL;
-    this->max_requests = 0;
+
+    this->total_latency = NULL;
+    this->total_operations = NULL;
         
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
@@ -56,6 +58,8 @@ memory_controller_t::memory_controller_t(){
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
+    delete this->total_operations;
+    delete this->total_latency;
     delete[] this->channels;
 }
 // ============================================================================
@@ -77,6 +81,9 @@ void memory_controller_t::allocate(){
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
 
     set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
+
+    this->total_latency = new uint64_t [MEMORY_OPERATION_LAST]();
+    this->total_operations = new uint64_t [MEMORY_OPERATION_LAST]();
 
     set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
     set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
@@ -142,7 +149,9 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_Made_RB_Hits:       %u\n",total_rb_hits);
         fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
         fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
-        fprintf(output,"Max_Requests:    %lu\n", this->max_requests);
+        for (i = 0; i < MEMORY_OPERATION_LAST; i++){
+            if (this->total_operations[i] > 0) fprintf(output,"%s Avg. Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+        }
         utils_t::largestSeparator(output);
         if(close) fclose(output);
     }
@@ -156,10 +165,13 @@ void memory_controller_t::clock(){
     for (i = 0; i < working.size(); i++){
         if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY){
             if (this->channels[get_channel (working[i]->memory_address)].addRequest (working[i])) {
+                working[i]->ram_cycle = orcs_engine.get_global_cycle();
                 working[i]->updatePackageDRAMFetch (0);
             }
         } else if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
             working[i]->updatePackageWait (1);
+            this->total_operations[working[i]->memory_operation]++;
+            this->total_latency[working[i]->memory_operation] += (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
         }
     }
