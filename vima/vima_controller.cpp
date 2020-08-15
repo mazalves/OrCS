@@ -46,10 +46,24 @@ vima_controller_t::~vima_controller_t(){
     ORCS_PRINTF ("VIMA Cache Associativity: %u\n", get_VIMA_CACHE_ASSOCIATIVITY())
     ORCS_PRINTF ("VIMA Cache Lines: %u\n", this->get_lines())
     ORCS_PRINTF ("VIMA Cache Sets: %u\n", this->get_sets())
+
+    uint64_t total_fetch_latency = 0;
+    uint64_t total_fetch_count = 0;
+    uint64_t total_writeback_latency = 0;
+    uint64_t total_writeback_count = 0;
+    for (i = 0; i < sets; i++) {
+        total_fetch_count += this->cache[i]->fetch_count;
+        total_fetch_latency += this->cache[i]->fetch_latency_total;
+        total_writeback_count += this->cache[i]->writeback_count;
+        total_writeback_latency += this->cache[i]->writeback_latency_total;
+        delete[] this->cache[i];
+    }
+    delete[] cache;
+
+    ORCS_PRINTF ("VIMA Cache Avg. Fetch Latency: %lu\n", total_fetch_latency/total_fetch_count)
+    ORCS_PRINTF ("VIMA Cache Avg. Writeback Latency: %lu\n", total_writeback_latency/total_writeback_count)
     ORCS_PRINTF ("#========================================================================#\n")
 
-    for (i = 0; i < sets; i++) delete[] this->cache[i];
-    delete[] cache;
     delete[] vima_op_latencies;
 }
 

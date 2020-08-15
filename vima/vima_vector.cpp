@@ -31,6 +31,8 @@ void vima_vector_t::clock() {
             //writeback
             if (dirty) {
                 if (sub_ready == no_sub_requests){
+                    this->writeback_start = orcs_engine.get_global_cycle();
+                    this->writeback_count++;
                     sub_ready = 0;
                     for (uint32_t i = 0; i < get_no_sub_requests(); i++){
                         sub_requests[i].memory_operation = MEMORY_OPERATION_WRITE;
@@ -46,7 +48,8 @@ void vima_vector_t::clock() {
                         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
                 }
                 if (sub_ready >= no_sub_requests) {
-                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED!\n", orcs_engine.get_global_cycle())
+                    //if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), (orcs_engine.get_global_cycle() - this->writeback_start))
+                    this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
                     status = PACKAGE_STATE_WAIT;
                 }
             } else status = PACKAGE_STATE_WAIT;
@@ -58,6 +61,8 @@ void vima_vector_t::clock() {
         case PACKAGE_STATE_WAIT:
             //fetch
             if (sub_ready == no_sub_requests){
+                this->fetch_start = orcs_engine.get_global_cycle();
+                this->fetch_count++;
                 sub_ready = 0;
                 for (uint32_t i = 0; i < get_no_sub_requests(); i++){
                     sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
@@ -76,6 +81,7 @@ void vima_vector_t::clock() {
             }
             if (sub_ready >= no_sub_requests) {
                 if (VIMA_DEBUG) ORCS_PRINTF ("%lu %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), address)
+                this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
                 status = PACKAGE_STATE_READY;

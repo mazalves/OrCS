@@ -15,6 +15,14 @@ class vima_vector_t {
         uint64_t tag;
         uint64_t lru;
         bool dirty;
+
+        uint64_t fetch_start;
+        uint64_t fetch_count;
+        uint64_t fetch_latency_total;
+
+        uint64_t writeback_start;
+        uint64_t writeback_count;
+        uint64_t writeback_latency_total;
         
         vima_vector_t();
         ~vima_vector_t();
