@@ -26,6 +26,9 @@ vima_controller_t::vima_controller_t(){
     this->cache_misses = 0;
     this->cache_accesses = 0;
     this->cache_writebacks = 0;
+    
+    this->request_count = 0;
+    this->total_wait = 0;
 
     this->VIMA_BUFFER = 0;
     this->VIMA_VECTOR_SIZE = 0;
@@ -62,6 +65,7 @@ vima_controller_t::~vima_controller_t(){
 
     ORCS_PRINTF ("VIMA Cache Avg. Fetch Latency: %lu\n", total_fetch_latency/total_fetch_count)
     ORCS_PRINTF ("VIMA Cache Avg. Writeback Latency: %lu\n", total_writeback_latency/total_writeback_count)
+    ORCS_PRINTF ("VIMA Controller Avg. Wait: %lu\n", this->total_wait/this->request_count)
     ORCS_PRINTF ("#========================================================================#\n")
 
     delete[] vima_op_latencies;
@@ -247,6 +251,7 @@ void vima_controller_t::clock(){
             //if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
             //if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
             //ORCS_PRINTF ("\n")
+            this->total_wait += (orcs_engine.get_global_cycle() - vima_buffer[0]->vima_cycle);
             this->check_cache(0);
             break;
         default:
@@ -328,7 +333,10 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         //ORCS_PRINTF ("%lu requests inside the VIMA controller\n", vima_buffer.size())
         request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
+        request->vima_cycle = orcs_engine.get_global_cycle();
         vima_buffer.push_back (request);
+
+        this->request_count++;
         //ORCS_PRINTF ("%lu %lu NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), vima_buffer.size(), request->processor_id)
         return true;
     } else {

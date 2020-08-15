@@ -11,6 +11,7 @@ class memory_package_t {
         uint64_t readyAt;                   /// package latency
         uint64_t born_cycle;                    /// package creation time
         uint64_t ram_cycle;
+        uint64_t vima_cycle;
         
         bool sent_to_cache;
         bool sent_to_ram;

@@ -13,6 +13,7 @@ memory_package_t::memory_package_t() {
     this->readyAt = 0;                   /// package latency
     this->born_cycle = 0;                    /// package create time
     this->ram_cycle = 0;
+    this->vima_cycle = 0;
        
     sent_to_cache = false;
     sent_to_ram = false;
