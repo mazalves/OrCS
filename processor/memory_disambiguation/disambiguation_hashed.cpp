@@ -64,7 +64,6 @@ void disambiguation_hashed_t::allocate() {
 }
 
 void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t *new_mob_line) {
-	//if (new_mob_line->is_hive) return;
 	uint64_t load_hash = new_mob_line->memory_address & this->disambiguation_load_hash_bits_mask;
 	uint64_t store_hash = new_mob_line->memory_address & this->disambiguation_store_hash_bits_mask;
 	load_hash >>= this->disambiguation_load_hash_bits_shift;

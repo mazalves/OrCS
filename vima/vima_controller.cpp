@@ -63,9 +63,9 @@ vima_controller_t::~vima_controller_t(){
     }
     delete[] cache;
 
-    ORCS_PRINTF ("VIMA Cache Avg. Fetch Latency: %lu\n", total_fetch_latency/total_fetch_count)
-    ORCS_PRINTF ("VIMA Cache Avg. Writeback Latency: %lu\n", total_writeback_latency/total_writeback_count)
-    ORCS_PRINTF ("VIMA Controller Avg. Wait: %lu\n", this->total_wait/this->request_count)
+    if (total_fetch_count != 0) ORCS_PRINTF ("VIMA Cache Avg. Fetch Latency: %lu\n", total_fetch_latency/total_fetch_count)
+    if (total_writeback_count != 0) ORCS_PRINTF ("VIMA Cache Avg. Writeback Latency: %lu\n", total_writeback_latency/total_writeback_count)
+    if (this->request_count > 0) ORCS_PRINTF ("VIMA Controller Avg. Wait: %lu\n", this->total_wait/this->request_count)
     ORCS_PRINTF ("#========================================================================#\n")
 
     delete[] vima_op_latencies;
@@ -246,11 +246,13 @@ void vima_controller_t::clock(){
             this->check_completion(0);
             break;
         case PACKAGE_STATE_VIMA:
-            //ORCS_PRINTF ("IN  VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
-            //if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
-            //if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
-            //if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
-            //ORCS_PRINTF ("\n")
+            if (VIMA_DEBUG) {
+                ORCS_PRINTF ("%lu IN  VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+                if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
+                if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
+                if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
+                ORCS_PRINTF ("\n")
+            }
             this->total_wait += (orcs_engine.get_global_cycle() - vima_buffer[0]->vima_cycle);
             this->check_cache(0);
             break;
@@ -337,7 +339,7 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         vima_buffer.push_back (request);
 
         this->request_count++;
-        //ORCS_PRINTF ("%lu %lu NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), vima_buffer.size(), request->processor_id)
+        if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
         return true;
     } else {
         request->sent_to_cache = false;

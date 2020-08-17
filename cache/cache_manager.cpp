@@ -22,6 +22,8 @@ cache_manager_t::cache_manager_t() {
     this->sent_vima = 0;
     this->sent_vima_cycles = 0;
 
+    this->max_vima = 0;
+
     this->LINE_SIZE = 0;
     this->PREFETCHER_ACTIVE = 0;
     this->DATA_LEVELS = 0;
@@ -44,6 +46,8 @@ cache_manager_t::cache_manager_t() {
 
 // Desctructor
 cache_manager_t::~cache_manager_t() {
+    ORCS_PRINTF ("MAX VIMA requests at any point: %u.\n", this->max_vima)
+
     for (i = 0; i < this->requests.size(); i++) delete requests[i];
     for (i = 0; i < NUMBER_OF_PROCESSORS; i++) delete[] this->op_count[i];
     delete[] op_count;
@@ -354,6 +358,8 @@ void cache_manager_t::finishRequest (memory_package_t* request){
         ORCS_PRINTF ("%lu born at %lu, finished at %lu. Took %lu cycles, came from processor %u.\n", request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle, request->processor_id)
     }
 
+    //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager finishRequest(): VIMA INSTRUCTION READY!\n", orcs_engine.get_global_cycle())
+
     request->updatePackageReady();
     request->updateClients();
     requests.erase (std::remove (requests.begin(), requests.end(), request), requests.end());
@@ -400,16 +406,19 @@ bool cache_manager_t::searchData(memory_package_t *request) {
     if (request->memory_operation == MEMORY_OPERATION_READ) this->add_reads();
     else if (request->memory_operation == MEMORY_OPERATION_WRITE) this->add_writes();
 
-    if (!isIn (request)) requests.push_back (request);
+    if (!isIn (request)) {
+        requests.push_back (request);
+        //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager searchData(): NEW VIMA INSTRUCTION!\n", orcs_engine.get_global_cycle())
+    }
     return true;
 }
 
 void cache_manager_t::clock() {
     // printf("clock executing\n");
     if (requests.size() > 0) {
-        //ORCS_PRINTF ("%lu %lu requests inside the cache manager ", orcs_engine.get_global_cycle(), requests.size())
-        //for (i = 0; i < requests.size(); i++) ORCS_PRINTF ("%s [%lu] | ", get_enum_memory_operation_char (requests[i]->memory_operation), requests[i]->memory_address)
-        //ORCS_PRINTF ("\n")
+        uint32_t vima_count = 0;
+        for (i = 0; i < requests.size(); i++) if (requests[i]->is_vima) vima_count++;
+        if (vima_count > this->max_vima) this->max_vima = vima_count;
         for (size_t i = 0; i < requests.size(); i++){
             if (requests[i]->readyAt <= orcs_engine.get_global_cycle()) {
                 if (requests[i]->status == PACKAGE_STATE_WAIT && requests[i]->readyAt <= orcs_engine.get_global_cycle()) {

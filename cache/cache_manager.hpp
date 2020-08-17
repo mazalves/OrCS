@@ -14,8 +14,6 @@ class cache_manager_t {
         uint64_t write_hit;
         uint64_t offset;
         uint64_t mshr_index;
-        uint64_t** op_count;
-        uint64_t* op_max;
 
         uint32_t sent_ram;
         uint32_t sent_ram_cycles;
@@ -23,6 +21,8 @@ class cache_manager_t {
         uint32_t sent_hive_cycles;
         uint32_t sent_vima;
         uint32_t sent_vima_cycles;
+
+        uint32_t max_vima;
 
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
@@ -60,6 +60,9 @@ class cache_manager_t {
         cache_t **instruction_cache;
         uint32_t *ICACHE_AMOUNT;
         uint32_t *DCACHE_AMOUNT;
+
+        uint64_t** op_count;
+        uint64_t* op_max;
 
         cache_manager_t();
         ~cache_manager_t();
