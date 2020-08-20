@@ -41,34 +41,38 @@ vima_controller_t::vima_controller_t(){
 }
 
 vima_controller_t::~vima_controller_t(){
-    ORCS_PRINTF ("#========================================================================#\n")
-    ORCS_PRINTF ("VIMA Cache Hits: %lu\n", get_cache_hits())
-    ORCS_PRINTF ("VIMA Cache Misses: %lu\n", get_cache_misses())
-    ORCS_PRINTF ("VIMA Cache Accesses: %lu\n", get_cache_accesses())
-    ORCS_PRINTF ("VIMA Cache Writebacks: %lu\n", get_cache_writebacks())
-    ORCS_PRINTF ("VIMA Cache Associativity: %u\n", get_VIMA_CACHE_ASSOCIATIVITY())
-    ORCS_PRINTF ("VIMA Cache Lines: %u\n", this->get_lines())
-    ORCS_PRINTF ("VIMA Cache Sets: %u\n", this->get_sets())
-
-    uint64_t total_fetch_latency = 0;
-    uint64_t total_fetch_count = 0;
-    uint64_t total_writeback_latency = 0;
-    uint64_t total_writeback_count = 0;
-    for (i = 0; i < sets; i++) {
-        total_fetch_count += this->cache[i]->fetch_count;
-        total_fetch_latency += this->cache[i]->fetch_latency_total;
-        total_writeback_count += this->cache[i]->writeback_count;
-        total_writeback_latency += this->cache[i]->writeback_latency_total;
-        delete[] this->cache[i];
-    }
+    for (i = 0; i < sets; i++) delete[] this->cache[i];
     delete[] cache;
-
-    if (total_fetch_count != 0) ORCS_PRINTF ("VIMA Cache Avg. Fetch Latency: %lu\n", total_fetch_latency/total_fetch_count)
-    if (total_writeback_count != 0) ORCS_PRINTF ("VIMA Cache Avg. Writeback Latency: %lu\n", total_writeback_latency/total_writeback_count)
-    if (this->request_count > 0) ORCS_PRINTF ("VIMA Controller Avg. Wait: %lu\n", this->total_wait/this->request_count)
-    ORCS_PRINTF ("#========================================================================#\n")
-
     delete[] vima_op_latencies;
+}
+
+void vima_controller_t::statistics(){
+    if (this->get_cache_accesses() > 0){
+        ORCS_PRINTF ("#==============VIMA Controller==========================================#\n")
+        ORCS_PRINTF ("VIMA_Cache_Hits:                   %lu\n", get_cache_hits())
+        ORCS_PRINTF ("VIMA_Cache_Misses:                 %lu\n", get_cache_misses())
+        ORCS_PRINTF ("VIMA_Cache_Accesses:               %lu\n", get_cache_accesses())
+        ORCS_PRINTF ("VIMA_Cache_Writebacks:             %lu\n", get_cache_writebacks())
+        ORCS_PRINTF ("VIMA_Cache_Associativity:          %u\n", get_VIMA_CACHE_ASSOCIATIVITY())
+        ORCS_PRINTF ("VIMA_Cache_Lines:                  %u\n", this->get_lines())
+        ORCS_PRINTF ("VIMA_Cache_Sets:                   %u\n", this->get_sets())
+
+        uint64_t total_fetch_latency = 0;
+        uint64_t total_fetch_count = 0;
+        uint64_t total_writeback_latency = 0;
+        uint64_t total_writeback_count = 0;
+        for (i = 0; i < sets; i++) {
+            total_fetch_count += this->cache[i]->fetch_count;
+            total_fetch_latency += this->cache[i]->fetch_latency_total;
+            total_writeback_count += this->cache[i]->writeback_count;
+            total_writeback_latency += this->cache[i]->writeback_latency_total;
+        }
+
+        if (total_fetch_count != 0) ORCS_PRINTF ("VIMA_Cache_Avg._Fetch_Latency:     %lu\n", total_fetch_latency/total_fetch_count)
+        if (total_writeback_count != 0) ORCS_PRINTF ("VIMA_Cache_Avg._Writeback_Latency: %lu\n", total_writeback_latency/total_writeback_count)
+        if (this->request_count > 0) ORCS_PRINTF ("VIMA_Controller_Avg._Wait:         %lu\n", this->total_wait/this->request_count)
+        ORCS_PRINTF ("#========================================================================#\n")
+    }
 }
 
 void vima_controller_t::print_vima_instructions(){

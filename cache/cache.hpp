@@ -11,6 +11,7 @@ class cache_t {
         uint64_t cache_eviction;
         uint64_t cache_read;
         uint64_t cache_write;
+        uint64_t cache_inst;
         uint64_t cache_writeback;
         uint64_t change_line;
 
@@ -55,6 +56,10 @@ class cache_t {
         cacheSet_t *sets;
         uint32_t offset;
 
+        uint64_t* cache_hit_per_type;
+        uint64_t* cache_miss_per_type;
+        uint64_t* cache_count_per_type;
+
         void statistics();
         void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
         void writeBack(line_t *line, uint32_t processor_id);       //makes writeback of line
@@ -73,6 +78,7 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_eviction)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_read)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_write)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_inst)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)
         INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
         

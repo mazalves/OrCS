@@ -24,6 +24,12 @@ class cache_manager_t {
 
         uint32_t max_vima;
 
+        uint64_t* total_latency;
+        uint64_t* total_operations;
+        uint64_t* min_wait_operations;
+        uint64_t* max_wait_operations;
+        uint64_t wait_time;
+
         uint32_t LINE_SIZE;
         uint32_t PREFETCHER_ACTIVE;
         uint32_t DATA_LEVELS;

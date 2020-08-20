@@ -84,6 +84,9 @@ void memory_controller_t::allocate(){
 
     this->total_latency = new uint64_t [MEMORY_OPERATION_LAST]();
     this->total_operations = new uint64_t [MEMORY_OPERATION_LAST]();
+    this->min_wait_operations = new uint64_t [MEMORY_OPERATION_LAST]();
+    for (i = 0; i < MEMORY_OPERATION_LAST; i++) this->min_wait_operations[i] = UINT64_MAX;
+    this->max_wait_operations = new uint64_t [MEMORY_OPERATION_LAST]();
 
     set_TIMING_AL (cfg_memory_ctrl["TIMING_AL"]);     // Added Latency for column accesses
     set_TIMING_CAS (cfg_memory_ctrl["TIMING_CAS"]);    // Column Access Strobe (CL]) latency
@@ -136,10 +139,10 @@ void memory_controller_t::statistics(){
         fprintf(output,"#Memory Controller\n");
         utils_t::largestSeparator(output);
         fprintf(output,"Requests_Made:                    %lu\n",this->get_requests_made());
-        fprintf(output,"Requests_from_Prefetcher:         %lu\n",this->get_requests_prefetcher());
+        if (this->get_requests_prefetcher() > 0) fprintf(output,"Requests_from_Prefetcher:         %lu\n",this->get_requests_prefetcher());
         fprintf(output,"Requests_from_LLC:                %lu\n",this->get_requests_llc());
-        fprintf(output,"Requests_from_HIVE:               %lu\n",this->get_requests_hive());
-        fprintf(output,"Requests_from_VIMA:               %lu\n",this->get_requests_vima());
+        if (this->get_requests_hive() > 0)fprintf(output,"Requests_from_HIVE:               %lu\n",this->get_requests_hive());
+        if (this->get_requests_vima() > 0)fprintf(output,"Requests_from_VIMA:               %lu\n",this->get_requests_vima());
         for (i = 0; i < CHANNEL; i++){
             fprintf(output,"Row_Buffer_Hit,  Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
             fprintf(output,"Row_Buffer_Miss, Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
@@ -150,7 +153,12 @@ void memory_controller_t::statistics(){
         fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
         fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
         for (i = 0; i < MEMORY_OPERATION_LAST; i++){
-            if (this->total_operations[i] > 0) fprintf(output,"%s Avg. Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+            if (this->total_operations[i] > 0) {
+                fprintf(output,"%s_Tot._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]);
+                fprintf(output,"%s_Avg._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+            }
+            if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output,"%s_Min._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_wait_operations[i]);
+            if (this->max_wait_operations[i] > 0) fprintf(output,"%s_Max._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_wait_operations[i]);
         }
         utils_t::largestSeparator(output);
         if(close) fclose(output);
@@ -171,7 +179,10 @@ void memory_controller_t::clock(){
         } else if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
             working[i]->updatePackageWait (1);
             this->total_operations[working[i]->memory_operation]++;
-            this->total_latency[working[i]->memory_operation] += (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
+            wait_time = (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
+            if (wait_time < this->min_wait_operations[working[i]->memory_operation]) this->min_wait_operations[working[i]->memory_operation] = wait_time;
+            if (wait_time > this->min_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
+            this->total_latency[working[i]->memory_operation] += wait_time;
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
         }
     }

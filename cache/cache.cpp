@@ -30,6 +30,9 @@ cache_t::cache_t() {
 
 cache_t::~cache_t(){
 	if (orcs_engine.get_global_cycle() == 0) return;
+	delete[] this->cache_hit_per_type;
+	delete[] this->cache_miss_per_type;
+	delete[] this->cache_count_per_type;
 	delete[] sets;
 	//ORCS_PRINTF ("cycle: %lu\n", orcs_engine.get_global_cycle())
 }
@@ -98,6 +101,10 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
     this->set_cache_write(0);
     this->set_cache_writeback(0);
 	this->set_change_line(0);
+
+	this->cache_hit_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	this->cache_miss_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	this->cache_count_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
 }
 
 // Return address index in cache
@@ -346,8 +353,16 @@ void cache_t::statistics() {
 		fprintf(output, "%d_Cache_Hits: %lu\n", this->level, this->get_cache_hit());
 		fprintf(output, "%d_Cache_Miss: %lu\n", this->level, this->get_cache_miss());
 		fprintf(output, "%d_Cache_Eviction: %lu\n", this->level, this->get_cache_eviction());
-		fprintf(output, "%d_Cache_Read: %lu\n", this->level, this->get_cache_read());
-		fprintf(output, "%d_Cache_Write: %lu\n", this->level, this->get_cache_write());
+		fprintf(output, "%d_Cache_Read: %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_READ]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_READ] != 0) fprintf(output, "%d_Cache_Read_Hit: %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_READ]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_READ] != 0) fprintf(output, "%d_Cache_Read_Miss: %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_READ]);
+		fprintf(output, "%d_Cache_Write: %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_WRITE]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_WRITE] != 0) fprintf(output, "%d_Cache_Write_Hit: %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_WRITE]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_WRITE] != 0) fprintf(output, "%d_Cache_Write_Miss: %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_WRITE]);
+		fprintf(output, "%d_Cache_Inst: %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_INST]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Hit: %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_INST]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Miss: %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_INST]);
+
 		if(this->get_cache_writeback()!=0){
 			fprintf(output, "%d_Cache_WriteBack: %lu\n", this->level, this->get_cache_writeback());
 		}

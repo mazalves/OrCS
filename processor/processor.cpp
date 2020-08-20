@@ -631,6 +631,8 @@ void processor_t::allocate() {
 	this->unified_reservation_station.reserve(ROB_SIZE);
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_functional_units.reserve(ROB_SIZE);
+
+	this->last_oldest_uop_dispatch = 0;
 }
 // =====================================================================
 bool processor_t::isBusy(){
@@ -1995,14 +1997,15 @@ void processor_t::dispatch(){
                 || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL 
                 || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV 
 				|| rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA
-				|| rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA
-				|| rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD
-				|| rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
-					ORCS_PRINTF ("%lu Processor dispatch(): entry %s readyAt %lu, wait_reg_deps_number %u [", orcs_engine.get_global_cycle(), get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, rob_line->wait_reg_deps_number)
-					for (i = 0; i < ROB_SIZE; i++){
-						if (rob_line->reg_deps_ptr_array[i] != NULL) ORCS_PRINTF (" %s ", get_enum_instruction_operation_char (rob_line->reg_deps_ptr_array[i]->uop.uop_operation))
+				|| rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA) {
+					if (rob_line->uop.uop_number > this->last_oldest_uop_dispatch){
+						ORCS_PRINTF ("%lu Processor dispatch(): entry %lu %s readyAt %lu, wait_reg_deps_number %u [", orcs_engine.get_global_cycle(), rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, rob_line->wait_reg_deps_number)
+						for (i = 0; i < ROB_SIZE; i++){
+							if (rob_line->reg_deps_ptr_array[i] != NULL) ORCS_PRINTF (" %lu %s ", rob_line->reg_deps_ptr_array[i]->uop.uop_number, get_enum_instruction_operation_char (rob_line->reg_deps_ptr_array[i]->uop.uop_operation))
+						}
+						ORCS_PRINTF ("]\n")
+						this->last_oldest_uop_dispatch = rob_line->uop.uop_number;
 					}
-					ORCS_PRINTF ("]\n")
 				}
 			}*/
 		}		  //end for

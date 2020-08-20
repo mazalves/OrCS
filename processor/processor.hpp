@@ -364,6 +364,8 @@ class processor_t {
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
+		uint64_t last_oldest_uop_dispatch;
+
 		INSTANTIATE_GET_SET(uint64_t,processor_id)
 		// ====================================================================
 		// Statistics

@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
     }
     // *****************************************************************************************
 	ORCS_PRINTF("End of Simulation\n")
-	ORCS_PRINTF("Writting FILE\n")
+	ORCS_PRINTF("Writing FILE\n")
     uint64_t FullLength = 0;
     gettimeofday(&orcs_engine.stat_timer_end, NULL);
     bool memory_leak_warning = false;
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         }
     }
     orcs_engine.memory_controller->statistics();    
-    ORCS_PRINTF("Writed FILE\n")
+    orcs_engine.vima_controller->statistics();
     // *****************************************************************************************
 
     ORCS_PRINTF("Deleting Trace Reader\n")

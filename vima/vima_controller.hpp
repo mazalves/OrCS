@@ -78,4 +78,5 @@ class vima_controller_t {
         void allocate();
         bool addRequest (memory_package_t* request);
         void instruction_ready (size_t index);
+        void statistics();
 };

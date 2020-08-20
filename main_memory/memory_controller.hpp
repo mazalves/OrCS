@@ -42,6 +42,9 @@ class memory_controller_t{
 
         uint64_t* total_latency;
         uint64_t* total_operations;
+        uint64_t* min_wait_operations;
+        uint64_t* max_wait_operations;
+        uint64_t wait_time;
         
         uint32_t BANK;
         uint32_t BANK_ROW_BUFFER_SIZE;
