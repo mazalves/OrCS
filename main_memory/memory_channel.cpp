@@ -329,7 +329,7 @@ void memory_channel_t::clock(){
         current_entry = this->findNext (bank);
         if (this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] > orcs_engine.get_global_cycle() ||
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
-        //ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
+        //if (current_entry->is_vima) ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
 
         switch (current_entry->memory_operation){
             case MEMORY_OPERATION_INST:

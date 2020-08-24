@@ -54,10 +54,14 @@ class cache_manager_t {
         void installCacheLines(memory_package_t* request, int32_t *cache_indexes, uint32_t latency_request, cacheId_t cache_type);
         uint32_t searchAddress(uint64_t instructionAddress, cache_t *cache, uint32_t *latency_request, uint32_t *ttc);
         cache_status_t recursiveInstructionSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level);
+        cache_status_t instructionSearch(memory_package_t *request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc);
         cache_status_t recursiveDataSearch(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        cache_status_t dataSearch(memory_package_t *request, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc);
         cache_status_t recursiveDataWrite(memory_package_t *mob_line, int32_t *cache_indexes, uint32_t latency_request, uint32_t ttc, uint32_t cache_level, cacheId_t cache_type);
+        cache_status_t cache_search (memory_package_t* request, cache_t* cache, int32_t* cache_indexes);
+        void process (memory_package_t* request, int32_t* cache);
         void requestCache (memory_package_t* request);
-        void finishRequest (memory_package_t* request);
+        void finishRequest (memory_package_t* request, int32_t* cache_indexes);
         void install (memory_package_t* request);
 
     public:

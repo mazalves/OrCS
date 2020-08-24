@@ -15,8 +15,9 @@ memory_package_t::memory_package_t() {
     this->ram_cycle = 0;
     this->vima_cycle = 0;
        
-    sent_to_cache = false;
     sent_to_ram = false;
+    next_level = L1;
+    cache_latency = 0;
     is_hive = false;
     hive_read1 = 0;
     hive_read2 = 0;
@@ -30,6 +31,8 @@ memory_package_t::memory_package_t() {
     row_buffer = false;
     type = DATA;
     op_count = new uint64_t[MEMORY_OPERATION_LAST]();
+    sent_to_cache_level = new uint32_t[LLC]();
+    sent_to_cache_level_at = new uint32_t[LLC]();
     this->latency = 0;
 
     memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
@@ -45,6 +48,7 @@ memory_package_t::memory_package_t() {
 memory_package_t::~memory_package_t(){
     vector<memory_request_client_t*>().swap(this->clients);
     delete[] op_count;
+    delete[] sent_to_cache_level;
 }
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){

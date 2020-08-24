@@ -13,7 +13,10 @@ class memory_package_t {
         uint64_t ram_cycle;
         uint64_t vima_cycle;
         
-        bool sent_to_cache;
+        uint32_t next_level;
+        uint32_t* sent_to_cache_level;
+        uint32_t* sent_to_cache_level_at;
+        uint32_t cache_latency;
         bool sent_to_ram;
         bool is_hive;
         int64_t hive_read1;

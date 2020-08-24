@@ -33,6 +33,9 @@ cache_t::~cache_t(){
 	delete[] this->cache_hit_per_type;
 	delete[] this->cache_miss_per_type;
 	delete[] this->cache_count_per_type;
+	delete[] this->total_per_type;
+	delete[] this->min_per_type;
+	delete[] this->max_per_type;
 	delete[] sets;
 	//ORCS_PRINTF ("cycle: %lu\n", orcs_engine.get_global_cycle())
 }
@@ -101,10 +104,20 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
     this->set_cache_write(0);
     this->set_cache_writeback(0);
 	this->set_change_line(0);
+	this->set_count(0);
+	this->set_max_reached(0);
 
 	this->cache_hit_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
 	this->cache_miss_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
 	this->cache_count_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	
+	this->total_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	this->min_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	this->max_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	for (i = 0; i < MEMORY_OPERATION_LAST; i++){
+		this->min_per_type[i] = INT64_MAX;
+		this->max_per_type[i] = 0;
+	}
 }
 
 // Return address index in cache
@@ -128,6 +141,10 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
     uint64_t idx;
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
+	ERROR_ASSERT_PRINTF (this->get_count() < this->mshr_size, "REQUEST # > MSHR_SIZE")
+	this->add_count();
+	this->add_cache_access();
+	if (this->get_count() > this->get_max_reached()) this->set_max_reached(this->get_count());
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		//printf("tag: %u\n", this->sets[idx].lines[i].dirty);
 		if(this->sets[idx].lines[i].tag == tag) {
@@ -146,6 +163,7 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
 				// 		//ORCS_PRINTF("     Cache level %u Ready At %lu\n", this->level, this->sets[idx].lines[i].ready_at)
 				// 	}
 				// }
+				this->add_cache_hit();
 				return HIT;
 			}
 			// Se ready Cycle for maior que o atual, a latencia é dada pela demora a chegar
@@ -167,6 +185,7 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
 		}
 	}
 	ttc += this->latency;
+	this->add_cache_miss();
 	return MISS;
 }
 
@@ -348,7 +367,7 @@ void cache_t::statistics() {
 	}
 	if (output != NULL){
 		utils_t::largeSeparator(output);
-		fprintf(output, "Cache_Level: %d - Cache_Type: %u\n", this->level, this->id);
+		fprintf(output, "Cache_Level: %d - Cache_Type: %s\n", this->level, get_enum_cache_type_char ((cacheId_t) this->id));
 		fprintf(output, "%d_Cache_Access: %lu\n", this->level, this->get_cache_access());
 		fprintf(output, "%d_Cache_Hits: %lu\n", this->level, this->get_cache_hit());
 		fprintf(output, "%d_Cache_Miss: %lu\n", this->level, this->get_cache_miss());
@@ -362,10 +381,19 @@ void cache_t::statistics() {
 		fprintf(output, "%d_Cache_Inst: %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_INST]);
 		if (this->cache_hit_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Hit: %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_INST]);
 		if (this->cache_miss_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Miss: %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_INST]);
+		for (int32_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+			if (this->cache_count_per_type[i] > 0){
+				//fprintf(output, "%d_Total_%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->total_per_type[i]);
+				fprintf(output, "%d_Avg._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->total_per_type[i]/this->cache_count_per_type[i]);
+				fprintf(output, "%d_Min._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->min_per_type[i]);
+				fprintf(output, "%d_Max._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->max_per_type[i]);
+			}
+		}
 
 		if(this->get_cache_writeback()!=0){
 			fprintf(output, "%d_Cache_WriteBack: %lu\n", this->level, this->get_cache_writeback());
 		}
+		fprintf(output, "%d_Max_Reached: %u\n", this->level, this->get_max_reached());
 		utils_t::largeSeparator(output);
 	}
 	if(close) fclose(output);

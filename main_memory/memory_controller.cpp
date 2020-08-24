@@ -27,9 +27,6 @@ memory_controller_t::memory_controller_t(){
     this->row_bits_shift = 0;
     this->controller_bits_shift = 0;
 
-    this->data_bus_availability = 0;
-    this->channel_bus_availability = NULL;
-
     this->total_latency = NULL;
     this->total_operations = NULL;
         
@@ -58,8 +55,10 @@ memory_controller_t::memory_controller_t(){
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
-    delete this->total_operations;
-    delete this->total_latency;
+    delete[] this->total_operations;
+    delete[] this->total_latency;
+    delete[] this->min_wait_operations;
+    delete[] this->max_wait_operations;
     delete[] this->channels;
 }
 // ============================================================================
@@ -102,7 +101,6 @@ void memory_controller_t::allocate(){
     set_TIMING_WR (cfg_memory_ctrl["TIMING_WR"]);    // Write Recovery time
     set_TIMING_WTR (cfg_memory_ctrl["TIMING_WTR"]);
     
-    this->channel_bus_availability = new uint64_t[CHANNEL]();
     this->channels = new memory_channel_t[CHANNEL]();
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].allocate();
     for (i = 0; i < this->CHANNEL; i++){

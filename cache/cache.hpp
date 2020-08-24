@@ -55,10 +55,17 @@ class cache_t {
         uint32_t n_sets;
         cacheSet_t *sets;
         uint32_t offset;
+        int32_t mshr_size;
+        int32_t count;
+        int32_t max_reached;
 
         uint64_t* cache_hit_per_type;
         uint64_t* cache_miss_per_type;
         uint64_t* cache_count_per_type;
+
+        int64_t* total_per_type;
+        int64_t* max_per_type;
+        int64_t* min_per_type;
 
         void statistics();
         void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
@@ -81,7 +88,9 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_inst)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)
         INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
-        
+        INSTANTIATE_GET_SET_ADD(int32_t,count)
+        INSTANTIATE_GET_SET_ADD(int32_t,max_reached)
+
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
         INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)

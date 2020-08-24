@@ -130,6 +130,16 @@ const char *get_enum_cache_level_char(cacheLevel_t type) {
     ERROR_PRINTF("Wrong CACHE_LEVEL\n");
     return "FAIL";
 } 
+
+const char *get_enum_cache_type_char(cacheId_t type) {
+    switch (type) {
+        case DATA:     return "DATA"; break;
+        case INSTRUCTION:     return "INSTRUCTION"; break;
+    }
+    ERROR_PRINTF("Wrong CACHE_LEVEL\n");
+    return "FAIL";
+} 
+
 const char *get_enum_status_stride_prefetcher_char(status_stride_prefetcher_t type) {
     switch (type) {
         case  INVALID:     return "INVALID"; break;

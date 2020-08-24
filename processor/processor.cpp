@@ -286,6 +286,11 @@ processor_t::~processor_t()
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_hive);
 	utils_t::template_delete_array<uint64_t>(this->fu_mem_vima);
 	// =====================================================================
+
+	delete[] this->total_latency;
+    delete[] this->total_operations;
+    delete[] this->min_wait_operations;
+    delete[] this->max_wait_operations;
 }
 
 uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {
@@ -337,7 +342,20 @@ void processor_t::allocate() {
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
 
-	if (cfg_root.exists("VIMA_CONTROLLER")) set_HAS_VIMA (1);
+	if (cfg_root.exists("VIMA_CONTROLLER")) {
+		libconfig::Setting &cfg_vima = cfg_root["VIMA_CONTROLLER"];
+		set_HAS_VIMA (1);
+		set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
+		ORCS_PRINTF ("MOB_VIMA = %u\n", get_MOB_VIMA())
+		set_VIMA_DEBUG(cfg_vima["VIMA_DEBUG"]);
+		ORCS_PRINTF ("VIMA_DEBUG = %u\n", get_VIMA_DEBUG())
+		set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
+		ORCS_PRINTF ("VIMA_UNIT = %u\n", get_VIMA_UNIT())
+		set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
+		ORCS_PRINTF ("WAIT_NEXT_MEM_VIMA = %u\n", get_WAIT_NEXT_MEM_VIMA())
+		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
+		ORCS_PRINTF ("LATENCY_MEM_VIMA = %u\n", get_LATENCY_MEM_VIMA())
+	}
 	else set_HAS_VIMA (0);
 
 	set_HAS_HIVE (cfg_processor["HAS_HIVE"]);
@@ -426,21 +444,7 @@ void processor_t::allocate() {
 		set_HIVE_UNIT (cfg_processor["HIVE_UNIT"]);
 		set_WAIT_NEXT_MEM_HIVE (cfg_processor["WAIT_NEXT_MEM_HIVE"]);
 		set_LATENCY_MEM_HIVE (cfg_processor["LATENCY_MEM_HIVE"]);
-	}
-
-	if (get_HAS_VIMA()){
-		set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
-		ORCS_PRINTF ("MOB_VIMA = %u\n", get_MOB_VIMA())
-		set_VIMA_DEBUG(cfg_processor["VIMA_DEBUG"]);
-		ORCS_PRINTF ("VIMA_DEBUG = %u\n", get_VIMA_DEBUG())
-		set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
-		ORCS_PRINTF ("VIMA_UNIT = %u\n", get_VIMA_UNIT())
-		set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
-		ORCS_PRINTF ("WAIT_NEXT_MEM_VIMA = %u\n", get_WAIT_NEXT_MEM_VIMA())
-		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
-		ORCS_PRINTF ("LATENCY_MEM_VIMA = %u\n", get_LATENCY_MEM_VIMA())
-	}
-	
+	}	
 
 	set_QTDE_MEMORY_FU (LOAD_UNIT+STORE_UNIT);
 	if (get_HAS_HIVE()) set_QTDE_MEMORY_FU (get_QTDE_MEMORY_FU() + HIVE_UNIT);
@@ -633,6 +637,16 @@ void processor_t::allocate() {
 	this->unified_functional_units.reserve(ROB_SIZE);
 
 	this->last_oldest_uop_dispatch = 0;
+
+	this->total_latency = new uint64_t[INSTRUCTION_OPERATION_LAST]();
+    this->total_operations = new uint64_t[INSTRUCTION_OPERATION_LAST]();
+    this->min_wait_operations = new uint64_t[INSTRUCTION_OPERATION_LAST]();
+    this->max_wait_operations = new uint64_t[INSTRUCTION_OPERATION_LAST]();
+	for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++){
+		this->min_wait_operations[i] = UINT64_MAX;
+    	this->max_wait_operations[i] = 0;
+	}
+    this->wait_time = 0;
 }
 // =====================================================================
 bool processor_t::isBusy(){
@@ -929,7 +943,6 @@ void processor_t::fetch(){
 			request->status = PACKAGE_STATE_UNTREATED;
 			request->readyAt = orcs_engine.get_global_cycle();
 			request->born_cycle = orcs_engine.get_global_cycle();
-			request->sent_to_cache = false;
 			request->sent_to_ram = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
@@ -1014,6 +1027,8 @@ void processor_t::decode(){
 				new_uop.hive_write = this->fetchBuffer.front()->hive_write;
 
 				new_uop.updatePackageWait (DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 				if (DECODE_DEBUG){
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1039,6 +1054,8 @@ void processor_t::decode(){
 				new_uop.write_address = this->fetchBuffer.front()->write_address;
 
 				new_uop.updatePackageWait (DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 				if (DECODE_DEBUG){
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1064,6 +1081,8 @@ void processor_t::decode(){
 				new_uop.write_address = this->fetchBuffer.front()->write_address;
 
 				new_uop.updatePackageWait (DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 				if (DECODE_DEBUG){
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1103,6 +1122,8 @@ void processor_t::decode(){
 				new_uop.write_address = fetchBuffer.front()->write_address;
 
 				new_uop.updatePackageWait (DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 				if (DECODE_DEBUG){
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1150,7 +1171,8 @@ void processor_t::decode(){
 				new_uop.write_regs[0] = 258;
 			}
 			new_uop.updatePackageWait(DECODE_LATENCY);
-			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1193,6 +1215,8 @@ void processor_t::decode(){
 			}
 			new_uop.updatePackageWait(DECODE_LATENCY);
 			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1250,6 +1274,8 @@ void processor_t::decode(){
 				// assert(!inserted_258 && "Max registers used");
 			}
 			new_uop.updatePackageWait(DECODE_LATENCY);
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1300,6 +1326,8 @@ void processor_t::decode(){
 				ERROR_ASSERT_PRINTF(inserted_258, "Todos Max regs usados. %u \n", MAX_REGISTERS)
 			}
 			new_uop.updatePackageWait(DECODE_LATENCY);
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -1339,6 +1367,8 @@ void processor_t::decode(){
 			}
 			new_uop.updatePackageWait(DECODE_LATENCY);
 			// printf("\n UOP Created %s \n",new_uop.content_to_string().c_str());
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 			if (DECODE_DEBUG){
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -2347,7 +2377,6 @@ uint32_t processor_t::mob_read(){
 			request->readyAt = orcs_engine.get_global_cycle();
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->sent_to_ram = false;
-			request->sent_to_cache = false;
 			request->type = DATA;
 			request->uop_number = oldest_read_to_send->uop_number;
 			request->processor_id = this->processor_id;
@@ -2449,7 +2478,6 @@ uint32_t processor_t::mob_hive(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
-			request->sent_to_cache = false;
 			request->uop_number = oldest_hive_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
@@ -2490,7 +2518,6 @@ uint32_t processor_t::mob_vima(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
-			request->sent_to_cache = false;
 			request->uop_number = oldest_vima_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
@@ -2584,7 +2611,6 @@ uint32_t processor_t::mob_write(){
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->type = DATA;
 			request->sent_to_ram = false;
-			request->sent_to_cache = false;
 			request->uop_number = oldest_write_to_send->uop_number;
 			request->processor_id = this->processor_id;
 			request->op_count[request->memory_operation]++;
@@ -2750,13 +2776,18 @@ void processor_t::commit(){
 					this->remove_front_mob_vima();
 				} 
 			}
+			this->wait_time = orcs_engine.get_global_cycle() - this->reorderBuffer[pos_buffer].uop.born_cycle;
+			this->total_latency[this->reorderBuffer[pos_buffer].uop.opcode_operation] += this->wait_time;
+			if (this->wait_time > this->max_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation]) this->max_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation] = this->wait_time;
+			if (this->wait_time < this->min_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation]) this->min_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation] = this->wait_time;
 			this->removeFrontROB();
 		}
 		/// Could not commit the older, then stop looking for ready uops
 		else
 		{
+			i = 0;
 			if (DEBUG){
-				ORCS_PRINTF ("=======Processor %lu, Cycle %lu=========\n", this->processor_id+1, orcs_engine.get_global_cycle())
+				//ORCS_PRINTF ("=======Processor %lu, Cycle %lu=========\n", this->processor_id+1, orcs_engine.get_global_cycle())
 				for (uint32_t i = 0; i < this->robUsed; i++){
 					ORCS_PRINTF ("%u COMMIT: %s %s %s %lu %lu\n", i, get_enum_processor_stage_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].stage), get_enum_instruction_operation_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation), get_enum_package_state_char (this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status), this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number, this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
 				}
@@ -2835,10 +2866,20 @@ void processor_t::statistics(){
 		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());
 		fprintf(output, "Core_Request_RAM_AVG_Cycle: %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
-		fprintf(output, "Total Load Requests: %lu\n", this->get_stat_inst_load_completed());
-		fprintf(output, "Total Store Requests: %lu\n", this->get_stat_inst_store_completed());
-		fprintf(output, "Total HIVE Instructions: %lu\n", this->get_stat_inst_hive_completed());
-		fprintf(output, "Total VIMA Instructions: %lu\n", this->get_stat_inst_vima_completed());
+		fprintf(output, "Total_Load_Requests: %lu\n", this->get_stat_inst_load_completed());
+		fprintf(output, "Total_Store_Requests: %lu\n", this->get_stat_inst_store_completed());
+		fprintf(output, "Total_HIVE_Instructions: %lu\n", this->get_stat_inst_hive_completed());
+		fprintf(output, "Total_VIMA_Instructions: %lu\n", this->get_stat_inst_vima_completed());
+		utils_t::largestSeparator(output);
+		for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++){
+			if (this->total_operations[i] > 0){
+				fprintf(output, "Total_%s_Instructions: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_operations[i]);
+				fprintf(output, "Total_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_latency[i]);
+				fprintf(output, "Avg._%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+				if (this->max_wait_operations[i] > 0) fprintf(output, "Max_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->max_wait_operations[i]);
+				if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output, "Min_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->min_wait_operations[i]);
+			}
+		}
 		utils_t::largestSeparator(output);
 		delete[] cache_indexes;
 	}

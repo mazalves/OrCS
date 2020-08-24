@@ -40,6 +40,7 @@ class uop_package_t{
     // Control variables
     uint64_t opcode_number;
     uint64_t uop_number;
+    uint64_t born_cycle;
     uint64_t readyAt;
     package_state_t status;
 };

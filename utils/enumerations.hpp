@@ -37,6 +37,7 @@ enum cacheId_t {
     INSTRUCTION,
     DATA
 };
+const char *get_enum_cache_type_char(cacheId_t type);
 
 enum directoryStatus_t {
     CACHED,

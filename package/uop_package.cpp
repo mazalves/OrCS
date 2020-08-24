@@ -27,7 +27,8 @@ void uop_package_t::package_clean()
     //controle
     this->opcode_number = 0;
     this->uop_number = 0;
-    this->readyAt = orcs_engine.get_global_cycle();;
+    this->born_cycle = 0;
+    this->readyAt = orcs_engine.get_global_cycle();
     this->status =PACKAGE_STATE_FREE;
 }
 bool uop_package_t::operator==(const uop_package_t &package) {

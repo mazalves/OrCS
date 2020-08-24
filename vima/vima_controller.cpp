@@ -239,11 +239,13 @@ void vima_controller_t::clock(){
     if (vima_buffer.size() <= 0) return;
     switch (vima_buffer[current_index]->status){
         case PACKAGE_STATE_WAIT:
-            //ORCS_PRINTF ("OUT VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
-            //if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
-            //if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
-            //if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
-            //ORCS_PRINTF ("\n")
+            if (VIMA_DEBUG){
+                ORCS_PRINTF ("OUT VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+                if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
+                if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
+                if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
+                ORCS_PRINTF ("\n")
+            }
             this->instruction_ready (0);
             break;
         case PACKAGE_STATE_TRANSMIT:
@@ -269,16 +271,16 @@ void vima_controller_t::clock(){
 
 void vima_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_processor = cfg_root["VIMA_CONTROLLER"];
+    libconfig::Setting &cfg_vima = cfg_root["VIMA_CONTROLLER"];
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
-    set_VIMA_BUFFER (cfg_processor["VIMA_BUFFER"]);
-    set_VIMA_DEBUG (cfg_processor["VIMA_DEBUG"]);
+    set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
+    set_VIMA_DEBUG (cfg_vima["VIMA_DEBUG"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
-    set_VIMA_CACHE_SIZE (cfg_processor["VIMA_CACHE_SIZE"]);
-    set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
-    set_VIMA_CACHE_ASSOCIATIVITY (cfg_processor["VIMA_CACHE_ASSOCIATIVITY"]);
-    set_VIMA_CACHE_LATENCY (cfg_processor["VIMA_CACHE_LATENCY"]);
-    set_VIMA_UNBALANCED (cfg_processor["VIMA_UNBALANCED"]);
+    set_VIMA_CACHE_SIZE (cfg_vima["VIMA_CACHE_SIZE"]);
+    set_VIMA_VECTOR_SIZE (cfg_vima["VIMA_VECTOR_SIZE"]);
+    set_VIMA_CACHE_ASSOCIATIVITY (cfg_vima["VIMA_CACHE_ASSOCIATIVITY"]);
+    set_VIMA_CACHE_LATENCY (cfg_vima["VIMA_CACHE_LATENCY"]);
+    set_VIMA_UNBALANCED (cfg_vima["VIMA_UNBALANCED"]);
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
     this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
@@ -312,21 +314,21 @@ void vima_controller_t::allocate(){
 
     vima_op_latencies = new uint32_t[MEMORY_OPERATION_LAST]();
     
-    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] = cfg_processor["VIMA_LATENCY_INT_ALU"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] = cfg_vima["VIMA_LATENCY_INT_ALU"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_ALU] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_DIV] = cfg_processor["VIMA_LATENCY_INT_DIV"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_DIV] = cfg_vima["VIMA_LATENCY_INT_DIV"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_DIV] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_DIV] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MUL] = cfg_processor["VIMA_LATENCY_INT_MUL"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MUL] = cfg_vima["VIMA_LATENCY_INT_MUL"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MUL] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MUL] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_ALU] = cfg_processor["VIMA_LATENCY_FP_ALU"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_ALU] = cfg_vima["VIMA_LATENCY_FP_ALU"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_ALU] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_ALU] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] = cfg_processor["VIMA_LATENCY_FP_DIV"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] = cfg_vima["VIMA_LATENCY_FP_DIV"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_DIV] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] = cfg_processor["VIMA_LATENCY_FP_MUL"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] = cfg_vima["VIMA_LATENCY_FP_MUL"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MUL] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] = cfg_processor["VIMA_LATENCY_INT_MLA"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] = cfg_vima["VIMA_LATENCY_INT_MLA"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] * this->CORE_TO_BUS_CLOCK_RATIO);
-    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] = cfg_processor["VIMA_LATENCY_FP_MLA"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] = cfg_vima["VIMA_LATENCY_FP_MLA"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] * this->CORE_TO_BUS_CLOCK_RATIO);
 
     set_cache_accesses(0);
@@ -343,10 +345,9 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         vima_buffer.push_back (request);
 
         this->request_count++;
-        if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
+        //if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
         return true;
     } else {
-        request->sent_to_cache = false;
         request->sent_to_ram = false;
         if (VIMA_DEBUG) ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
     }
