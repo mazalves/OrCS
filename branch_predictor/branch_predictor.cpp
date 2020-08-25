@@ -128,16 +128,17 @@ void branch_predictor_t::statistics() {
 	}
 	if (output != NULL) {
 		utils_t::largestSeparator(output);
-		fprintf(output,"BTB Hits: %u\n",this->btbHits);
-		fprintf(output,"BTB Miss: %u\n",this->btbMiss);
-		fprintf(output,"Total Branchs: %u\n",this->branches);
-		fprintf(output,"Total Branchs Taken: %u\n",this->branchTaken);
-		fprintf(output,"Total Branchs Not Taken: %u\n",this->branchNotTaken);
-		fprintf(output,"Correct Branchs Taken: %u\n",(this->branchTaken-this->branchTakenMiss));
-		fprintf(output,"Incorrect Branchs Taken: %u\n",this->branchTakenMiss);
-		fprintf(output,"Correct Branchs Not Taken: %u\n",(this->branchNotTaken-this->branchNotTakenMiss));
-		fprintf(output,"Incorrect Branchs Not Taken: %u\n",this->branchNotTakenMiss);
+		fprintf(output,"#Branch Prodiction\n");
 		utils_t::largestSeparator(output);
+		fprintf(output,"BTB Hits:                    %u\n",this->btbHits);
+		fprintf(output,"BTB Miss:                    %u\n",this->btbMiss);
+		fprintf(output,"Total Branchs:               %u\n",this->branches);
+		fprintf(output,"Total Branchs Taken:         %u\n",this->branchTaken);
+		fprintf(output,"Total Branchs Not Taken:     %u\n",this->branchNotTaken);
+		fprintf(output,"Correct Branchs Taken:       %u\n",(this->branchTaken-this->branchTakenMiss));
+		fprintf(output,"Incorrect Branchs Taken:     %u\n",this->branchTakenMiss);
+		fprintf(output,"Correct Branchs Not Taken:   %u\n",(this->branchNotTaken-this->branchNotTakenMiss));
+		fprintf(output,"Incorrect Branchs Not Taken: %u\n",this->branchNotTakenMiss);
 	}
 	if(close) fclose(output);
 }

@@ -171,15 +171,10 @@ processor_t::processor_t()
 	this->RENAME_DEBUG = 0;
 	this->DISPATCH_DEBUG = 0;
 	this->EXECUTE_DEBUG = 0;
-	this->MOB_DEBUG = 0;
-	this->PRINT_MOB = 0;
-	this->PRINT_ROB = 0;
 	this->HIVE_DEBUG = 0;
 	this->VIMA_DEBUG = 0;
 	this->COMMIT_DEBUG = 0;
-	this->MSHR_DEBUG = 0;
-	this->MULTICORE_DEBUG = 0;
-
+	
 	this->WAIT_CYCLE = 0;
 
 	this->memory_read_executed = 0;
@@ -421,13 +416,8 @@ void processor_t::allocate() {
 	set_RENAME_DEBUG(cfg_processor["RENAME_DEBUG"]);
 	set_DISPATCH_DEBUG(cfg_processor["DISPATCH_DEBUG"]);
 	set_EXECUTE_DEBUG(cfg_processor["EXECUTE_DEBUG"]);
-	set_MOB_DEBUG(cfg_processor["MOB_DEBUG"]);
-	set_PRINT_MOB(cfg_processor["PRINT_MOB"]);
-	set_PRINT_ROB(cfg_processor["PRINT_ROB"]);
 	set_COMMIT_DEBUG(cfg_processor["COMMIT_DEBUG"]);
-	set_MSHR_DEBUG(cfg_processor["MSHR_DEBUG"]);
-	set_MULTICORE_DEBUG(cfg_processor["MULTICORE_DEBUG"]);
-
+	
 	set_WAIT_CYCLE(cfg_processor["WAIT_CYCLE"]);
 	// Load Units
 	set_LOAD_UNIT (cfg_processor["LOAD_UNIT"]);
@@ -2321,84 +2311,43 @@ memory_order_buffer_line_t* processor_t::get_next_op_load(){
 }
 // ============================================================================
 uint32_t processor_t::mob_read(){
-	if (MOB_DEBUG){
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-			ORCS_PRINTF("==========================================================\n")
-			ORCS_PRINTF("=========== MOB Read ===========\n")
-			ORCS_PRINTF("MOB Read Start %u\n",this->memory_order_buffer_read_start)
-			ORCS_PRINTF("MOB Read End %u\n",this->memory_order_buffer_read_end)
-			ORCS_PRINTF("MOB Read Used %u\n",this->memory_order_buffer_read_used)
-			if (PRINT_MOB){
-				if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-					memory_order_buffer_line_t::printAllOrder(this->memory_order_buffer_read,MOB_READ,this->memory_order_buffer_read_start,this->memory_order_buffer_read_used);
-				}
-			}
-			if(oldest_read_to_send!=NULL){
-				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
-					ORCS_PRINTF("MOB Read Atual %s\n",this->oldest_read_to_send->content_to_string().c_str())
-				}
-			}
-		}
-	}
-	if(this->oldest_read_to_send == NULL){
-			this->oldest_read_to_send = this->get_next_op_load();
-			if (MOB_DEBUG){
-				if(oldest_read_to_send==NULL){
-					if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
-						ORCS_PRINTF("Oldest Read NULL\n")
-					}
-				}
-			}
-	}
-	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
-		if (MOB_DEBUG){
-			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-				ORCS_PRINTF("=================================\n")
-				ORCS_PRINTF("Sending to memory request to data\n")
-				ORCS_PRINTF("%s\n",this->oldest_read_to_send->content_to_string().c_str())
-				ORCS_PRINTF("=================================\n")
-			}
-		}
-		
-		if (!oldest_read_to_send->sent){
-			memory_package_t* request = new memory_package_t();
+	if(this->oldest_read_to_send == NULL) this->oldest_read_to_send = this->get_next_op_load();
 			
-			request->clients.push_back (oldest_read_to_send);
-			request->opcode_address = oldest_read_to_send->opcode_address;
-			request->memory_address = oldest_read_to_send->memory_address;
-			request->memory_size = oldest_read_to_send->memory_size;
-			request->memory_operation = oldest_read_to_send->memory_operation;
-			request->status = PACKAGE_STATE_UNTREATED;
-			request->is_hive = false;
-			request->is_vima = false;
-			request->hive_read1 = oldest_read_to_send->hive_read1;
-			request->hive_read2 = oldest_read_to_send->hive_read2;
-			request->hive_write = oldest_read_to_send->hive_write;
-			request->readyAt = orcs_engine.get_global_cycle();
-			request->born_cycle = orcs_engine.get_global_cycle();
-			request->sent_to_ram = false;
-			request->type = DATA;
-			request->uop_number = oldest_read_to_send->uop_number;
-			request->processor_id = this->processor_id;
-			request->op_count[request->memory_operation]++;
-
-			if (orcs_engine.cacheManager->searchData(request)){
-				this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-				this->oldest_read_to_send->sent=true;
-				this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-				if (DEBUG) ORCS_PRINTF ("Processor mob_read(): sending memory request %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
-			} else {
-				this->add_times_reach_parallel_requests_read();
-				delete request;
-			}
+	if (this->oldest_read_to_send != NULL && !this->oldest_read_to_send->sent){
+		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
+		memory_package_t* request = new memory_package_t();
+			
+		request->clients.push_back (oldest_read_to_send);
+		request->opcode_address = oldest_read_to_send->opcode_address;
+		request->memory_address = oldest_read_to_send->memory_address;
+		request->memory_size = oldest_read_to_send->memory_size;
+		request->memory_operation = oldest_read_to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = false;
+		request->is_vima = false;
+		request->hive_read1 = oldest_read_to_send->hive_read1;
+		request->hive_read2 = oldest_read_to_send->hive_read2;
+		request->hive_write = oldest_read_to_send->hive_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->sent_to_ram = false;
+		request->type = DATA;
+		request->uop_number = oldest_read_to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
+	
+		if (orcs_engine.cacheManager->searchData(request)){
+			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_read_to_send->sent=true;
+			this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (DEBUG) ORCS_PRINTF ("Processor mob_read(): sending memory request %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+		} else {
+			this->add_times_reach_parallel_requests_read();
+			delete request;
 		}
+	
 		this->oldest_read_to_send = NULL;
 	} //end if request null
-	if (MOB_DEBUG){
-			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-			ORCS_PRINTF("==========================================================\n")
-		}
-	}
 	return OK;
 } //end method
 
@@ -2456,41 +2405,39 @@ memory_order_buffer_line_t* processor_t::get_next_op_vima(){
 
 // ============================================================================
 uint32_t processor_t::mob_hive(){
-	if(this->oldest_hive_to_send==NULL)
-		this->oldest_hive_to_send = this->get_next_op_hive();
+	if(this->oldest_hive_to_send==NULL)	this->oldest_hive_to_send = this->get_next_op_hive();
 	
-	if (this->oldest_hive_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
-		if (!this->oldest_hive_to_send->sent){
-			memory_package_t* request = new memory_package_t();
+	if (this->oldest_hive_to_send != NULL && !this->oldest_hive_to_send->sent){
+		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
 			
-			request->clients.push_back (oldest_hive_to_send);
-			request->opcode_address = oldest_hive_to_send->opcode_address;
-			request->memory_address = oldest_hive_to_send->memory_address;
-			request->memory_size = oldest_hive_to_send->memory_size;
-			request->memory_operation = oldest_hive_to_send->memory_operation;
-			request->status = PACKAGE_STATE_UNTREATED;
-			request->is_hive = true;
-			request->is_vima = false;
-			request->hive_read1 = oldest_hive_to_send->hive_read1;
-			request->hive_read2 = oldest_hive_to_send->hive_read2;
-			request->hive_write = oldest_hive_to_send->hive_write;
-			request->readyAt = orcs_engine.get_global_cycle();
-			request->born_cycle = orcs_engine.get_global_cycle();
-			request->type = DATA;
-			request->sent_to_ram = false;
-			request->uop_number = oldest_hive_to_send->uop_number;
-			request->processor_id = this->processor_id;
-			request->op_count[request->memory_operation]++;
+		memory_package_t* request = new memory_package_t();
+			
+		request->clients.push_back (oldest_hive_to_send);
+		request->opcode_address = oldest_hive_to_send->opcode_address;
+		request->memory_address = oldest_hive_to_send->memory_address;
+		request->memory_size = oldest_hive_to_send->memory_size;
+		request->memory_operation = oldest_hive_to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = true;
+		request->is_vima = false;
+		request->hive_read1 = oldest_hive_to_send->hive_read1;
+		request->hive_read2 = oldest_hive_to_send->hive_read2;
+		request->hive_write = oldest_hive_to_send->hive_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->type = DATA;
+		request->sent_to_ram = false;
+		request->uop_number = oldest_hive_to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
 
-			if (orcs_engine.cacheManager->searchData(request)){
-				this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-				this->oldest_hive_to_send->sent=true;
-				this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-				if (DEBUG) ORCS_PRINTF ("Processor mob_hive(): sending memory request %lu, %s to cache manager.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
-			} else delete request;
-		}
+		if (orcs_engine.cacheManager->searchData(request)){
+			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_hive_to_send->sent=true;
+			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (DEBUG) ORCS_PRINTF ("Processor mob_hive(): sending memory request %lu, %s to cache manager.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+		} else delete request;
 		this->oldest_hive_to_send = NULL;
-		// =============================================================
 	}
 	return OK;
 }
@@ -2499,41 +2446,37 @@ uint32_t processor_t::mob_hive(){
 uint32_t processor_t::mob_vima(){
 	if (this->oldest_vima_to_send == NULL) this->oldest_vima_to_send = this->get_next_op_vima();
 	
-	if (this->oldest_vima_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)){
-		if (!this->oldest_vima_to_send->sent){
-			memory_package_t* request = new memory_package_t();
+	if (this->oldest_vima_to_send != NULL && !this->oldest_vima_to_send->sent){
+		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
+		
+		memory_package_t* request = new memory_package_t();
 			
-			request->clients.push_back (oldest_vima_to_send);
-			request->opcode_address = oldest_vima_to_send->opcode_address;
-			request->memory_address = oldest_vima_to_send->memory_address;
-			request->memory_size = oldest_vima_to_send->memory_size;
-			request->memory_operation = oldest_vima_to_send->memory_operation;
-			request->status = PACKAGE_STATE_UNTREATED;
-			request->is_hive = false;
-			request->is_vima = true;
-			request->vima_read1 = oldest_vima_to_send->vima_read1;
-			request->vima_read2 = oldest_vima_to_send->vima_read2;
-			request->vima_write = oldest_vima_to_send->vima_write;
-			request->readyAt = orcs_engine.get_global_cycle();
-			request->born_cycle = orcs_engine.get_global_cycle();
-			request->type = DATA;
-			request->sent_to_ram = false;
-			request->uop_number = oldest_vima_to_send->uop_number;
-			request->processor_id = this->processor_id;
-			request->op_count[request->memory_operation]++;
+		request->clients.push_back (oldest_vima_to_send);
+		request->opcode_address = oldest_vima_to_send->opcode_address;
+		request->memory_address = oldest_vima_to_send->memory_address;
+		request->memory_size = oldest_vima_to_send->memory_size;
+		request->memory_operation = oldest_vima_to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = false;
+		request->is_vima = true;
+		request->vima_read1 = oldest_vima_to_send->vima_read1;
+		request->vima_read2 = oldest_vima_to_send->vima_read2;
+		request->vima_write = oldest_vima_to_send->vima_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->type = DATA;
+		request->sent_to_ram = false;
+		request->uop_number = oldest_vima_to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
 
-			if (orcs_engine.cacheManager->searchData(request)){
-				this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-				this->oldest_vima_to_send->sent=true;
-				this->oldest_vima_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-				if (VIMA_DEBUG) ORCS_PRINTF ("%lu Processor mob_vima(): sending memory request %lu, %s to cache manager.\n", orcs_engine.get_global_cycle(), request->uop_number, get_enum_memory_operation_char (request->memory_operation))
-			} else delete request;
-		}
+		if (orcs_engine.cacheManager->searchData(request)){
+			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_vima_to_send->sent=true;
+			this->oldest_vima_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+			if (VIMA_DEBUG) ORCS_PRINTF ("%lu Processor mob_vima(): sending memory request %lu, %s to cache manager.\n", orcs_engine.get_global_cycle(), request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+		} else delete request;
 		this->oldest_vima_to_send = NULL;
-		// =============================================================
-	} else {
-		//if (this->oldest_vima_to_send == NULL) ORCS_PRINTF ("oldest_vima_to_send NULL\n")
-		//else ORCS_PRINTF ("Processor mob_vima(): %lu MEMORY_OPERATION_READS na hierarquia de memória.\n", orcs_engine.cacheManager->op_count[this->processor_id][MEMORY_OPERATION_READ])
 	}
 	return OK;
 }
@@ -2553,89 +2496,51 @@ memory_order_buffer_line_t* processor_t::get_next_op_store(){
 }
 // ============================================================================
 uint32_t processor_t::mob_write(){
-	if (MOB_DEBUG){
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-			ORCS_PRINTF("==========================================================\n")
-			ORCS_PRINTF("=========== MOB Write ===========\n")
-			ORCS_PRINTF("MOB Write Start %u\n",this->memory_order_buffer_write_start)
-			ORCS_PRINTF("MOB Write End %u\n",this->memory_order_buffer_write_end)
-			ORCS_PRINTF("MOB Write Used %u\n",this->memory_order_buffer_write_used)
-			if (PRINT_MOB){
-				if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-					memory_order_buffer_line_t::printAllOrder(this->memory_order_buffer_write,MOB_WRITE,this->memory_order_buffer_write_start,this->memory_order_buffer_write_used);
-				}
-			}
-			if(this->oldest_write_to_send!=NULL){
-				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
-					ORCS_PRINTF("MOB write Atual %s\n",this->oldest_write_to_send->content_to_string().c_str())
-				}
-			}
-		}
-	}
-	if(this->oldest_write_to_send==NULL){
-		this->oldest_write_to_send = this->get_next_op_store();
-		if (MOB_DEBUG){
-			if(this->oldest_write_to_send==NULL){
-				if(orcs_engine.get_global_cycle() > WAIT_CYCLE){
-					ORCS_PRINTF("Oldest Write NULL\n")
-				}
-			}
-		}
-	}
-	if (this->oldest_write_to_send != NULL && orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_WRITE)){
-		if (MOB_DEBUG){
-			if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
-				ORCS_PRINTF("=================================\n")
-				ORCS_PRINTF("Sending to memory WRITE to data\n")
-				ORCS_PRINTF("%s\n",this->oldest_write_to_send->content_to_string().c_str())
-				ORCS_PRINTF("=================================\n")
-			}
-		}
-
-		//sendind to write data
-		if (!this->oldest_write_to_send->sent){
-			memory_package_t* request = new memory_package_t();
+	if (this->oldest_write_to_send == NULL) this->oldest_write_to_send = this->get_next_op_store();
+	
+	if (this->oldest_write_to_send != NULL && !this->oldest_write_to_send->sent){
+		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_WRITE)) return OK;
+		
+		memory_package_t* request = new memory_package_t();
 			
-			//request->clients.push_back (oldest_write_to_send);
-			request->opcode_address = oldest_write_to_send->opcode_address;
-			request->memory_address = oldest_write_to_send->memory_address;
-			request->memory_size = oldest_write_to_send->memory_size;
-			request->memory_operation = oldest_write_to_send->memory_operation;
-			request->status = PACKAGE_STATE_UNTREATED;
-			request->is_hive = false;
-			request->is_vima = false;
-			request->hive_read1 = oldest_write_to_send->hive_read1;
-			request->hive_read2 = oldest_write_to_send->hive_read2;
-			request->hive_write = oldest_write_to_send->hive_write;
-			request->readyAt = orcs_engine.get_global_cycle();
-			request->born_cycle = orcs_engine.get_global_cycle();
-			request->type = DATA;
-			request->sent_to_ram = false;
-			request->uop_number = oldest_write_to_send->uop_number;
-			request->processor_id = this->processor_id;
-			request->op_count[request->memory_operation]++;
+		//request->clients.push_back (oldest_write_to_send);
+		request->opcode_address = oldest_write_to_send->opcode_address;
+		request->memory_address = oldest_write_to_send->memory_address;
+		request->memory_size = oldest_write_to_send->memory_size;
+		request->memory_operation = oldest_write_to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = false;
+		request->is_vima = false;
+		request->hive_read1 = oldest_write_to_send->hive_read1;
+		request->hive_read2 = oldest_write_to_send->hive_read2;
+		request->hive_write = oldest_write_to_send->hive_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->type = DATA;
+		request->sent_to_ram = false;
+		request->uop_number = oldest_write_to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
 
-			if (orcs_engine.cacheManager->searchData(request)){
-				this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
-				this->oldest_write_to_send->sent=true;
-				this->oldest_write_to_send->rob_ptr->sent=true;	///Setting flag which marks sent request. set to remove entry on mob at commit
-				this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
-				this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
-				this->oldest_write_to_send->processed=true;
-
-				//ORCS_PRINTF ("%lu uop: %lu | %s | %u | %u.\n", orcs_engine.get_global_cycle(), this->oldest_write_to_send->rob_ptr->uop.uop_number, get_enum_processor_stage_char (this->oldest_write_to_send->rob_ptr->stage), this->counter_mshr_write, this->MAX_PARALLEL_REQUESTS_CORE)
-
-				this->memory_write_executed--;
-				this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
-				if (DISAMBIGUATION_ENABLED){
-					this->disambiguator->solve_memory_dependences(this->oldest_write_to_send);
-				}
-				this->remove_front_mob_write();
-			} else {
-				this->add_times_reach_parallel_requests_write();
-				delete request;
+		if (orcs_engine.cacheManager->searchData(request)){
+			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_write_to_send->sent=true;
+			this->oldest_write_to_send->rob_ptr->sent=true;	///Setting flag which marks sent request. set to remove entry on mob at commit
+			this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+			this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
+			this->oldest_write_to_send->processed=true;
+			//ORCS_PRINTF ("%lu uop: %lu | %s | %u | %u.\n", orcs_engine.get_global_cycle(), this->oldest_write_to_send->rob_ptr->uop.uop_number, get_enum_processor_stage_char (this->oldest_write_to_send->rob_ptr->stage), this->counter_mshr_write, this->MAX_PARALLEL_REQUESTS_CORE)
+			this->memory_write_executed--;
+			this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->solve_memory_dependences(this->oldest_write_to_send);
 			}
+			this->remove_front_mob_write();
+		} else {
+			this->add_times_reach_parallel_requests_write();
+			delete request;
 		}
+
 		this->oldest_write_to_send = NULL;
 		// =============================================================
 	} //end if request null
@@ -2845,39 +2750,34 @@ void processor_t::statistics(){
 	}
 	if (output != NULL){
 		utils_t::largestSeparator(output);
-		fprintf(output, "Total_Cycle: %lu\n", this->get_ended_cycle());
+		fprintf(output, "Total_Cycle:  %lu\n", this->get_ended_cycle());
 		utils_t::largeSeparator(output);
 		fprintf(output, "Stage_Opcode_and_Uop_Counters\n");
 		utils_t::largeSeparator(output);
-		fprintf(output, "Stage_Fetch: %lu\n", this->fetchCounter);
+		fprintf(output, "Stage_Fetch:  %lu\n", this->fetchCounter);
 		fprintf(output, "Stage_Decode: %lu\n", this->decodeCounter);
 		fprintf(output, "Stage_Rename: %lu\n", this->renameCounter);
 		fprintf(output, "Stage_Commit: %lu\n", this->commit_uop_counter);
 		utils_t::largestSeparator(output);
-			if (MAX_PARALLEL_REQUESTS_CORE){
-				fprintf(output, "Times_Reach_MAX_PARALLEL_REQUESTS_CORE_READ: %lu\n", this->get_times_reach_parallel_requests_read());
-				fprintf(output, "Times_Reach_MAX_PARALLEL_REQUESTS_CORE_WRITE: %lu\n", this->get_times_reach_parallel_requests_write());
-			}
-		utils_t::largestSeparator(output);
-		fprintf(output, "Instruction_Per_Cycle: %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
+		fprintf(output, "Instruction_Per_Cycle:            %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
 		// accessing LLC cache level
 		int32_t *cache_indexes = new int32_t[3]();
 		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
-		fprintf(output, "MPKI: %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
+		fprintf(output, "MPKI:                             %lf\n", (float)orcs_engine.cacheManager->data_cache[2][cache_indexes[2]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());
-		fprintf(output, "Core_Request_RAM_AVG_Cycle: %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
-		fprintf(output, "Total_Load_Requests: %lu\n", this->get_stat_inst_load_completed());
-		fprintf(output, "Total_Store_Requests: %lu\n", this->get_stat_inst_store_completed());
-		fprintf(output, "Total_HIVE_Instructions: %lu\n", this->get_stat_inst_hive_completed());
-		fprintf(output, "Total_VIMA_Instructions: %lu\n", this->get_stat_inst_vima_completed());
+		fprintf(output, "Core_Request_RAM_AVG_Cycle:       %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
+		fprintf(output, "Total_Load_Requests:              %lu\n", this->get_stat_inst_load_completed());
+		fprintf(output, "Total_Store_Requests:             %lu\n", this->get_stat_inst_store_completed());
+		fprintf(output, "Total_HIVE_Instructions:          %lu\n", this->get_stat_inst_hive_completed());
+		fprintf(output, "Total_VIMA_Instructions:          %lu\n", this->get_stat_inst_vima_completed());
 		utils_t::largestSeparator(output);
 		for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++){
 			if (this->total_operations[i] > 0){
-				fprintf(output, "Total_%s_Instructions: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_operations[i]);
+				fprintf(output, "Total_%s_Instructions:         %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_operations[i]);
 				fprintf(output, "Total_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_latency[i]);
-				fprintf(output, "Avg._%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_latency[i]/this->total_operations[i]);
-				if (this->max_wait_operations[i] > 0) fprintf(output, "Max_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->max_wait_operations[i]);
-				if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output, "Min_%s_Instructions_Latency: %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->min_wait_operations[i]);
+				fprintf(output, "Avg._%s_Instructions_Latency:  %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+				if (this->max_wait_operations[i] > 0) fprintf(output, "Max_%s_Instructions_Latency:   %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->max_wait_operations[i]);
+				if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output, "Min_%s_Instructions_Latency:   %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->min_wait_operations[i]);
 			}
 		}
 		utils_t::largestSeparator(output);

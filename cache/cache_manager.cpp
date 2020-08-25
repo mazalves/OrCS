@@ -591,30 +591,32 @@ void cache_manager_t::statistics(uint32_t core_id) {
     }
 	if (output != NULL) {
         utils_t::largestSeparator(output);
-        fprintf(output,"##############  Cache Memories ##################\n");
+        fprintf(output,"#========================================================================#\n");
+        fprintf(output,"#Cache Manager\n");
+        fprintf(output,"#========================================================================#\n");
         if (this->get_sent_ram() > 0) {
-            ORCS_PRINTF ("Total Reads: %lu\nTotal Writes: %lu\n", this->get_reads(), this->get_writes())
-            ORCS_PRINTF ("Total RAM requests: %u\nTotal RAM request latency cycles: %u\n", this->get_sent_ram(), this->get_sent_ram_cycles())
-            ORCS_PRINTF ("Average wait for RAM requests: %u\n", sent_ram_cycles/sent_ram)
+            ORCS_PRINTF ("Total Reads:                       %lu\nTotal Writes:                      %lu\n", this->get_reads(), this->get_writes())
+            ORCS_PRINTF ("Total RAM requests:                %u\nTotal RAM request latency cycles:  %u\n", this->get_sent_ram(), this->get_sent_ram_cycles())
+            ORCS_PRINTF ("Average wait for RAM requests:     %u\n", sent_ram_cycles/sent_ram)
         }
         if (this->get_sent_hive() > 0) {
-            ORCS_PRINTF ("Total HIVE requests: %u\nTotal HIVE request latency cycles: %u\n", this->get_sent_hive(), this->get_sent_hive_cycles())
-            ORCS_PRINTF ("Average wait for HIVE requests: %u\n", sent_hive_cycles/sent_hive)
+            ORCS_PRINTF ("Total HIVE requests:               %u\nTotal HIVE request latency cycles: %u\n", this->get_sent_hive(), this->get_sent_hive_cycles())
+            ORCS_PRINTF ("Average wait for HIVE requests:    %u\n", sent_hive_cycles/sent_hive)
         }
         if (this->get_sent_vima() > 0){
-            ORCS_PRINTF ("Total VIMA requests: %u\nTotal VIMA request latency cycles: %u\n", this->get_sent_vima(), this->get_sent_vima_cycles())
-            ORCS_PRINTF ("Average wait for VIMA requests: %u\n", sent_vima_cycles/sent_vima)
+            ORCS_PRINTF ("Total VIMA requests:               %u\nTotal VIMA request latency cycles: %u\n", this->get_sent_vima(), this->get_sent_vima_cycles())
+            ORCS_PRINTF ("Average wait for VIMA requests:    %u\n", sent_vima_cycles/sent_vima)
         }
     
         utils_t::largestSeparator(output);
 
         for (i = 0; i < MEMORY_OPERATION_LAST; i++){
             if (this->total_operations[i] > 0) {
-                fprintf(output,"%s_Tot._Latency_Processor:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]);
-                fprintf(output,"%s_Avg._Latency_Processor:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+                fprintf(output,"%s_Tot._Latency_Hierarchy:  %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]);
+                fprintf(output,"%s_Avg._Latency_Hierarchy:  %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
             }
-            if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output,"%s_Min._Latency_Processor:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_wait_operations[i]);
-            if (this->max_wait_operations[i] > 0) fprintf(output,"%s_Max._Latency_Processor:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_wait_operations[i]);
+            if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output,"%s_Min._Latency_Hierarchy:  %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_wait_operations[i]);
+            if (this->max_wait_operations[i] > 0) fprintf(output,"%s_Max._Latency_Hierarchy:  %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_wait_operations[i]);
         }
     }
 	if(close) fclose(output);

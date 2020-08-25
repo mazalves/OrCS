@@ -37,8 +37,7 @@ class memory_package_t {
         std::vector<memory_request_client_t*> clients; ///update these
 
         uint32_t DEBUG;
-        uint32_t MSHR_DEBUG;
-
+        
         memory_package_t();
         ~memory_package_t();
 
@@ -55,5 +54,4 @@ class memory_package_t {
         void printPackage();
 
         INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
-        INSTANTIATE_GET_SET_ADD (uint32_t, MSHR_DEBUG)
 };

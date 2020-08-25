@@ -136,27 +136,32 @@ void memory_controller_t::statistics(){
         utils_t::largestSeparator(output);
         fprintf(output,"#Memory Controller\n");
         utils_t::largestSeparator(output);
-        fprintf(output,"Requests_Made:                    %lu\n",this->get_requests_made());
-        if (this->get_requests_prefetcher() > 0) fprintf(output,"Requests_from_Prefetcher:         %lu\n",this->get_requests_prefetcher());
-        fprintf(output,"Requests_from_LLC:                %lu\n",this->get_requests_llc());
-        if (this->get_requests_hive() > 0)fprintf(output,"Requests_from_HIVE:               %lu\n",this->get_requests_hive());
-        if (this->get_requests_vima() > 0)fprintf(output,"Requests_from_VIMA:               %lu\n",this->get_requests_vima());
+        fprintf(output,"Requests_Made:               %lu\n",this->get_requests_made());
+        if (this->get_requests_prefetcher() > 0)  fprintf(output,"Requests_from_Prefetcher:    %lu\n",this->get_requests_prefetcher());
+        fprintf(output,"Requests_from_LLC:           %lu\n",this->get_requests_llc());
+        if (this->get_requests_hive() > 0) fprintf(output,"Requests_from_HIVE:          %lu\n",this->get_requests_hive());
+        if (this->get_requests_vima() > 0) fprintf(output,"Requests_from_VIMA:          %lu\n",this->get_requests_vima());
         for (i = 0; i < CHANNEL; i++){
-            fprintf(output,"Row_Buffer_Hit,  Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
-            fprintf(output,"Row_Buffer_Miss, Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+            if (i > 9) {
+                fprintf(output,"Row_Buffer_Hit,  Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
+                fprintf(output,"Row_Buffer_Miss, Channel %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+            } else {
+                fprintf(output,"Row_Buffer_Hit,  Channel  %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_hit());
+                fprintf(output,"Row_Buffer_Miss, Channel  %lu: %lu\n",i,this->channels[i].get_stat_row_buffer_miss());
+            }
             total_rb_hits += this->channels[i].get_stat_row_buffer_hit();
             total_rb_misses += this->channels[i].get_stat_row_buffer_miss();
         }
-        fprintf(output,"Requests_Made_RB_Hits:       %u\n",total_rb_hits);
-        fprintf(output,"Requests_Made_RB_Misses:     %u\n",total_rb_misses);
-        fprintf(output,"Requests_RB_Misses_Ratio:    %f\n", (float) total_rb_misses/this->get_requests_made());
+        fprintf(output,"Row_Buffer Total_Hits:       %u\n",total_rb_hits);
+        fprintf(output,"Row_Buffer_Total_Misses:     %u\n",total_rb_misses);
+        fprintf(output,"Row_Buffer_Miss_Ratio:       %f\n", (float) total_rb_misses/this->get_requests_made());
         for (i = 0; i < MEMORY_OPERATION_LAST; i++){
             if (this->total_operations[i] > 0) {
-                fprintf(output,"%s_Tot._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]);
-                fprintf(output,"%s_Avg._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+                fprintf(output,"%s_Tot._Latency:          %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]);
+                fprintf(output,"%s_Avg._Latency:          %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency[i]/this->total_operations[i]);
+                fprintf(output,"%s_Min._Latency:          %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_wait_operations[i]);
+                fprintf(output,"%s_Max._Latency:          %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_wait_operations[i]);
             }
-            if (this->min_wait_operations[i] < UINT64_MAX) fprintf(output,"%s_Min._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_wait_operations[i]);
-            if (this->max_wait_operations[i] > 0) fprintf(output,"%s_Max._Latency:    %lu\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_wait_operations[i]);
         }
         utils_t::largestSeparator(output);
         if(close) fclose(output);
