@@ -110,8 +110,8 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
         for (uint32_t i = 0; i < DATA_LEVELS; i++) {
             DCACHE_AMOUNT[i] = std::count(camount.begin(), camount.end(), i);
         }
-        POINTER_LEVELS = 3;
-        // POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+        //POINTER_LEVELS = 3;
+        POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
     }
     std::vector<uint32_t>().swap(clevels);
     std::vector<uint32_t>().swap(camount);
@@ -213,8 +213,8 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->instruction_cache = this->instantiate_cache(INSTRUCTION, cfg_cache_defs);
     this->data_cache = this->instantiate_cache(DATA, cfg_cache_defs);
 
-    // set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
-    set_POINTER_LEVELS(3);
+    set_POINTER_LEVELS((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+    //set_POINTER_LEVELS(3);
 
     //Read/Write counters
     this->set_reads(0);
