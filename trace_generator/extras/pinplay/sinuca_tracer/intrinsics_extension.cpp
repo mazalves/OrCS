@@ -483,7 +483,7 @@ INT icheck_conditions(std::string rtn_name) {
 INT icheck_2parameters(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
         (rtn_name.compare(4, cmp_name29.size(), cmp_name29.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name34.size(), cmp_name34.c_str()) == 0) || //move immediate int
+        (rtn_name.compare(4, cmp_name34.size(), cmp_name34.c_str()) == 0) || //move data int
         (rtn_name.compare(4, cmp_name35.size(), cmp_name35.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name36.size(), cmp_name36.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name37.size(), cmp_name37.c_str()) == 0) ||
@@ -493,24 +493,16 @@ INT icheck_2parameters(std::string rtn_name) {
         (rtn_name.compare(4, cmp_name77.size(), cmp_name77.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name78.size(), cmp_name78.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name79.size(), cmp_name79.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name80.size(), cmp_name80.c_str()) == 0) || //move data int
-        (rtn_name.compare(4, cmp_name81.size(), cmp_name81.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name82.size(), cmp_name82.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name83.size(), cmp_name83.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name88.size(), cmp_name88.c_str()) == 0) || //abs float
         (rtn_name.compare(4, cmp_name89.size(), cmp_name89.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name94.size(), cmp_name94.c_str()) == 0) || //move immediate float
+        (rtn_name.compare(4, cmp_name94.size(), cmp_name94.c_str()) == 0) || //move data float
         (rtn_name.compare(4, cmp_name95.size(), cmp_name95.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name104.size(), cmp_name104.c_str()) == 0) || //multiply-add float
         (rtn_name.compare(4, cmp_name105.size(), cmp_name105.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name106.size(), cmp_name106.c_str()) == 0) || //move data float
-        (rtn_name.compare(4, cmp_name107.size(), cmp_name107.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name112.size(), cmp_name112.c_str()) == 0) || //abs double
         (rtn_name.compare(4, cmp_name113.size(), cmp_name113.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name118.size(), cmp_name118.c_str()) == 0) || //move immediate double
+        (rtn_name.compare(4, cmp_name118.size(), cmp_name118.c_str()) == 0) || //move data double
         (rtn_name.compare(4, cmp_name119.size(), cmp_name119.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name130.size(), cmp_name130.c_str()) == 0) || //move data double
-        (rtn_name.compare(4, cmp_name131.size(), cmp_name131.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name128.size(), cmp_name128.c_str()) == 0) || //multiply-add double
         (rtn_name.compare(4, cmp_name129.size(), cmp_name129.c_str()) == 0)) {
             return 1;
@@ -557,7 +549,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         
         if (icheck_1parameter(rtn_name) == 1) {
             RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_1param, 
-                            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                             IARG_UINT32, archx_x86_data.instr_len, 
                             IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
         } else if (icheck_2parameters(rtn_name) == 1) {
@@ -640,84 +632,84 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
 
         if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
             (rtn_name.compare(4, cmp_name29.size(), cmp_name29.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name88.size(), cmp_name88.c_str()) == 0) || //abs float
-            (rtn_name.compare(4, cmp_name89.size(), cmp_name89.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name112.size(), cmp_name112.c_str()) == 0) || //abs double
-            (rtn_name.compare(4, cmp_name113.size(), cmp_name113.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name20.size(), cmp_name20.c_str()) == 0) || //add int
             (rtn_name.compare(4, cmp_name21.size(), cmp_name21.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name22.size(), cmp_name22.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name23.size(), cmp_name23.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name30.size(), cmp_name30.c_str()) == 0) || //max int
-            (rtn_name.compare(4, cmp_name31.size(), cmp_name31.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name32.size(), cmp_name32.c_str()) == 0) || //min int
-            (rtn_name.compare(4, cmp_name33.size(), cmp_name33.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name24.size(), cmp_name24.c_str()) == 0) || //sub int
             (rtn_name.compare(4, cmp_name25.size(), cmp_name25.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name26.size(), cmp_name26.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name27.size(), cmp_name27.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name30.size(), cmp_name30.c_str()) == 0) || //max int
+            (rtn_name.compare(4, cmp_name31.size(), cmp_name31.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name32.size(), cmp_name32.c_str()) == 0) || //min int
+            (rtn_name.compare(4, cmp_name33.size(), cmp_name33.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name34.size(), cmp_name34.c_str()) == 0) || //move immediate int
+            (rtn_name.compare(4, cmp_name35.size(), cmp_name35.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name36.size(), cmp_name36.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name37.size(), cmp_name37.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name88.size(), cmp_name88.c_str()) == 0) || //abs float
+            (rtn_name.compare(4, cmp_name89.size(), cmp_name89.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name38.size(), cmp_name38.c_str()) == 0) || //and
             (rtn_name.compare(4, cmp_name39.size(), cmp_name39.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name40.size(), cmp_name40.c_str()) == 0) || //or
+            (rtn_name.compare(4, cmp_name41.size(), cmp_name41.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name42.size(), cmp_name42.c_str()) == 0) || //xor
             (rtn_name.compare(4, cmp_name43.size(), cmp_name43.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name44.size(), cmp_name44.c_str()) == 0) || //not
             (rtn_name.compare(4, cmp_name45.size(), cmp_name45.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name40.size(), cmp_name40.c_str()) == 0) || //or
-            (rtn_name.compare(4, cmp_name41.size(), cmp_name41.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name46.size(), cmp_name46.c_str()) == 0) || //compare less than equal
+            (rtn_name.compare(4, cmp_name47.size(), cmp_name47.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name48.size(), cmp_name48.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name49.size(), cmp_name49.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name50.size(), cmp_name50.c_str()) == 0) || //compare equal
+            (rtn_name.compare(4, cmp_name51.size(), cmp_name51.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name52.size(), cmp_name52.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name53.size(), cmp_name53.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name54.size(), cmp_name54.c_str()) == 0) || //shift left
             (rtn_name.compare(4, cmp_name55.size(), cmp_name55.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name56.size(), cmp_name56.c_str()) == 0) || //shift right
             (rtn_name.compare(4, cmp_name57.size(), cmp_name57.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name58.size(), cmp_name58.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name59.size(), cmp_name59.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name50.size(), cmp_name50.c_str()) == 0) || //compare equal
-            (rtn_name.compare(4, cmp_name51.size(), cmp_name51.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name52.size(), cmp_name52.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name53.size(), cmp_name53.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name46.size(), cmp_name46.c_str()) == 0) || //compare less than equal
-            (rtn_name.compare(4, cmp_name47.size(), cmp_name47.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name48.size(), cmp_name48.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name49.size(), cmp_name49.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name80.size(), cmp_name80.c_str()) == 0) || //move data int
             (rtn_name.compare(4, cmp_name81.size(), cmp_name81.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name82.size(), cmp_name82.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name83.size(), cmp_name83.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name106.size(), cmp_name106.c_str()) == 0) || //move data float
-            (rtn_name.compare(4, cmp_name107.size(), cmp_name107.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name130.size(), cmp_name130.c_str()) == 0) || //move data double
-            (rtn_name.compare(4, cmp_name131.size(), cmp_name131.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name34.size(), cmp_name34.c_str()) == 0) || //move immediate int
-            (rtn_name.compare(4, cmp_name35.size(), cmp_name35.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name36.size(), cmp_name36.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name37.size(), cmp_name37.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name94.size(), cmp_name94.c_str()) == 0) || //move immediate float
             (rtn_name.compare(4, cmp_name95.size(), cmp_name95.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name106.size(), cmp_name106.c_str()) == 0) || //move data float
+            (rtn_name.compare(4, cmp_name107.size(), cmp_name107.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name112.size(), cmp_name112.c_str()) == 0) || //abs double
+            (rtn_name.compare(4, cmp_name113.size(), cmp_name113.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name130.size(), cmp_name130.c_str()) == 0) || //move data double
+            (rtn_name.compare(4, cmp_name131.size(), cmp_name131.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name118.size(), cmp_name118.c_str()) == 0) || //move immediate double
             (rtn_name.compare(4, cmp_name119.size(), cmp_name119.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_ALU;
         }
         else if ((rtn_name.compare(4, cmp_name84.size(), cmp_name84.c_str()) == 0) || //add float
                  (rtn_name.compare(4, cmp_name85.size(), cmp_name85.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name108.size(), cmp_name108.c_str()) == 0) || //add double
-                 (rtn_name.compare(4, cmp_name109.size(), cmp_name109.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name90.size(), cmp_name90.c_str()) == 0) || //max float
-                 (rtn_name.compare(4, cmp_name91.size(), cmp_name91.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name114.size(), cmp_name114.c_str()) == 0) || //max double
-                 (rtn_name.compare(4, cmp_name115.size(), cmp_name115.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name92.size(), cmp_name92.c_str()) == 0) || //min float
-                 (rtn_name.compare(4, cmp_name93.size(), cmp_name93.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name116.size(), cmp_name116.c_str()) == 0) || //min double
-                 (rtn_name.compare(4, cmp_name117.size(), cmp_name117.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name86.size(), cmp_name86.c_str()) == 0) || //sub float
                  (rtn_name.compare(4, cmp_name87.size(), cmp_name87.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name110.size(), cmp_name110.c_str()) == 0) || //sub double
-                 (rtn_name.compare(4, cmp_name111.size(), cmp_name111.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name98.size(), cmp_name98.c_str()) == 0) || //compare equal float
-                 (rtn_name.compare(4, cmp_name99.size(), cmp_name99.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name122.size(), cmp_name122.c_str()) == 0) || //compare equal double
-                 (rtn_name.compare(4, cmp_name123.size(), cmp_name123.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name90.size(), cmp_name90.c_str()) == 0) || //max float
+                 (rtn_name.compare(4, cmp_name91.size(), cmp_name91.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name92.size(), cmp_name92.c_str()) == 0) || //min float
+                 (rtn_name.compare(4, cmp_name93.size(), cmp_name93.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name96.size(), cmp_name96.c_str()) == 0) || //compare less than equal float
                  (rtn_name.compare(4, cmp_name97.size(), cmp_name97.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name98.size(), cmp_name98.c_str()) == 0) || //compare equal float
+                 (rtn_name.compare(4, cmp_name99.size(), cmp_name99.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name108.size(), cmp_name108.c_str()) == 0) || //add double
+                 (rtn_name.compare(4, cmp_name109.size(), cmp_name109.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name110.size(), cmp_name110.c_str()) == 0) || //sub double
+                 (rtn_name.compare(4, cmp_name111.size(), cmp_name111.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name114.size(), cmp_name114.c_str()) == 0) || //max double
+                 (rtn_name.compare(4, cmp_name115.size(), cmp_name115.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name116.size(), cmp_name116.c_str()) == 0) || //min double
+                 (rtn_name.compare(4, cmp_name117.size(), cmp_name117.c_str()) == 0) ||
+                 (rtn_name.compare(4, cmp_name122.size(), cmp_name122.c_str()) == 0) || //compare equal double
+                 (rtn_name.compare(4, cmp_name123.size(), cmp_name123.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name120.size(), cmp_name120.c_str()) == 0) || //compare less than equal double
                  (rtn_name.compare(4, cmp_name121.size(), cmp_name121.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_ALU;
@@ -772,9 +764,6 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name9.size(), cmp_name9.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name10.size(), cmp_name10.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name17.size(), cmp_name17.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name9.size(), cmp_name9.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name10.size(), cmp_name10.c_str()) == 0) ||
-                 (rtn_name.compare(4, cmp_name17.size(), cmp_name17.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name18.size(), cmp_name18.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name19.size(), cmp_name19.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROA;
@@ -782,7 +771,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
         }
 
-        if (icheck_2parameters(rtn_name) == 1) {
+        if (icheck_2parameters(rtn_name) == 1 || icheck_1parameter(rtn_name)) {
             NewInstruction.is_read = 1;
             NewInstruction.is_read2 = 0;
             NewInstruction.is_write = 1;
