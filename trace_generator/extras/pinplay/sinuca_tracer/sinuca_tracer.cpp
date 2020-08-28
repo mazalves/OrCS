@@ -42,7 +42,7 @@
 
 #include "pin.H"
 #include "instlib.H"
-#include "xed-interface.h"
+#include "./xed-interface.h"
 #include "pinplay.H"
 PINPLAY_ENGINE pinplay_engine;
 // ============================================================================
@@ -71,7 +71,7 @@ enum sync_t {
     SYNC_CRITICAL_START,
     SYNC_CRITICAL_END,
     SYNC_FREE
-}
+};
 
 // #ifdef TRACE_GENERATOR_DEBUG
 //     #define TRACE_GENERATOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
@@ -992,7 +992,7 @@ int main(int argc, char *argv[]) {
     for (UINT32 i = 0; i < max_threads; i++) {
         dyn_file_name[0] = '\0';
         snprintf(dyn_file_name,
-                500
+                500,
                 "%s.tid%d.dyn.out.gz",
                 KnobOutputFile.Value().c_str(), i);
 
