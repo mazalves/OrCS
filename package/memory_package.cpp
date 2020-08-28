@@ -31,8 +31,8 @@ memory_package_t::memory_package_t() {
     row_buffer = false;
     type = DATA;
     op_count = new uint64_t[MEMORY_OPERATION_LAST]();
-    sent_to_cache_level = new uint32_t[LLC]();
-    sent_to_cache_level_at = new uint32_t[LLC]();
+    sent_to_cache_level = new uint32_t[END]();
+    sent_to_cache_level_at = new uint32_t[END]();
     this->latency = 0;
 
     memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
@@ -48,6 +48,7 @@ memory_package_t::~memory_package_t(){
     vector<memory_request_client_t*>().swap(this->clients);
     delete[] op_count;
     delete[] sent_to_cache_level;
+    delete[] sent_to_cache_level_at;
 }
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){

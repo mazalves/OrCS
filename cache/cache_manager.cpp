@@ -97,6 +97,7 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
 
     std::sort(clevels.begin(), clevels.end());
     clevels.erase(std::unique(clevels.begin(), clevels.end()), clevels.end());
+    clevels.shrink_to_fit();
 
     if (cache_type == 0) {
         set_INSTRUCTION_LEVELS(clevels.size());
@@ -398,6 +399,7 @@ void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_i
     request->updatePackageReady();
     request->updateClients();
     requests.erase (std::remove (requests.begin(), requests.end(), request), requests.end());
+    requests.shrink_to_fit();
     //if (request->memory_operation != MEMORY_OPERATION_INST) 
     if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu Cache Manager finishRequest(): finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), request->memory_address, request->uop_number, get_enum_memory_operation_char (request->memory_operation))
     delete request;
@@ -441,6 +443,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
 
     if (!isIn (request)) {
         requests.push_back (request);
+        requests.shrink_to_fit();
         //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager searchData(): NEW VIMA INSTRUCTION!\n", orcs_engine.get_global_cycle())
     }
     return true;
@@ -453,7 +456,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_WRITE:
         case MEMORY_OPERATION_INST:
-            if (request->next_level <= LLC){
+            if (request->next_level < END){
                 if (request->status == PACKAGE_STATE_UNTREATED && request->readyAt <= orcs_engine.get_global_cycle()){
                     if (request->memory_operation == MEMORY_OPERATION_INST && request->next_level == L1) {
                         cache = &this->instruction_cache[request->next_level][cache_indexes[request->next_level]];

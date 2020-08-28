@@ -24,10 +24,10 @@ enum cache_status_t{
  * Enum cache Level
 */
 enum cacheLevel_t{
-    L1=0,
-    L2=1,
-    LLC=2,
-    INST_CACHE=3
+    L1,
+    L2,
+    LLC,
+    END
 };
 
 //get char operation

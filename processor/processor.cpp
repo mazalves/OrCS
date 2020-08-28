@@ -917,7 +917,7 @@ void processor_t::fetch(){
 
 		if (PROCESSOR_DEBUG) ORCS_PRINTF ("%lu processor %lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 
-		//if (!updated){
+		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST)){
 			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (fetchBuffer.back());
@@ -938,7 +938,7 @@ void processor_t::fetch(){
 			request->op_count[request->memory_operation]++;
 
 			if (!orcs_engine.cacheManager->searchData(request)) delete request;
-		//}
+		}
 	}
 }
 // ============================================================================
@@ -2005,6 +2005,7 @@ void processor_t::dispatch(){
 					this->unified_functional_units.push_back(rob_line);
 					// remove from reservation station
 					this->unified_reservation_station.erase(this->unified_reservation_station.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 				} //end if dispatched
 
@@ -2162,6 +2163,7 @@ void processor_t::execute()
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 				}
 				break;
@@ -2184,6 +2186,7 @@ void processor_t::execute()
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 					
 					if (DEBUG) ORCS_PRINTF ("Processor execute(): HIVE instruction %lu executed!\n", rob_line->uop.uop_number)
@@ -2206,6 +2209,7 @@ void processor_t::execute()
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 					
 					if (VIMA_DEBUG) ORCS_PRINTF ("%lu Processor execute(): VIMA instruction %lu executed!\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number)
@@ -2220,6 +2224,7 @@ void processor_t::execute()
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 				}
 				break;
@@ -2232,6 +2237,7 @@ void processor_t::execute()
 					uop_total_executed++;
 					/// Remove from the Functional Units
 					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
 					i--;
 				}
 				break;
@@ -2335,6 +2341,7 @@ uint32_t processor_t::mob_read(){
 		request->uop_number = oldest_read_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
+		request->clients.shrink_to_fit();
 	
 		if (orcs_engine.cacheManager->searchData(request)){
 			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
@@ -2430,6 +2437,7 @@ uint32_t processor_t::mob_hive(){
 		request->uop_number = oldest_hive_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
+		request->clients.shrink_to_fit();
 
 		if (orcs_engine.cacheManager->searchData(request)){
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
@@ -2469,6 +2477,7 @@ uint32_t processor_t::mob_vima(){
 		request->uop_number = oldest_vima_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
+		request->clients.shrink_to_fit();
 
 		if (orcs_engine.cacheManager->searchData(request)){
 			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system

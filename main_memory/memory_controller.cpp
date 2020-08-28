@@ -187,6 +187,7 @@ void memory_controller_t::clock(){
             if (wait_time > this->min_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
             this->total_latency[working[i]->memory_operation] += wait_time;
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
+            working.shrink_to_fit();
         }
     }
 }
@@ -247,6 +248,7 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
         if (request->is_vima) this->add_requests_vima();
         request->sent_to_ram = true;
         this->working.push_back (request);
+        this->working.shrink_to_fit();
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
         return 0;
     }

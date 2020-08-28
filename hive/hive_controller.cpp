@@ -274,6 +274,7 @@ bool hive_controller_t::addRequest (memory_package_t* request){
     request->sent_to_ram = true;
     if (hive_instructions.size() < this->HIVE_BUFFER) {
         hive_instructions.push_back (request);
+        hive_instructions.shrink_to_fit();
         if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller addRequest(): received new instruction %lu, %s, %s.\n", orcs_engine.get_global_cycle(), request->uop_number, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status))
         return true;
     } else if (HIVE_DEBUG) ORCS_PRINTF ("%lu HIVE Controller addRequest(): HIVE buffer is full!\n",orcs_engine.get_global_cycle())

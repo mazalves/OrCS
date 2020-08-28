@@ -265,6 +265,7 @@ void vima_controller_t::clock(){
         default:
             ///ORCS_PRINTF ("%lu %s -> \n", vima_buffer[current_index]->uop_number, get_enum_package_state_char (vima_buffer[current_index]->status))
             vima_buffer.erase (std::remove (vima_buffer.begin(), vima_buffer.end(), vima_buffer[current_index]), vima_buffer.end());
+            vima_buffer.shrink_to_fit();
             break;
     }
 }
@@ -343,6 +344,7 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         request->status = PACKAGE_STATE_VIMA;
         request->vima_cycle = orcs_engine.get_global_cycle();
         vima_buffer.push_back (request);
+        vima_buffer.shrink_to_fit();
 
         this->request_count++;
         //if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
