@@ -1,0 +1,7 @@
+# https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners#codeowners-syntax
+
+lispguide.xml @sfreilich
+csharp-style.md @jbcoe
+pyguide.md @gpshead
+pylintrc @gpshead
+htmlcssguide.html @tonyruscoe

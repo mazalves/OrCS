@@ -112,7 +112,7 @@ verbose = False
 debug   = False
 
 # Scripts location from trace_generator folder
-all_scripts_path = '/home/war/OrCS/trace_generator/extras/pinplay/PinPoints/scripts/'
+all_scripts_path = '/home/fbm/Experiment/OrCS/trace_generator/extras/pinplay/PinPoints/scripts/'
 
 #####################################################################################
 #
