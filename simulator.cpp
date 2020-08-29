@@ -126,10 +126,7 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     final_report+=report;    
     //    
     double seconds_remaining = (100*(seconds_spent / percentage_complete)) - seconds_spent;
-        snprintf(report,sizeof(report), "Global ETC(%02.0f:%02.0f:%02.0f)\n",
-                                                floor(seconds_remaining / 3600.0),
-                                                floor(fmod(seconds_remaining, 3600.0) / 60.0),
-                                                fmod(seconds_remaining, 60.0));
+    snprintf(report,sizeof(report), "Global ETC(%02.0f:%02.0f:%02.0f)\n", floor(seconds_remaining / 3600.0), floor(fmod(seconds_remaining, 3600.0) / 60.0), fmod(seconds_remaining, 60.0));
     final_report+=report;
     // End of card
     snprintf(report,sizeof(report),"%s","==========================================================================\n");
@@ -180,6 +177,14 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     }
     snprintf (report, sizeof(report), "KIPS(%lf)\n", static_cast<double> (kilo_instructions_simulated/seconds_spent));
     final_report+=report;
+    if (orcs_engine.cacheManager->get_sent_ram() != 0) snprintf (report, sizeof(report), "Avg. wait for RAM requests:        %u\n", orcs_engine.cacheManager->get_sent_ram_cycles()/orcs_engine.cacheManager->get_sent_ram());
+    final_report+=report;
+    snprintf (report, sizeof(report), "Min. wait for RAM requests:        %u\n", orcs_engine.cacheManager->get_min_sent_ram());
+    final_report+=report;
+    snprintf (report, sizeof(report), "Max. wait for RAM requests:        %u\n", orcs_engine.cacheManager->get_max_sent_ram());
+    final_report+=report;
+    
+            
     snprintf(report,sizeof(report), "Elapsed Time (%02.0f:%02.0f:%02.0f)\n",
                                                 floor(seconds_spent / 3600.0),
                                                 floor(fmod(seconds_spent, 3600.0) / 60.0),
