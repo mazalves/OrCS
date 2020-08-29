@@ -4,7 +4,10 @@ class vima_vector_t {
         uint32_t no_sub_requests;
         uint32_t sub_ready;
         uint64_t address;
+        uint64_t next_address;
         uint64_t sub_req_offset;
+        uint64_t set;
+        uint64_t column;
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;
@@ -33,8 +36,11 @@ class vima_vector_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t,no_sub_requests)
         INSTANTIATE_GET_SET_ADD (uint64_t,address)
+        INSTANTIATE_GET_SET_ADD (uint64_t,next_address)
         INSTANTIATE_GET_SET_ADD (uint64_t,tag)
         INSTANTIATE_GET_SET_ADD (uint64_t,lru)
+        INSTANTIATE_GET_SET_ADD (uint64_t,set)
+        INSTANTIATE_GET_SET_ADD (uint64_t,column)
 
         INSTANTIATE_GET_SET_ADD (uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_VECTOR_SIZE)

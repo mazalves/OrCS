@@ -5,6 +5,7 @@ vima_vector_t::vima_vector_t(){
     this->no_sub_requests = 0;
     this->sub_ready = 0;
     this->address = 0;
+    this->next_address = 0;
     this->sub_req_offset = 0;
     this->sub_requests = NULL;
 
@@ -31,6 +32,7 @@ void vima_vector_t::clock() {
             //writeback
             if (dirty) {
                 if (sub_ready == no_sub_requests){
+                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu, lru = %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->lru)
                     this->writeback_start = orcs_engine.get_global_cycle();
                     this->writeback_count++;
                     sub_ready = 0;
@@ -48,7 +50,7 @@ void vima_vector_t::clock() {
                         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
                 }
                 if (sub_ready >= no_sub_requests) {
-                    //if (VIMA_DEBUG) ORCS_PRINTF ("%lu WRITEBACK FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), (orcs_engine.get_global_cycle() - this->writeback_start))
+                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
                     this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
                     status = PACKAGE_STATE_WAIT;
                 }
@@ -60,7 +62,10 @@ void vima_vector_t::clock() {
             break;
         case PACKAGE_STATE_WAIT:
             //fetch
+            this->address = this->next_address;
+            //this->next_address = 0;
             if (sub_ready == no_sub_requests){
+                if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
                 this->fetch_start = orcs_engine.get_global_cycle();
                 this->fetch_count++;
                 sub_ready = 0;
@@ -80,7 +85,7 @@ void vima_vector_t::clock() {
                         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
             }
             if (sub_ready >= no_sub_requests) {
-                if (VIMA_DEBUG) ORCS_PRINTF ("%lu %lu FETCH FINISHED!\n", orcs_engine.get_global_cycle(), address)
+                if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
                 this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
@@ -108,6 +113,7 @@ void vima_vector_t::allocate() {
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
+    set_VIMA_DEBUG (cfg_processor["VIMA_DEBUG"]);
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
     this->sub_requests = new memory_package_t[this->no_sub_requests]();
