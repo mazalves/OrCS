@@ -225,6 +225,8 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     this->set_write_hit(0);
     this->set_write_miss(0);
     this->set_offset(utils_t::get_power_of_two(LINE_SIZE));
+    this->set_min_sent_ram(UINT32_MAX);
+    this->set_max_sent_ram(0);
     this->set_sent_ram(0);
     this->set_sent_ram_cycles(0);
     this->set_sent_hive(0);
@@ -327,6 +329,8 @@ void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_i
     if (request->sent_to_ram && !request->is_hive && !request->is_vima){
         sent_ram++;
         sent_ram_cycles += wait_time;
+        if (wait_time > max_sent_ram) max_sent_ram = wait_time;
+        if (wait_time < min_sent_ram) min_sent_ram = wait_time;
     } else if (request->is_hive){
         sent_hive++;
         sent_hive_cycles += wait_time;
@@ -348,8 +352,8 @@ void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_i
             if (request->vima_write != 0) ORCS_PRINTF ("WRITE: %lu | ", request->vima_write)
         } else if (request->is_hive){
             if (request->hive_read1 != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_read1)
-            if (request->hive_read2 != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_read2)
-            if (request->hive_write != 0) ORCS_PRINTF ("READ1: %lu | ", request->hive_write)
+            if (request->hive_read2 != 0) ORCS_PRINTF ("READ2: %lu | ", request->hive_read2)
+            if (request->hive_write != 0) ORCS_PRINTF ("WRITE: %lu | ", request->hive_write)
         } else ORCS_PRINTF ("address: %lu ", request->memory_address)
         ORCS_PRINTF ("%lu born at %lu, finished at %lu. Took %lu cycles, came from processor %u.\n", request->uop_number, request->born_cycle, orcs_engine.get_global_cycle(), orcs_engine.get_global_cycle()-request->born_cycle, request->processor_id)
     }
@@ -600,7 +604,9 @@ void cache_manager_t::statistics(uint32_t core_id) {
         if (this->get_sent_ram() > 0) {
             ORCS_PRINTF ("Total Reads:                       %lu\nTotal Writes:                      %lu\n", this->get_reads(), this->get_writes())
             ORCS_PRINTF ("Total RAM requests:                %u\nTotal RAM request latency cycles:  %u\n", this->get_sent_ram(), this->get_sent_ram_cycles())
-            ORCS_PRINTF ("Average wait for RAM requests:     %u\n", sent_ram_cycles/sent_ram)
+            ORCS_PRINTF ("Avg. wait for RAM requests:        %u\n", sent_ram_cycles/sent_ram)
+            ORCS_PRINTF ("Min. wait for RAM requests:        %u\n", min_sent_ram)
+            ORCS_PRINTF ("Max. wait for RAM requests:        %u\n", max_sent_ram)
         }
         if (this->get_sent_hive() > 0) {
             ORCS_PRINTF ("Total HIVE requests:               %u\nTotal HIVE request latency cycles: %u\n", this->get_sent_hive(), this->get_sent_hive_cycles())

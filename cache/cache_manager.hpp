@@ -15,6 +15,8 @@ class cache_manager_t {
         uint64_t offset;
         uint64_t mshr_index;
 
+        uint32_t min_sent_ram;
+        uint32_t max_sent_ram;
         uint32_t sent_ram;
         uint32_t sent_ram_cycles;
         uint32_t sent_hive;
@@ -92,6 +94,8 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
+        INSTANTIATE_GET_SET_ADD(uint32_t, min_sent_ram)
+        INSTANTIATE_GET_SET_ADD(uint32_t, max_sent_ram)
         INSTANTIATE_GET_SET_ADD(uint32_t, sent_ram)
         INSTANTIATE_GET_SET_ADD(uint32_t, sent_ram_cycles)
         INSTANTIATE_GET_SET_ADD(uint32_t, sent_hive)
