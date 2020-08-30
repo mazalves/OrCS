@@ -411,6 +411,8 @@ void processor_t::allocate() {
 	
 	set_DEBUG(cfg_processor["DEBUG"]);
 	set_PROCESSOR_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
+	if (cfg_processor.exists ("MEMORY_DEBUG")) set_MEMORY_DEBUG (cfg_processor["MEMORY_DEBUG"]);
+	else set_MEMORY_DEBUG (0);
 	set_FETCH_DEBUG(cfg_processor["FETCH_DEBUG"]);
 	set_DECODE_DEBUG(cfg_processor["DECODE_DEBUG"]);
 	set_RENAME_DEBUG(cfg_processor["RENAME_DEBUG"]);
@@ -830,6 +832,7 @@ void processor_t::remove_front_mob_write(){
 			ORCS_PRINTF("==========\n")
 		}
 	}
+	if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_write[this->memory_order_buffer_write_start].memory_address, get_enum_memory_operation_char (memory_order_buffer_write[this->memory_order_buffer_write_start].memory_operation), get_enum_package_state_char(this->memory_order_buffer_write[this->memory_order_buffer_write_start].status), this->memory_order_buffer_write[this->memory_order_buffer_write_start].readyAt)
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write_used > 0, "Removendo do MOB_WRITE sem estar usado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[this->memory_order_buffer_write_start].sent == true,"Removendo sem ter sido enviado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[this->memory_order_buffer_write_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n%s\n",this->memory_order_buffer_write[this->memory_order_buffer_write_start].rob_ptr->content_to_string().c_str(),this->memory_order_buffer_write[this->memory_order_buffer_write_start].content_to_string().c_str())
@@ -925,7 +928,8 @@ void processor_t::fetch(){
 			request->uop_number = fetchBuffer.back()->opcode_number;
 			request->opcode_address = fetchBuffer.back()->opcode_address;
 			request->opcode_number = fetchBuffer.back()->opcode_number;
-			request->memory_address = fetchBuffer.back()->opcode_address |= (this->get_processor_id() << 56);
+			//request->memory_address = fetchBuffer.back()->opcode_address |= (this->get_processor_id() << 56);
+			request->memory_address = fetchBuffer.back()->opcode_address;
 			request->memory_size = fetchBuffer.back()->opcode_size;
 			request->memory_operation = MEMORY_OPERATION_INST;
 			request->is_hive = false;
@@ -938,6 +942,9 @@ void processor_t::fetch(){
 			request->op_count[request->memory_operation]++;
 
 			if (!orcs_engine.cacheManager->searchData(request)) delete request;
+			else {
+				if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+			}
 		}
 	}
 }
@@ -1560,6 +1567,7 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
 			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
 			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[ROBL] %lu %lu %s added to reorder order buffer.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_rob].mob_ptr->memory_address , get_enum_memory_operation_char (this->reorderBuffer[pos_rob].mob_ptr->memory_operation))
 		}
 		else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE){
 			if (RENAME_DEBUG) ORCS_PRINTF("Mem Store\n")
@@ -1571,6 +1579,7 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
 			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
 			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[ROBL] %lu %lu %s added to reorder order buffer.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_rob].mob_ptr->memory_address , get_enum_memory_operation_char (this->reorderBuffer[pos_rob].mob_ptr->memory_operation))
 		}
 		else if (this->get_HAS_HIVE() && (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
 		this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
@@ -2087,6 +2096,7 @@ void processor_t::clean_mob_read(){
 		if (this->memory_order_buffer_read[pos].status == PACKAGE_STATE_READY &&
 			this->memory_order_buffer_read[pos].readyAt <= orcs_engine.get_global_cycle() &&
 			this->memory_order_buffer_read[pos].processed == false){
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_read[pos].memory_address, get_enum_memory_operation_char (memory_order_buffer_read[pos].memory_operation), get_enum_package_state_char(this->memory_order_buffer_read[pos].status), this->memory_order_buffer_read[pos].readyAt)
 			ERROR_ASSERT_PRINTF(this->memory_order_buffer_read[pos].uop_executed == true, "Removing memory read before being executed.\n")
 			ERROR_ASSERT_PRINTF(this->memory_order_buffer_read[pos].wait_mem_deps_number == 0, "Number of memory dependencies should be zero.\n %s\n",this->memory_order_buffer_read[i].rob_ptr->content_to_string().c_str())
 			if (EXECUTE_DEBUG){
@@ -2347,7 +2357,7 @@ uint32_t processor_t::mob_read(){
 			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_read_to_send->sent=true;
 			this->oldest_read_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-			if (DEBUG) ORCS_PRINTF ("Processor mob_read(): sending memory request %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		} else {
 			this->add_times_reach_parallel_requests_read();
 			delete request;
@@ -2443,7 +2453,7 @@ uint32_t processor_t::mob_hive(){
 			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent=true;
 			this->oldest_hive_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-			if (DEBUG) ORCS_PRINTF ("Processor mob_hive(): sending memory request %lu, %s to cache manager.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		} else delete request;
 		this->oldest_hive_to_send = NULL;
 	}
@@ -2483,7 +2493,7 @@ uint32_t processor_t::mob_vima(){
 			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_vima_to_send->sent=true;
 			this->oldest_vima_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
-			if (VIMA_DEBUG) ORCS_PRINTF ("%lu Processor mob_vima(): sending memory request %lu, %s to cache manager.\n", orcs_engine.get_global_cycle(), request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		} else delete request;
 		this->oldest_vima_to_send = NULL;
 	}
@@ -2545,6 +2555,7 @@ uint32_t processor_t::mob_write(){
 				this->disambiguator->solve_memory_dependences(this->oldest_write_to_send);
 			}
 			this->remove_front_mob_write();
+			if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		} else {
 			this->add_times_reach_parallel_requests_write();
 			delete request;
@@ -2634,6 +2645,7 @@ void processor_t::commit(){
 					break;
 				// MEMORY OPERATIONS - READ
 				case INSTRUCTION_OPERATION_MEM_LOAD:{
+					if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[ROBL] %lu %lu %s removed from reorder order buffer.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].mob_ptr->memory_address , get_enum_memory_operation_char (this->reorderBuffer[pos_buffer].mob_ptr->memory_operation))
 					if(this->reorderBuffer[pos_buffer].mob_ptr->waiting_DRAM){
 						this->core_ram_request_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->cycle_send_request);
 						this->add_core_ram_requests();
@@ -2645,6 +2657,7 @@ void processor_t::commit(){
 				}
 				// MEMORY OPERATIONS - WRITE
 				case INSTRUCTION_OPERATION_MEM_STORE:
+					if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[ROBL] %lu %lu %s removed from reorder order buffer.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].mob_ptr->memory_address , get_enum_memory_operation_char (this->reorderBuffer[pos_buffer].mob_ptr->memory_operation))
 					this->add_stat_inst_store_completed();
 					break;
 					// BRANCHES

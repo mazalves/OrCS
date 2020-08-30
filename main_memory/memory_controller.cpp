@@ -71,6 +71,8 @@ void memory_controller_t::allocate(){
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     
     set_DEBUG (cfg_processor["DEBUG"]);
+    if (cfg_processor.exists("MEMORY_DEBUG")) set_MEMORY_DEBUG (cfg_processor["MEMORY_DEBUG"]);
+    else set_MEMORY_DEBUG (0);
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
@@ -180,9 +182,10 @@ void memory_controller_t::clock(){
                 working[i]->updatePackageDRAMFetch (0);
             }
         } else if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
+            wait_time = (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
+            if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMC] %lu %lu %s finishes at main memory! Took %lu cycles.\n", orcs_engine.get_global_cycle(), working[i]->memory_address, get_enum_memory_operation_char (working[i]->memory_operation), wait_time)    
             working[i]->updatePackageWait (1);
             this->total_operations[working[i]->memory_operation]++;
-            wait_time = (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
             if (wait_time < this->min_wait_operations[working[i]->memory_operation]) this->min_wait_operations[working[i]->memory_operation] = wait_time;
             if (wait_time > this->min_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
             this->total_latency[working[i]->memory_operation] += wait_time;
@@ -250,6 +253,7 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
         this->working.push_back (request);
         this->working.shrink_to_fit();
         if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+        if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMC] %lu %lu %s enters.\n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation))
         return 0;
     }
     return 0;

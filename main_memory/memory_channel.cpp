@@ -74,6 +74,8 @@ void memory_channel_t::allocate() {
     libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     
     set_DEBUG (cfg_processor["DEBUG"]);
+    if (cfg_processor.exists("MEMORY_DEBUG")) set_MEMORY_DEBUG (cfg_processor["MEMORY_DEBUG"]);
+    else set_MEMORY_DEBUG (0);
     set_RANK (cfg_memory_ctrl["RANK"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_BUFFER_SIZE (cfg_memory_ctrl["BANK_BUFFER_SIZE"]);
@@ -163,6 +165,7 @@ void memory_channel_t::set_masks(){
 }
 
 bool memory_channel_t::addRequest (memory_package_t* request){
+    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s enters DRAM channel.\n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation))
     bool result = false;
     uint64_t bank = this->get_bank(request->memory_address);
     switch (request->memory_operation){
@@ -273,6 +276,7 @@ void memory_channel_t::clock(){
                 case MEMORY_CONTROLLER_COMMAND_PRECHARGE:
                     if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS) > orcs_engine.get_global_cycle()) break;
                     if (!current_entry->row_buffer) {
+                        if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
                         this->add_stat_row_buffer_miss();
                         current_entry->row_buffer = true;
                     }
@@ -290,6 +294,7 @@ void memory_channel_t::clock(){
                             case MEMORY_OPERATION_READ: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_READ) > orcs_engine.get_global_cycle()) break;
                                 if (!current_entry->row_buffer) {
+                                    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer HIT!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
                                     this->add_stat_row_buffer_hit();
                                     current_entry->row_buffer = true;
                                 }
@@ -299,6 +304,7 @@ void memory_channel_t::clock(){
                             case MEMORY_OPERATION_WRITE: {
                                 if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE) > orcs_engine.get_global_cycle()) break;
                                 if (!current_entry->row_buffer) {
+                                    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer HIT!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
                                     this->add_stat_row_buffer_hit();
                                     current_entry->row_buffer = true;
                                 }
@@ -329,9 +335,11 @@ void memory_channel_t::clock(){
 
     if (bank_is_ready[bank]){
         current_entry = this->findNext (bank);
+        
         if (this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] > orcs_engine.get_global_cycle() ||
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
         //if (current_entry->is_vima) ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
+        if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s fetching from DRAM!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
 
         switch (current_entry->memory_operation){
             case MEMORY_OPERATION_INST:
@@ -357,7 +365,7 @@ void memory_channel_t::clock(){
                 break;
         }
         //if (current_entry->memory_operation != MEMORY_OPERATION_INST) ORCS_PRINTF ("%lu request will be ready, channel %lu, bank %lu\n", current_entry->readyAt, get_channel (current_entry->memory_address), get_bank (current_entry->memory_address))
-
+        
         bank_is_ready[bank] = false;
         if (this->get_CLOSED_ROW()) {
             /// Select package to be treated
@@ -380,8 +388,12 @@ void memory_channel_t::clock(){
                     this->bank_last_row[bank] = next_row;
                     this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
                     this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
+                    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
                     this->add_stat_row_buffer_miss();
-                } else this->add_stat_row_buffer_hit();
+                } else {
+                    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer HIT!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
+                    this->add_stat_row_buffer_hit();
+                }
             }
         }
     }

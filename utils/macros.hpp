@@ -12,8 +12,6 @@
     #define DEBUG_PRINTF(...)
 #endif
 
-
-
 #define ERROR_INFORMATION() {\
                                 ORCS_PRINTF("ERROR INFORMATION\n");\
                                 ORCS_PRINTF("ERROR: File: %s at Line: %u\n", __FILE__, __LINE__);\
