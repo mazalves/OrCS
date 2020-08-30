@@ -8,7 +8,6 @@ disambiguation_hashed_t::disambiguation_hashed_t(/* args */) {
     this->ADDRESS_TO_ADDRESS = 0;
     this->REGISTER_FORWARD = 0;
     this->WAIT_CYCLE = 0;
-    this->DEBUG = 0;
     // HASHED LOAD/STORE
     this->disambiguation_load_hash = NULL;
     this->disambiguation_store_hash = NULL;

@@ -48,9 +48,7 @@ class memory_channel_t {
         uint32_t CHANNEL;
         uint32_t CLOSED_ROW;
         uint32_t LINE_SIZE;
-        uint32_t DEBUG;
-        uint32_t MEMORY_DEBUG;
-
+        
         uint32_t TIMING_AL;     // Added Latency for column accesses
         uint32_t TIMING_CAS;    // Column Access Strobe (CL) latency
         uint32_t TIMING_CCD;    // Column to Column Delay
@@ -124,9 +122,7 @@ class memory_channel_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t, CLOSED_ROW)
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
-        INSTANTIATE_GET_SET_ADD(uint32_t, DEBUG)
-        INSTANTIATE_GET_SET_ADD(uint32_t, MEMORY_DEBUG)
-
+        
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CAS)    // Column Access Strobe (CL) latency
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CCD)    // Column to Column Delay

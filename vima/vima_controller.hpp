@@ -2,7 +2,6 @@ class vima_controller_t {
     private:
         uint32_t VIMA_BUFFER;
         uint32_t VIMA_VECTOR_SIZE;
-        uint32_t VIMA_DEBUG;
         uint32_t VIMA_CACHE_ASSOCIATIVITY;
         uint32_t VIMA_CACHE_LATENCY;
         uint32_t VIMA_CACHE_SIZE;
@@ -44,7 +43,6 @@ class vima_controller_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
-        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_DEBUG)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_ASSOCIATIVITY)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_LATENCY)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_SIZE)

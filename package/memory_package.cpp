@@ -36,14 +36,6 @@ memory_package_t::memory_package_t() {
     this->latency = 0;
 
     memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
-
-    this->DEBUG = 0;
-    
-    libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
-    set_DEBUG (cfg_processor["DEBUG"]);
-    if (cfg_processor.exists("MEMORY_DEBUG")) set_MEMORY_DEBUG (cfg_processor["MEMORY_DEBUG"]);
-    else set_MEMORY_DEBUG (0);
 }
 
 memory_package_t::~memory_package_t(){
@@ -54,74 +46,110 @@ memory_package_t::~memory_package_t(){
 }
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG 
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_UNTREATED;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageReady(){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_READY;
     this->readyAt = orcs_engine.get_global_cycle();
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency)
+    #if MEMORY_DEBUG 
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency)
+    #endif
 }
 
 void memory_package_t::updatePackageWait (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_WAIT;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageTransmit (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_TRANSMIT;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageFree (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_FREE;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageHive (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_HIVE;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageVima (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_VIMA;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageDRAMFetch (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_DRAM_FETCH;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::updatePackageDRAMReady (uint32_t stallTime){
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
     this->status = PACKAGE_STATE_DRAM_READY;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    if (DEBUG || MEMORY_DEBUG) ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
 }
 
 void memory_package_t::printPackage(){

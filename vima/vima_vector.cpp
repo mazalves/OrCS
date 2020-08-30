@@ -11,8 +11,7 @@ vima_vector_t::vima_vector_t(){
 
     this->LINE_SIZE = 0;
     this->VIMA_VECTOR_SIZE = 0;
-    this->VIMA_DEBUG = 0;
-
+    
     status = PACKAGE_STATE_FREE;
     this->tag = 0;
     this->lru = 0;
@@ -32,7 +31,9 @@ void vima_vector_t::clock() {
             //writeback
             if (dirty) {
                 if (sub_ready == no_sub_requests){
-                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu, lru = %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->lru)
+                    #if VIMA_DEBUG 
+                        ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu, lru = %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->lru)
+                    #endif
                     this->writeback_start = orcs_engine.get_global_cycle();
                     this->writeback_count++;
                     sub_ready = 0;
@@ -50,7 +51,9 @@ void vima_vector_t::clock() {
                         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
                 }
                 if (sub_ready >= no_sub_requests) {
-                    if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
+                    #if VIMA_DEBUG 
+                        ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
+                    #endif
                     this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
                     status = PACKAGE_STATE_WAIT;
                 }
@@ -65,7 +68,9 @@ void vima_vector_t::clock() {
             this->address = this->next_address;
             //this->next_address = 0;
             if (sub_ready == no_sub_requests){
-                if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
+                #if VIMA_DEBUG 
+                    ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
+                #endif
                 this->fetch_start = orcs_engine.get_global_cycle();
                 this->fetch_count++;
                 sub_ready = 0;
@@ -85,7 +90,9 @@ void vima_vector_t::clock() {
                         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) sub_ready++;
             }
             if (sub_ready >= no_sub_requests) {
-                if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
+                #if VIMA_DEBUG 
+                    ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
+                #endif
                 this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
                 dirty = false;
                 lru = orcs_engine.get_global_cycle();
@@ -113,7 +120,6 @@ void vima_vector_t::allocate() {
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
-    set_VIMA_DEBUG (cfg_processor["VIMA_DEBUG"]);
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
     this->sub_requests = new memory_package_t[this->no_sub_requests]();

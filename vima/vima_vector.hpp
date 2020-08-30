@@ -11,8 +11,7 @@ class vima_vector_t {
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;
-        uint32_t VIMA_DEBUG;
-
+        
     public:
         package_state_t status;
         uint64_t tag;
@@ -44,6 +43,5 @@ class vima_vector_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_VECTOR_SIZE)
-        INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_DEBUG)
-
+       
 };

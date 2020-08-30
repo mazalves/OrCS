@@ -50,9 +50,7 @@ class memory_controller_t{
         uint32_t CHANNEL;
         uint32_t WAIT_CYCLE;
         uint32_t LINE_SIZE;
-        uint32_t DEBUG;
-        uint32_t MEMORY_DEBUG;
-
+        
         float CORE_TO_BUS_CLOCK_RATIO;
 
         uint32_t TIMING_AL;     // Added Latency for column accesses
@@ -124,9 +122,7 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,BURST_WIDTH)
         INSTANTIATE_GET_SET_ADD(uint32_t,CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
-        INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
-        INSTANTIATE_GET_SET_ADD(uint32_t,MEMORY_DEBUG)
-
+        
         INSTANTIATE_GET_SET_ADD(float,CORE_TO_BUS_CLOCK_RATIO)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses
