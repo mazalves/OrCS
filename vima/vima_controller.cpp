@@ -105,10 +105,8 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         for (uint32_t i = 0; i < get_lines(); i++){
             if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
                 add_cache_hits();
-                //ORCS_PRINTF ("VIMA CACHE HIT! Address %lu was found.\n", address)
                 return &cache[i][0];
-            }
-            else if (cache[i][0].lru < lru_cycle) {
+            } else if (cache[i][0].lru < lru_cycle) {
                 lru_cycle = cache[i][0].lru;
                 lru_way = i;
             }
@@ -118,7 +116,6 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         for (i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
             if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
 		        add_cache_hits();
-                //ORCS_PRINTF ("VIMA CACHE HIT! Address %lu was found.\n", address)
                 return &cache[index][i];
             }
             else if (cache[index][i].lru < lru_cycle) {
@@ -128,8 +125,6 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
         }
     }
     add_cache_misses();
-    //if (lru_cycle != 0) ORCS_PRINTF ("EVICTION! ")
-    //ORCS_PRINTF ("VIMA CACHE MISS! Address %lu will be fetched.\n", address)
     if (VIMA_CACHE_ASSOCIATIVITY != 1) return &cache[index][lru_way];
     else return &cache[lru_way][0];
 }
@@ -206,7 +201,7 @@ void vima_controller_t::check_cache (int index) {
             read1_unbalanced->set_lru (orcs_engine.get_global_cycle());
             working_vectors.push_back (read1_unbalanced);
         }
-    }
+    } 
     if (vima_buffer[index]->vima_read2 != 0) {
         this->add_cache_reads();
         read2 = search_cache (vima_buffer[index]->vima_read2);
@@ -247,7 +242,7 @@ void vima_controller_t::clock(){
     switch (vima_buffer[current_index]->status){
         case PACKAGE_STATE_WAIT:
             #if VIMA_DEBUG
-                ORCS_PRINTF ("OUT VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+                ORCS_PRINTF ("%lu OUT VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
                 if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
                 if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
                 if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
