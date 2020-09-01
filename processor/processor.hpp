@@ -140,6 +140,8 @@ class processor_t {
 
 	uint32_t QTDE_MEMORY_FU;
 
+	uint32_t VIMA_EXCEPT;
+
 	//uint32_t KILO = 1024;
 	//uint32_t MEGA = KILO*KILO;
 
@@ -483,6 +485,8 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,LATENCY_MEM_VIMA)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,QTDE_MEMORY_FU)
+
+		INSTANTIATE_GET_SET_ADD(uint32_t,VIMA_EXCEPT)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
 

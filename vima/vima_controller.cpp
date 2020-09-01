@@ -22,6 +22,8 @@ vima_controller_t::vima_controller_t(){
     this->tag_bits_mask = 0;
     this->tag_bits_shift = 0;
 
+    this->cache_reads = 0;
+    this->cache_writes = 0;
     this->cache_hits = 0;
     this->cache_misses = 0;
     this->cache_accesses = 0;
@@ -145,12 +147,18 @@ void vima_controller_t::check_completion (int index){
     }
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
 
-    if (vima_buffer[index]->vima_read1 != 0) read1->set_lru (orcs_engine.get_global_cycle());
-    if (vima_buffer[index]->vima_read2 != 0) read2->set_lru (orcs_engine.get_global_cycle());
+    if (vima_buffer[index]->vima_read1 != 0) {
+        this->add_cache_reads();
+        read1->set_lru (orcs_engine.get_global_cycle());
+    }
+    if (vima_buffer[index]->vima_read2 != 0) {
+        this->add_cache_reads();
+        read2->set_lru (orcs_engine.get_global_cycle());
+    }
+    if (vima_buffer[index]->vima_write != 0) this->add_cache_writes();
 }
 
 void vima_controller_t::write_to_cache (int index) {
-    this->add_cache_writes();
     write = search_cache (vima_buffer[index]->vima_write);
     if (write->status == PACKAGE_STATE_FREE) write->status = PACKAGE_STATE_WAIT;
     else {
@@ -178,7 +186,6 @@ void vima_controller_t::write_to_cache (int index) {
 
 void vima_controller_t::check_cache (int index) {
     if (vima_buffer[index]->vima_read1 != 0) {
-        this->add_cache_reads();
         read1 = search_cache (vima_buffer[index]->vima_read1);
         if (read1->status == PACKAGE_STATE_FREE) read1->status = PACKAGE_STATE_WAIT;
         else {
@@ -189,7 +196,6 @@ void vima_controller_t::check_cache (int index) {
         read1->set_tag (get_tag (vima_buffer[index]->vima_read1));    
         working_vectors.push_back (read1);
         if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_read1) != get_index(vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1))) {
-            this->add_cache_reads();
             read1_unbalanced = search_cache (vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1);
             if (read1_unbalanced->status == PACKAGE_STATE_FREE) read1_unbalanced->status = PACKAGE_STATE_WAIT;
             else {
@@ -203,7 +209,6 @@ void vima_controller_t::check_cache (int index) {
         }
     } 
     if (vima_buffer[index]->vima_read2 != 0) {
-        this->add_cache_reads();
         read2 = search_cache (vima_buffer[index]->vima_read2);
         if (read2->status == PACKAGE_STATE_FREE) read2->status = PACKAGE_STATE_WAIT;
         else {
@@ -214,7 +219,6 @@ void vima_controller_t::check_cache (int index) {
         read2->set_tag (get_tag (vima_buffer[index]->vima_read2));    
         working_vectors.push_back (read2);
         if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_read2) != get_index(vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE - 1))) {
-            this->add_cache_reads();
             read2_unbalanced = search_cache (vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE -1);
             if (read2_unbalanced->status == PACKAGE_STATE_FREE) read2_unbalanced->status = PACKAGE_STATE_WAIT;
             else {

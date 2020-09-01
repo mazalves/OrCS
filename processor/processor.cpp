@@ -336,6 +336,7 @@ void processor_t::allocate() {
 	
 	// Processor defaults
 	libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
+	libconfig::Setting &cfg_vima = cfg_root["VIMA_CONTROLLER"];
 
 	if (cfg_root.exists("VIMA_CONTROLLER")) {
 		set_HAS_VIMA (1);
@@ -347,6 +348,8 @@ void processor_t::allocate() {
 		ORCS_PRINTF ("WAIT_NEXT_MEM_VIMA = %u\n", get_WAIT_NEXT_MEM_VIMA())
 		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
 		ORCS_PRINTF ("LATENCY_MEM_VIMA = %u\n", get_LATENCY_MEM_VIMA())
+		if (cfg_vima.exists("VIMA_EXCEPT")) set_VIMA_EXCEPT (cfg_vima["VIMA_EXCEPT"]);
+		else set_VIMA_EXCEPT (0);
 	}
 	else set_HAS_VIMA (0);
 
@@ -1784,7 +1787,13 @@ void processor_t::dispatch(){
 				break;
 			}
 
-			if ((rob_line->uop.readyAt <= orcs_engine.get_global_cycle()) && (rob_line->wait_reg_deps_number == 0)){
+			if (VIMA_EXCEPT){
+				if	(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MUL || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_DIV || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_ALU || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MUL || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_DIV || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MLA || rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MLA) {
+					rob_line->wait_reg_deps_number = 0;
+				}
+			}
+
+			if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle() && rob_line->wait_reg_deps_number == 0){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
 
