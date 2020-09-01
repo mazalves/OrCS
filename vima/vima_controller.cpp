@@ -104,11 +104,12 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     uint32_t index = 0;
     this->current_cache_access_latency += this->get_VIMA_CACHE_LATENCY();
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
+        index = get_index (address);
         for (uint32_t i = 0; i < get_lines(); i++){
-            if (get_tag(cache[i][0].get_address()) == get_tag (address)) {
+            if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
                 *result = HIT;
                 #if VIMA_DEBUG 
-                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu.\n", orcs_engine.get_global_cycle(), address)
+                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
                 #endif
                 add_cache_hits();
                 return &cache[i][0];
@@ -120,10 +121,10 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     } else {
         index = get_index (address);
         for (i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
-            if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
+            if (get_tag(cache[index][i].get_address()) == get_tag (address) && get_tag(cache[index][i].get_address()) == get_tag (address)) {
                 *result = HIT;
                 #if VIMA_DEBUG 
-                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu.\n", orcs_engine.get_global_cycle(), address)
+                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
                 #endif
 		        add_cache_hits();
                 return &cache[index][i];
@@ -136,7 +137,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     }
     *result = MISS;
     #if VIMA_DEBUG 
-        ORCS_PRINTF ("%lu VIMA Cache MISS! address %lu.\n", orcs_engine.get_global_cycle(), address)
+        ORCS_PRINTF ("%lu VIMA Cache MISS! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
     #endif
     add_cache_misses();
     if (VIMA_CACHE_ASSOCIATIVITY != 1) return &cache[index][lru_way];
@@ -184,8 +185,8 @@ void vima_controller_t::write_to_cache (int index) {
         write->set_next_address (vima_buffer[index]->vima_write);
         write->set_tag (get_tag (vima_buffer[index]->vima_write));    
         write->set_lru (orcs_engine.get_global_cycle());
-        write->dirty = true;
     }
+    write->dirty = true;
     if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_write) != get_index(vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1))) {
         write_unbalanced = search_cache (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1, &result);
         if (result == MISS){
@@ -197,8 +198,8 @@ void vima_controller_t::write_to_cache (int index) {
             write_unbalanced->set_next_address (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1);
             write_unbalanced->set_tag (get_tag (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1));    
             write_unbalanced->set_lru (orcs_engine.get_global_cycle());
-            write_unbalanced->dirty = true;
         }
+         write_unbalanced->dirty = true;
     }
 }
 
