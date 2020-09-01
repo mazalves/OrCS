@@ -60,7 +60,7 @@ class vima_controller_t {
         
         void print_vima_instructions();
         void check_cache (int index);
-        vima_vector_t* search_cache (uint64_t address);
+        vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);
         void write_to_cache (int index);
         
