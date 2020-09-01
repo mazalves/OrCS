@@ -2,4 +2,5 @@
 
 #DONE:
 sinuca_tracer.cpp
+intrinsics_extension.hpp
 

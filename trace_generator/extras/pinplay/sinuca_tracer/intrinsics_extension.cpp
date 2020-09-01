@@ -1,4 +1,5 @@
 #include "intrinsics_extension.hpp"
+#include <string>
 
 //==============================================================================
 // Intrinsics Functions
@@ -18,8 +19,8 @@ VOID write_dynamic_char(char *dyn_str, THREADID threadid) {
         // the thread master may write on multiple threads
         // ex: omp_parallel_start / omp_parallel_end
         PIN_GetLock(&thread_data[threadid].dyn_lock, threadid);
-            // ~ gzwrite(thread_data[threadid].gzDynamicTraceFile, dyn_str, strlen(dyn_str));
-        gzwrite(thread_data[threadid].gzDynamicTraceFile, dyn_str, strlen(dyn_str));
+        gzwrite(thread_data[threadid].gzDynamicTraceFile, 
+				dyn_str, strlen(dyn_str));
         PIN_ReleaseLock(&thread_data[threadid].dyn_lock);
     }
 };
@@ -36,10 +37,12 @@ VOID write_static_char(char *stat_str) {
 };
 
 // =====================================================================
-VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, THREADID threadid) {
+VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, 
+								THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory()\n");
 
-    if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
+    if (thread_data[threadid].is_instrumented_bbl == false) 
+		return;     // If the pin-points disabled this region
 
     char mem_str[TRACE_LINE_SIZE];
 
@@ -52,10 +55,12 @@ VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, THREADID thr
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 };
 
-VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid) {
+VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, 
+								UINT32 bbl, THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory()\n");
 
-    if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
+    if (thread_data[threadid].is_instrumented_bbl == false) 
+		return;     // If the pin-points disabled this region
 
     char mem_str[TRACE_LINE_SIZE];
 
@@ -70,30 +75,35 @@ VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, UINT32 bb
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 };
 
-VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid) {
+VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2, ADDRINT write, 
+								UINT32 size, UINT32 bbl, THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("hmc_write_memory_3param()\n");
 
-    if (thread_data[threadid].is_instrumented_bbl == false) return;     // If the pin-points disabled this region
+    if (thread_data[threadid].is_instrumented_bbl == false) 
+		return;     // If the pin-points disabled this region
 
     char mem_str[TRACE_LINE_SIZE];
 
     // printf("read1: %" PRIu64 "\n", (uint64_t)&read1);
     // printf("read2: %" PRIu64 "\n", (uint64_t)&read2);
     // printf("write: %" PRIu64 "\n", (uint64_t)&write);
- 
+
     sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read1, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
-    
+
     sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'R', size, (uint64_t)read2, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
-    
+
     sprintf(mem_str, "%c %d %" PRIu64 " %d\n", 'W', size, (uint64_t)write, bbl);
     gzwrite(thread_data[threadid].gzMemoryTraceFile, mem_str, strlen(mem_str));
 };
 
 // =====================================================================
 
-VOID arch_x86_set_data_instr(data_instr *arch_x86_data, char const *rtn_name, char const *hmc_instr_name, char const *x86_instr_name, UINT32 instr_len){
+VOID arch_x86_set_data_instr(data_instr *arch_x86_data, char const *rtn_name, 
+								char const *hmc_instr_name, 
+								char const *x86_instr_name, 
+								UINT32 instr_len) {
     arch_x86_data->rtn_name = rtn_name;
     arch_x86_data->arch_instr_name = hmc_instr_name;
     arch_x86_data->x86_instr_name = x86_instr_name;
@@ -103,31 +113,103 @@ VOID arch_x86_set_data_instr(data_instr *arch_x86_data, char const *rtn_name, ch
 // =====================================================================
 
 VOID initialize_intrinsics_hmc(data_instr hmc_x86_data[20]) {
-    arch_x86_set_data_instr(&hmc_x86_data[0], "_hmc128_saddimm_s", "HMC_ADD_SINGLE_128OPER", "x86_ADD_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[1], "_hmc64_incr_s", "HMC_INCR_SINGLE_64OPER", "x86_INCR_SINGLE_64OPER", 8);
-    arch_x86_set_data_instr(&hmc_x86_data[2], "_hmc64_bwrite_s", "HMC_BITWRITE_SINGLE_64OPER", "x86_BITWRITE_SINGLE_64OPER", 8);
-    arch_x86_set_data_instr(&hmc_x86_data[3], "_hmc128_bswap_s", "HMC_BITSWAP_SINGLE_128OPER", "x86_BITSWAP_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[4], "_hmc128_and_s", "HMC_AND_SINGLE_128OPER", "x86_AND_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[5], "_hmc128_nand_s", "HMC_NAND_SINGLE_128OPER", "x86_NAND_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[6], "_hmc128_nor_s", "HMC_NOR_SINGLE_128OPER", "x86_NOR_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[7], "_hmc128_or_s", "HMC_OR_SINGLE_128OPER", "x86_OR_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[8], "_hmc128_xor_s", "HMC_XOR_SINGLE_128OPER", "x86_XOR_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[9], "_hmc64_cmpswapgt_s", "HMC_CMPSWAPGT_SINGLE_64OPER", "x86_CMPSWAPGT_SINGLE_64OPER", 8);
-    arch_x86_set_data_instr(&hmc_x86_data[10], "_hmc64_cmpswaplt_s", "HMC_CMPSWAPLT_SINGLE_64OPER", "x86_CMPSWAPLT_SINGLE_64OPER", 8);
-    arch_x86_set_data_instr(&hmc_x86_data[11], "_hmc128_cmpswapz_s", "HMC_CMPSWAPZ_SINGLE_128OPER", "x86_CMPSWAPZ_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[12], "_hmc128_cmpswapgt_s", "HMC_CMPSWAPGT_SINGLE_128OPER", "x86_CMPSWAPGT_SINGLE_128OPER", 16);
-    arch_x86_set_data_instr(&hmc_x86_data[13], "_hmc128_cmpswaplt_s", "HMC_CMPSWAPLT_SINGLE_128OPER", "x86_CMPSWAPLT_SINGLE_128OPER", 16);
+	for (int i = 0; i < 20; i++) {
+		uint32_t instr_len = (i % 2 == 0 ? 16 : 8);
+		arch_x86_set_data_instr(&hmc_x86_data[i],
+								hmc_inst_names[i].c_str(),
+								hmc_mnem_names[i].c_str(),
+								x86_mnem_names[i].c_str(),
+								instr_len);
+	}
+/*
+    arch_x86_set_data_instr(&hmc_x86_data[0], 
+							"_hmc128_saddimm_s", 
+							"HMC_ADD_SINGLE_128OPER", 
+							"x86_ADD_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[1], 
+							"_hmc64_incr_s", 
+							"HMC_INCR_SINGLE_64OPER", 
+							"x86_INCR_SINGLE_64OPER", 
+							8);
+    arch_x86_set_data_instr(&hmc_x86_data[2], 
+							"_hmc64_bwrite_s", 
+							"HMC_BITWRITE_SINGLE_64OPER", 
+							"x86_BITWRITE_SINGLE_64OPER", 
+							8);
+    arch_x86_set_data_instr(&hmc_x86_data[3], 
+							"_hmc128_bswap_s", 
+							"HMC_BITSWAP_SINGLE_128OPER", 
+							"x86_BITSWAP_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[4], 
+							"_hmc128_and_s", 
+							"HMC_AND_SINGLE_128OPER", 
+							"x86_AND_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[5], 
+							"_hmc128_nand_s", 
+							"HMC_NAND_SINGLE_128OPER", 
+							"x86_NAND_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[6], 
+							"_hmc128_nor_s", 
+							"HMC_NOR_SINGLE_128OPER", 
+							"x86_NOR_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[7], 
+							"_hmc128_or_s", 
+							"HMC_OR_SINGLE_128OPER", 
+							"x86_OR_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[8], 
+							"_hmc128_xor_s", 
+							"HMC_XOR_SINGLE_128OPER",
+							"x86_XOR_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[9], 
+							"_hmc64_cmpswapgt_s", 
+							"HMC_CMPSWAPGT_SINGLE_64OPER", 
+							"x86_CMPSWAPGT_SINGLE_64OPER", 
+							8);
+    arch_x86_set_data_instr(&hmc_x86_data[10], 
+							"_hmc64_cmpswaplt_s", 
+							"HMC_CMPSWAPLT_SINGLE_64OPER", 
+							"x86_CMPSWAPLT_SINGLE_64OPER", 
+							8);
+    arch_x86_set_data_instr(&hmc_x86_data[11], 
+							"_hmc128_cmpswapz_s", 
+							"HMC_CMPSWAPZ_SINGLE_128OPER", 
+							"x86_CMPSWAPZ_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[12],
+							 "_hmc128_cmpswapgt_s", 
+							"HMC_CMPSWAPGT_SINGLE_128OPER", 
+							"x86_CMPSWAPGT_SINGLE_128OPER", 
+							16);
+    arch_x86_set_data_instr(&hmc_x86_data[13], "_hmc128_cmpswaplt_s", 
+"HMC_CMPSWAPLT_SINGLE_128OPER", "x86_CMPSWAPLT_SINGLE_128OPER", 16);
     arch_x86_set_data_instr(&hmc_x86_data[14], "_hmc64_cmpswapeq_s", "HMC_CMPSWAPEQ_SINGLE_64OPER", "x86_CMPSWAPEQ_SINGLE_64OPER", 8);
     arch_x86_set_data_instr(&hmc_x86_data[15], "_hmc64_equalto_s", "HMC_EQUALTO_SINGLE_64OPER", "x86_EQUALTO_SINGLE_64OPER", 8);
     arch_x86_set_data_instr(&hmc_x86_data[16], "_hmc128_equalto_s", "HMC_EQUALTO_SINGLE_128OPER", "x86_EQUALTO_SINGLE_128OPER", 16);
     arch_x86_set_data_instr(&hmc_x86_data[17], "_hmc64_cmpgteq_s", "HMC_CMPGTEQ_SINGLE_64OPER", "x86_CMPGTEQ_SINGLE_64OPER", 8);
     arch_x86_set_data_instr(&hmc_x86_data[18], "_hmc64_cmplteq_s", "HMC_CMPLTEQ_SINGLE_64OPER", "x86_CMPLTEQ_SINGLE_64OPER", 8);
-    arch_x86_set_data_instr(&hmc_x86_data[19], "_hmc64_cmplt_s", "HMC_CMPLT_SINGLE_64OPER", "x86_CMPLT_SINGLE_64OPER", 8);
+    arch_x86_set_data_instr(&hmc_x86_data[19], "_hmc64_cmplt_s", "HMC_CMPLT_SINGLE_64OPER", "x86_CMPLT_SINGLE_64OPER", 8);*/
 }
 
 // =====================================================================
 
 VOID initialize_intrinsics_vima(data_instr vim_x86_data[112]) {
+	for (int i = 0; i < 112; i++) {
+		uint32_t instr_len = (i % 2 == 0 ? 256 : 8192);
+		arch_x86_set_data_instr(&vim_x86_data[i],
+								vima_inst_names[i].c_str(),
+								vima_mnem_names[i].c_str(),
+								x86_mnem_names[i+20].c_str(),
+								instr_len);
+	}
+
+	/*
     arch_x86_set_data_instr(&vim_x86_data[0], "_vim64_iadds", "VIMA_IADDS_64VECTOR_32OPER", "x86_IADDS_64VECTOR_32OPER", 256);
     arch_x86_set_data_instr(&vim_x86_data[1], "_vim2K_iadds", "VIMA_IADDS_2KVECTOR_32OPER", "x86_IADDS_2KVECTOR_32OPER", 8192);
     arch_x86_set_data_instr(&vim_x86_data[2], "_vim64_iaddu", "VIMA_IADDU_64VECTOR_32OPER", "x86_IADDU_64VECTOR_32OPER", 256);
@@ -239,12 +321,20 @@ VOID initialize_intrinsics_vima(data_instr vim_x86_data[112]) {
     arch_x86_set_data_instr(&vim_x86_data[108], "_vim32_dcums", "VIMA_DMADS_32VECTOR_64OPER", "x86_DMADS_32VECTOR_64OPER", 256);
     arch_x86_set_data_instr(&vim_x86_data[109], "_vim1K_dcums", "VIMA_DMADS_1KVECTOR_32OPER", "x86_DMADS_1KVECTOR_32OPER", 8192);
     arch_x86_set_data_instr(&vim_x86_data[110], "_vim32_dmovs", "VIMA_DMOVS_32VECTOR_64OPER", "x86_DMOVS_32VECTOR_64OPER", 256);
-    arch_x86_set_data_instr(&vim_x86_data[111], "_vim1K_dmovs", "VIMA_DMOVS_1KVECTOR_32OPER", "x86_DMOVS_1KVECTOR_32OPER", 8192);
+    arch_x86_set_data_instr(&vim_x86_data[111], "_vim1K_dmovs", "VIMA_DMOVS_1KVECTOR_32OPER", "x86_DMOVS_1KVECTOR_32OPER", 8192);*/
 }
 
 // =====================================================================
 
 VOID initialize_intrinsics_mips(data_instr mps_x86_data[28]) {
+	for (int i = 0; i <28; i++) {
+		arch_x86_set_data_instr(&mps_x86_data[i],
+								mps_inst_names[i].c_str(),
+								mps_mnem_names[i].c_str(),
+								x86_mnem_names[i+132].c_str(),
+								32);
+	}
+	/*
     arch_x86_set_data_instr(&mps_x86_data[0], "_mps32_add", "MIPS_ADD32_OPER", "x86_ADD32_OPER", 32);
     arch_x86_set_data_instr(&mps_x86_data[1], "_mps32_addu", "MIPS_ADDU32_OPER", "x86_ADDU32_OPER", 32);
     arch_x86_set_data_instr(&mps_x86_data[2], "_mps32_sub", "MIPS_SUB32_OPER", "x86_SUB32_OPER", 32);
@@ -272,7 +362,7 @@ VOID initialize_intrinsics_mips(data_instr mps_x86_data[28]) {
     arch_x86_set_data_instr(&mps_x86_data[24], "_mps32_mult", "MIPS_MULT32_OPER", "x86_MULT32_OPER", 32);
     arch_x86_set_data_instr(&mps_x86_data[25], "_mps32_multu", "MIPS_MULTU32_OPER", "x86_IMSKU_2KVECTOR_32OPER", 32);
     arch_x86_set_data_instr(&mps_x86_data[26], "_mps64_mult", "MIPS_MULT64_OPER", "x86_MULT64_OPER", 32);
-    arch_x86_set_data_instr(&mps_x86_data[27], "_mps64_multu", "MIPS_MULTU64_OPER", "x86_MULTU64_OPER", 32);
+    arch_x86_set_data_instr(&mps_x86_data[27], "_mps64_multu", "MIPS_MULTU64_OPER", "x86_MULTU64_OPER", 32);*/
 }
 
 // =====================================================================
@@ -286,8 +376,19 @@ VOID initialize_intrinsics(data_instr hmc_x86_data[20], data_instr vim_x86_data[
     initialize_intrinsics_mips(mps_x86_data);
 }
 
+
+
 // =====================================================================
 
+INT icheck_conditions_hmc(std::string rtn_name) {
+	for ( int i = 0; i < HMC_INS_COUNT; i++) {
+		if (rtn_name.compare(4, hmc_inst_names[i].size(), hmc_inst_names[i].c_str()) == 0)
+			return 1;
+	}
+	return 0;
+}
+// =====================================================================
+/*
 INT icheck_conditions_hmc(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name0.size(), cmp_name0.c_str()) == 0)  ||
     (rtn_name.compare(4, cmp_name1.size(), cmp_name1.c_str()) == 0)   ||
@@ -312,11 +413,20 @@ INT icheck_conditions_hmc(std::string rtn_name) {
         return 1;
     }
     return 0;
-}
+}*/
 
 // =====================================================================
 
 INT icheck_conditions_vima(std::string rtn_name) {
+	for ( int i = 0; i < VIMA_INS_COUNT; i++) { 
+		if (rtn_name.compare(4, vima_inst_names[i].size(), vima_inst_names[i].c_str()) == 0)
+			return 1;
+	}
+	return 0;
+}
+// =====================================================================
+
+/*INT icheck_conditions_vima(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name20.size(), cmp_name20.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name21.size(), cmp_name21.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name22.size(), cmp_name22.c_str()) == 0) ||
@@ -432,11 +542,21 @@ INT icheck_conditions_vima(std::string rtn_name) {
         return 1;
     }
     return 0;
-}
+}*/
 
 // =====================================================================
 
 INT icheck_conditions_mips(std::string rtn_name) {
+	for ( int i = 0; i < MPS_INS_COUNT; i++) {
+		if (rtn_name.compare(4, mps_inst_names[i].size(), mps_inst_names[i].c_str()) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+// =====================================================================
+
+/*INT icheck_conditions_mips(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name132.size(), cmp_name132.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name133.size(), cmp_name133.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name134.size(), cmp_name134.c_str()) == 0) ||
@@ -468,7 +588,7 @@ INT icheck_conditions_mips(std::string rtn_name) {
         return 1;
     }
     return 0;
-}
+}*/
 // =====================================================================
 
 INT icheck_conditions(std::string rtn_name) {
@@ -480,7 +600,26 @@ INT icheck_conditions(std::string rtn_name) {
 
 // =====================================================================
 
+#define CMP_2PARAM_COUNT 24
+
+static const int cmp_2param_idx[CMP_2PARAM_COUNT] = { 8, 9, 14, 15, 16, 
+										17, 24, 25, 56, 57,
+										58, 59, 68, 69, 74,
+										75, 84, 85, 92, 93,
+										98, 99, 108, 109
+										};
+
 INT icheck_2parameters(std::string rtn_name) {
+	for (int i = 0; i < CMP_2PARAM_COUNT; i++) { 
+		if (rtn_name.compare(4, vima_inst_names[cmp_2param_idx[i]].size(),
+							 vima_inst_names[cmp_2param_idx[i]].c_str()) == 0)
+			return 1;
+	}
+	return 0;
+}
+// =====================================================================
+
+/*INT icheck_2parameters(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
         (rtn_name.compare(4, cmp_name29.size(), cmp_name29.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name34.size(), cmp_name34.c_str()) == 0) || //move data int
@@ -508,9 +647,25 @@ INT icheck_2parameters(std::string rtn_name) {
             return 1;
         }
     return 0;
-}
+}*/
+
+// =====================================================================
+
+#define CMP_1PARAM_COUNT 8
+static const int cmp_1param_idx[CMP_1PARAM_COUNT] = { 60, 61, 62, 63,
+													86, 87, 110, 111
+													};
 
 INT icheck_1parameter(std::string rtn_name) {
+	for ( int i = 0; i < CMP_1PARAM_COUNT; i++) {
+		if (rtn_name.compare(4, vima_inst_names[cmp_1param_idx[i]].size(),
+								vima_inst_names[cmp_1param_idx[i]].c_str()) == 0)
+			return 1;
+	}
+	return 0;
+}
+// =====================================================================
+/*INT icheck_1parameter(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name80.size(), cmp_name80.c_str()) == 0) || //move immediate int
         (rtn_name.compare(4, cmp_name81.size(), cmp_name81.c_str()) == 0) ||
         (rtn_name.compare(4, cmp_name82.size(), cmp_name82.c_str()) == 0) ||
@@ -522,7 +677,7 @@ INT icheck_1parameter(std::string rtn_name) {
             return 1;
     }
     return 0;
-}
+}*/
 
 VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
     opcode_package_t NewInstruction;
@@ -546,25 +701,25 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         sprintf(hmc_bbl_str, "%u\n", count_trace);
 
         RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)write_dynamic_char, IARG_PTR, hmc_bbl_str, IARG_THREAD_ID, IARG_END);
-        
+
         if (icheck_1parameter(rtn_name) == 1) {
-            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_1param, 
+            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_1param,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                            IARG_UINT32, archx_x86_data.instr_len, 
+                            IARG_UINT32, archx_x86_data.instr_len,
                             IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
         } else if (icheck_2parameters(rtn_name) == 1) {
-            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_2param, 
+            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_2param,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-                            IARG_UINT32, archx_x86_data.instr_len, 
+                            IARG_UINT32, archx_x86_data.instr_len,
                             IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
         } else {
-            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_3param, 
+            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_3param,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
                             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
-                            IARG_UINT32, archx_x86_data.instr_len, 
-                            IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);            
+                            IARG_UINT32, archx_x86_data.instr_len,
+                            IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
         }
 
         for (i = 0; i < MAX_REGISTER_NUMBER; i++) {
@@ -573,7 +728,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         }
 
         // Identify read/write registers
-        for(INS ins = RTN_InsHead(arch_rtn); INS_Valid(ins); ins = INS_Next(ins)) {
+        for (INS ins = RTN_InsHead(arch_rtn); INS_Valid(ins); ins = INS_Next(ins)) {
 
             // record all read registers
             for (i = 0; i < INS_MaxNumRRegs(ins); i++) {
@@ -603,7 +758,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                 read_regs[ireg] = true;
                 bicount++;
             }
-            
+
         }
 
         // Record all read and write registers into read and write register's list
@@ -630,7 +785,12 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         // Record opcode size
         NewInstruction.opcode_size = archx_x86_data.instr_len;
 
-        if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
+		for (int i = 0; i < VIMA_INT_ALU_COUNT; i++) {
+			if (rtn_name.compare(4, vima_int_alu_names[i].size(), vima_int_alu_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_ALU;
+			}
+		}
+       /* if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
             (rtn_name.compare(4, cmp_name29.size(), cmp_name29.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name20.size(), cmp_name20.c_str()) == 0) || //add int
             (rtn_name.compare(4, cmp_name21.size(), cmp_name21.c_str()) == 0) ||
@@ -687,8 +847,15 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             (rtn_name.compare(4, cmp_name118.size(), cmp_name118.c_str()) == 0) || //move immediate double
             (rtn_name.compare(4, cmp_name119.size(), cmp_name119.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_ALU;
-        }
-        else if ((rtn_name.compare(4, cmp_name84.size(), cmp_name84.c_str()) == 0) || //add float
+        }*/
+        
+		for ( int i = 0; i < VIMA_FP_ALU_COUNT; i++) { 
+			if (rtn_name.compare(4, vima_fp_alu_names[i].size(), vima_fp_alu_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_ALU;
+			}		
+		}
+
+		/*else if ((rtn_name.compare(4, cmp_name84.size(), cmp_name84.c_str()) == 0) || //add float
                  (rtn_name.compare(4, cmp_name85.size(), cmp_name85.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name86.size(), cmp_name86.c_str()) == 0) || //sub float
                  (rtn_name.compare(4, cmp_name87.size(), cmp_name87.c_str()) == 0) ||
@@ -713,8 +880,14 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name120.size(), cmp_name120.c_str()) == 0) || //compare less than equal double
                  (rtn_name.compare(4, cmp_name121.size(), cmp_name121.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_ALU;
-        }
-        else if ((rtn_name.compare(4, cmp_name68.size(), cmp_name68.c_str()) == 0) || //multiply int
+        }*/
+		for ( int i = 0; i < VIMA_INT_MUL_COUNT; i++) {
+			if (rtn_name.compare(4, vima_int_mul_names[i].size(), vima_int_mul_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_MUL;
+			}
+		}
+
+        /*else if ((rtn_name.compare(4, cmp_name68.size(), cmp_name68.c_str()) == 0) || //multiply int
                  (rtn_name.compare(4, cmp_name69.size(), cmp_name69.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name70.size(), cmp_name70.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name71.size(), cmp_name71.c_str()) == 0) ||
@@ -723,14 +896,28 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name74.size(), cmp_name74.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name75.size(), cmp_name75.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_MUL;
-        }
-        else if ((rtn_name.compare(4, cmp_name102.size(), cmp_name102.c_str()) == 0) || //multiply float
+        }*/
+		
+		for ( int i = 0; i < VIMA_FP_MUL_COUNT; i++) {
+			if (rtn_name.compare(4, vima_fp_mul_names[i].size(), vima_fp_mul_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MUL;
+			}
+		}
+       /* 
+		else if ((rtn_name.compare(4, cmp_name102.size(), cmp_name102.c_str()) == 0) || //multiply float
                  (rtn_name.compare(4, cmp_name103.size(), cmp_name103.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name126.size(), cmp_name126.c_str()) == 0) || //multiply double
                  (rtn_name.compare(4, cmp_name127.size(), cmp_name127.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MUL;
-        }
-        else if ((rtn_name.compare(4, cmp_name60.size(), cmp_name60.c_str()) == 0) || //divide int
+        }*/
+
+		for ( int i = 0; i < VIMA_INT_DIV_COUNT; i++) {
+			if (rtn_name.compare(4, vima_int_div_names[i].size(), vima_int_div_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_DIV;
+			}
+		}
+        
+		/*else if ((rtn_name.compare(4, cmp_name60.size(), cmp_name60.c_str()) == 0) || //divide int
                  (rtn_name.compare(4, cmp_name61.size(), cmp_name61.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name62.size(), cmp_name62.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name63.size(), cmp_name63.c_str()) == 0) ||
@@ -739,26 +926,60 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name66.size(), cmp_name66.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name67.size(), cmp_name67.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_DIV;
+        }*/
+		
+		for ( int i = 0; i < VIMA_FP_DIV_COUNT; i++) {
+			if (rtn_name.compare(4, vima_fp_div_names[i].size(), vima_fp_div_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_DIV;
+			}
         }
-        else if ((rtn_name.compare(4, cmp_name100.size(), cmp_name100.c_str()) == 0) || //divide float
+		
+		/*else if ((rtn_name.compare(4, cmp_name100.size(), cmp_name100.c_str()) == 0) || //divide float
                  (rtn_name.compare(4, cmp_name101.size(), cmp_name101.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name124.size(), cmp_name124.c_str()) == 0) || //divide double
                  (rtn_name.compare(4, cmp_name125.size(), cmp_name125.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_DIV;
+        }*/
+
+		for ( int i = 0; i < VIMA_INT_MLA_COUNT; i++) {
+			if (rtn_name.compare(4, vima_int_mla_names[i].size(), vima_int_mla_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_MLA;
+			}
         }
-        else if ((rtn_name.compare(4, cmp_name76.size(), cmp_name76.c_str()) == 0) || //multiply-add int
+
+/*        else if ((rtn_name.compare(4, cmp_name76.size(), cmp_name76.c_str()) == 0) || //multiply-add int
                  (rtn_name.compare(4, cmp_name77.size(), cmp_name77.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name78.size(), cmp_name78.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name79.size(), cmp_name79.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_MLA;
+        }*/
+
+		for ( int i = 0; i < VIMA_FP_MLA_COUNT; i++) {
+			if (rtn_name.compare(4, vima_fp_mla_names[i].size(), vima_fp_mla_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MLA;
+			}
         }
-        else if ((rtn_name.compare(4, cmp_name104.size(), cmp_name104.c_str()) == 0) || //multiply-add float
+
+        /*else if ((rtn_name.compare(4, cmp_name104.size(), cmp_name104.c_str()) == 0) || //multiply-add float
                  (rtn_name.compare(4, cmp_name105.size(), cmp_name105.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name128.size(), cmp_name128.c_str()) == 0) || //multiply-add double
                  (rtn_name.compare(4, cmp_name129.size(), cmp_name129.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MLA;
+        }*/
+	
+			
+		for ( int i = 0; i < HMC_INS_COUNT; i++) {
+			if (rtn_name.compare(4, hmc_inst_names[i].size(), hmc_inst_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
+			}
         }
-        else if ((rtn_name.compare(4, cmp_name0.size(), cmp_name0.c_str()) == 0) ||
+		for ( int i = 0; i < HMC_ROA_COUNT; i++) {
+			if (rtn_name.compare(4, hmc_roa_names[i].size(), hmc_roa_names[i].c_str()) == 0) {
+				NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROA;
+			}
+        }
+
+       /* else if ((rtn_name.compare(4, cmp_name0.size(), cmp_name0.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name1.size(), cmp_name1.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name2.size(), cmp_name2.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name9.size(), cmp_name9.c_str()) == 0) ||
@@ -769,7 +990,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROA;
         } else {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
-        }
+        }*/
 
         if (icheck_2parameters(rtn_name) == 1 || icheck_1parameter(rtn_name)) {
             NewInstruction.is_read = 1;
@@ -799,7 +1020,7 @@ VOID specific_trace_generation(std::string rtn_name, const char *arch_name, int 
             if ((4 < rtn_name.size()) && (4 < arch_x86_cmp_name.size()) && rtn_name.compare(4, arch_x86_cmp_name.size(), arch_x86_cmp_name.c_str()) == 0) {
                 arch_x86_trace_instruction(rtn, arch_x86_data[n]);
             }
-        } 
+        }
     } else {
         ERROR_PRINTF("Cannot execute %s instructions on different architecture!\n", arch_name);
         exit(1);
