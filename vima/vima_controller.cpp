@@ -194,7 +194,7 @@ void vima_controller_t::check_cache (int index) {
     cache_status_t result_read2 = MISS;
     cache_status_t result_write = MISS;
 
-    if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_read2) {
+    if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_read2 && vima_buffer[index]->vima_read2 != 0) {
         read1 = search_cache (vima_buffer[index]->vima_read1, &result_read1);
         read1->set_lru (orcs_engine.get_global_cycle());
         read2 = search_cache (vima_buffer[index]->vima_read2, &result_read2);
