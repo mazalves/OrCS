@@ -42,6 +42,7 @@ void vima_vector_t::clock() {
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
                         sub_requests[i].row_buffer = false;
+                        sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
                         sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
