@@ -3,4 +3,7 @@
 #DONE:
 sinuca_tracer.cpp
 intrinsics_extension.hpp
-
+vima_defines.h
+hmc_defines.h
+mps_defines.h
+intrinsics_extension.cpp
