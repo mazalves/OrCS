@@ -22,6 +22,8 @@ vima_controller_t::vima_controller_t(){
     this->tag_bits_mask = 0;
     this->tag_bits_shift = 0;
 
+    this->cache_reads = 0;
+    this->cache_writes = 0;
     this->cache_hits = 0;
     this->cache_misses = 0;
     this->cache_accesses = 0;
@@ -32,7 +34,6 @@ vima_controller_t::vima_controller_t(){
 
     this->VIMA_BUFFER = 0;
     this->VIMA_VECTOR_SIZE = 0;
-    this->VIMA_DEBUG = 0;
     this->VIMA_CACHE_ASSOCIATIVITY = 0;
     this->VIMA_CACHE_LATENCY = 0;
     this->VIMA_CACHE_SIZE = 0;
@@ -86,7 +87,9 @@ void vima_controller_t::print_vima_instructions(){
 }
 
 void vima_controller_t::instruction_ready (size_t index){
-    if (VIMA_DEBUG) ORCS_PRINTF ("VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
+    #if VIMA_DEBUG 
+        ORCS_PRINTF ("%lu VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
+    #endif
 
     if (vima_buffer[index]->vima_write != 0) this->write_to_cache (index);
 
@@ -94,20 +97,23 @@ void vima_controller_t::instruction_ready (size_t index){
     vima_buffer.erase (std::remove (vima_buffer.begin(), vima_buffer.end(), vima_buffer[index]), vima_buffer.end());
 }
 
-vima_vector_t* vima_controller_t::search_cache (uint64_t address){
+vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t* result){
     add_cache_accesses();
     uint64_t lru_cycle = UINT64_MAX;
     uint32_t lru_way = 0;
     uint32_t index = 0;
     this->current_cache_access_latency += this->get_VIMA_CACHE_LATENCY();
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
+        index = get_index (address);
         for (uint32_t i = 0; i < get_lines(); i++){
             if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
+                *result = HIT;
+                #if VIMA_DEBUG 
+                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
+                #endif
                 add_cache_hits();
-                //ORCS_PRINTF ("VIMA CACHE HIT! Address %lu was found.\n", address)
                 return &cache[i][0];
-            }
-            else if (cache[i][0].lru < lru_cycle) {
+            } else if (cache[i][0].lru < lru_cycle) {
                 lru_cycle = cache[i][0].lru;
                 lru_way = i;
             }
@@ -115,9 +121,12 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
     } else {
         index = get_index (address);
         for (i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
-            if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
+            if (get_tag(cache[index][i].get_address()) == get_tag (address) && get_tag(cache[index][i].get_address()) == get_tag (address)) {
+                *result = HIT;
+                #if VIMA_DEBUG 
+                    ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
+                #endif
 		        add_cache_hits();
-                //ORCS_PRINTF ("VIMA CACHE HIT! Address %lu was found.\n", address)
                 return &cache[index][i];
             }
             else if (cache[index][i].lru < lru_cycle) {
@@ -126,22 +135,24 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address){
             }
         }
     }
+    *result = MISS;
+    #if VIMA_DEBUG 
+        ORCS_PRINTF ("%lu VIMA Cache MISS! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
+    #endif
     add_cache_misses();
-    //if (lru_cycle != 0) ORCS_PRINTF ("EVICTION! ")
-    //ORCS_PRINTF ("VIMA CACHE MISS! Address %lu will be fetched.\n", address)
     if (VIMA_CACHE_ASSOCIATIVITY != 1) return &cache[index][lru_way];
     else return &cache[lru_way][0];
 }
 
 void vima_controller_t::check_completion (int index){
-    if (vima_buffer[index]->vima_read1 != 0){
+    if (read1 != NULL){
         if (read1->status != PACKAGE_STATE_READY) return;
         if (VIMA_UNBALANCED && read1_unbalanced != NULL){
             if (read1_unbalanced->status != PACKAGE_STATE_READY) return;
         }
     }
 
-    if (vima_buffer[index]->vima_read2 != 0){
+    if (read2 != NULL){
         if (read2->status != PACKAGE_STATE_READY) return;
         if (VIMA_UNBALANCED && read2_unbalanced != NULL){
             if (read2_unbalanced->status != PACKAGE_STATE_READY) return;
@@ -149,86 +160,86 @@ void vima_controller_t::check_completion (int index){
     }
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
 
-    if (vima_buffer[index]->vima_read1 != 0) read1->set_lru (orcs_engine.get_global_cycle());
-    if (vima_buffer[index]->vima_read2 != 0) read2->set_lru (orcs_engine.get_global_cycle());
+    if (read1 != NULL) {
+        this->add_cache_reads();
+        read1->set_lru (orcs_engine.get_global_cycle());
+        if (VIMA_UNBALANCED) {
+            this->add_cache_reads();
+            read1_unbalanced->set_lru (orcs_engine.get_global_cycle());
+        }
+    }
+    if (read2 != NULL) {
+        this->add_cache_reads();
+        read2->set_lru (orcs_engine.get_global_cycle());
+        if (VIMA_UNBALANCED) {
+            this->add_cache_reads();
+            read2_unbalanced->set_lru (orcs_engine.get_global_cycle());
+        }
+    }
+    if (vima_buffer[index]->vima_write != 0) {
+        this->add_cache_writes();
+        if (VIMA_UNBALANCED) this->add_cache_writes();
+    }
 }
 
 void vima_controller_t::write_to_cache (int index) {
-    this->add_cache_writes();
-    write = search_cache (vima_buffer[index]->vima_write);
-    if (write->status == PACKAGE_STATE_FREE) write->status = PACKAGE_STATE_WAIT;
-    else {
-        add_cache_writebacks();
-        write->status = PACKAGE_STATE_TRANSMIT;
-    }
-    write->set_next_address (vima_buffer[index]->vima_write);
-    write->set_tag (get_tag (vima_buffer[index]->vima_write));    
-    write->set_lru (orcs_engine.get_global_cycle());
+    write->set_address (vima_buffer[index]->vima_write);
+    write->set_tag (get_tag (vima_buffer[index]->vima_write));
+    write->status = PACKAGE_STATE_READY;
     write->dirty = true;
-    if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_write) != get_index(vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1))) {
-        this->add_cache_writes();
-        write_unbalanced = search_cache (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1);
-        if (write_unbalanced->status == PACKAGE_STATE_FREE) write_unbalanced->status = PACKAGE_STATE_WAIT;
-        else {
-            add_cache_writebacks();
-            write_unbalanced->status = PACKAGE_STATE_TRANSMIT;
-        }
-        write_unbalanced->set_next_address (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1);
-        write_unbalanced->set_tag (get_tag (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE -1));    
-        write_unbalanced->set_lru (orcs_engine.get_global_cycle());
-        write_unbalanced->dirty = true;
-    }
 }
 
 void vima_controller_t::check_cache (int index) {
-    if (vima_buffer[index]->vima_read1 != 0) {
-        this->add_cache_reads();
-        read1 = search_cache (vima_buffer[index]->vima_read1);
-        if (read1->status == PACKAGE_STATE_FREE) read1->status = PACKAGE_STATE_WAIT;
-        else {
-            add_cache_writebacks();
-            read1->status = PACKAGE_STATE_TRANSMIT;
-        }
-        read1->set_next_address (vima_buffer[index]->vima_read1);
-        read1->set_tag (get_tag (vima_buffer[index]->vima_read1));    
-        working_vectors.push_back (read1);
-        if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_read1) != get_index(vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1))) {
-            this->add_cache_reads();
-            read1_unbalanced = search_cache (vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1);
-            if (read1_unbalanced->status == PACKAGE_STATE_FREE) read1_unbalanced->status = PACKAGE_STATE_WAIT;
-            else {
-                add_cache_writebacks();
-                read1_unbalanced->status = PACKAGE_STATE_TRANSMIT;
-            }
-            read1_unbalanced->set_next_address (vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1);
-            read1_unbalanced->set_tag (get_tag (vima_buffer[index]->vima_read1 + VIMA_VECTOR_SIZE -1));    
-            read1_unbalanced->set_lru (orcs_engine.get_global_cycle());
-            working_vectors.push_back (read1_unbalanced);
-        }
+    cache_status_t result_read1 = MISS;
+    cache_status_t result_read2 = MISS;
+    cache_status_t result_write = MISS;
+
+    if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_read2 && vima_buffer[index]->vima_read2 != 0) {
+        read1 = search_cache (vima_buffer[index]->vima_read1, &result_read1);
+        read1->set_lru (orcs_engine.get_global_cycle());
+        read2 = search_cache (vima_buffer[index]->vima_read2, &result_read2);
+        read2->set_lru (orcs_engine.get_global_cycle());
+    } else {
+        read1 = search_cache (vima_buffer[index]->vima_read1, &result_read1);
+        read1->set_lru (orcs_engine.get_global_cycle());
+        read2 = NULL;
     }
-    if (vima_buffer[index]->vima_read2 != 0) {
-        this->add_cache_reads();
-        read2 = search_cache (vima_buffer[index]->vima_read2);
-        if (read2->status == PACKAGE_STATE_FREE) read2->status = PACKAGE_STATE_WAIT;
-        else {
-            add_cache_writebacks();
-            read2->status = PACKAGE_STATE_TRANSMIT;
+    
+    if (vima_buffer[index]->vima_write != 0){
+        if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_write && vima_buffer[index]->vima_read2 != vima_buffer[index]->vima_write){
+            write = search_cache (vima_buffer[index]->vima_write, &result_write);
+        } else {
+            this->add_cache_accesses();
+            if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read1) write = read1;
+            else if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read2) write = read2;
         }
+    } else write = NULL;
+
+    if (read1 != NULL && result_read1 == MISS){
+        if (read1->status == PACKAGE_STATE_READY){
+            this->add_cache_writebacks();
+            read1->status = PACKAGE_STATE_TRANSMIT;
+        } else read1->status = PACKAGE_STATE_WAIT;
+        read1->set_next_address (vima_buffer[index]->vima_read1);
+        read1->set_tag (get_tag (vima_buffer[index]->vima_read1));
+        working_vectors.push_back (read1);
+    }
+
+    if (read2 != NULL && result_read2 == MISS){
+        if (read2->status == PACKAGE_STATE_READY){
+            this->add_cache_writebacks();
+            read2->status = PACKAGE_STATE_TRANSMIT;
+        } else read2->status = PACKAGE_STATE_WAIT;
         read2->set_next_address (vima_buffer[index]->vima_read2);
-        read2->set_tag (get_tag (vima_buffer[index]->vima_read2));    
+        read2->set_tag (get_tag (vima_buffer[index]->vima_read2));
         working_vectors.push_back (read2);
-        if (VIMA_UNBALANCED && (get_index(vima_buffer[index]->vima_read2) != get_index(vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE - 1))) {
-            this->add_cache_reads();
-            read2_unbalanced = search_cache (vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE -1);
-            if (read2_unbalanced->status == PACKAGE_STATE_FREE) read2_unbalanced->status = PACKAGE_STATE_WAIT;
-            else {
-                add_cache_writebacks();
-                read2_unbalanced->status = PACKAGE_STATE_TRANSMIT;
-            }
-            read2_unbalanced->set_next_address (vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE - 1);
-            read2_unbalanced->set_tag (get_tag (vima_buffer[index]->vima_read2 + VIMA_VECTOR_SIZE - 1));    
-            read2_unbalanced->set_lru (orcs_engine.get_global_cycle());
-            working_vectors.push_back (read2_unbalanced);
+    }
+
+    if (write != NULL && write != read1 && write != read2 && result_write == MISS){
+        if (write->status == PACKAGE_STATE_READY){
+            this->add_cache_writebacks();
+            write->status = PACKAGE_STATE_TRANSMIT;
+            working_vectors.push_back (write);
         }
     }
 
@@ -245,26 +256,26 @@ void vima_controller_t::clock(){
     if (vima_buffer.size() <= 0) return;
     switch (vima_buffer[current_index]->status){
         case PACKAGE_STATE_WAIT:
-            if (VIMA_DEBUG){
-                ORCS_PRINTF ("OUT VIMA %lu %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
+            #if VIMA_DEBUG
+                ORCS_PRINTF ("%lu OUT VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
                 if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
                 if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
                 if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
                 ORCS_PRINTF ("\n")
-            }
+            #endif
             this->instruction_ready (0);
             break;
         case PACKAGE_STATE_TRANSMIT:
             this->check_completion(0);
             break;
         case PACKAGE_STATE_VIMA:
-            if (VIMA_DEBUG) {
+            #if VIMA_DEBUG
                 ORCS_PRINTF ("%lu IN  VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[current_index]->memory_operation), vima_buffer[current_index]->uop_number, vima_buffer[current_index]->processor_id)
                 if (vima_buffer[current_index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[current_index]->vima_read1)
                 if (vima_buffer[current_index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[current_index]->vima_read2)
                 if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
                 ORCS_PRINTF ("\n")
-            }
+            #endif
             this->total_wait += (orcs_engine.get_global_cycle() - vima_buffer[0]->vima_cycle);
             this->check_cache(0);
             break;
@@ -281,7 +292,6 @@ void vima_controller_t::allocate(){
     libconfig::Setting &cfg_vima = cfg_root["VIMA_CONTROLLER"];
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
-    set_VIMA_DEBUG (cfg_vima["VIMA_DEBUG"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
     set_VIMA_CACHE_SIZE (cfg_vima["VIMA_CACHE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_vima["VIMA_VECTOR_SIZE"]);
@@ -357,11 +367,15 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         vima_buffer.shrink_to_fit();
 
         this->request_count++;
-        if (VIMA_DEBUG) ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
+        #if VIMA_DEBUG 
+            ORCS_PRINTF ("%lu VIMA Controller addRequest(): NEW VIMA request from processor %u\n", orcs_engine.get_global_cycle(), request->processor_id)
+        #endif
         return true;
     } else {
         request->sent_to_ram = false;
-        if (VIMA_DEBUG) ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
+        #if VIMA_DEBUG 
+            ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
+        #endif
     }
     return false;
 }

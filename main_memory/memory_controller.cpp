@@ -33,7 +33,6 @@ memory_controller_t::memory_controller_t(){
     this->CHANNEL = 0;
     this->WAIT_CYCLE = 0;
     this->LINE_SIZE = 0;
-    this->DEBUG = 0;
 
     this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
     this->TIMING_AL = 0;     // Added Latency for column accesses
@@ -68,9 +67,7 @@ memory_controller_t::~memory_controller_t(){
 void memory_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
-    libconfig::Setting &cfg_processor = cfg_root["PROCESSOR"][0];
     
-    set_DEBUG (cfg_processor["DEBUG"]);
     set_BANK (cfg_memory_ctrl["BANK"]);
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
@@ -180,9 +177,12 @@ void memory_controller_t::clock(){
                 working[i]->updatePackageDRAMFetch (0);
             }
         } else if (working[i]->status == PACKAGE_STATE_DRAM_READY && working[i]->readyAt <= orcs_engine.get_global_cycle()){
+            wait_time = (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
+            #if MEMORY_DEBUG
+                ORCS_PRINTF ("[MEMC] %lu %lu %s finishes at main memory! Took %lu cycles.\n", orcs_engine.get_global_cycle(), working[i]->memory_address, get_enum_memory_operation_char (working[i]->memory_operation), wait_time)
+            #endif
             working[i]->updatePackageWait (1);
             this->total_operations[working[i]->memory_operation]++;
-            wait_time = (orcs_engine.get_global_cycle() - working[i]->ram_cycle);
             if (wait_time < this->min_wait_operations[working[i]->memory_operation]) this->min_wait_operations[working[i]->memory_operation] = wait_time;
             if (wait_time > this->min_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
             this->total_latency[working[i]->memory_operation] += wait_time;
@@ -249,7 +249,12 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
         request->sent_to_ram = true;
         this->working.push_back (request);
         this->working.shrink_to_fit();
-        if (DEBUG) ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+        #if DEBUG
+            ORCS_PRINTF ("Memory Controller requestDRAM(): receiving memory request from uop %lu, %s.\n", request->uop_number, get_enum_memory_operation_char (request->memory_operation))
+        #endif
+        #if MEMORY_DEBUG 
+            ORCS_PRINTF ("[MEMC] %lu %lu %s enters.\n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation))
+        #endif
         return 0;
     }
     return 0;

@@ -36,8 +36,6 @@ class memory_package_t {
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
 
-        uint32_t DEBUG;
-        
         memory_package_t();
         ~memory_package_t();
 
@@ -52,6 +50,4 @@ class memory_package_t {
         void updatePackageDRAMReady(uint32_t stallTime);
         void updateClients();
         void printPackage();
-
-        INSTANTIATE_GET_SET_ADD (uint32_t, DEBUG)
 };

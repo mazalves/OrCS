@@ -123,8 +123,8 @@ const char *get_enum_package_state_char(package_state_t type) {
 const char *get_enum_cache_level_char(cacheLevel_t type) {
     switch (type) {
         case END:     return "END"; break;
-        case L1:     return "L1_DATA_CACHE"; break;
-        case L2:     return "L2_UNIFIED_CACHE"; break;
+        case L1:     return "L1"; break;
+        case L2:     return "L2"; break;
         case LLC:     return "LLC"; break;
     }
     ERROR_PRINTF("Wrong CACHE_LEVEL\n");

@@ -15,16 +15,16 @@ class cache_manager_t {
         uint64_t offset;
         uint64_t mshr_index;
 
-        uint32_t min_sent_ram;
-        uint32_t max_sent_ram;
-        uint32_t sent_ram;
-        uint32_t sent_ram_cycles;
-        uint32_t sent_hive;
-        uint32_t sent_hive_cycles;
-        uint32_t sent_vima;
-        uint32_t sent_vima_cycles;
+        uint64_t min_sent_ram;
+        uint64_t max_sent_ram;
+        uint64_t sent_ram;
+        uint64_t sent_ram_cycles;
+        uint64_t sent_hive;
+        uint64_t sent_hive_cycles;
+        uint64_t sent_vima;
+        uint64_t sent_vima_cycles;
 
-        uint32_t max_vima;
+        uint64_t max_vima;
 
         uint64_t* total_latency;
         uint64_t* total_operations;
@@ -39,9 +39,7 @@ class cache_manager_t {
         uint32_t POINTER_LEVELS;
         uint32_t LLC_CACHES;
         uint32_t CACHE_MANAGER_DEBUG;
-        uint32_t PROCESSOR_DEBUG;
         uint32_t WAIT_CYCLE;
-        uint32_t DEBUG;
 
         uint32_t NUMBER_OF_PROCESSORS;
         uint32_t MAX_PARALLEL_REQUESTS_CORE;
@@ -94,14 +92,14 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint64_t, write_hit)
         INSTANTIATE_GET_SET_ADD(uint64_t, offset)
 
-        INSTANTIATE_GET_SET_ADD(uint32_t, min_sent_ram)
-        INSTANTIATE_GET_SET_ADD(uint32_t, max_sent_ram)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_ram)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_ram_cycles)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_hive)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_hive_cycles)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_vima)
-        INSTANTIATE_GET_SET_ADD(uint32_t, sent_vima_cycles)
+        INSTANTIATE_GET_SET_ADD(uint64_t, min_sent_ram)
+        INSTANTIATE_GET_SET_ADD(uint64_t, max_sent_ram)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_ram)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_ram_cycles)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_hive)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_hive_cycles)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_vima)
+        INSTANTIATE_GET_SET_ADD(uint64_t, sent_vima_cycles)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t, PREFETCHER_ACTIVE)
@@ -111,9 +109,7 @@ class cache_manager_t {
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)
         INSTANTIATE_GET_SET_ADD(uint32_t, LLC_CACHES)
         INSTANTIATE_GET_SET_ADD(uint32_t, CACHE_MANAGER_DEBUG)
-        INSTANTIATE_GET_SET_ADD(uint32_t, PROCESSOR_DEBUG)
         INSTANTIATE_GET_SET_ADD(uint32_t, WAIT_CYCLE)
-        INSTANTIATE_GET_SET_ADD(uint32_t, DEBUG)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, NUMBER_OF_PROCESSORS)
         INSTANTIATE_GET_SET_ADD(uint32_t, MAX_PARALLEL_REQUESTS_CORE)
