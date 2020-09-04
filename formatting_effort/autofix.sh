@@ -6,4 +6,4 @@ sed -i 's/for(/for (/' $1
 sed -i 's/switch(/switch (/' $1
 sed -i 's/if(/if (/' $1
 sed -i 's/){/) {/' $1
-
+sed -i 's/\t/    /' $1
