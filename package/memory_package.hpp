@@ -12,6 +12,7 @@ class memory_package_t {
         uint64_t born_cycle;                    /// package creation time
         uint64_t ram_cycle;
         uint64_t vima_cycle;
+        uint64_t hive_cycle;
         
         uint32_t next_level;
         uint32_t* sent_to_cache_level;

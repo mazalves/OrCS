@@ -14,6 +14,7 @@ memory_package_t::memory_package_t() {
     this->born_cycle = 0;                    /// package create time
     this->ram_cycle = 0;
     this->vima_cycle = 0;
+    this->hive_cycle = 0;
        
     sent_to_ram = false;
     next_level = L1;
@@ -105,13 +106,13 @@ void memory_package_t::updatePackageFree (uint32_t stallTime){
 }
 
 void memory_package_t::updatePackageHive (uint32_t stallTime){
-    #if MEMORY_DEBUG
+    #if MEMORY_DEBUG || HIVE_DEBUG
         ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_HIVE;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
-    #if MEMORY_DEBUG
+    #if MEMORY_DEBUG || HIVE_DEBUG 
         ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
     #endif
 }

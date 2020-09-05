@@ -17,6 +17,12 @@ class hive_controller_t {
         uint32_t nano_requests_number;
         uint32_t* nano_requests_ready;
         uint32_t* hive_op_latencies;
+
+        uint32_t* instruction_count;
+        uint32_t* total_latency_count;
+        uint32_t* min_latency_count;
+        uint32_t* max_latency_count;
+
         package_state_t* hive_register_state;
         memory_package_t** hive_sub_requests;
         std::vector<memory_package_t*> hive_instructions;
@@ -41,5 +47,6 @@ class hive_controller_t {
         ~hive_controller_t();
         void clock();
         void allocate();
+        void statistics();
         bool addRequest (memory_package_t* request);
 };
