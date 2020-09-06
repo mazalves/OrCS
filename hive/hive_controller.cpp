@@ -112,16 +112,15 @@ void hive_controller_t::check_sub_requests (size_t hive_register){
                 this->nano_requests_ready[hive_register]++;
                 this->hive_sub_requests[hive_register][i].updatePackageFree(0);
                 #if HIVE_DEBUG
-                    //ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu finished from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
+                    ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu finished from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
                 #endif
             }
         } else if (this->hive_sub_requests[hive_register][i].status == PACKAGE_STATE_TRANSMIT) {
             orcs_engine.memory_controller->requestDRAM (&hive_sub_requests[hive_register][i]);
             this->hive_sub_requests[hive_register][i].sent_to_ram = true;
             #if HIVE_DEBUG
-                //ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu issued from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, this->hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
+                ORCS_PRINTF ("%lu HIVE Controller check_sub_requests(): sub-request %lu issued from register %lu, %lu, %lu.\n", orcs_engine.get_global_cycle(), i, hive_register, this->hive_sub_requests[hive_register][i].memory_address, hive_sub_requests[hive_register][i].uop_number)
             #endif
-            break;
         }
     }
     if (this->nano_requests_ready[hive_register] == this->nano_requests_number) {
