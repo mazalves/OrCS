@@ -23,6 +23,10 @@ class hive_controller_t {
         uint32_t* min_latency_count;
         uint32_t* max_latency_count;
 
+        uint64_t op_set_count;
+        uint64_t op_count_latency;
+        uint64_t last_lock;
+
         package_state_t* hive_register_state;
         memory_package_t** hive_sub_requests;
         std::vector<memory_package_t*> hive_instructions;

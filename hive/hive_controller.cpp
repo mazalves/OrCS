@@ -26,6 +26,10 @@ hive_controller_t::hive_controller_t(){
     this->total_latency_count = NULL;
     this->min_latency_count = NULL;
     this->max_latency_count = NULL;
+
+    this->op_set_count = 0;
+    this->op_count_latency = 0;
+    this->last_lock = 0;
 }
 
 hive_controller_t::~hive_controller_t(){
@@ -158,6 +162,7 @@ void hive_controller_t::check_wait(){
     if (hive_instructions[0]->readyAt <= orcs_engine.get_global_cycle()) {
         switch (hive_instructions[0]->memory_operation){
             case MEMORY_OPERATION_HIVE_UNLOCK:
+                this->op_count_latency += orcs_engine.get_global_cycle() - this->last_lock;
                 this->hive_lock = false;
                 for (size_t i = 0; i < this->HIVE_REGISTERS; i++) hive_register_state[i] = PACKAGE_STATE_FREE;
                 #if HIVE_DEBUG
@@ -166,6 +171,8 @@ void hive_controller_t::check_wait(){
                 this->instruction_ready (0);
             break;
             case MEMORY_OPERATION_HIVE_LOCK:
+                this->op_set_count++;
+                this->last_lock = orcs_engine.get_global_cycle();
                 this->hive_lock = true;
                 #if HIVE_DEBUG
                     ORCS_PRINTF ("%lu HIVE Controller clock(): HIVE IS LOCKED!\n", orcs_engine.get_global_cycle())
@@ -314,10 +321,11 @@ void hive_controller_t::statistics(){
         if (this->instruction_count[i] > 0){
             ORCS_PRINTF ("Total_%s_Instructions: %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->instruction_count[i]);
             ORCS_PRINTF ("Avg._%s_Latency:       %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->total_latency_count[i]/this->instruction_count[i]);
-            ORCS_PRINTF ("Min._%s_Latency:        %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_latency_count[i]);
-            ORCS_PRINTF ("Max._%s_Latency:        %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_latency_count[i]);
+            ORCS_PRINTF ("Min._%s_Latency:       %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->min_latency_count[i]);
+            ORCS_PRINTF ("Max._%s_Latency:       %u\n", get_enum_memory_operation_char ((memory_operation_t) i), this->max_latency_count[i]);
         }
     }
+    ORCS_PRINTF ("Avg._Latency_Between_Locks:      %lu\n", this->op_count_latency/this->op_set_count)
     ORCS_PRINTF ("#========================================================================#\n")
 }
 

@@ -28,29 +28,29 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_BARRIER:     return "OP_BARRIER"; break;
         // ====================================================================
         /// HMC
-        case INSTRUCTION_OPERATION_HMC_ROA:     return "HMC_ROA"; break;
-        case INSTRUCTION_OPERATION_HMC_ROWA:    return "HMC_ROWA"; break;
+        case INSTRUCTION_OPERATION_HMC_ROA:      return "HMC_ROA"; break;
+        case INSTRUCTION_OPERATION_HMC_ROWA:     return "HMC_ROWA"; break;
         ///HIVE
-        case INSTRUCTION_OPERATION_HIVE_FP_MUL: return "HIVE_FP_MUL"; break;
-        case INSTRUCTION_OPERATION_HIVE_FP_DIV: return "HIVE_FP_DIV"; break;
-        case INSTRUCTION_OPERATION_HIVE_FP_ALU: return "HIVE_FP_ALU"; break;
+        case INSTRUCTION_OPERATION_HIVE_FP_MUL:  return "HIVE_FP_MUL "; break;
+        case INSTRUCTION_OPERATION_HIVE_FP_DIV:  return "HIVE_FP_DIV "; break;
+        case INSTRUCTION_OPERATION_HIVE_FP_ALU:  return "HIVE_FP_ALU "; break;
         case INSTRUCTION_OPERATION_HIVE_INT_ALU: return "HIVE_INT_ALU"; break;
         case INSTRUCTION_OPERATION_HIVE_INT_DIV: return "HIVE_INT_DIV"; break;
         case INSTRUCTION_OPERATION_HIVE_INT_MUL: return "HIVE_INT_MUL"; break;
-        case INSTRUCTION_OPERATION_HIVE_LOAD:    return "HIVE_LOAD"; break;
-        case INSTRUCTION_OPERATION_HIVE_STORE:  return "HIVE_STORE"; break;
-        case INSTRUCTION_OPERATION_HIVE_LOCK: return "HIVE_LOCK"; break;
-        case INSTRUCTION_OPERATION_HIVE_UNLOCK: return "HIVE_UNLOCK"; break;
+        case INSTRUCTION_OPERATION_HIVE_LOAD:    return "HIVE_LOAD   "; break;
+        case INSTRUCTION_OPERATION_HIVE_STORE:   return "HIVE_STORE  "; break;
+        case INSTRUCTION_OPERATION_HIVE_LOCK:    return "HIVE_LOCK   "; break;
+        case INSTRUCTION_OPERATION_HIVE_UNLOCK:  return "HIVE_UNLOCK "; break;
         ///VIMA
-        case INSTRUCTION_OPERATION_VIMA_FP_MUL: return "VIMA_FP_MUL"; break;
-        case INSTRUCTION_OPERATION_VIMA_FP_DIV: return "VIMA_FP_DIV"; break;
-        case INSTRUCTION_OPERATION_VIMA_FP_ALU: return "VIMA_FP_ALU"; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL "; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_DIV:  return "VIMA_FP_DIV "; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_ALU:  return "VIMA_FP_ALU "; break;
         case INSTRUCTION_OPERATION_VIMA_INT_ALU: return "VIMA_INT_ALU"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_DIV: return "VIMA_INT_DIV"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_MLA: return "VIMA_INT_MLA"; break;
-        case INSTRUCTION_OPERATION_VIMA_FP_MLA: return "VIMA_FP_MLA"; break;
-        case INSTRUCTION_OPERATION_LAST: return "LAST"; break;
+        case INSTRUCTION_OPERATION_VIMA_FP_MLA:  return "VIMA_FP_MLA "; break;
+        case INSTRUCTION_OPERATION_LAST:         return "LAST        "; break;
         
     }
     ERROR_PRINTF("Wrong INSTRUCTION_OPERATION\n");
@@ -78,25 +78,25 @@ const char *get_enum_memory_operation_char(memory_operation_t type) {
         case MEMORY_OPERATION_WRITE:    return "WRITE"; break;
         case MEMORY_OPERATION_FREE:    return "FREE"; break;
         case MEMORY_OPERATION_INST:     return "INST "; break;
-        case MEMORY_OPERATION_HIVE_UNLOCK:  return "HIVE_UNLOCK"; break;
-        case MEMORY_OPERATION_HIVE_LOCK:    return "HIVE_LOCK"; break;
-        case MEMORY_OPERATION_HIVE_LOAD:    return "HIVE_LOAD"; break;
-        case MEMORY_OPERATION_HIVE_STORE:   return "HIVE_STORE"; break;
+        case MEMORY_OPERATION_HIVE_UNLOCK:  return "HIVE_UNLOCK "; break;
+        case MEMORY_OPERATION_HIVE_LOCK:    return "HIVE_LOCK   "; break;
+        case MEMORY_OPERATION_HIVE_LOAD:    return "HIVE_LOAD   "; break;
+        case MEMORY_OPERATION_HIVE_STORE:   return "HIVE_STORE  "; break;
         case MEMORY_OPERATION_HIVE_INT_ALU: return "HIVE_INT_ALU"; break;
         case MEMORY_OPERATION_HIVE_INT_DIV: return "HIVE_INT_DIV"; break;
         case MEMORY_OPERATION_HIVE_INT_MUL: return "HIVE_INT_MUL"; break;
-        case MEMORY_OPERATION_HIVE_FP_ALU:  return "HIVE_FP_ALU"; break;
-        case MEMORY_OPERATION_HIVE_FP_DIV:  return "HIVE_FP_DIV"; break;
-        case MEMORY_OPERATION_HIVE_FP_MUL:  return "HIVE_FP_MUL"; break;
+        case MEMORY_OPERATION_HIVE_FP_ALU:  return "HIVE_FP_ALU "; break;
+        case MEMORY_OPERATION_HIVE_FP_DIV:  return "HIVE_FP_DIV "; break;
+        case MEMORY_OPERATION_HIVE_FP_MUL:  return "HIVE_FP_MUL "; break;
         case MEMORY_OPERATION_VIMA_INT_ALU: return "VIMA_INT_ALU"; break;
         case MEMORY_OPERATION_VIMA_INT_DIV: return "VIMA_INT_DIV"; break;
         case MEMORY_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
-        case MEMORY_OPERATION_VIMA_FP_ALU:  return "VIMA_FP_ALU"; break;
-        case MEMORY_OPERATION_VIMA_FP_DIV:  return "VIMA_FP_DIV"; break;
-        case MEMORY_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL"; break;
+        case MEMORY_OPERATION_VIMA_FP_ALU:  return "VIMA_FP_ALU "; break;
+        case MEMORY_OPERATION_VIMA_FP_DIV:  return "VIMA_FP_DIV "; break;
+        case MEMORY_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL "; break;
         case MEMORY_OPERATION_VIMA_INT_MLA: return "VIMA_INT_MLA"; break;
-        case MEMORY_OPERATION_VIMA_FP_MLA:  return "VIMA_FP_MLA"; break;
-        case MEMORY_OPERATION_LAST:         return "LAST"; break;
+        case MEMORY_OPERATION_VIMA_FP_MLA:  return "VIMA_FP_MLA "; break;
+        case MEMORY_OPERATION_LAST:         return "LAST        "; break;
     }
     ERROR_PRINTF("Wrong MEMORY_OPERATION\n");
     return "FAIL";
