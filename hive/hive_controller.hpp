@@ -39,9 +39,10 @@ class hive_controller_t {
         
         void print_hive_instructions();
         void instruction_ready (size_t index);
-        void check_transmit();
-        void check_wait();
-        void hive_dispatch();
+        void process (int index);
+        void check_transmit (int index);
+        void check_wait (int index);
+        void hive_dispatch (int index);
         void set_sub_requests (memory_package_t* request);
         void check_sub_requests (size_t hive_register);
         void reset_sub_requests (size_t hive_register);
