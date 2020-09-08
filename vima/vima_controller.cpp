@@ -176,8 +176,6 @@ void vima_controller_t::check_cache (int index) {
     cache_status_t result_read2 = MISS;
     cache_status_t result_write = MISS;
 
-    vima_buffer[0]->vima_cycle = orcs_engine.get_global_cycle();
-
     if (vima_buffer[index]->vima_read1 != 0) {
         this->add_cache_accesses();
         this->add_cache_reads();
@@ -273,7 +271,7 @@ void vima_controller_t::clock(){
                 if (vima_buffer[current_index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[current_index]->vima_write)
                 ORCS_PRINTF ("\n")
             #endif
-            this->total_wait += (orcs_engine.get_global_cycle() - vima_buffer[0]->vima_cycle);
+            this->total_wait += (orcs_engine.get_global_cycle() - vima_buffer[current_index]->vima_cycle);
             this->check_cache(0);
             break;
         default:
@@ -361,6 +359,8 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);
         vima_buffer.shrink_to_fit();
+
+        request->vima_cycle = orcs_engine.get_global_cycle();
 
         this->request_count++;
         #if VIMA_DEBUG 

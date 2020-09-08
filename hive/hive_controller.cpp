@@ -55,7 +55,7 @@ void hive_controller_t::print_hive_instructions(){
 void hive_controller_t::instruction_ready (size_t index){
     if (index != 0) return;
     hive_instructions[index]->updatePackageWait(0);
-
+    
     uint32_t wait_time = orcs_engine.get_global_cycle() - this->hive_instructions[0]->hive_cycle;
 
     this->instruction_count[hive_instructions[0]->memory_operation]++;
@@ -149,7 +149,7 @@ void hive_controller_t::check_transmit (int index){
         if ((wait_r1 == PACKAGE_STATE_READY || wait_r1 == PACKAGE_STATE_FREE) && (wait_r2 == PACKAGE_STATE_READY || wait_r2 == PACKAGE_STATE_FREE)){
             hive_instructions[index]->updatePackageHive(hive_op_latencies[hive_instructions[index]->memory_operation]);
             #if HIVE_DEBUG
-                ORCS_PRINTF ("%lu HIVE Controller check_transmit(): instruction %s %lu: readyAt %lu.zn", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(hive_instructions[index]->memory_operation), hive_instructions[index]->uop_number, hive_instructions[index]->readyAt)
+                ORCS_PRINTF ("%lu HIVE Controller check_transmit(): instruction %s %lu: readyAt %lu.\n", orcs_engine.get_global_cycle(), get_enum_memory_operation_char(hive_instructions[index]->memory_operation), hive_instructions[index]->uop_number, hive_instructions[index]->readyAt)
             #endif
         } else {
             #if HIVE_DEBUG
