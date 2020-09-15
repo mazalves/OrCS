@@ -21,6 +21,7 @@ class vima_controller_t {
         vima_vector_t* write_unbalanced;
         std::vector<memory_package_t*> vima_buffer;
         std::vector<memory_package_t*> sub_request_queue;
+        std::vector<vima_vector_t*> working_vectors;
         
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;

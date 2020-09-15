@@ -165,8 +165,9 @@ void vima_controller_t::check_completion (int index){
 }
 
 void vima_controller_t::write_to_cache (int index) {
-    write->set_next_address (vima_buffer[index]->vima_write);
+    write->set_address (vima_buffer[index]->vima_write);
     write->set_tag (get_tag (vima_buffer[index]->vima_write));
+    write->set_lru (orcs_engine.get_global_cycle());
     write->status = PACKAGE_STATE_READY;
     write->dirty = true;
 }

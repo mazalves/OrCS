@@ -26,6 +26,7 @@ void vima_vector_t::print_vector(){
 }
 
 void vima_vector_t::clock() {
+    //if (address == 0 && next_address != 0) address = next_address;
     switch (status){
         case PACKAGE_STATE_TRANSMIT:
             //writeback
