@@ -213,8 +213,10 @@ void vima_controller_t::check_cache (int index) {
     if (read1 != NULL && result_read1 == MISS){
         this->add_cache_misses();
         if (read1->status == PACKAGE_STATE_READY){
-            this->add_cache_writebacks();
-            read1->status = PACKAGE_STATE_TRANSMIT;
+	    if (read1->dirty){
+                this->add_cache_writebacks();
+                read1->status = PACKAGE_STATE_TRANSMIT;
+	    }
         } else read1->status = PACKAGE_STATE_WAIT;
         read1->set_next_address (vima_buffer[index]->vima_read1);
         read1->set_tag (get_tag (vima_buffer[index]->vima_read1));
@@ -223,8 +225,10 @@ void vima_controller_t::check_cache (int index) {
     if (read2 != NULL && result_read2 == MISS){
         this->add_cache_misses();
         if (read2->status == PACKAGE_STATE_READY){
-            this->add_cache_writebacks();
-            read2->status = PACKAGE_STATE_TRANSMIT;
+	    if (read2->dirty) {
+                this->add_cache_writebacks();
+                read2->status = PACKAGE_STATE_TRANSMIT;
+	    }
         } else read2->status = PACKAGE_STATE_WAIT;
         read2->set_next_address (vima_buffer[index]->vima_read2);
         read2->set_tag (get_tag (vima_buffer[index]->vima_read2));
