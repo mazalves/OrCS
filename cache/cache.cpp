@@ -216,7 +216,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id) 
 }
 
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
+inline void cache_t::writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address) {
 	// printf("writeback in processor %d\n", processor_id);
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
         ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
@@ -235,6 +235,19 @@ inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
 				line->line_ptr_caches[processor_id][i]->clean_line();
 			}
 		}
+		memory_package_t* request = new memory_package_t();
+    	request->processor_id = processor_id;
+      	request->memory_address = memory_address;
+      	request->memory_operation = MEMORY_OPERATION_WRITE;
+      	request->is_hive = false;
+      	request->is_vima = false;
+      	request->status = PACKAGE_STATE_UNTREATED;
+      	request->readyAt = orcs_engine.get_global_cycle();
+      	request->born_cycle = orcs_engine.get_global_cycle();
+      	request->sent_to_ram = false;
+      	request->type = INSTRUCTION;
+      	request->op_count[request->memory_operation]++;
+    	orcs_engine.memory_controller->requestDRAM(request);
 	// Intermediate cache levels issues
 	} else {
 		uint32_t i = 0;
@@ -278,7 +291,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64
 		line = this->searchLru(&this->sets[idx]);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(&this->sets[idx].lines[line], request->processor_id);
+			this->writeBack(&this->sets[idx].lines[line], request->processor_id, request->memory_address);
 			this->add_cache_writeback();
 		}
 	}
@@ -343,7 +356,7 @@ uint32_t cache_t::write(memory_package_t* request){
         line = this->searchLru(&this->sets[idx]);
         this->add_change_line();
         if (this->sets[idx].lines[line].dirty == 1) {
-            this->writeBack(&this->sets[idx].lines[line], request->processor_id);
+            this->writeBack(&this->sets[idx].lines[line], request->processor_id, request->memory_address);
             this->add_cache_writeback();
         }
     }
