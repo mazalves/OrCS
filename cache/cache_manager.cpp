@@ -490,6 +490,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
                         #endif
                         /*if (request->memory_operation == MEMORY_OPERATION_WRITE && request->memory_size == this->get_LINE_SIZE()){
                             request->updatePackageWait(this->data_cache[request->next_level][cache_indexes[request->processor_id]].latency);
+                            request->sent_to_ram = true;
                         } 
                         else */
                         this->cache_search (request, cache, cache_indexes);
