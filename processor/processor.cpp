@@ -854,74 +854,74 @@ void processor_t::fetch(){
 	// uint32_t position;
 	// Trace ->fetchBuffer
 	for (uint32_t i = 0; i < FETCH_WIDTH; i++) {
-		operation.package_clean();
-		//bool updated = false;
-		//=============================
-		//Stall full fetch buffer
-		//=============================
-		if (this->fetchBuffer.is_full()) {
-			this->add_stall_full_FetchBuffer();
-			break;
-		}
-		//=============================
-		//Stall branch wrong predict
-		//=============================
-		if (this->get_stall_wrong_branch() > orcs_engine.get_global_cycle()){
-			break;
-		}
-		//=============================
-		//Get new Opcode
-		//=============================
-		if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation)){
-			this->traceIsOver = true;
-			break;
-		}
-		#if FETCH_DEBUG
-			ORCS_PRINTF("Opcode Fetched %s\n", operation.content_to_string2().c_str())
-		#endif
-		//============================
-		//add control variables
-		//============================
-		operation.opcode_number = this->fetchCounter;
-		operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
-		this->fetchCounter++;
-
-		//============================
-		///Solve Branch
-		//============================
-
-		if (this->hasBranch){
-			//solve
-			uint32_t stallWrongBranch = orcs_engine.branchPredictor[this->processor_id].solveBranch(this->previousBranch, operation);
-			this->set_stall_wrong_branch (orcs_engine.get_global_cycle() + stallWrongBranch);
-			this->hasBranch = false;
-			//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
-			// ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
-			operation.updatePackageWait (stallWrongBranch);
-			//updated = true;
-			this->previousBranch.package_clean();
-			// ORCS_PRINTF("Stall Wrong Branch %u\n",stallWrongBranch)
-		}
-		//============================
-		// Operation Branch, set flag
-		//============================
-		if (operation.opcode_operation == INSTRUCTION_OPERATION_BRANCH){
-			orcs_engine.branchPredictor[this->processor_id].branches++;
-			this->previousBranch = operation;
-			this->hasBranch = true;
-		}
-		//============================
-		//Insert into fetch buffer
-		//============================
-		if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
-			break;
-		}
-
-		#if PROCESSOR_DEBUG 
-			ORCS_PRINTF ("%lu processor %lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
-		#endif
-
 		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST)){
+			operation.package_clean();
+			//bool updated = false;
+			//=============================
+			//Stall full fetch buffer
+			//=============================
+			if (this->fetchBuffer.is_full()) {
+				this->add_stall_full_FetchBuffer();
+				break;
+			}
+			//=============================
+			//Stall branch wrong predict
+			//=============================
+			if (this->get_stall_wrong_branch() > orcs_engine.get_global_cycle()){
+				break;
+			}
+			//=============================
+			//Get new Opcode
+			//=============================
+			if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation)){
+				this->traceIsOver = true;
+				break;
+			}
+			#if FETCH_DEBUG
+				ORCS_PRINTF("Opcode Fetched %s\n", operation.content_to_string2().c_str())
+			#endif
+			//============================
+			//add control variables
+			//============================
+			operation.opcode_number = this->fetchCounter;
+			operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
+			this->fetchCounter++;
+
+			//============================
+			///Solve Branch
+			//============================
+
+			if (this->hasBranch){
+				//solve
+				uint32_t stallWrongBranch = orcs_engine.branchPredictor[this->processor_id].solveBranch(this->previousBranch, operation);
+				this->set_stall_wrong_branch (orcs_engine.get_global_cycle() + stallWrongBranch);
+				this->hasBranch = false;
+				//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
+				// ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
+				operation.updatePackageWait (stallWrongBranch);
+				//updated = true;
+				this->previousBranch.package_clean();
+				// ORCS_PRINTF("Stall Wrong Branch %u\n",stallWrongBranch)
+			}
+			//============================
+			// Operation Branch, set flag
+			//============================
+			if (operation.opcode_operation == INSTRUCTION_OPERATION_BRANCH){
+				orcs_engine.branchPredictor[this->processor_id].branches++;
+				this->previousBranch = operation;
+				this->hasBranch = true;
+			}
+			//============================
+			//Insert into fetch buffer
+			//============================
+			if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
+				break;
+			}
+
+			#if PROCESSOR_DEBUG 
+				ORCS_PRINTF ("%lu processor %lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
+			#endif
+
 			memory_package_t* request = new memory_package_t();
 			
 			request->clients.push_back (fetchBuffer.back());
