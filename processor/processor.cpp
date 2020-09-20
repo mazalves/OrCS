@@ -929,7 +929,6 @@ void processor_t::fetch(){
 			request->uop_number = fetchBuffer.back()->opcode_number;
 			request->opcode_address = fetchBuffer.back()->opcode_address;
 			request->opcode_number = fetchBuffer.back()->opcode_number;
-			//request->memory_address = fetchBuffer.back()->opcode_address |= (this->get_processor_id() << 56);
 			request->memory_address = fetchBuffer.back()->opcode_address;
 			request->memory_size = fetchBuffer.back()->opcode_size;
 			request->memory_operation = MEMORY_OPERATION_INST;

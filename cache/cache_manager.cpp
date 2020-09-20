@@ -488,7 +488,10 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
                         #if MEMORY_DEBUG
                             ORCS_PRINTF (" sent to %s |", get_enum_cache_level_char ((cacheLevel_t) request->next_level))
                         #endif
-                        this->cache_search (request, cache, cache_indexes);
+                        if (request->memory_operation == MEMORY_OPERATION_WRITE && request->memory_size == this->get_LINE_SIZE()){
+                            request->updatePackageWait(this->data_cache[request->next_level][cache_indexes[request->processor_id]].latency);
+                        } 
+                        else this->cache_search (request, cache, cache_indexes);
                     }
                 }
             } else if (!request->sent_to_ram) {

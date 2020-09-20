@@ -28,7 +28,7 @@
 #define COMMIT_DEBUG 0
 #define MEMORY_DEBUG 0
 #define HIVE_DEBUG 0
-#define VIMA_DEBUG 1
+#define VIMA_DEBUG 0
 
 // ========================
 // Defines Simulators Caracteristics
