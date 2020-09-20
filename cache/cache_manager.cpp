@@ -479,7 +479,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_WRITE:
         case MEMORY_OPERATION_INST:
-            if (request->next_level < END){
+            if (request->next_level < DATA_LEVELS){
                 if (request->status == PACKAGE_STATE_UNTREATED && request->readyAt <= orcs_engine.get_global_cycle()){
                     if (request->memory_operation == MEMORY_OPERATION_INST && request->next_level == L1) {
                         cache = &this->instruction_cache[request->next_level][cache_indexes[request->next_level]];
