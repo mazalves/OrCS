@@ -580,6 +580,7 @@ VOID ImageLoad(IMG img, VOID *) {
     /// Only the thread master runs these calls
     std::vector<const char*> OMP_barrier_master_start;
         OMP_barrier_master_start.push_back("GOMP_parallel_start");
+		OMP_barrier_master_start.push_back("GOMP_parallel");
         OMP_barrier_master_start.push_back("GOMP_parallel_loop_dynamic_start");
         OMP_barrier_master_start.push_back("GOMP_parallel_loop_static_start");
 

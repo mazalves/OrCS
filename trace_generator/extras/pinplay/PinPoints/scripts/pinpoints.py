@@ -957,6 +957,7 @@ class PinPoints(object):
                     config.PhaseStr(config.Simpoint))
             # Setup dictionary of parameters for method RunAllDir()
             #
+            msg.PrintMsg('fbm was in pinpoints')
             param = {'options': options}
             util.PhaseBegin(options)
             result = util.RunAllDir(wp_pb_dir, self.phases.RunSimPoint, True,

@@ -2846,9 +2846,12 @@ void processor_t::statistics(){
 		utils_t::largestSeparator(output);
 		fprintf(output, "Instruction_Per_Cycle:            %1.6lf\n", (float)this->fetchCounter/this->get_ended_cycle());
 		// accessing LLC cache level
-		int32_t *cache_indexes = new int32_t[orcs_engine.cacheManager->get_POINTER_LEVELS()]();
+		uint64_t plevels = orcs_engine.cacheManager->get_POINTER_LEVELS();
+		int32_t *cache_indexes = new int32_t[plevels]();
 		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
-		fprintf(output, "MPKI:                             %lf\n", (float)orcs_engine.cacheManager->data_cache[this->processor_id][cache_indexes[this->processor_id]].get_cache_miss()/((float)this->fetchCounter/1000));
+
+		//assuming you want LLC, plevels-1 should be LLC
+		fprintf(output, "MPKI:                             %lf\n", (float)orcs_engine.cacheManager->data_cache[plevels-1][cache_indexes[plevels-1]].get_cache_miss()/((float)this->fetchCounter/1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles/this->get_stat_inst_load_completed());
 		fprintf(output, "Core_Request_RAM_AVG_Cycle:       %lf\n", (float)this->core_ram_request_wait_cycles/this->get_core_ram_requests());
 		fprintf(output, "Total_Load_Requests:              %lu\n", this->get_stat_inst_load_completed());
