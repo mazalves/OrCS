@@ -116,6 +116,7 @@ uint32_t max_threads = 0;       /// Max number of threads (if intel Add +1)
 int32_t count_parallel_start = 0;
 int32_t count_parallel_end = 0;
 
+IMG_TYPE previmgt = IMG_TYPE_STATIC;
 //==============================================================================
 // Commandline Switches
 //==============================================================================
@@ -228,6 +229,33 @@ VOID control_instrumented_bbl(THREADID threadid) {
 //     }
 // }
 
+// =====================================================================
+VOID check_img(ADDRINT addr, THREADID threadid) {
+    TRACE_GENERATOR_DEBUG_PRINTF("check_img()\n");
+			//fbm
+			PIN_LockClient();
+			IMG newimg = IMG_FindByAddress(addr);
+			if (IMG_Valid(newimg)){
+				IMG_TYPE newimgt = IMG_Type(newimg);
+							
+
+				if ((newimgt == IMG_TYPE_SHAREDLIB) && 
+					(( previmgt == IMG_TYPE_STATIC)
+					|| (previmgt == IMG_TYPE_SHARED)))
+				{
+					//ins is_vima = 1;
+					cout << "went from " << previmgt << " to " << newimgt << endl;
+				}
+				else {
+					cout << "some other transition" << endl;
+				}
+				previmgt = newimgt;
+			} else {
+				cout << "invalid img! " << endl;
+			}
+			PIN_UnlockClient();
+}
+// =====================================================================
 
 // =====================================================================
 VOID write_memory(BOOL is_Read, ADDRINT addr, INT32 size, UINT32 bbl,
@@ -311,6 +339,11 @@ VOID trace_instruction(TRACE trace, VOID *v) {
     }
 
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
+		//INS hins = BBL_InsHead(bbl);
+		//INS_InsertCall(hins, IPOINT_BEFORE, (AFUNPTR)check_img,
+	//					IARG_ADDRINT, INS_Address(hins),
+//						IARG_THREAD_ID,
+//						IARG_END);
         // HMC Traces
         if (((KnobTrace.Value().compare(0, 3, "x86")) != 0)
             && icheck_conditions(rtn_name))
@@ -335,17 +368,44 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                         IARG_THREAD_ID, IARG_END);
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
+
             if (INS_hasKnownMemorySize(ins)) {
                 // pin::ins => static trace
-                opcode_package_t pck = x86_to_static(ins);
-
+				//fbm if stuff, mark opcode.
+				uint64_t targetaddr = INS_Address(ins);
+				bool found = false;
+				opcode_package_t pck;
+				if (targetaddr == INS_Address(BBL_InsHead(bbl))){
+					PIN_LockClient();
+					IMG newimg = IMG_FindByAddress(targetaddr);
+					if (IMG_Valid(newimg)){
+						IMG_TYPE newimgt = IMG_Type(newimg);
+						if ((newimgt == IMG_TYPE_SHAREDLIB) && 
+							(( previmgt == IMG_TYPE_STATIC)
+							|| (previmgt == IMG_TYPE_SHARED)))
+						{
+							//ins is_vima = 1;
+							cout << "went from " << previmgt << " to " << newimgt << endl;
+							pck = x86_to_static(ins,true);
+							found = true;
+						}
+						else {
+							cout << "some other transition" << endl;
+						}
+						previmgt = newimgt;
+					} else {
+						cout << "invalid img! " << endl;
+					}
+				}
+				if (!found) {
+					pck = x86_to_static(ins, false);
+				}
                 //-------------------------------------------------------------
                 // Write into the static trace
                 //-------------------------------------------------------------
                 char opcode_str[TRACE_LINE_SIZE];
                 opcodes::opcode_to_trace_string(pck, opcode_str);
                 write_static_char(opcode_str);
-
 
                 //-------------------------------------------------------------
                 // Write the Memory
@@ -580,7 +640,7 @@ VOID ImageLoad(IMG img, VOID *) {
     /// Only the thread master runs these calls
     std::vector<const char*> OMP_barrier_master_start;
         OMP_barrier_master_start.push_back("GOMP_parallel_start");
-		OMP_barrier_master_start.push_back("GOMP_parallel");
+        OMP_barrier_master_start.push_back("GOMP_parallel");
         OMP_barrier_master_start.push_back("GOMP_parallel_loop_dynamic_start");
         OMP_barrier_master_start.push_back("GOMP_parallel_loop_static_start");
 

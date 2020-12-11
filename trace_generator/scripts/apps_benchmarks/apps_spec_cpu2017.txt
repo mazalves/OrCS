@@ -41,16 +41,16 @@ fotonik3d_r;CFP;-1;-1;$BENCHMARK_DIR/549.fotonik3d_r/exe/fotonik3d_r_base.x86-gc
 roms_r;CFP;-1;-1;$BENCHMARK_DIR/554.roms_r/exe/roms_r_base.x86-gcc-static-m64
 ################################################################################
 ## SPECspeed CPU 2006 - FP -- (34 - 43)
-bwaves_s;CFP;-1;-1;$BENCHMARK_DIR/603.bwaves_s/exe/speed_bwaves_base.x86-gcc-static-m64 bwaves_2
+bwaves_s;CFP;-1;-1;$BENCHMARK_DIR/603.bwaves_s/exe/speed_bwaves_base.x86-gcc-static-m64 < $BENCHMARK_DIR/503.bwaves_r/data/refspeed/input/bwaves_2.in
 cactuBSSN_s;CFP;-1;-1;$BENCHMARK_DIR/607.cactuBSSN_s/exe/cactuBSSN_s_base.x86-gcc-static-m64 $BENCHMARK_DIR/507.cactuBSSN_r/data/refspeed/input/spec_ref.par
 lbm_s;CFP;-1;-1;$BENCHMARK_DIR/619.lbm_s/exe/lbm_s_base.x86-gcc-static-m64 2000 reference.dat 0 0 $BENCHMARK_DIR/619.lbm_s/data/refspeed/input/200_200_260_ldc.of
 wrf_s;CFP;-1;-1;$BENCHMARK_DIR/621.wrf_s/exe/wrf_s_base.x86-gcc-static-m64
 cam4_s;CFP;-1;-1;$BENCHMARK_DIR/627.cam4_s/exe/cam4_s_base.x86-gcc-static-m64
 pop2_s;CFP;-1;-1;$BENCHMARK_DIR/628.pop2_s/exe/speed_pop2_base.x86-gcc-static-m64
-imagick_s;CFP;-1;-1;$BENCHMARK_DIR/638.imagick_s/exe/imagick_s_base.x86-gcc-static-m64 -limit disk 0 $BENCHMARK_DIR/538.imagick_r/data/refspeed/input/refspeed_input.tga -resize 817% -rotate -2.76 -shave 540x375 -alpha remove -auto-level -contrast-stretch 1x1% -colorspace Lab -channel R -equalize +channel -colorspace sRGB -define histogram:unique-colors=false -adaptive-blur 0x5 -despeckle -auto-gamma -adaptive-sharpen 55 -enhance -brightness-contrast 10x10 -resize 30% refspeed_output.tga
+imagick_s;CFP;-1;-1;$BENCHMARK_DIR/638.imagick_s/exe/imagick_s_base.x86-gcc-static-m64 -limit disk 0 $BENCHMARK_DIR/538.imagick_r/data/refspeed/input/refspeed_input.tga -rotate -2.76 -shave 540x375 -alpha remove -auto-level -colorspace Lab -channel R -equalize +channel -colorspace sRGB -define histogram:unique-colors=false -adaptive-blur 0x5 -despeckle -auto-gamma -adaptive-sharpen 55 -enhance -brightness-contrast 10x10 refspeed_output.tga
 nab_s;CFP;-1;-1;$BENCHMARK_DIR/644.nab_s/exe/nab_s_base.x86-gcc-static-m64 3j1n 20140317 220
 fotonik3d_s;CFP;-1;-1;$BENCHMARK_DIR/649.fotonik3d_s/exe/fotonik3d_s_base.x86-gcc-static-m64
-roms_s;CFP;-1;-1;$BENCHMARK_DIR/654.roms_s/exe/sroms_base.x86-gcc-static-m64
+roms_s;CFP;-1;-1;$BENCHMARK_DIR/654.roms_s/exe/sroms_base.x86-gcc-static-m64 < $BENCHMARK_DIR/554.roms_r/data/refspeed/input/ocean_benchmark3.in.x
 ################################################################################
 ## END OF FILE
 # cd ~/Experiment/benchmarks/pin_points/spec_cpu2017;

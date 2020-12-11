@@ -303,7 +303,7 @@ VOID tracer(TRACE trace, VOID *v) {
             //--------------------------------------------------------------------------
             if(INS_hasKnownMemorySize(ins)) {
                 
-                opcode_package_t op = x86_to_static(ins);
+                opcode_package_t op = x86_to_static(ins,false);
                 program.insert(current_bbl, op);
 
                 //--------------------------------------------------------------------------

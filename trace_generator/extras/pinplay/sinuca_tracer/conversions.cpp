@@ -5,6 +5,7 @@
 #include <string>
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
 #include "tracer_log_procedures.hpp"
 #include "../../../../defines.hpp"
 #include "../../../../utils/enumerations.hpp"
@@ -21,15 +22,109 @@
     #define TRACE_GENERATOR_DEBUG_PRINTF(...)
 #endif
 
+unsigned int hex_to_dec(char x) {
+    if (x >= '0' && x <= '9')
+        return x - '0';
+    return (toupper(x) - 'A') + 10U;
+}
+
+unsigned int ascii_to_hex(const char *src,
+                          xed_uint8_t *dst,
+                          unsigned int max_bytes)
+{
+    const unsigned int len = strlen(src);
+    memset(dst, 0, max_bytes);
+
+    for (unsigned int p = 0, i = 0; i < len / 2; ++i, p += 2)
+        dst[i] = (xed_uint8_t) (hex_to_dec(src[p]) * 16 + hex_to_dec(src[p+1]));
+    return len/2;
+}
+
+std::string to_string(xed_uint_t x) {
+    std::string res;
+    while (x) {
+        res.push_back((x % 10) + '0');
+        x /= 10;
+    }
+    std::reverse(res.begin(), res.end());
+    return res;
+}
+
+std::string gen_icode(xed_decoded_inst_t *xedd) {
+    const xed_inst_t* xi = xed_decoded_inst_inst(xedd);
+    unsigned int noperands = xed_inst_noperands(xi);
+
+    std::string result = "";
+    for (unsigned int i = 0; i < noperands; ++i) {
+        const xed_operand_t* op = xed_inst_operand(xi, i);
+        xed_operand_enum_t op_name = xed_operand_name(op);
+
+        std::string ops = "";
+
+        switch (op_name) {
+            case XED_OPERAND_AGEN:
+                break;
+
+            // Memory
+            case XED_OPERAND_MEM0:
+            case XED_OPERAND_MEM1: {
+                ops += "M";
+                break;
+            }
+
+            // Pointer and rel
+            case XED_OPERAND_PTR:
+            case XED_OPERAND_RELBR: {
+                ops += "Rel";
+                break;
+            }
+
+            // Immediates
+            case XED_OPERAND_IMM0: {
+                ops += "I";
+                break;
+            }
+
+            // Registers
+            case XED_OPERAND_REG0:
+            case XED_OPERAND_REG1:
+            case XED_OPERAND_REG2:
+            case XED_OPERAND_REG3:
+            case XED_OPERAND_REG4:
+            case XED_OPERAND_REG5:
+            case XED_OPERAND_REG6:
+            case XED_OPERAND_REG7:
+            case XED_OPERAND_REG8:
+            case XED_OPERAND_BASE0:
+            case XED_OPERAND_BASE1: {
+                ops += "R";
+                break;
+            }
+            default:
+                assert(0);
+        }
+
+        auto vis = xed_operand_operand_visibility(op);
+        if (vis == XED_OPVIS_EXPLICIT && ops.size() > 0) {
+            result += "+";
+            xed_uint_t bits = xed_decoded_inst_operand_length_bits(xedd, i);
+            ops += to_string(bits);
+            result += ops;
+        }
+    }
+
+    return std::string(xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(xedd))) + result;
+}
+
 //==============================================================================
 // Translate the x86 Instructions to Simulator Instruction
-opcode_package_t x86_to_static(const INS& ins) {
+opcode_package_t x86_to_static(const INS& ins, bool libch) {
     TRACE_GENERATOR_DEBUG_PRINTF("x86_to_static()\n");
     ERROR_ASSERT_PRINTF( INS_MaxNumRRegs(ins) <= MAX_REGISTERS && INS_MaxNumWRegs(ins) <= MAX_REGISTERS, "More registers than MAX_REGISTERS\n");
     uint32_t i;
     opcode_package_t NewInstruction;
 
-    strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
+    //strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
     NewInstruction.opcode_address = INS_Address(ins);
     NewInstruction.opcode_size = INS_Size(ins);
 
@@ -58,6 +153,12 @@ opcode_package_t x86_to_static(const INS& ins) {
     NewInstruction.is_predicated = INS_IsPredicated(ins);
     NewInstruction.is_prefetch = INS_IsPrefetch(ins);
 
+	if (libch){
+		NewInstruction.is_vima = true;
+	}
+	else {
+		NewInstruction.is_vima = false;
+	}
 
     if (NewInstruction.is_read) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
@@ -123,10 +224,12 @@ opcode_package_t x86_to_static(const INS& ins) {
         }
     }
 
-
     xed_decoded_inst_t* xedd = INS_XedDec(ins);
     const xed_inst_t* xi = xed_decoded_inst_inst(xedd);
     xed_iclass_enum_t iclass = xed_inst_iclass(xi);
+
+    std::string icode = gen_icode(xedd);
+    strcpy(NewInstruction.opcode_assembly, icode.c_str());
 
     switch (iclass) {
         //==================================================================
@@ -604,7 +707,7 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
     //std::cerr << "Addr: " << INS_Address(ins) << "    Size: " << INS_Size(ins) << std::endl;
 
     std::vector<opcode_package_t> *ops = new std::vector<opcode_package_t>;
-   
+
    if(INS_IsVgather(ins)) {
         int32_t numAccesses, accessSize, indexSize;
         GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
@@ -676,7 +779,7 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
             // -------------------------------------------------------------------
             ops->push_back(op);
         }
-       
+
 
 
    } else if (INS_IsVscatter(ins)) {
