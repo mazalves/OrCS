@@ -175,10 +175,11 @@ uint32_t Usage() {
 VOID control_instrumented_bbl(THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("write_dynamic_char()\n");
 
-	if ((KnobNumberInst.Value() != -1) && (count_inst >= KnobNumberInst.Value())){
-		thread_data[threadid].is_instrumented_bbl = false;
-		PIN_ExitApplication(EXIT_SUCCESS);
-	}
+    if ((KnobNumberInst.Value() != -1)
+    && (count_inst >= KnobNumberInst.Value())) {
+        thread_data[threadid].is_instrumented_bbl = false;
+        PIN_ExitApplication(EXIT_SUCCESS);
+    }
 
     /// If the pin-points disabled this region
     if (!is_instrumented) {
@@ -274,9 +275,9 @@ VOID unknown_memory_size_f(PIN_MULTI_MEM_ACCESS_INFO* multi_size, UINT32 bbl,
     }
 }
 
-VOID count_instructions(ADDRINT addins, THREADID tid){
-	count_inst += addins;
-};
+VOID count_instructions(ADDRINT addins, THREADID tid) {
+    count_inst += addins;
+}
 
 //==============================================================================
 VOID trace_instruction(TRACE trace, VOID *v) {
@@ -325,6 +326,8 @@ VOID trace_instruction(TRACE trace, VOID *v) {
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
             if (INS_hasKnownMemorySize(ins)) {
+                // pin::ins => static trace
+                opcode_package_t pck = x86_to_static(ins);
                 // pin::ins => static trace
                 //-------------------------------------------------------------
                 // Write into the static trace
@@ -561,8 +564,6 @@ VOID DynamicOMP_char(char *sync_str, THREADID threadid, bool is_spawn) {
 //=============================================================================
 // This routine is executed for each image.
 VOID ImageLoad(IMG img, VOID *) {
-    printf("Loading %s, Image id = %d, image type  = %d\n", IMG_Name(img).c_str(), IMG_Id(img), IMG_Type(img));
-
     // HMC data initialization - HMC Traces
     data_instr hmc_x86_data[20], vim_x86_data[112], mps_x86_data[28];
     initialize_intrinsics(hmc_x86_data, vim_x86_data, mps_x86_data);

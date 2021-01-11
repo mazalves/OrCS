@@ -1,20 +1,45 @@
+//==============================================================================
+//
+// Copyright (C) 2010, 2011, 2012
+// Marco Antonio Zanata Alves
+//
+// GPPD - Parallel and Distributed Processing Group
+// Universidade Federal do Rio Grande do Sul
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+//
+//==============================================================================
+
 #ifndef __CONVERSIONS_CPP__
 #define __CONVERSIONS_CPP__
 
-#include <inttypes.h>
-#include <string>
-#include <stdio.h>
+
+
 #include <vector>
 #include <algorithm>
-#include "tracer_log_procedures.hpp"
+#include <string>
+
+#include "./tracer_log_procedures.hpp"
 #include "../../../../defines.hpp"
 #include "../../../../utils/enumerations.hpp"
 #include "../../../../main_memory/memory_request_client.hpp"
-#include "opcodes.hpp"
+#include "./opcodes.hpp"
 
 #include "pin.H"
 #include "instlib.H"
-#include "xed-interface.h"
+#include "./xed-interface.h"
 
 #ifdef TRACE_GENERATOR_DEBUG
     #define TRACE_GENERATOR_DEBUG_PRINTF(...) DEBUG_PRINTF(__VA_ARGS__);
@@ -30,8 +55,7 @@ unsigned int hex_to_dec(char x) {
 
 unsigned int ascii_to_hex(const char *src,
                           xed_uint8_t *dst,
-                          unsigned int max_bytes)
-{
+                          unsigned int max_bytes) {
     const unsigned int len = strlen(src);
     memset(dst, 0, max_bytes);
 
@@ -120,11 +144,13 @@ std::string gen_icode(xed_decoded_inst_t *xedd) {
 // Translate the x86 Instructions to Simulator Instruction
 opcode_package_t x86_to_static(const INS& ins) {
     TRACE_GENERATOR_DEBUG_PRINTF("x86_to_static()\n");
-    ERROR_ASSERT_PRINTF( INS_MaxNumRRegs(ins) <= MAX_REGISTERS && INS_MaxNumWRegs(ins) <= MAX_REGISTERS, "More registers than MAX_REGISTERS\n");
+    ERROR_ASSERT_PRINTF(INS_MaxNumRRegs(ins) <= MAX_REGISTERS
+                     && INS_MaxNumWRegs(ins) <= MAX_REGISTERS,
+                        "More registers than MAX_REGISTERS\n");
     uint32_t i;
     opcode_package_t NewInstruction;
 
-    //strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
+    // strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
     NewInstruction.opcode_address = INS_Address(ins);
     NewInstruction.opcode_size = INS_Size(ins);
 
@@ -153,50 +179,47 @@ opcode_package_t x86_to_static(const INS& ins) {
     NewInstruction.is_predicated = INS_IsPredicated(ins);
     NewInstruction.is_prefetch = INS_IsPrefetch(ins);
 
-	NewInstruction.is_vima = false;
+    NewInstruction.is_vima = false;
 
     if (NewInstruction.is_read) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
-        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n", INS_Disassemble(ins).c_str());
+        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n",
+                                    INS_Disassemble(ins).c_str());
     }
 
     if (NewInstruction.is_read2) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
-        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n", INS_Disassemble(ins).c_str());
+        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n",
+                                    INS_Disassemble(ins).c_str());
     }
 
     if (NewInstruction.is_write) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_STORE;
-        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM STORE:%s\n", INS_Disassemble(ins).c_str());
+        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM STORE:%s\n",
+                                     INS_Disassemble(ins).c_str());
     }
 
     if (INS_IsBranchOrCall(ins) || INS_IsSyscall(ins)) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_BRANCH;
-        TRACE_GENERATOR_DEBUG_PRINTF("\t BRANCH:%s\n", INS_Disassemble(ins).c_str());
+        TRACE_GENERATOR_DEBUG_PRINTF("\t BRANCH:%s\n",
+                                    INS_Disassemble(ins).c_str());
 
         // Call
         if (INS_IsCall(ins)) {
             TRACE_GENERATOR_DEBUG_PRINTF("Call    ");
             NewInstruction.branch_type = BRANCH_CALL;
-        }
-        // Return
-        else if (INS_IsRet(ins)) {
+        } else if (INS_IsRet(ins)) {  // Return
             TRACE_GENERATOR_DEBUG_PRINTF("Return  ");
             NewInstruction.branch_type = BRANCH_RETURN;
-        }
-        // Syscall
-        else if (INS_IsSyscall(ins)) {
+        } else if (INS_IsSyscall(ins)) {  // Syscall
             TRACE_GENERATOR_DEBUG_PRINTF("Syscall ");
             NewInstruction.branch_type = BRANCH_SYSCALL;
-        }
-        // Branch/Call
-        else {
+        } else {  // Branch/Call
             // Conditional?
-            if (INS_HasFallThrough(ins)){
+            if (INS_HasFallThrough(ins)) {
                 TRACE_GENERATOR_DEBUG_PRINTF("Branch  ");
                 NewInstruction.branch_type = BRANCH_COND;
-            }
-            else {
+            } else {
                 TRACE_GENERATOR_DEBUG_PRINTF("Jump    ");
                 NewInstruction.branch_type = BRANCH_UNCOND;
             }
@@ -207,14 +230,11 @@ opcode_package_t x86_to_static(const INS& ins) {
 
         if (INS_IsDirectBranchOrCall(ins)) {
             TRACE_GENERATOR_DEBUG_PRINTF("Direct \n");
-        }
-        else if (INS_IsIndirectBranchOrCall(ins)) {
+        } else if (INS_IsIndirectBranchOrCall(ins)) {
             TRACE_GENERATOR_DEBUG_PRINTF("Indirect \n");
-        }
-        else if (INS_IsSyscall(ins)){
+        } else if (INS_IsSyscall(ins)) {
             TRACE_GENERATOR_DEBUG_PRINTF("Syscall \n");
-        }
-        else {
+        } else {
             TRACE_GENERATOR_DEBUG_PRINTF("**ERROR**\n");
         }
     }
@@ -224,7 +244,9 @@ opcode_package_t x86_to_static(const INS& ins) {
     xed_iclass_enum_t iclass = xed_inst_iclass(xi);
 
     std::string icode = gen_icode(xedd);
-    strcpy(NewInstruction.opcode_assembly, icode.c_str());
+    strncpy(NewInstruction.opcode_assembly,
+        icode.c_str(),
+        MAX_ASSEMBLY_SIZE);
 
     switch (iclass) {
         //==================================================================
@@ -240,15 +262,13 @@ opcode_package_t x86_to_static(const INS& ins) {
         // ~ case XED_ICLASS_CALL_NEAR:      // Call Procedure
         // ~ case XED_ICLASS_RET_FAR:        // Return from procedure
         // ~ case XED_ICLASS_RET_NEAR:       // Return from procedure
-
-
-
-        case XED_ICLASS_PAUSE:          // PAUSE (for Cacheability and spin lock)
+        case XED_ICLASS_PAUSE:          // PAUSE (Cacheability and spin lock)
         case XED_ICLASS_NOP:
         case XED_ICLASS_FNOP:
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_NOP;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t NOP:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_NOP;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t NOP:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // INT ALU or MEMORY
@@ -270,21 +290,23 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_MOVSXD:         // Move with Sign-Extension
         case XED_ICLASS_MOVSD:          // Move Data from String to String
         case XED_ICLASS_MOVSQ:          // Move Data from String to String
-
-                                if (NewInstruction.is_read || NewInstruction.is_read2 || NewInstruction.is_write) {
-                                    TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
-                                }
-                                else {
-                                    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
-                                    TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n", INS_Disassemble(ins).c_str());
-                                }
-                                break;
+            if (NewInstruction.is_read
+                || NewInstruction.is_read2
+                || NewInstruction.is_write) {
+                TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n",
+                                            INS_Disassemble(ins).c_str());
+            } else {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
+                TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n",
+                                             INS_Disassemble(ins).c_str());
+            }
+            break;
 
         //==================================================================
         // INT ALU
         case XED_ICLASS_CPUID:          // CPU IDentification
 
-        case XED_ICLASS_XGETBV:         // Get Value of Extended Control Register
+        case XED_ICLASS_XGETBV:         // Get Value Extended Control Register
         case XED_ICLASS_XSETBV:         // Set Extended Control Register
 
         case XED_ICLASS_CMOVS:          // Conditional Move
@@ -303,7 +325,8 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_LEA:            // Load Effective Address
         case XED_ICLASS_SHL:            // Shift left (unsigned shift left)
         case XED_ICLASS_SHR:            // Shift right (unsigned shift right)
-        case XED_ICLASS_SAR:            // Shift Arithmetically right (signed shift right)
+        case XED_ICLASS_SAR:            // Shift Arithmetically right
+                                        // (signed shift right)
         case XED_ICLASS_SAHF:           // Store AH to Flags
         case XED_ICLASS_LAHF:           // Load AH from Flags
         case XED_ICLASS_SHLD:           // Double Precision Shift Left
@@ -369,9 +392,10 @@ opcode_package_t x86_to_static(const INS& ins) {
 
         case XED_ICLASS_XCHG:           // Exchange data
         case XED_ICLASS_RDTSC:          // Read Time-Stamp Counter
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // FP ALU or MEMORY
@@ -386,13 +410,17 @@ opcode_package_t x86_to_static(const INS& ins) {
 
         case XED_ICLASS_MOVHPS:         // Move High Packed Single-FP Values
         case XED_ICLASS_MOVHPD:         // Move High Packed Double-FP Value
-        case XED_ICLASS_MOVHLPS:        // Move Packed Single-FP Values High to Low
+        case XED_ICLASS_MOVHLPS:        // Move Packed Single-FP Values
+                                        // High to Low
         case XED_ICLASS_MOVLPS:         // Move Low Packed Single-FP Values
         case XED_ICLASS_MOVLPD:         // Move Low Packed Double-FP Value
-        case XED_ICLASS_MOVLHPS:        // Move Packed Single-FP Values Low to High
+        case XED_ICLASS_MOVLHPS:        // Move Packed Single-FP Values
+                                        // Low to High
         case XED_ICLASS_MOVDDUP:        // Move One Double-FP and Duplicate
-        case XED_ICLASS_MOVSLDUP:       // Move Packed Single-FP Low and Duplicate
-        case XED_ICLASS_MOVSHDUP:       // Move Packed Single-FP High and Duplicate
+        case XED_ICLASS_MOVSLDUP:       // Move Packed Single-FP Low
+                                        // and Duplicate
+        case XED_ICLASS_MOVSHDUP:       // Move Packed Single-FP High
+                                        // and Duplicate
         case XED_ICLASS_MOVMSKPD:       // Extract Packed Double-FP Sign Mask
 
         case XED_ICLASS_LDDQU:          // Load Unaligned Integer 128 Bits
@@ -409,14 +437,17 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_STOSD:          // Store String
         case XED_ICLASS_STOSQ:          // Store String
         case XED_ICLASS_STOSW:          // Store String
-                                if (NewInstruction.is_read || NewInstruction.is_read2 || NewInstruction.is_write) {
-                                    TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
-                                }
-                                else {
-                                    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
-                                    TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n", INS_Disassemble(ins).c_str());
-                                }
-                                break;
+            if (NewInstruction.is_read
+                || NewInstruction.is_read2
+                || NewInstruction.is_write) {
+                TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n",
+                                            INS_Disassemble(ins).c_str());
+            } else {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
+                TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n",
+                                            INS_Disassemble(ins).c_str());
+            }
+            break;
 
         //==================================================================
         // FP ALU x87
@@ -429,21 +460,21 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_FSUBRP:         // x87 Subtract
         case XED_ICLASS_FSUBP:          // x87 Subtract and pop
 
-        case XED_ICLASS_FRNDINT:        // Floating-Point Round to Integer
-        case XED_ICLASS_FABS:           // Floating-Point Absolute Value
-        case XED_ICLASS_FWAIT:          // Check pending unmasked floating-point exceptions
+        case XED_ICLASS_FRNDINT:        // FP Round to Integer
+        case XED_ICLASS_FABS:           // FP Absolute Value
+        case XED_ICLASS_FWAIT:          // Check pending unmasked FP exceptions
         case XED_ICLASS_MWAIT:          // Monitor Wait
         case XED_ICLASS_FSTP:           // Store Floating Point Value and Pop
-        case XED_ICLASS_FNSTSW:         // Store Floating-Point Status Word
+        case XED_ICLASS_FNSTSW:         // Store FP Status Word
         case XED_ICLASS_FXAM:           // Examine Class of Value
         case XED_ICLASS_FXCH:           // Exchange Register Contents
-        case XED_ICLASS_FCHS:           // Floating-Point Change Sign
+        case XED_ICLASS_FCHS:           // FP Change Sign
 
-        case XED_ICLASS_FUCOM:          // Floating-Point Unordered Compare
-        case XED_ICLASS_FUCOMI:         // Floating-Point Unordered Compare
-        case XED_ICLASS_FUCOMIP:        // Floating-Point Unordered Compare
-        case XED_ICLASS_FUCOMP:         // Floating-Point Unordered Compare
-        case XED_ICLASS_FUCOMPP:        // Floating-Point Unordered Compare
+        case XED_ICLASS_FUCOM:          // FP Unordered Compare
+        case XED_ICLASS_FUCOMI:         // FP Unordered Compare
+        case XED_ICLASS_FUCOMIP:        // FP Unordered Compare
+        case XED_ICLASS_FUCOMP:         // FP Unordered Compare
+        case XED_ICLASS_FUCOMPP:        // FP Unordered Compare
 
         // FP ALU MMX
         case XED_ICLASS_PXOR:           // Logical Exclusive OR
@@ -497,11 +528,15 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_PUNPCKLDQ:      // pack Low Data
         case XED_ICLASS_PUNPCKLWD:      // pack Low Data
 
-        case XED_ICLASS_UNPCKLPD:       // Unpack and Interleave Low Packed Double-FP Values
-        case XED_ICLASS_UNPCKLPS:       // Unpack and Interleave Low Packed Double-FP Values
+        case XED_ICLASS_UNPCKLPD:       // Unpack and Interleave
+                                        // Low Packed Double-FP
+        case XED_ICLASS_UNPCKLPS:       // Unpack and Interleave
+                                        // Low Packed Double-FP
 
-        case XED_ICLASS_UNPCKHPD:       // Unpack and Interleave High Packed Double-FP Values
-        case XED_ICLASS_UNPCKHPS:       // Unpack and Interleave High Packed Double-FP Values
+        case XED_ICLASS_UNPCKHPD:       // Unpack and Interleave
+                                        // High Packed Double-FP
+        case XED_ICLASS_UNPCKHPS:       // Unpack and Interleave
+                                        // High Packed Double-FP
 
         case XED_ICLASS_PMOVMSKB:       // Move Integer SSE
         case XED_ICLASS_CVTTSD2SI:      // Convert from Double
@@ -511,75 +546,81 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_CVTSS2SD:       // Convert to Double
         case XED_ICLASS_CVTDQ2PD:       // Convert to Double
         case XED_ICLASS_CVTTPD2DQ:      // Convert to Double
-        case XED_ICLASS_COMISD:         // Compare Scalar Ordered Double-FP Values and Set EFLAGS
-        case XED_ICLASS_UCOMISD:        // Unordered Compare Scalar Single-FP Values and Set EFLAGS
+        case XED_ICLASS_COMISD:         // Compare Scalar Ordered Double-FP
+                                        // and Set EFLAGS
+        case XED_ICLASS_UCOMISD:        // Unordered Compare Scalar Single-FP
+                                        // and Set EFLAGS
         case XED_ICLASS_CMPSD_XMM:      // Compare Scalar Double-FP Values
 
         case XED_ICLASS_PCMPEQD:        // Compare Packed Data for Equal
-        case XED_ICLASS_PCMPISTRI:      // Packed Compare Implicit Length Strings, Return Index
+        case XED_ICLASS_PCMPISTRI:      // Packed Compare
+                                        // Implicit Length Strings, Return Index
 
         case XED_ICLASS_PCMPGTB:        // Compare Packed Data for Greater Than
         case XED_ICLASS_PCMPGTD:        // Compare Packed Data for Greater Than
         case XED_ICLASS_PCMPGTW:        // Compare Packed Data for Greater Than
 
-        case XED_ICLASS_COMISS:         // Compare Scalar Single-FP Values and Set EFLAGS
-        case XED_ICLASS_UCOMISS:        // Unordered Compare Scalar Single-FP Values and Set EFLAGS
+        case XED_ICLASS_COMISS:         // Compare Scalar Single-FP
+                                        // and Set EFLAGS
+        case XED_ICLASS_UCOMISS:        // Unordered Compare Scalar Single-FP
+                                        // and Set EFLAGS
 
-        case XED_ICLASS_CMPSS:          // Compare Scalar Single-FP Values
-        case XED_ICLASS_CMPSD:          // Compare Scalar Double-FP Values
-        case XED_ICLASS_CMPPS:          // Compare Packed Single-FP Values
-        case XED_ICLASS_CMPPD:          // Compare Packed Double-FP Values
+        case XED_ICLASS_CMPSS:          // Compare Scalar Single-FP
+        case XED_ICLASS_CMPSD:          // Compare Scalar Double-FP
+        case XED_ICLASS_CMPPS:          // Compare Packed Single-FP
+        case XED_ICLASS_CMPPD:          // Compare Packed Double-FP
 
-        case XED_ICLASS_ANDPS:          // Bitwise Logical AND of Packed Single-FP Values
-        case XED_ICLASS_ANDPD:          // Bitwise Logical AND of Packed Double-FP Values
+        case XED_ICLASS_ANDPS:          // Bitwise Logical AND Packed Single-FP
+        case XED_ICLASS_ANDPD:          // Bitwise Logical AND Packed Double-FP
 
-        case XED_ICLASS_ANDNPS:         // Bitwise Logical NAND of Packed Single-FP Values
-        case XED_ICLASS_ANDNPD:         // Bitwise Logical NAND of Packed Double-FP Values
+        case XED_ICLASS_ANDNPS:         // Bitwise Logical NAND Packed Single-FP
+        case XED_ICLASS_ANDNPD:         // Bitwise Logical NAND Packed Double-FP
 
-        case XED_ICLASS_XORPS:          // Bitwise Logical XOR for Packed Single-FP Values
-        case XED_ICLASS_XORPD:          // Bitwise Logical XOR for Packed Double-FP Values
+        case XED_ICLASS_XORPS:          // Bitwise Logical XOR Packed Single-FP
+        case XED_ICLASS_XORPD:          // Bitwise Logical XOR Packed Double-FP
 
-        case XED_ICLASS_ORPS:           // Bitwise Logical OR for Packed Single-FP Values
-        case XED_ICLASS_ORPD:           // Bitwise Logical OR for Packed Double-FP Values
+        case XED_ICLASS_ORPS:           // Bitwise Logical OR Packed Single-FP
+        case XED_ICLASS_ORPD:           // Bitwise Logical OR Packed Double-FP
 
-        case XED_ICLASS_PMAXUB:         // Return Maximum Scalar Single-FP Value
-        case XED_ICLASS_MAXSS:          // Return Maximum Scalar Single-FP Value
-        case XED_ICLASS_MAXSD:          // Return Maximum Scalar Double-FP Value
-        case XED_ICLASS_MAXPS:          // Return Maximum Packed Single-FP Values
-        case XED_ICLASS_MAXPD:          // Return Maximum Packed Double-FP Values
+        case XED_ICLASS_PMAXUB:         // Return Maximum Scalar Single-FP
+        case XED_ICLASS_MAXSS:          // Return Maximum Scalar Single-FP
+        case XED_ICLASS_MAXSD:          // Return Maximum Scalar Double-FP
+        case XED_ICLASS_MAXPS:          // Return Maximum Packed Single-FP
+        case XED_ICLASS_MAXPD:          // Return Maximum Packed Double-FP
 
-        case XED_ICLASS_PMINUB:         // Return Minimum Packed Single-FP Values
-        case XED_ICLASS_MINPS:          // Return Minimum Packed Single-FP Values
-        case XED_ICLASS_MINPD:          // Return Minimum Packed Double-FP Values
-        case XED_ICLASS_MINSS:          // Return Minimum Scalar Single-FP Value
-        case XED_ICLASS_MINSD:          // Return Minimum Scalar Double-FP Value
+        case XED_ICLASS_PMINUB:         // Return Minimum Packed Single-FP
+        case XED_ICLASS_MINPS:          // Return Minimum Packed Single-FP
+        case XED_ICLASS_MINPD:          // Return Minimum Packed Double-FP
+        case XED_ICLASS_MINSS:          // Return Minimum Scalar Single-FP
+        case XED_ICLASS_MINSD:          // Return Minimum Scalar Double-FP
 
-        case XED_ICLASS_ADDPD:          // Add Packed Double-Precision Floating-Point Values
-        case XED_ICLASS_ADDPS:          // Add Packed Single-Precision Floating-Point Values
-        case XED_ICLASS_ADDSS:          // Add Scalar Single-Precision Floating-Point
-        case XED_ICLASS_ADDSD:          // Add Low Double-Precision Floating-Point Value
+        case XED_ICLASS_ADDPD:          // Add Packed Double-Precision FP
+        case XED_ICLASS_ADDPS:          // Add Packed Single-Precision FP
+        case XED_ICLASS_ADDSS:          // Add Scalar Single-Precision FP
+        case XED_ICLASS_ADDSD:          // Add Low Double-Precision FP
 
-        case XED_ICLASS_ROUNDPD:        // Round Packed Double-Precision Floating-Point Values
-        case XED_ICLASS_ROUNDPS:        // Round Packed Single-Precision Floating-Point Values
-        case XED_ICLASS_ROUNDSS:        // Round Scalar Single-Precision Floating-Point
-        case XED_ICLASS_ROUNDSD:        // Round Low Double-Precision Floating-Point Value
+        case XED_ICLASS_ROUNDPD:        // Round Packed Double-Precision FP
+        case XED_ICLASS_ROUNDPS:        // Round Packed Single-Precision FP
+        case XED_ICLASS_ROUNDSS:        // Round Scalar Single-Precision FP
+        case XED_ICLASS_ROUNDSD:        // Round Low Double-Precision FP
 
-        case XED_ICLASS_SUBPD:          // Sub Packed Double-Precision Floating-Point Values
-        case XED_ICLASS_SUBPS:          // Sub Packed Single-Precision Floating-Point Values
-        case XED_ICLASS_SUBSS:          // Sub Scalar Single-Precision Floating-Point
-        case XED_ICLASS_SUBSD:          // Sub Low Double-Precision Floating-Point Value
-
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_ALU;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+        case XED_ICLASS_SUBPD:          // Sub Packed Double-Precision FP
+        case XED_ICLASS_SUBPS:          // Sub Packed Single-Precision FP
+        case XED_ICLASS_SUBSS:          // Sub Scalar Single-Precision FP
+        case XED_ICLASS_SUBSD:          // Sub Low Double-Precision FP
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_ALU;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // INT MUL
         case XED_ICLASS_MUL:            // Unsigned multiply
         case XED_ICLASS_IMUL:           // Signed multiply
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_MUL;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t INT MUL:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_MUL;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t INT MUL:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // FP MUL x87
@@ -593,18 +634,19 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_MULPS:          // Multiply Packed Single-FP Values
 
         case XED_ICLASS_PMULUDQ:        // Multiply Packed Unsigned DW Integers
-
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_MUL;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t FP MUL:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_MUL;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t FP MUL:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // INT DIV
         case XED_ICLASS_DIV:            // Divide
         case XED_ICLASS_IDIV:           // Integer Divide
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_DIV;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t INT DIV:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_DIV;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t INT DIV:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         // LONG TIME EXECUTION INSTRUCTIONS
@@ -633,30 +675,33 @@ opcode_package_t x86_to_static(const INS& ins) {
         // FP SCALE POWER
         case XED_ICLASS_FSCALE:         // Scale FP to power of two
         // FP Partial Remainder
-        case XED_ICLASS_FPREM:          // Floating-Point Partial Remainder
-        case XED_ICLASS_FPREM1:         // Floating-Point Partial Remainder
+        case XED_ICLASS_FPREM:          // FP Partial Remainder
+        case XED_ICLASS_FPREM1:         // FP Partial Remainder
 
         // FP SQRT x87
         case XED_ICLASS_FSQRT:          // Square root
         // FP SQRT 3D NOW
         case XED_ICLASS_PFRSQRT:         // Square root
         // FP SQRT SSE
-        case XED_ICLASS_RSQRTPS:        // Compute Recipr. of Square Roots of Packed Single-FP Values
-        case XED_ICLASS_SQRTPD:         // Compute Square Roots of Packed Double-FP Values
-        case XED_ICLASS_SQRTPS:         // Compute Square Roots of Packed Single-FP Values
-        case XED_ICLASS_SQRTSD:         // Compute Square Root of Scalar Double-FP Value
-        case XED_ICLASS_SQRTSS:         // Compute Square Root of Scalar Single-FP Value
-                                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_DIV;
-                                TRACE_GENERATOR_DEBUG_PRINTF("\t FP DIV:%s\n", INS_Disassemble(ins).c_str());
-                                break;
+        case XED_ICLASS_RSQRTPS:        // Recipr. of Square Roots of
+                                        // Packed Single-FP
+        case XED_ICLASS_SQRTPD:         // Square Roots of Packed Double-FP
+        case XED_ICLASS_SQRTPS:         // Square Roots of Packed Single-FP
+        case XED_ICLASS_SQRTSD:         // Square Root of Scalar Double-FP
+        case XED_ICLASS_SQRTSS:         // Square Root of Scalar Single-FP
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_DIV;
+            TRACE_GENERATOR_DEBUG_PRINTF("\t FP DIV:%s\n",
+                                        INS_Disassemble(ins).c_str());
+            break;
 
         //==================================================================
         default:
-                                if (NewInstruction.opcode_operation == INSTRUCTION_OPERATION_NOP) {
-                                    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_OTHER;
-                                    TRACE_GENERATOR_DEBUG_PRINTF("\t OTHER:%s\n", INS_Disassemble(ins).c_str());
-                                }
-                                break;
+            if (NewInstruction.opcode_operation == INSTRUCTION_OPERATION_NOP) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_OTHER;
+                TRACE_GENERATOR_DEBUG_PRINTF("\t OTHER:%s\n",
+                                            INS_Disassemble(ins).c_str());
+            }
+            break;
     }
 
     return NewInstruction;
@@ -666,10 +711,12 @@ opcode_package_t x86_to_static(const INS& ins) {
 opcode_package_t make_VGather_Vscatter(const INS& ins) {
     opcode_package_t NewInstruction;
 
-    strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
+    strncpy(NewInstruction.opcode_assembly,
+        INS_Mnemonic(ins).c_str(),
+        MAX_ASSEMBLY_SIZE);
 
 
-   for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
         NewInstruction.read_regs[i] = POSITION_FAIL;
     }
     for (uint32_t i = 0; i < INS_MaxNumRRegs(ins); i++) {
@@ -696,20 +743,28 @@ opcode_package_t make_VGather_Vscatter(const INS& ins) {
 }
 
 std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
-    //std::cerr << "Codificando instrução gather/scatter: " << std::endl;
-    //std::cerr << "ASM: " << INS_Disassemble(ins) << std::endl;
-    //std::cerr << "is_Vgather: " << INS_IsVgather(ins) << " is_Vscatter: " << INS_IsVscatter(ins) << std::endl;
-    //std::cerr << "Addr: " << INS_Address(ins) << "    Size: " << INS_Size(ins) << std::endl;
+    // std::cerr << "Codificando instrução gather/scatter: " << std::endl;
+    // std::cerr << "ASM: " << INS_Disassemble(ins) << std::endl;
+    // std::cerr << "is_Vgather: " << INS_IsVgather(ins);
+    // std::cerr <<  " is_Vscatter: " << INS_IsVscatter(ins) << std::endl;
+    // std::cerr << "Addr: " << INS_Address(ins);
+    // std::cerr << "    Size: " << INS_Size(ins) << std::endl;
 
     std::vector<opcode_package_t> *ops = new std::vector<opcode_package_t>;
 
-   if(INS_IsVgather(ins)) {
+    if (INS_IsVgather(ins)) {
         int32_t numAccesses, accessSize, indexSize;
-        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
-        //std::cout << "Vgather -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
-        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
-        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
-
+        GetNumberAndSizeOfMemAccesses(ins,
+                                    &numAccesses,
+                                    &accessSize,
+                                    &indexSize);
+        // std::cout << "Vgather -- NumAcessos: " << numAccesses;
+        // std::cout << " Tamanho dos acessos: " << accessSize;
+        // std::cout << " Tamanho index: " << indexSize  << std::endl;
+        // std::cout << "Number of write registers assigned: ";
+        // std::cout << INS_MaxNumWRegs(ins) << std::endl;
+        // std::cout << "Number of read registers assigned:";
+        // std::cout << INS_MaxNumRRegs(ins) << std::endl;
         // -----------------------------------------------------------------------
         // Create reads
         // -----------------------------------------------------------------------
@@ -718,20 +773,19 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
         // -----------------------------------------------------------------------
         // Make all possible double reads sets
         // -----------------------------------------------------------------------
-        int32_t max = floor ((numAccesses + 0.0f)/2);
+        int32_t max = floor((numAccesses + 0.0f)/2);
         int32_t i;
         for (i = 0; i < max; ++i) {
-
             opcode_package_t op = make_VGather_Vscatter(ins);
-
             // -------------------------------------------------------------------
             // Shift each instruction inside the real one
             // -------------------------------------------------------------------
             op.opcode_address = INS_Address(ins) + i;
-            if((i * 2) != (numAccesses - 2)) {
+            if ((i * 2) != (numAccesses - 2)) {
                 op.opcode_size = 1;
             } else {
-                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+                op.opcode_size = (INS_Address(ins) + INS_Size(ins));
+                op.opcode_size -= op.opcode_address;
             }
 
             // -------------------------------------------------------------------
@@ -751,14 +805,15 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
         // -------------------------------------------------------------------
         // If necessary, send the last mem read
         // -------------------------------------------------------------------
-        if((i*2) != numAccesses) {
+        if ((i*2) != numAccesses) {
             opcode_package_t op = make_VGather_Vscatter(ins);
 
             // -------------------------------------------------------------------
             // Shift each instruction inside the real one
             // -------------------------------------------------------------------
             op.opcode_address = INS_Address(ins) + i;
-            op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+            op.opcode_size = (INS_Address(ins) + INS_Size(ins));
+            op.opcode_size -= op.opcode_address;
 
 
             // -------------------------------------------------------------------
@@ -774,33 +829,36 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
             // -------------------------------------------------------------------
             ops->push_back(op);
         }
-
-
-
-   } else if (INS_IsVscatter(ins)) {
+    } else if (INS_IsVscatter(ins)) {
         int32_t numAccesses, accessSize, indexSize;
-        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
-        //std::cout << "Vscatter -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
-        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
-        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
+        GetNumberAndSizeOfMemAccesses(ins,
+                                    &numAccesses,
+                                    &accessSize,
+                                    &indexSize);
+        // std::cout << "Vscatter -- NumAcessos: " << numAccesses;
+        // std::cout << " Tamanho dos acessos: " << accessSize;
+        // std::cout << " Tamanho index: " << indexSize  << std::endl;
+        // std::cout << "Number of write registers assigned: ";
+        // std::cout << INS_MaxNumWRegs(ins) << std::endl;
+        // std::cout << "Number of read registers assigned:";
+        // std::cout << INS_MaxNumRRegs(ins) << std::endl;
         // -----------------------------------------------------------------------
         // Create writes
         // -----------------------------------------------------------------------
         ops->reserve(numAccesses);
 
         for (int32_t i = 0; i < numAccesses; ++i) {
-
             opcode_package_t op = make_VGather_Vscatter(ins);
-
             // -------------------------------------------------------------------
             // Shift each instruction inside the real one
             // -------------------------------------------------------------------
-            if(i < numAccesses - 1) {
+            if (i < numAccesses - 1) {
                 op.opcode_address = INS_Address(ins) + i;
                 op.opcode_size = 1;
             } else {
                 op.opcode_address = INS_Address(ins) + i;
-                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
+                op.opcode_size = (INS_Address(ins) + INS_Size(ins));
+                op.opcode_size -= op.opcode_address;
             }
 
             // -------------------------------------------------------------------
@@ -817,18 +875,11 @@ std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
             ops->push_back(op);
         }
 
-   } else {
-       std::cerr << "vgather_vscatter_to_static: Unknown instruction type!" << std::endl;
+    } else {
+       std::cerr << "vgather_vscatter_to_static: ";
+       std::cerr << " Unknown instruction type!" << std::endl;
        exit(1);
-   }
-
-    /*opcode_package_t NewInstruction;
-    sprintf(NewInstruction.opcode_assembly, "vgather_vscatter");
-    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_LAST;
-    NewInstruction.opcode_address = INS_Address(ins);
-    NewInstruction.opcode_size = INS_Size(ins);
-    return NewInstruction;*/
-
+    }
     return ops;
 }
 
