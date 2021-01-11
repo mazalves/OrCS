@@ -118,7 +118,7 @@ std::string gen_icode(xed_decoded_inst_t *xedd) {
 
 //==============================================================================
 // Translate the x86 Instructions to Simulator Instruction
-opcode_package_t x86_to_static(const INS& ins, bool libch) {
+opcode_package_t x86_to_static(const INS& ins) {
     TRACE_GENERATOR_DEBUG_PRINTF("x86_to_static()\n");
     ERROR_ASSERT_PRINTF( INS_MaxNumRRegs(ins) <= MAX_REGISTERS && INS_MaxNumWRegs(ins) <= MAX_REGISTERS, "More registers than MAX_REGISTERS\n");
     uint32_t i;
@@ -153,12 +153,7 @@ opcode_package_t x86_to_static(const INS& ins, bool libch) {
     NewInstruction.is_predicated = INS_IsPredicated(ins);
     NewInstruction.is_prefetch = INS_IsPrefetch(ins);
 
-	if (libch){
-		NewInstruction.is_vima = true;
-	}
-	else {
-		NewInstruction.is_vima = false;
-	}
+	NewInstruction.is_vima = false;
 
     if (NewInstruction.is_read) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
@@ -695,7 +690,7 @@ opcode_package_t make_VGather_Vscatter(const INS& ins) {
     NewInstruction.is_prefetch = INS_IsPrefetch(ins);
 
     NewInstruction.is_hive = false;
-    NewInstruction.is_vima = false;
+    NewInstruction.is_vima = 0;
 
     return NewInstruction;
 }

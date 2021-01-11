@@ -115,6 +115,7 @@ uint32_t max_threads = 0;       /// Max number of threads (if intel Add +1)
 
 int32_t count_parallel_start = 0;
 int32_t count_parallel_end = 0;
+int64_t count_inst = 0;
 
 IMG_TYPE previmgt = IMG_TYPE_STATIC;
 //==============================================================================
@@ -131,6 +132,8 @@ KNOB<int32_t> KnobParallelStart(KNOB_MODE_WRITEONCE, "pintool",
     "parallel_start", "-1", "parallel start counter to enable the tracer.");
 KNOB<int32_t> KnobParallelEnd(KNOB_MODE_WRITEONCE, "pintool",
     "parallel_end", "-1", "parallel end counter to enable the tracer.");
+KNOB<int64_t> KnobNumberInst(KNOB_MODE_WRITEONCE, "pintool",
+    "number_max_inst", "-1", "maximum number of instructions to be traced.");
 
 //==============================================================================
 // Sinuca
@@ -172,6 +175,11 @@ uint32_t Usage() {
 VOID control_instrumented_bbl(THREADID threadid) {
     TRACE_GENERATOR_DEBUG_PRINTF("write_dynamic_char()\n");
 
+	if ((KnobNumberInst.Value() != -1) && (count_inst >= KnobNumberInst.Value())){
+		thread_data[threadid].is_instrumented_bbl = false;
+		PIN_ExitApplication(EXIT_SUCCESS);
+	}
+
     /// If the pin-points disabled this region
     if (!is_instrumented) {
         ///=================================================================
@@ -206,56 +214,6 @@ VOID control_instrumented_bbl(THREADID threadid) {
         thread_data[threadid].is_instrumented_bbl = true;
     }
 }
-
-//=============================================================================
-// VOID write_dynamic_char(char *dyn_str, THREADID threadid) {
-//     TRACE_GENERATOR_DEBUG_PRINTF("write_dynamic_char()\n");
-//
-//     /// If the pin-points disabled this region
-//     if (!is_instrumented) {
-//         return;
-//     }
-//     else {
-//
-//         // This lock is necessary because when using a parallel program
-//         // the thread master may write on multiple threads
-//         // ex: omp_parallel_start / omp_parallel_end
-//         PIN_GetLock(&thread_data[threadid].dyn_lock, threadid);
-//             // ~ gzwrite(thread_data[threadid].gzDynamicTraceFile,
-                        // ~ dyn_str, strlen(dyn_str));
-//             gzwrite(thread_data[threadid].gzDynamicTraceFile,
-//                      // ~ dyn_str, strlen(dyn_str));
-//         PIN_ReleaseLock(&thread_data[threadid].dyn_lock);
-//     }
-// }
-
-// =====================================================================
-VOID check_img(ADDRINT addr, THREADID threadid) {
-    TRACE_GENERATOR_DEBUG_PRINTF("check_img()\n");
-			//fbm
-			PIN_LockClient();
-			IMG newimg = IMG_FindByAddress(addr);
-			if (IMG_Valid(newimg)){
-				IMG_TYPE newimgt = IMG_Type(newimg);
-							
-
-				if ((newimgt == IMG_TYPE_SHAREDLIB) && 
-					(( previmgt == IMG_TYPE_STATIC)
-					|| (previmgt == IMG_TYPE_SHARED)))
-				{
-					//ins is_vima = 1;
-					cout << "went from " << previmgt << " to " << newimgt << endl;
-				}
-				else {
-					cout << "some other transition" << endl;
-				}
-				previmgt = newimgt;
-			} else {
-				cout << "invalid img! " << endl;
-			}
-			PIN_UnlockClient();
-}
-// =====================================================================
 
 // =====================================================================
 VOID write_memory(BOOL is_Read, ADDRINT addr, INT32 size, UINT32 bbl,
@@ -316,6 +274,10 @@ VOID unknown_memory_size_f(PIN_MULTI_MEM_ACCESS_INFO* multi_size, UINT32 bbl,
     }
 }
 
+VOID count_instructions(ADDRINT addins, THREADID tid){
+	count_inst += addins;
+};
+
 //==============================================================================
 VOID trace_instruction(TRACE trace, VOID *v) {
     TRACE_GENERATOR_DEBUG_PRINTF("trace_instruction()\n");
@@ -339,12 +301,6 @@ VOID trace_instruction(TRACE trace, VOID *v) {
     }
 
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
-		//INS hins = BBL_InsHead(bbl);
-		//INS_InsertCall(hins, IPOINT_BEFORE, (AFUNPTR)check_img,
-	//					IARG_ADDRINT, INS_Address(hins),
-//						IARG_THREAD_ID,
-//						IARG_END);
-        // HMC Traces
         if (((KnobTrace.Value().compare(0, 3, "x86")) != 0)
             && icheck_conditions(rtn_name))
             continue;
@@ -368,38 +324,8 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                         IARG_THREAD_ID, IARG_END);
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-
             if (INS_hasKnownMemorySize(ins)) {
                 // pin::ins => static trace
-				//fbm if stuff, mark opcode.
-				uint64_t targetaddr = INS_Address(ins);
-				bool found = false;
-				opcode_package_t pck;
-				if (targetaddr == INS_Address(BBL_InsHead(bbl))){
-					PIN_LockClient();
-					IMG newimg = IMG_FindByAddress(targetaddr);
-					if (IMG_Valid(newimg)){
-						IMG_TYPE newimgt = IMG_Type(newimg);
-						if ((newimgt == IMG_TYPE_SHAREDLIB) && 
-							(( previmgt == IMG_TYPE_STATIC)
-							|| (previmgt == IMG_TYPE_SHARED)))
-						{
-							//ins is_vima = 1;
-							cout << "went from " << previmgt << " to " << newimgt << endl;
-							pck = x86_to_static(ins,true);
-							found = true;
-						}
-						else {
-							cout << "some other transition" << endl;
-						}
-						previmgt = newimgt;
-					} else {
-						cout << "invalid img! " << endl;
-					}
-				}
-				if (!found) {
-					pck = x86_to_static(ins, false);
-				}
                 //-------------------------------------------------------------
                 // Write into the static trace
                 //-------------------------------------------------------------
@@ -478,6 +404,11 @@ VOID trace_instruction(TRACE trace, VOID *v) {
         INS_InsertCall(BBL_InsTail(bbl), IPOINT_BEFORE,
                         AFUNPTR(write_dynamic_char),
                         IARG_PTR, bbl_str,
+                        IARG_THREAD_ID,
+                        IARG_END);
+        INS_InsertCall(BBL_InsTail(bbl), IPOINT_BEFORE,
+                        AFUNPTR(count_instructions),
+                        IARG_ADDRINT, BBL_NumIns(bbl),
                         IARG_THREAD_ID,
                         IARG_END);
     }
@@ -630,7 +561,7 @@ VOID DynamicOMP_char(char *sync_str, THREADID threadid, bool is_spawn) {
 //=============================================================================
 // This routine is executed for each image.
 VOID ImageLoad(IMG img, VOID *) {
-    printf("Loading %s, Image id = %d\n", IMG_Name(img).c_str(), IMG_Id(img));
+    printf("Loading %s, Image id = %d, image type  = %d\n", IMG_Name(img).c_str(), IMG_Id(img), IMG_Type(img));
 
     // HMC data initialization - HMC Traces
     data_instr hmc_x86_data[20], vim_x86_data[112], mps_x86_data[28];

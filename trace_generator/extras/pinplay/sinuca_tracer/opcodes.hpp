@@ -116,14 +116,20 @@ namespace opcodes {
 
         str << " " << op.hive_read1             \
             << " " << op.hive_read2             \
-            << " " << op.hive_write             \
-            << "\n";
+            << " " << op.hive_write;             
+          //  << "\n";
         /*
         sprintf(trace_string, "%s %" PRId32 "", trace_string, op.hive_read1);
         sprintf(trace_string, "%s %" PRId32 "", trace_string, op.hive_read2);
         sprintf(trace_string, "%s %" PRId32 "\n", trace_string, op.hive_write);
         */
-       
+	
+		if (op.is_vima == true){	
+			str << " " << "1" << "\n";
+		}
+		else{
+			str << " " << "0" << "\n";
+		}
        // Prepare return
        std::string str_temp = str.str();
        strcpy(trace_string, str_temp.c_str());
