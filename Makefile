@@ -20,9 +20,11 @@ FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
 FD_HIVE = hive
 FD_VIMA = vima
+FD_DYNAMIC_VECTORIZATION = dynamic_vectorization
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
+
 
 
 ###
@@ -61,6 +63,10 @@ SRC_HIVE = $(FD_HIVE)/hive_controller.cpp
 SRC_VIMA = $(FD_VIMA)/vima_controller.cpp\
 			$(FD_VIMA)/vima_vector.cpp
 
+SRC_DYNAMIC_VECTORIZATION = $(FD_DYNAMIC_VECTORIZATION)/table_of_loads.cpp\
+							$(FD_DYNAMIC_VECTORIZATION)/vector_map_table.cpp\
+							$(FD_DYNAMIC_VECTORIZATION)/Vectorizer.cpp
+
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 
 SRC_CORE =  simulator.cpp orcs_engine.cpp\
@@ -73,6 +79,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_CACHE)\
 			$(SRC_HIVE)\
 			$(SRC_VIMA)\
+			$(SRC_DYNAMIC_VECTORIZATION)\
 			$(SRC_DIRECTORY)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\

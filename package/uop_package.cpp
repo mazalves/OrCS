@@ -18,6 +18,14 @@ void uop_package_t::package_clean()
 
     this->is_vima = false;
 
+    this->is_vectorial_part = -1;
+    this->VR_id = -1;
+    this->is_validation = false;
+    this->will_free = -1;
+    this->will_free_offset = -1;
+    this->is_BB = false;
+    
+
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
     memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
@@ -51,6 +59,14 @@ bool uop_package_t::operator==(const uop_package_t &package) {
     if (this->readyAt != package.readyAt) return FAIL;
     if (this->status != package.status) return FAIL;
 
+    if (this->is_vectorial_part != package.is_vectorial_part) return FAIL;
+    if (this->VR_id != package.VR_id) return FAIL;
+    if (this->is_validation != package.is_validation) return FAIL;
+    if (this->will_free != package.will_free) return FAIL;
+    if (this->will_free_offset != package.will_free_offset) return FAIL;
+    if (this->is_BB != package.is_BB) return FAIL;
+    
+
     return OK;
 }
 void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t uop_operation, uint64_t memory_address, uint32_t memory_size, opcode_package_t opcode)
@@ -71,6 +87,8 @@ void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t u
     this->uop_operation = uop_operation;
     this->memory_address = memory_address;
     this->memory_size = memory_size;
+
+    this->is_BB = opcode.is_BB;
 }
 
 void uop_package_t::updatePackageUntrated(uint32_t stallTime){

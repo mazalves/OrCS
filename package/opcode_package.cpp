@@ -43,6 +43,8 @@ opcode_package_t::opcode_package_t() {
     this->is_hive = false;
     this->is_vima = false;
 
+    this->is_BB = false;
+
     this->status = PACKAGE_STATE_FREE;
     #ifndef __PIN__
     this->readyAt = orcs_engine.get_global_cycle();
@@ -92,6 +94,9 @@ void opcode_package_t::package_clean() {
     this->readyAt = 0;
     this->status = PACKAGE_STATE_FREE;
     this->opcode_number = 0;
+
+
+    this->is_BB = false;
 }
 
 /// Convert Instruction variables into String

@@ -41,6 +41,9 @@ class opcode_package_t : public memory_request_client_t {
 
         bool is_vima;
 
+        // Vectorization
+        bool is_BB;                     // Indica se é um backward branch
+
         // ====================================================================
         /// Status Control
         // ====================================================================

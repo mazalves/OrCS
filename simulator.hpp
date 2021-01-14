@@ -119,6 +119,18 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 // ============================================================================
 extern orcs_engine_t orcs_engine;
 
+// ==========================================//
+// Dynamic vectorization
+// ==========================================//
+class VR_state_bits_t;
+class table_of_loads_t;
+class vector_map_table_t;
+class Vectorizer_t;
+class VR_entry_state_t;
+class table_of_loads_entry_t;
+class vector_map_table_entry_t;
+
+
 // ==============================================================================
 /// Definitions
 // ==============================================================================
@@ -142,8 +154,6 @@ extern orcs_engine_t orcs_engine;
 #include "./trace_reader.hpp"
 #include "./main_memory/memory_request_client.hpp"
 #include "./package/opcode_package.hpp"
-
-
 
 //  =========================================//
 // Usefull Classes
@@ -198,5 +208,17 @@ extern orcs_engine_t orcs_engine;
 #include "./vima/vima_controller.hpp"
 #include "./vima/vima_vector.hpp"
 //  =========================================//
+
+//  =========================================//
+// Dynamic vectorization includes
+//  =========================================//
+#include "./dynamic_vectorization/dv_defines.hpp"
+#include "./dynamic_vectorization/VR_state_bits.hpp"
+#include "./dynamic_vectorization/table_of_loads.hpp"
+#include "./dynamic_vectorization/vector_map_table.hpp"
+#include "./dynamic_vectorization/Vectorizer.hpp"
+#include "./dynamic_vectorization/VR_entry_state.hpp"
+#include "./dynamic_vectorization/table_of_loads_entry.hpp"
+#include "./dynamic_vectorization/vector_map_table_entry.hpp"
 
 #endif  // _ORCS_ORCS_HPP_

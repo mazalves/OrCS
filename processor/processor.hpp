@@ -357,6 +357,14 @@ class processor_t {
         uint64_t* max_wait_operations;
         uint64_t wait_time;
 
+
+		// ======================
+		// Dynamic vectorization
+		// ======================
+		Vectorizer_t *vectorizer;
+		circular_buffer_t <uop_package_t> inst_list;
+		uint64_t vectorized_operations_num;
+
 		INSTANTIATE_GET_SET(uint64_t,processor_id)
 		// ====================================================================
 		// Statistics

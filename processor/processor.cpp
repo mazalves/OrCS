@@ -227,7 +227,12 @@ processor_t::processor_t()
 	this->fu_mem_store = NULL;
 	this->fu_mem_hive = NULL;
 	this->fu_mem_vima = NULL;
+
+	// Vectorization
+	this->vectorizer = new Vectorizer_t (register_alias_table, &inst_list);
+	this->vectorized_operations_num = 0;
 }
+
 processor_t::~processor_t()
 {
 	for (size_t i = 0; i < MOB_READ; i++) {
@@ -286,6 +291,9 @@ processor_t::~processor_t()
     delete[] this->total_operations;
     delete[] this->min_wait_operations;
     delete[] this->max_wait_operations;
+
+	// Vectorization
+	delete vectorizer;
 }
 
 uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {
@@ -896,6 +904,13 @@ void processor_t::fetch(){
 				uint32_t stallWrongBranch = orcs_engine.branchPredictor[this->processor_id].solveBranch(this->previousBranch, operation);
 				this->set_stall_wrong_branch (orcs_engine.get_global_cycle() + stallWrongBranch);
 				this->hasBranch = false;
+
+				// Vectorization
+				// // Change GMRBB
+				if (this->previousBranch.opcode_address > operation.opcode_address) {
+					this->previousBranch.is_BB = true;
+				}
+
 				//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
 				// ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
 				operation.updatePackageWait (stallWrongBranch);
@@ -1431,6 +1446,22 @@ void processor_t::rename(){
 			break;
 		}
 
+		/* Provavelmente aqui a instrução será interceptada */
+		// Tenta vetorizar
+		vectorizer->new_inst (this->decodeBuffer.front());
+		while (inst_list.size > 0) {
+			this->decodeBuffer.push_front((*this->inst_list.front()));
+			this->inst_list.pop_front();
+		}
+		// Envia para o pipeline
+		vectorizer->enter_pipeline(this->decodeBuffer.front());
+
+		// Configura uop_number corretamente
+		if (this->decodeBuffer.front()->is_vectorial_part >= 0) {
+			this->vectorized_operations_num++;
+		}
+		this->decodeBuffer.front()->uop_number += this->vectorized_operations_num;
+
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n")
 		//=======================
 		// Memory Operation Read
@@ -1524,7 +1555,7 @@ void processor_t::rename(){
 		}
 		
 		//=======================
-		// Verificando se tem espaco no ROB se sim bamos inserir
+		// Verificando se tem espaco no ROB se sim vamos inserir
 		//=======================
 		pos_rob = this->searchPositionROB();
 		if (pos_rob == POSITION_FAIL)
@@ -2640,6 +2671,9 @@ void processor_t::commit(){
 			this->reorderBuffer[pos_buffer].uop.status == PACKAGE_STATE_READY &&
 			this->reorderBuffer[pos_buffer].uop.readyAt <= orcs_engine.get_global_cycle())
 		{
+			// Vectorizer
+			vectorizer->new_commit(&this->reorderBuffer[pos_buffer].uop);
+
 			this->commit_uop_counter++;
 			switch (this->reorderBuffer[pos_buffer].uop.uop_operation){
 				// INTEGERS ALU
