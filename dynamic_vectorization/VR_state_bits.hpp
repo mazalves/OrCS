@@ -3,4 +3,5 @@ class VR_state_bits_t {
         uint64_t MRBB;
         VR_entry_state_t *positions;
 
+
 };

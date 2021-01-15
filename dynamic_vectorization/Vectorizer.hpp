@@ -8,7 +8,7 @@ class Vectorizer_t {
 
         vector_map_table_t *VRMT;
         table_of_loads_t *TL;
-        reorder_buffer_line_t **register_alias_table;
+        register_rename_table_t *register_rename_table;
 
         // Methods
         int32_t allocate_VR(int32_t logical_register);
@@ -21,7 +21,7 @@ class Vectorizer_t {
         void GMRBB_changed ();
         void free_VR (int32_t vr_id);
         void squash_pipeline();
-        Vectorizer_t(reorder_buffer_line_t **RAT, circular_buffer_t <uop_package_t> *inst_list);
+        Vectorizer_t(circular_buffer_t <uop_package_t> *inst_list);
         ~Vectorizer_t();
 
 };

@@ -5,11 +5,11 @@ class vector_map_table_t {
         int32_t next_replacement;
         table_of_loads_t *TL;
         Vectorizer_t *vectorizer;
-        reorder_buffer_line_t **register_alias_table;
+        register_rename_table_t *register_rename_table;
         circular_buffer_t <uop_package_t> *inst_list;
 
         vector_map_table_t  (int32_t num_entries, 
-                             reorder_buffer_line_t **RAT,
+                             register_rename_table_t *RRT,
                              Vectorizer_t *vectorizer, 
                              table_of_loads_t *TL, 
                              circular_buffer_t <uop_package_t> *inst_list);
@@ -25,4 +25,6 @@ class vector_map_table_t {
         DV::DV_ERROR validate (uop_package_t *inst, vector_map_table_entry_t *vrmt_entry);
         void fill_vectorial_part (uop_package_t *inst, char *signature, int32_t vr_id, int32_t num_part);
         DV::DV_ERROR vectorize (uop_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward);
+
+        void list_contents();
 };

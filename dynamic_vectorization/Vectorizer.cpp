@@ -47,6 +47,9 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
         if (inst->will_free >= 0) {
             // Set F
             VR_state_bits_t *state_VR = &this->vr_control_bits[inst->will_free];
+            if (state_VR == 0x0) {
+                printf("1.Achei 0x0!\n");
+            }
             state_VR->positions[inst->will_free_offset].F = true;
 
             // Tenta liberar
@@ -91,7 +94,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
 
     // Marca para liberar
     // setar (F)
-    reorder_buffer_line_t *destiny_reg = register_alias_table[inst->write_regs[0]];
+    register_rename_table_t *destiny_reg = &register_rename_table[inst->write_regs[0]];
 
     if (vrmt_entry == NULL) {
     	if (destiny_reg->vectorial) {
@@ -201,8 +204,8 @@ void Vectorizer_t::set_U (int32_t vr_id, int32_t index, bool value) {
 
 
 bool Vectorizer_t::vectorial_operands (uop_package_t *inst) {
-    reorder_buffer_line_t *op_1 = register_alias_table[inst->read_regs[0]];
-    reorder_buffer_line_t *op_2 = register_alias_table[inst->read_regs[1]];
+    register_rename_table_t *op_1 = &register_rename_table[inst->read_regs[0]];
+    register_rename_table_t *op_2 = &register_rename_table[inst->read_regs[1]];
     if (op_1->vectorial && op_2->vectorial) return true;
     return false;
 }
@@ -212,29 +215,30 @@ void Vectorizer_t::enter_pipeline (uop_package_t *inst) {
         // Find vrmt_entry
         vector_map_table_entry_t *vrmt_entry = VRMT->find_pc (inst->opcode_address);
 
-        if (vrmt_entry == NULL) 
+        if (vrmt_entry == NULL)
         {
         	printf("Vectorizer_t::enter_pipeline\n");
-        	printf("Error: VRMT entry not found\n");
+        	printf("Error: VRMT entry (%lu) not found\n", inst->opcode_address);
+            VRMT->list_contents();
         	exit(1);
         }
 
         // Adjust RAT
-        register_alias_table[inst->write_regs[0]]->vectorial = true;
-        register_alias_table[inst->write_regs[0]]->correspondent_vectorial_reg = inst->VR_id;
+        register_rename_table[inst->write_regs[0]].vectorial = true;
+        register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = inst->VR_id;
 
         if (inst->is_validation) 
         {
-        	register_alias_table[inst->write_regs[0]]->offset = vrmt_entry->offset;
+        	register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset;
         } else {
         	// Uma instrução acessa o que já foi validado
             // Vectorial parts de forward vão acabar deixando em -1.
-        	register_alias_table[inst->write_regs[0]]->offset = vrmt_entry->offset - 1; 
+        	register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1; 
         }
 
     } else { // inst->VR_id == -1
         // Set RAT as scalar register
-        register_alias_table[inst->write_regs[0]]->vectorial = false;
+        register_rename_table[inst->write_regs[0]].vectorial = false;
 
     }
 
@@ -283,10 +287,10 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
     int32_t PR = this->vr_state[vr_id];
 
     // Libera registrador lógico
-    if  (register_alias_table[PR]->correspondent_vectorial_reg == vr_id) {
-    	register_alias_table[PR]->vectorial = false;
-    	register_alias_table[PR]->offset = -1;
-    	register_alias_table[PR]->correspondent_vectorial_reg = -1;
+    if  (register_rename_table[PR].correspondent_vectorial_reg == vr_id) {
+    	register_rename_table[PR].vectorial = false;
+    	register_rename_table[PR].offset = -1;
+    	register_rename_table[PR].correspondent_vectorial_reg = -1;
     }
 
     // Libera registrador vetorial
@@ -300,11 +304,15 @@ void Vectorizer_t::squash_pipeline() {
 
 }
 
-Vectorizer_t::Vectorizer_t(reorder_buffer_line_t **RAT, circular_buffer_t <uop_package_t> *inst_list) 
+Vectorizer_t::Vectorizer_t(circular_buffer_t <uop_package_t> *inst_list) 
 {
+    printf("Vectorizer_t::constructor();\n");
     GMRBB = 0;
     // TL
     this->TL = new table_of_loads_t (TL_SIZE);
+
+    // RRT
+    this->register_rename_table = new register_rename_table_t[MAX_REGISTER_NUMBER];
 
     // VR data
     this->vr_control_bits = new VR_state_bits_t [NUM_VR];
@@ -317,14 +325,13 @@ Vectorizer_t::Vectorizer_t(reorder_buffer_line_t **RAT, circular_buffer_t <uop_p
 
     // VRMT
     this->VRMT = new vector_map_table_t (VRMT_SIZE, 
-                             RAT,
+                             this->register_rename_table,
                              this, 
                              this->TL, 
                              inst_list);
 
 
-    // RAT
-    this->register_alias_table = RAT;
+    
 
 }
 
@@ -334,9 +341,6 @@ Vectorizer_t::~Vectorizer_t()
     delete this->TL;
 
     // VR data
-    for (int32_t i = 0; i < NUM_VR; ++i) {
-        delete[] this->vr_control_bits[i].positions;
-    }
     delete[] this->vr_control_bits;
 
     // VRMT

@@ -129,6 +129,7 @@ class Vectorizer_t;
 class VR_entry_state_t;
 class table_of_loads_entry_t;
 class vector_map_table_entry_t;
+class register_rename_table_t;
 
 
 // ==============================================================================
@@ -213,12 +214,13 @@ class vector_map_table_entry_t;
 // Dynamic vectorization includes
 //  =========================================//
 #include "./dynamic_vectorization/dv_defines.hpp"
+#include "./dynamic_vectorization/VR_entry_state.hpp"
 #include "./dynamic_vectorization/VR_state_bits.hpp"
+#include "./dynamic_vectorization/table_of_loads_entry.hpp"
 #include "./dynamic_vectorization/table_of_loads.hpp"
+#include "./dynamic_vectorization/vector_map_table_entry.hpp"
 #include "./dynamic_vectorization/vector_map_table.hpp"
 #include "./dynamic_vectorization/Vectorizer.hpp"
-#include "./dynamic_vectorization/VR_entry_state.hpp"
-#include "./dynamic_vectorization/table_of_loads_entry.hpp"
-#include "./dynamic_vectorization/vector_map_table_entry.hpp"
+#include "./dynamic_vectorization/register_rename_table.hpp"
 
 #endif  // _ORCS_ORCS_HPP_

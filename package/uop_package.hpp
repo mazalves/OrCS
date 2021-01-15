@@ -35,6 +35,8 @@ class uop_package_t{
     int32_t will_free;              // Registrador vetorial que será liberado quando ela comitar (F).
     int32_t will_free_offset;       // Indica o offset que será liberado
     bool is_BB;                     // Indica se é um backward branch
+    bool number_changed;            // Indica que já passou pela função de vetorização e já teve
+                                    // seu uop_number alterado
 
     void opcode_to_uop(uint64_t uop_number, instruction_operation_t uop_operation, uint64_t memory_address, uint32_t memory_size, opcode_package_t opcode);
     bool operator==(const uop_package_t &package);

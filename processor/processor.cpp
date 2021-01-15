@@ -229,7 +229,7 @@ processor_t::processor_t()
 	this->fu_mem_vima = NULL;
 
 	// Vectorization
-	this->vectorizer = new Vectorizer_t (register_alias_table, &inst_list);
+	this->vectorizer = NULL;
 	this->vectorized_operations_num = 0;
 }
 
@@ -608,6 +608,13 @@ void processor_t::allocate() {
 			break;
 		}
 	}
+
+	// =========================================================================================
+	// Dynamic vectorization
+	// =========================================================================================
+	this->inst_list.allocate(10); // Aloca tamanho suficiente para 1 vetorização
+	this->vectorizer = new Vectorizer_t (&inst_list);
+	
 	// parallel requests
 	// =========================================================================================
 	//DRAM
@@ -1446,21 +1453,27 @@ void processor_t::rename(){
 			break;
 		}
 
-		/* Provavelmente aqui a instrução será interceptada */
-		// Tenta vetorizar
-		vectorizer->new_inst (this->decodeBuffer.front());
-		while (inst_list.size > 0) {
-			this->decodeBuffer.push_front((*this->inst_list.front()));
-			this->inst_list.pop_front();
+		if (this->decodeBuffer.front()->number_changed == false) {
+			
+			/* Provavelmente aqui a instrução será interceptada */
+			// Tenta vetorizar
+			vectorizer->new_inst (this->decodeBuffer.front());
+
+
+			// Configura uop_number corretamente
+			if (this->decodeBuffer.front()->is_vectorial_part >= 0) {
+				this->vectorized_operations_num++;
+			}
+			
+			this->decodeBuffer.front()->uop_number += this->vectorized_operations_num;
+
+			this->decodeBuffer.front()->number_changed = true;
+		
 		}
+		
 		// Envia para o pipeline
 		vectorizer->enter_pipeline(this->decodeBuffer.front());
 
-		// Configura uop_number corretamente
-		if (this->decodeBuffer.front()->is_vectorial_part >= 0) {
-			this->vectorized_operations_num++;
-		}
-		this->decodeBuffer.front()->uop_number += this->vectorized_operations_num;
 
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n")
 		//=======================
@@ -1779,7 +1792,15 @@ void processor_t::rename(){
 		#if PROCESSOR_DEBUG
 			ORCS_PRINTF ("%lu processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, this->reorderBuffer[pos_rob].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_rob].uop.uop_operation), this->reorderBuffer[pos_rob].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 		#endif
+
+		// Vectorization
+		// // Insere instruções vetoriais geradas
+		while (inst_list.size > 0) {
+			this->decodeBuffer.push_front((*this->inst_list.back()));
+			this->inst_list.pop_back();
+		}
 	} //end for
+
 }
 // ============================================================================
 void processor_t::dispatch(){

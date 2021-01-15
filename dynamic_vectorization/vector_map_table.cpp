@@ -1,6 +1,6 @@
 #include "./../simulator.hpp"
 vector_map_table_t::vector_map_table_t  (int32_t num_entries, 
-                                        reorder_buffer_line_t **RAT,
+                                        register_rename_table_t *RRT,
                                         Vectorizer_t *vectorizer, 
                                         table_of_loads_t *TL, 
                                         circular_buffer_t <uop_package_t> *inst_list) {
@@ -11,7 +11,7 @@ vector_map_table_t::vector_map_table_t  (int32_t num_entries,
 
     this->TL = TL;
     this->vectorizer = vectorizer;
-    this->register_alias_table = RAT;
+    this->register_rename_table = RRT;
     this->inst_list = inst_list;
 }
         
@@ -36,11 +36,11 @@ int32_t vector_map_table_t::allocate_entry () {
 
 bool vector_map_table_t::compare_registers (uop_package_t *inst, vector_map_table_entry_t *vrmt_entry) {
     // Verifica interferência de instruções escalares
-    if (register_alias_table[inst->read_regs[0]]->vectorial && register_alias_table[inst->read_regs[1]]->vectorial){
+    if (register_rename_table[inst->read_regs[0]].vectorial && register_rename_table[inst->read_regs[1]].vectorial){
 
     	// Verifica se os VR se mantém
-    	if (   (vrmt_entry->source_operand_1 == (uint64_t)register_alias_table[inst->read_regs[0]]->correspondent_vectorial_reg)
-       		&& (vrmt_entry->source_operand_2 == (uint64_t)register_alias_table[inst->read_regs[1]]->correspondent_vectorial_reg) ) 
+    	if (   (vrmt_entry->source_operand_1 == (uint64_t)register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg)
+       		&& (vrmt_entry->source_operand_2 == (uint64_t)register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg) ) 
     	{
     		return true;
     	}
@@ -54,9 +54,9 @@ DV::DV_ERROR vector_map_table_t::convert_to_validation (uop_package_t *inst, vec
     inst->is_validation = true;
 
     // Set register as vectorial
-    this->register_alias_table[inst->write_regs[0]]->vectorial = true;
-    this->register_alias_table[inst->write_regs[0]]->offset = vrmt_entry->offset - 1;
-    this->register_alias_table[inst->write_regs[0]]->correspondent_vectorial_reg = vrmt_entry->correspondent_VR;
+    this->register_rename_table[inst->write_regs[0]].vectorial = true;
+    this->register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1;
+    this->register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = vrmt_entry->correspondent_VR;
 
     return DV::SUCCESS;
 }
@@ -125,12 +125,12 @@ DV::DV_ERROR vector_map_table_t::validate (uop_package_t *inst, vector_map_table
             // Create new operation with the right parameters
             vector_map_table_entry_t *new_vrmt_entry = NULL;
 
-            DV::DV_ERROR stats = vectorize(inst, &vrmt_entry, false); 
+            DV::DV_ERROR stats = vectorize(inst, &new_vrmt_entry, false); 
 
             if (stats == DV::NOT_ENOUGH_VR) {
-	            register_alias_table[inst->write_regs[0]]->vectorial = false;
-	            register_alias_table[inst->write_regs[0]]->offset = 0;
- 	            register_alias_table[inst->write_regs[0]]->correspondent_vectorial_reg = -1;
+	            register_rename_table[inst->write_regs[0]].vectorial = false;
+	            register_rename_table[inst->write_regs[0]].offset = 0;
+ 	            register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = -1;
 	            return DV::NOT_ENOUGH_VR;
 
             }
@@ -176,12 +176,7 @@ void vector_map_table_t::fill_vectorial_part (uop_package_t *inst, char *signatu
 }
 
 DV::DV_ERROR vector_map_table_t::vectorize (uop_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward) {
-    // Invalida qualquer vrmt_entry existente
-    vector_map_table_entry_t *vrmt_entry_temp = this->find_pc(inst->opcode_address);
-    if (vrmt_entry_temp)
-    {
-    	this->invalidate(vrmt_entry_temp);
-    }
+
 
     // Aloca um VR (vr_id)
     int32_t vr_id = vectorizer->allocate_VR(inst->write_regs[0]);
@@ -216,6 +211,13 @@ DV::DV_ERROR vector_map_table_t::vectorize (uop_package_t * inst, vector_map_tab
     	state_VR->positions[0].V = false;
     }
 
+    // Invalida qualquer vrmt_entry existente
+    vector_map_table_entry_t *vrmt_entry_temp = this->find_pc(inst->opcode_address);
+    if (vrmt_entry_temp)
+    {
+    	this->invalidate(vrmt_entry_temp);
+    }
+
     // Aloca uma vrmt_entry
     *vrmt_entry = &entries[this->allocate_entry()];
 
@@ -240,8 +242,8 @@ DV::DV_ERROR vector_map_table_t::vectorize (uop_package_t * inst, vector_map_tab
     		(*vrmt_entry)->source_operand_2 = inst->memory_address + inst->memory_size;
     	}
     } else {
-    	(*vrmt_entry)->source_operand_1 = register_alias_table[inst->read_regs[0]]->correspondent_vectorial_reg;
-    	(*vrmt_entry)->source_operand_2 = register_alias_table[inst->read_regs[1]]->correspondent_vectorial_reg;
+    	(*vrmt_entry)->source_operand_1 = register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg;
+    	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
     }
 
 
@@ -284,4 +286,12 @@ DV::DV_ERROR vector_map_table_t::vectorize (uop_package_t * inst, vector_map_tab
 
     return DV::SUCCESS;
 
+}
+
+void vector_map_table_t::list_contents() {
+    printf("VRMT Contents:\n");
+    for (int32_t i = 0; i < VRMT_SIZE; ++i) {
+        printf("%d: %lu\n", i, this->entries[i].pc);
+    }
+    
 }

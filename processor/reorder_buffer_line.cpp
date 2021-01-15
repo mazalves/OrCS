@@ -41,8 +41,6 @@ void reorder_buffer_line_t::package_clean() {
     this->wake_up_elements_counter = 0;
     this->sent=false;
     this->processor_id=0;
-    this->vectorial = false;
-    this->offset = 0;
     }
 
 // ============================================================================

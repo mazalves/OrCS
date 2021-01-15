@@ -24,6 +24,7 @@ void uop_package_t::package_clean()
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
+    this->number_changed = false;
     
 
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
@@ -65,6 +66,7 @@ bool uop_package_t::operator==(const uop_package_t &package) {
     if (this->will_free != package.will_free) return FAIL;
     if (this->will_free_offset != package.will_free_offset) return FAIL;
     if (this->is_BB != package.is_BB) return FAIL;
+    if (this->number_changed != package.number_changed) return FAIL;
     
 
     return OK;

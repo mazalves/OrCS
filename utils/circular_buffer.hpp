@@ -63,6 +63,7 @@ class circular_buffer_t {
         int32_t push_back(const CB_TYPE& new_element);
         int32_t push_front(const CB_TYPE& new_element);
         void pop_front();
+        void pop_back();
         void pop_push();
         void print_all();
 };
@@ -217,6 +218,25 @@ void circular_buffer_t<CB_TYPE>::pop_front() {
             this->beg_index = 0;
     }
 }
+
+// ============================================================================
+/// Remove the oldest element
+template <class CB_TYPE>
+void circular_buffer_t<CB_TYPE>::pop_back() {
+    if (this->size > 0) {
+        this->size--;
+        this->data[end_index].package_clean();
+
+        if (this->end_index == 0) {
+            this->end_index = this->capacity - 1;
+
+        } else {
+            this->end_index--;
+        }
+
+    }
+}
+
 
 // ============================================================================
 /// Remove the oldest element and insert it into the newest position
