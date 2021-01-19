@@ -250,6 +250,10 @@ DV::DV_ERROR vector_map_table_t::vectorize (uop_package_t * inst, vector_map_tab
     for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part) {
         // Clona a uop
         uop_package_t new_inst = (*inst);
+        for (int32_t i = 0; i < MAX_REGISTERS; ++i) {
+            new_inst.write_regs[i] = inst->write_regs[i];
+            new_inst.read_regs[i] = inst->read_regs[i];
+        }
 
         // Preenche com dados de parte vetorial
         char signature[256];

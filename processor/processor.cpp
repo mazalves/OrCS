@@ -114,6 +114,7 @@ processor_t::processor_t()
 	this->MOB_WRITE = 0;
 	this->MOB_HIVE = 0;
 	this->MOB_VIMA = 0;
+	VIMA_EXCEPT = false;
 	// =====================
 
 	// =====================
@@ -292,8 +293,6 @@ processor_t::~processor_t()
     delete[] this->min_wait_operations;
     delete[] this->max_wait_operations;
 
-	// Vectorization
-	delete vectorizer;
 }
 
 uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {
@@ -1479,9 +1478,11 @@ void processor_t::rename(){
 		//=======================
 		// Memory Operation Read
 		//=======================
-		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD && (this->decodeBuffer.front()->is_validation == false))
 		{
-			if(	this->memory_order_buffer_read_used>=MOB_READ || this->robUsed>=ROB_SIZE )break;
+			if(	this->memory_order_buffer_read_used>=MOB_READ || this->robUsed>=ROB_SIZE ) {
+				break;
+			}
 
 			pos_mob = this->search_position_mob_read();
 			if (pos_mob == POSITION_FAIL)
@@ -1609,7 +1610,7 @@ void processor_t::rename(){
 		// =======================
 		// Insert into MOB.
 		// =======================
-		if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+		if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD  && (this->reorderBuffer[pos_rob].uop.is_validation == false))
 		{
 			#if RENAME_DEBUG
 				ORCS_PRINTF("Mem Load\n")
@@ -1749,9 +1750,12 @@ void processor_t::rename(){
 			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
 		}
 		//linking rob and mob
-		if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
+		if (this->reorderBuffer[pos_rob].uop.is_validation) {
+			// Nada.
+		} else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
 			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
 		{
+			
 			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
 			if (DISAMBIGUATION_ENABLED){
 				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
@@ -1844,6 +1848,8 @@ void processor_t::dispatch(){
 				}
 			}
 
+			
+
 			if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle() && rob_line->wait_reg_deps_number == 0){
 				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "Error, uop not ready being dispatched\n %s\n", rob_line->content_to_string().c_str())
 				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME, "Error, uop not in Rename to rename stage\n %s\n",rob_line->content_to_string().c_str())
@@ -1860,7 +1866,12 @@ void processor_t::dispatch(){
 				case INSTRUCTION_OPERATION_BRANCH:
 				// op not defined
 				case INSTRUCTION_OPERATION_OTHER:
-					if (fu_int_alu < INTEGER_ALU)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_int_alu < INTEGER_ALU)
 					{
 						for (uint8_t k = 0; k < INTEGER_ALU; k++)
 						{
@@ -1879,7 +1890,12 @@ void processor_t::dispatch(){
 				// ====================================================
 				// Integer Multiplication
 				case INSTRUCTION_OPERATION_INT_MUL:
-					if (fu_int_mul < INTEGER_MUL)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_int_mul < INTEGER_MUL)
 					{
 						for (uint8_t k = 0; k < INTEGER_MUL; k++)
 						{
@@ -1898,7 +1914,12 @@ void processor_t::dispatch(){
 				// ====================================================
 				// Integer division
 				case INSTRUCTION_OPERATION_INT_DIV:
-					if (fu_int_div < INTEGER_DIV)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_int_div < INTEGER_DIV)
 					{
 						for (uint8_t k = 0; k < INTEGER_DIV; k++)
 						{
@@ -1917,7 +1938,12 @@ void processor_t::dispatch(){
 				// ====================================================
 				// Floating point ALU operation
 				case INSTRUCTION_OPERATION_FP_ALU:
-					if (fu_fp_alu < FP_ALU)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_fp_alu < FP_ALU)
 					{
 						for (uint8_t k = 0; k < FP_ALU; k++)
 						{
@@ -1936,7 +1962,12 @@ void processor_t::dispatch(){
 				// ====================================================
 				// Floating Point Multiplication
 				case INSTRUCTION_OPERATION_FP_MUL:
-					if (fu_fp_mul < FP_MUL)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_fp_mul < FP_MUL)
 					{
 						for (uint8_t k = 0; k < FP_MUL; k++)
 						{
@@ -1956,7 +1987,12 @@ void processor_t::dispatch(){
 				// ====================================================
 				// Floating Point Division
 				case INSTRUCTION_OPERATION_FP_DIV:
-					if (fu_fp_div < FP_DIV)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_fp_div < FP_DIV)
 					{
 						for (uint8_t k = 0; k < FP_DIV; k++)
 						{
@@ -2031,7 +2067,12 @@ void processor_t::dispatch(){
 					}
 					break;
 				case INSTRUCTION_OPERATION_MEM_LOAD:
-					if (fu_mem_load < LOAD_UNIT)
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+						rob_line->uop.updatePackageWait(0);
+						dispatched = true;
+
+					} else if (fu_mem_load < LOAD_UNIT)
 					{
 						for (uint8_t k = 0; k < LOAD_UNIT; k++)
 						{
@@ -2097,7 +2138,7 @@ void processor_t::dispatch(){
 				#if PROCESSOR_DEBUG
 					ORCS_PRINTF ("%lu processor %lu dispatch(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, rob_line->uop.uop_number, get_enum_instruction_operation_char (rob_line->uop.uop_operation), rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 				#endif
-			} /*else {
+			}/*else {
 				if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU
                 || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL
                 || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV
@@ -2317,15 +2358,27 @@ void processor_t::execute()
 				break;
 				case INSTRUCTION_OPERATION_MEM_LOAD:
 				{
-					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
-					this->memory_read_executed++;
-					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
-					uop_total_executed++;
-					/// Remove from the Functional Units
-					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-					this->unified_functional_units.shrink_to_fit();
-					i--;
+					
+					if (rob_line->uop.is_validation) {
+						rob_line->stage = PROCESSOR_STAGE_COMMIT;
+						rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
+						this->solve_registers_dependency(rob_line);
+						uop_total_executed++;
+						/// Remove from the Functional Units
+						this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+						this->unified_functional_units.shrink_to_fit();
+						i--;
+					} else {
+						ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
+						this->memory_read_executed++;
+						rob_line->mob_ptr->uop_executed = true;
+						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
+						uop_total_executed++;
+						/// Remove from the Functional Units
+						this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+						this->unified_functional_units.shrink_to_fit();
+						i--;
+					}
 				}
 				break;
 				case INSTRUCTION_OPERATION_MEM_STORE:
@@ -2760,6 +2813,9 @@ void processor_t::commit(){
 					#if MEMORY_DEBUG
 						ORCS_PRINTF ("[ROBL] %lu %lu %s removed from reorder order buffer.\n", orcs_engine.get_global_cycle(), this->reorderBuffer[pos_buffer].mob_ptr->memory_address , get_enum_memory_operation_char (this->reorderBuffer[pos_buffer].mob_ptr->memory_operation))
 					#endif
+					if(this->reorderBuffer[pos_buffer].uop.is_validation) {
+						break;
+					}
 					if(this->reorderBuffer[pos_buffer].mob_ptr->waiting_DRAM){
 						this->core_ram_request_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->cycle_send_request);
 						this->add_core_ram_requests();

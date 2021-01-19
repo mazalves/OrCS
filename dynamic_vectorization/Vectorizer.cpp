@@ -47,9 +47,7 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
         if (inst->will_free >= 0) {
             // Set F
             VR_state_bits_t *state_VR = &this->vr_control_bits[inst->will_free];
-            if (state_VR == 0x0) {
-                printf("1.Achei 0x0!\n");
-            }
+
             state_VR->positions[inst->will_free_offset].F = true;
 
             // Tenta liberar
@@ -95,6 +93,8 @@ DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
     // Marca para liberar
     // setar (F)
     register_rename_table_t *destiny_reg = &register_rename_table[inst->write_regs[0]];
+    if (inst->write_regs[0] == -1) return DV::NOT_WRITING;
+    if (inst->write_regs[0] >= MAX_REGISTER_NUMBER) return DV::REGISTER_GREATER_THAN_MAX;
 
     if (vrmt_entry == NULL) {
     	if (destiny_reg->vectorial) {
@@ -204,6 +204,9 @@ void Vectorizer_t::set_U (int32_t vr_id, int32_t index, bool value) {
 
 
 bool Vectorizer_t::vectorial_operands (uop_package_t *inst) {
+    if ((inst->read_regs[0] == -1) || (inst->read_regs[1] == -1)) {
+        return false;
+    }
     register_rename_table_t *op_1 = &register_rename_table[inst->read_regs[0]];
     register_rename_table_t *op_2 = &register_rename_table[inst->read_regs[1]];
     if (op_1->vectorial && op_2->vectorial) return true;
@@ -238,7 +241,9 @@ void Vectorizer_t::enter_pipeline (uop_package_t *inst) {
 
     } else { // inst->VR_id == -1
         // Set RAT as scalar register
-        register_rename_table[inst->write_regs[0]].vectorial = false;
+        if ((inst->write_regs[0] != -1) && (inst->write_regs[0] < MAX_REGISTER_NUMBER)) {
+            register_rename_table[inst->write_regs[0]].vectorial = false;
+        }
 
     }
 
