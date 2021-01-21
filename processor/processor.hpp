@@ -362,8 +362,9 @@ class processor_t {
 		// Dynamic vectorization
 		// ======================
 		Vectorizer_t *vectorizer;
-		circular_buffer_t <uop_package_t> inst_list;
-		uint64_t vectorized_operations_num;
+		circular_buffer_t <opcode_package_t> inst_list;
+		bool pipeline_squashed;
+
 
 		INSTANTIATE_GET_SET(uint64_t,processor_id)
 		// ====================================================================

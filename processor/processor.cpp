@@ -231,7 +231,6 @@ processor_t::processor_t()
 
 	// Vectorization
 	this->vectorizer = NULL;
-	this->vectorized_operations_num = 0;
 }
 
 processor_t::~processor_t()
@@ -612,7 +611,7 @@ void processor_t::allocate() {
 	// Dynamic vectorization
 	// =========================================================================================
 	this->inst_list.allocate(10); // Aloca tamanho suficiente para 1 vetorização
-	this->vectorizer = new Vectorizer_t (&inst_list);
+	this->vectorizer = new Vectorizer_t (&inst_list, &pipeline_squashed);
 	
 	// parallel requests
 	// =========================================================================================
@@ -871,6 +870,14 @@ void processor_t::fetch(){
 		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST)){
 			operation.package_clean();
 			//bool updated = false;
+
+			//=============================
+			//Stall pipeline squashed
+			//=============================
+			if (this->pipeline_squashed) {
+				break;
+			}
+
 			//=============================
 			//Stall full fetch buffer
 			//=============================
@@ -887,18 +894,40 @@ void processor_t::fetch(){
 			//=============================
 			//Get new Opcode
 			//=============================
-			if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation)){
+			if (inst_list.size > 0) {
+				operation = *this->inst_list.back();
+				this->inst_list.pop_back();
+
+			} else if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation)){
 				this->traceIsOver = true;
 				break;
 			}
 			#if FETCH_DEBUG
 				ORCS_PRINTF("Opcode Fetched %s\n", operation.content_to_string2().c_str())
 			#endif
+
+			//============================
+			// Vetorização
+			//============================
+			// Tenta vetorizar
+			vectorizer->new_inst (&operation);
+			if (operation.is_read && operation.is_read2) {
+				printf("ERROR: One instruction with two reads\n");
+				exit(1);
+			}
+
+			// * ============================ * //
+
 			//============================
 			//add control variables
 			//============================
+			if (operation.is_vectorial_part < 0) {
+				operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
+			} else {
+				operation.readyAt = orcs_engine.get_global_cycle();
+			}
+
 			operation.opcode_number = this->fetchCounter;
-			operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 			this->fetchCounter++;
 
 			//============================
@@ -938,6 +967,8 @@ void processor_t::fetch(){
 			if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
 				break;
 			}
+
+			
 
 			#if PROCESSOR_DEBUG 
 				ORCS_PRINTF ("%lu processor %lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, operation.opcode_number, get_enum_instruction_operation_char (operation.opcode_operation), operation.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
@@ -1452,24 +1483,10 @@ void processor_t::rename(){
 			break;
 		}
 
-		if (this->decodeBuffer.front()->number_changed == false) {
-			
-			/* Provavelmente aqui a instrução será interceptada */
-			// Tenta vetorizar
-			vectorizer->new_inst (this->decodeBuffer.front());
 
-
-			// Configura uop_number corretamente
-			if (this->decodeBuffer.front()->is_vectorial_part >= 0) {
-				this->vectorized_operations_num++;
-			}
-			
-			this->decodeBuffer.front()->uop_number += this->vectorized_operations_num;
-
-			this->decodeBuffer.front()->number_changed = true;
-		
-		}
-		
+		//============================
+		// Vetorização
+		//============================
 		// Envia para o pipeline
 		vectorizer->enter_pipeline(this->decodeBuffer.front());
 
@@ -1797,12 +1814,6 @@ void processor_t::rename(){
 			ORCS_PRINTF ("%lu processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n", orcs_engine.get_global_cycle(), this->processor_id, this->reorderBuffer[pos_rob].uop.uop_number, get_enum_instruction_operation_char (this->reorderBuffer[pos_rob].uop.uop_operation), this->reorderBuffer[pos_rob].uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed)
 		#endif
 
-		// Vectorization
-		// // Insere instruções vetoriais geradas
-		while (inst_list.size > 0) {
-			this->decodeBuffer.push_front((*this->inst_list.back()));
-			this->inst_list.pop_back();
-		}
 	} //end for
 
 }

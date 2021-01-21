@@ -67,20 +67,17 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
     }
 
     // **************************************
-    // Vectorizer_t:new_commit (!store)
+    // Vectorizer_t:new_commit (store)
     // **************************************
     if (inst->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
-        // Invalida entradas com dados desse endereço
-        VRMT->new_store(inst);
-
-        // Squash pipeline
-        this->squash_pipeline();
+        // Resume pipeline
+        this->resume_pipeline();
 
     }
     return DV::SUCCESS;
 }
 
-DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
+DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
     if (inst->is_vectorial_part >= 0) return DV::SUCCESS;
 
     // **************************************
@@ -114,16 +111,16 @@ DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
     // Vectorizer_t::new_inst (load)
     // **************************************
 
-    if (inst->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
+    if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
         // Procura pelo load na TL
         table_of_loads_entry_t *tl_entry;
         tl_entry = TL->find_pc(inst->opcode_address);
 
         // Adiciona PC ou valida o stride
         if (tl_entry == NULL) {
-	        tl_entry = TL->add_pc (inst->opcode_address, inst->memory_address);
+	        tl_entry = TL->add_pc (inst->opcode_address, inst->read_address);
         } else {
-	        TL->update_stride (tl_entry, inst->memory_address);
+	        TL->update_stride (tl_entry, inst->read_address);
         }
 
         // Descobre se já está vetorizado
@@ -165,9 +162,9 @@ DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
     // **************************************
     // Vectorizer_t::new_inst (operation)
     // **************************************
-    if ((inst->uop_operation == INSTRUCTION_OPERATION_INT_ALU) ||
-       (inst->uop_operation == INSTRUCTION_OPERATION_INT_MUL) ||
-       (inst->uop_operation == INSTRUCTION_OPERATION_FP_ALU))    {
+    if ((inst->opcode_operation == INSTRUCTION_OPERATION_INT_ALU) ||
+       (inst->opcode_operation == INSTRUCTION_OPERATION_INT_MUL) ||
+       (inst->opcode_operation == INSTRUCTION_OPERATION_FP_ALU))    {
 
         // Search for PC in VRMT
         vector_map_table_entry_t *vrmt_entry;
@@ -185,16 +182,32 @@ DV::DV_ERROR Vectorizer_t::new_inst (uop_package_t *inst) {
 
             if (op_vectorial) {
                 // Vectorize operation
-                VRMT->vectorize(inst, &vrmt_entry, false);
-
+                DV::DV_ERROR stats = VRMT->vectorize(inst, &vrmt_entry, false);
+                
                 // Convert to validation
-                VRMT->convert_to_validation(inst, vrmt_entry);
+                if (stats == DV::SUCCESS) { 
+                    VRMT->convert_to_validation(inst, vrmt_entry);
+                }
             }
 
         }
         return DV::SUCCESS;
 
     }
+
+    // **************************************
+    // Vectorizer_t::new_inst (store)
+    // **************************************
+    if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_STORE) {
+        
+        // Invalida entradas com dados desse endereço
+        VRMT->new_store(inst);
+
+        // Squash pipeline
+        this->squash_pipeline();
+
+    }
+
     return DV::SUCCESS;
 }
 
@@ -203,7 +216,7 @@ void Vectorizer_t::set_U (int32_t vr_id, int32_t index, bool value) {
 }
 
 
-bool Vectorizer_t::vectorial_operands (uop_package_t *inst) {
+bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
     if ((inst->read_regs[0] == -1) || (inst->read_regs[1] == -1)) {
         return false;
     }
@@ -305,14 +318,23 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
 
 
 void Vectorizer_t::squash_pipeline() {
-//<error>
+    *this->pipeline_squashed = true;
 
 }
 
-Vectorizer_t::Vectorizer_t(circular_buffer_t <uop_package_t> *inst_list) 
+void Vectorizer_t::resume_pipeline() {
+    *this->pipeline_squashed = false;
+}
+
+Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
+                           bool *pipeline_squashed) 
 {
     printf("Vectorizer_t::constructor();\n");
     GMRBB = 0;
+
+    // Squash do pipeline
+    this->pipeline_squashed = pipeline_squashed;
+
     // TL
     this->TL = new table_of_loads_t (TL_SIZE);
 
@@ -335,7 +357,9 @@ Vectorizer_t::Vectorizer_t(circular_buffer_t <uop_package_t> *inst_list)
                              this->TL, 
                              inst_list);
 
-
+    // Statistics
+    vectorized_loads = 0;
+    vectorized_ops = 0;
     
 
 }
@@ -350,5 +374,23 @@ Vectorizer_t::~Vectorizer_t()
 
     // VRMT
     delete this->VRMT;
+
+}
+
+void Vectorizer_t::statistics() {
+    bool close = false;
+	FILE *output = stdout;
+	if(orcs_engine.output_file_name != NULL){
+		output = fopen(orcs_engine.output_file_name,"a+");
+		close=true;
+	}
+	if (output != NULL){
+			utils_t::largestSeparator(output);
+            fprintf(output,"Vectorizer\n");
+            fprintf(output, "Vectorized loads: %lu\n", this->vectorized_loads);
+            fprintf(output, "Vectorized operations: %lu\n", this->vectorized_ops);
+            utils_t::largestSeparator(output);
+        }
+        if(close) fclose(output);
 
 }

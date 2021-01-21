@@ -90,7 +90,16 @@ void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t u
     this->memory_address = memory_address;
     this->memory_size = memory_size;
 
-    this->is_BB = opcode.is_BB;
+    this->is_vectorial_part = opcode.is_vectorial_part;
+    this->VR_id = opcode.VR_id;    
+
+    this->is_validation = opcode.is_validation;         
+    this->will_free = opcode.will_free;          
+    this->will_free_offset = opcode.will_free_offset; 
+
+    this->is_BB = opcode.is_BB;                 
+    this->number_changed = opcode.number_changed;        
+                    
 }
 
 void uop_package_t::updatePackageUntrated(uint32_t stallTime){

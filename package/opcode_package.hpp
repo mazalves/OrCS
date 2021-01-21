@@ -42,7 +42,15 @@ class opcode_package_t : public memory_request_client_t {
         bool is_vima;
 
         // Vectorization
+        int is_vectorial_part;          // Identifica se é parte de uma instrução vetorial maior
+        int32_t VR_id;                  // Contém o VR de uma instrução vetorial
+                                        // (se for uma instrução vetorial ou sua validação)
+        bool is_validation;             // Indica se é apenas uma validação
+        int32_t will_free;              // Registrador vetorial que será liberado quando ela comitar (F).
+        int32_t will_free_offset;       // Indica o offset que será liberado
         bool is_BB;                     // Indica se é um backward branch
+        bool number_changed;            // Indica que já passou pela função de vetorização e já teve
+                                    // seu uop_number alterado
 
         // ====================================================================
         /// Status Control
