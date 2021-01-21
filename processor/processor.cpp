@@ -342,19 +342,9 @@ void processor_t::allocate() {
 
 		set_HAS_VIMA (1);
 		set_MOB_VIMA (cfg_processor["MOB_VIMA"]);
-<<<<<<< HEAD
 		set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
 		set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
 		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
-=======
-		ORCS_PRINTF ("MOB_VIMA = %u\n", get_MOB_VIMA())
-		set_VIMA_UNIT (cfg_processor["VIMA_UNIT"]);
-		ORCS_PRINTF ("VIMA_UNIT = %u\n", get_VIMA_UNIT())
-		set_WAIT_NEXT_MEM_VIMA (cfg_processor["WAIT_NEXT_MEM_VIMA"]);
-		ORCS_PRINTF ("WAIT_NEXT_MEM_VIMA = %u\n", get_WAIT_NEXT_MEM_VIMA())
-		set_LATENCY_MEM_VIMA (cfg_processor["LATENCY_MEM_VIMA"]);
-		ORCS_PRINTF ("LATENCY_MEM_VIMA = %u\n", get_LATENCY_MEM_VIMA())
->>>>>>> develop
 		if (cfg_vima.exists("VIMA_EXCEPT")) set_VIMA_EXCEPT (cfg_vima["VIMA_EXCEPT"]);
 		else set_VIMA_EXCEPT (0);
 	}
