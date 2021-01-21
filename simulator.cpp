@@ -126,10 +126,7 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     final_report+=report;    
     //    
     double seconds_remaining = (100*(seconds_spent / percentage_complete)) - seconds_spent;
-        snprintf(report,sizeof(report), "Global ETC(%02.0f:%02.0f:%02.0f)\n",
-                                                floor(seconds_remaining / 3600.0),
-                                                floor(fmod(seconds_remaining, 3600.0) / 60.0),
-                                                fmod(seconds_remaining, 60.0));
+    snprintf(report,sizeof(report), "Global ETC(%02.0f:%02.0f:%02.0f)\n", floor(seconds_remaining / 3600.0), floor(fmod(seconds_remaining, 3600.0) / 60.0), fmod(seconds_remaining, 60.0));
     final_report+=report;
     // End of card
     snprintf(report,sizeof(report),"%s","==========================================================================\n");
@@ -172,18 +169,13 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
         snprintf(report,sizeof(report),"IPC(%1.6lf)\n", static_cast<double>(fetched_opcodes) / static_cast<double>(orcs_engine.get_global_cycle()));
         final_report+=report;
         double seconds_remaining = (100*(seconds_spent / percentage_complete)) - seconds_spent;
-        snprintf(report,sizeof(report), "ETC(%02.0f:%02.0f:%02.0f)\n",
-                                                floor(seconds_remaining / 3600.0),
-                                                floor(fmod(seconds_remaining, 3600.0) / 60.0),
-                                                fmod(seconds_remaining, 60.0));
+        snprintf(report,sizeof(report), "ETC(%02.0f:%02.0f:%02.0f)\n", floor(seconds_remaining / 3600.0), floor(fmod(seconds_remaining, 3600.0) / 60.0), fmod(seconds_remaining, 60.0));
         final_report+=report;
     }
     snprintf (report, sizeof(report), "KIPS(%lf)\n", static_cast<double> (kilo_instructions_simulated/seconds_spent));
     final_report+=report;
-    snprintf(report,sizeof(report), "Elapsed Time (%02.0f:%02.0f:%02.0f)\n",
-                                                floor(seconds_spent / 3600.0),
-                                                floor(fmod(seconds_spent, 3600.0) / 60.0),
-                                                fmod(seconds_spent, 60.0));
+            
+    snprintf(report,sizeof(report), "Elapsed Time (%02.0f:%02.0f:%02.0f)\n", floor(seconds_spent / 3600.0), floor(fmod(seconds_spent, 3600.0) / 60.0), fmod(seconds_spent, 60.0));
     final_report+=report;
     snprintf(report,sizeof(report),"%s","==========================================================================\n");
     final_report+=report;
@@ -254,7 +246,7 @@ int main(int argc, char **argv) {
     }
     // *****************************************************************************************
 	ORCS_PRINTF("End of Simulation\n")
-	ORCS_PRINTF("Writting FILE\n")
+	ORCS_PRINTF("Writing FILE\n")
     uint64_t FullLength = 0;
     gettimeofday(&orcs_engine.stat_timer_end, NULL);
     bool memory_leak_warning = false;
@@ -314,14 +306,13 @@ int main(int argc, char **argv) {
         }
     }
     orcs_engine.memory_controller->statistics();    
-    ORCS_PRINTF("Writed FILE\n")
+    if (orcs_engine.processor->get_HAS_HIVE()) orcs_engine.hive_controller->statistics();
+    if (orcs_engine.processor->get_HAS_VIMA()) orcs_engine.vima_controller->statistics();
     // *****************************************************************************************
 
     ORCS_PRINTF("Deleting Trace Reader\n")
     delete[] orcs_engine.trace_reader;
     delete orcs_engine.configuration;
-    ORCS_PRINTF("Deleting Memory Controller\n")
-    delete orcs_engine.memory_controller;
     ORCS_PRINTF("Deleting Branch predictor\n")
     delete[] orcs_engine.branchPredictor;
     ORCS_PRINTF("Deleting Cache manager\n")
@@ -330,6 +321,8 @@ int main(int argc, char **argv) {
     delete orcs_engine.hive_controller;
     ORCS_PRINTF ("Deleting VIMA Controller\n")
     delete orcs_engine.vima_controller;
+    ORCS_PRINTF("Deleting Memory Controller\n")
+    delete orcs_engine.memory_controller;
     ORCS_PRINTF("Deleting Processor\n")
     delete[] orcs_engine.processor;
 }

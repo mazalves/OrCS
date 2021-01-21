@@ -36,10 +36,13 @@ class memory_controller_t{
 
         std::vector<memory_package_t*> working;
 
-        uint64_t data_bus_availability;
-        uint64_t* channel_bus_availability;
         uint64_t latency_burst;
-        uint64_t max_requests;
+
+        uint64_t* total_latency;
+        uint64_t* total_operations;
+        uint64_t* min_wait_operations;
+        uint64_t* max_wait_operations;
+        uint64_t wait_time;
         
         uint32_t BANK;
         uint32_t BANK_ROW_BUFFER_SIZE;
@@ -47,8 +50,7 @@ class memory_controller_t{
         uint32_t CHANNEL;
         uint32_t WAIT_CYCLE;
         uint32_t LINE_SIZE;
-        uint32_t DEBUG;
-
+        
         float CORE_TO_BUS_CLOCK_RATIO;
 
         uint32_t TIMING_AL;     // Added Latency for column accesses
@@ -120,8 +122,7 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,BURST_WIDTH)
         INSTANTIATE_GET_SET_ADD(uint32_t,CHANNEL)
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
-        INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
-
+        
         INSTANTIATE_GET_SET_ADD(float,CORE_TO_BUS_CLOCK_RATIO)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses

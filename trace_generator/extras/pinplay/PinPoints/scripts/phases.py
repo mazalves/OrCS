@@ -845,6 +845,7 @@ class Phases(object):
             msg.PrintMsgDate('Running Simpoints for: ' + basename)
             if not config.debug:
                 # import pdb;  pdb.set_trace()
+                msg.PrintMsg("fbm esteve aqui")
                 msg.PrintMsg(cmd)
                 platform = util.Platform()
                 if platform != config.WIN_NATIVE:
@@ -902,6 +903,7 @@ class Phases(object):
             else:
                 # Debugging, so just print cmd.
                 #
+                msg.PrintMsg("fbm esteve no debug")
                 msg.PrintMsg(cmd)
 
         # Clean up the input file.

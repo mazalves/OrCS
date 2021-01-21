@@ -11,6 +11,7 @@ class cache_t {
         uint64_t cache_eviction;
         uint64_t cache_read;
         uint64_t cache_write;
+        uint64_t cache_inst;
         uint64_t cache_writeback;
         uint64_t change_line;
 
@@ -54,10 +55,21 @@ class cache_t {
         uint32_t n_sets;
         cacheSet_t *sets;
         uint32_t offset;
+        int32_t mshr_size;
+        int32_t count;
+        int32_t max_reached;
+
+        uint64_t* cache_hit_per_type;
+        uint64_t* cache_miss_per_type;
+        uint64_t* cache_count_per_type;
+
+        int64_t* total_per_type;
+        int64_t* max_per_type;
+        int64_t* min_per_type;
 
         void statistics();
         void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
-        void writeBack(line_t *line, uint32_t processor_id);       //makes writeback of line
+        void writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address);       //makes writeback of line
         void returnLine(memory_package_t* request, cache_t *cache);//return line from lower cache level
         void tagIdxSetCalculation(uint64_t address, uint64_t *idx, uint64_t *tag); //calculate index of data, makes tag from address
         uint32_t searchLru(cacheSet_t *set);//searh LRU to substitue
@@ -73,9 +85,12 @@ class cache_t {
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_eviction)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_read)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_write)
+        INSTANTIATE_GET_SET_ADD(uint64_t,cache_inst)
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_writeback)
         INSTANTIATE_GET_SET_ADD(uint64_t,change_line)
-        
+        INSTANTIATE_GET_SET_ADD(int32_t,count)
+        INSTANTIATE_GET_SET_ADD(int32_t,max_reached)
+
         INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD(uint32_t,PREFETCHER_ACTIVE)
         INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_LEVELS)

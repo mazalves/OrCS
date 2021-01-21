@@ -8,9 +8,7 @@ private:
     uint32_t DESAMBIGUATION_BLOCK_SIZE;
     uint32_t ADDRESS_TO_ADDRESS;
     uint32_t REGISTER_FORWARD;
-    uint32_t MOB_DEBUG;
     uint32_t WAIT_CYCLE;
-    uint32_t DEBUG;
 
 public:
     disambiguation_hashed_t(/* args */);
@@ -46,9 +44,7 @@ public:
     INSTANTIATE_GET_SET_ADD(uint32_t,DESAMBIGUATION_BLOCK_SIZE)
     INSTANTIATE_GET_SET_ADD(uint32_t,ADDRESS_TO_ADDRESS)
     INSTANTIATE_GET_SET_ADD(uint32_t,REGISTER_FORWARD)
-    INSTANTIATE_GET_SET_ADD(uint32_t,MOB_DEBUG)
     INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
-    INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
 };
 
 

@@ -30,6 +30,12 @@ cache_t::cache_t() {
 
 cache_t::~cache_t(){
 	if (orcs_engine.get_global_cycle() == 0) return;
+	delete[] this->cache_hit_per_type;
+	delete[] this->cache_miss_per_type;
+	delete[] this->cache_count_per_type;
+	delete[] this->total_per_type;
+	delete[] this->min_per_type;
+	delete[] this->max_per_type;
 	delete[] sets;
 	//ORCS_PRINTF ("cycle: %lu\n", orcs_engine.get_global_cycle())
 }
@@ -50,6 +56,7 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
 	set_INSTRUCTION_LEVELS (INSTRUCTION_LEVELS);
 	set_DATA_LEVELS (DATA_LEVELS);
 	POINTER_LEVELS = ((INSTRUCTION_LEVELS > DATA_LEVELS) ? INSTRUCTION_LEVELS : DATA_LEVELS);
+	//POINTER_LEVELS = 3;
 
 	uint32_t line_number = this->size/this->LINE_SIZE;
 	uint32_t total_sets = line_number/associativity;
@@ -97,6 +104,20 @@ void cache_t::allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVEL
     this->set_cache_write(0);
     this->set_cache_writeback(0);
 	this->set_change_line(0);
+	this->set_count(0);
+	this->set_max_reached(0);
+
+	this->cache_hit_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	this->cache_miss_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	this->cache_count_per_type = new uint64_t[MEMORY_OPERATION_LAST]();
+	
+	this->total_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	this->min_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	this->max_per_type = new int64_t[MEMORY_OPERATION_LAST]();
+	for (i = 0; i < MEMORY_OPERATION_LAST; i++){
+		this->min_per_type[i] = INT64_MAX;
+		this->max_per_type[i] = 0;
+	}
 }
 
 // Return address index in cache
@@ -120,6 +141,10 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
     uint64_t idx;
     uint64_t tag;
 	this->tagIdxSetCalculation(address, &idx, &tag);
+	ERROR_ASSERT_PRINTF (this->get_count() < this->mshr_size, "REQUEST # > MSHR_SIZE")
+	this->add_count();
+	this->add_cache_access();
+	if (this->get_count() > this->get_max_reached()) this->set_max_reached(this->get_count());
 	for (size_t i = 0; i < this->sets->n_lines; i++) {
 		//printf("tag: %u\n", this->sets[idx].lines[i].dirty);
 		if(this->sets[idx].lines[i].tag == tag) {
@@ -138,6 +163,7 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
 				// 		//ORCS_PRINTF("     Cache level %u Ready At %lu\n", this->level, this->sets[idx].lines[i].ready_at)
 				// 	}
 				// }
+				this->add_cache_hit();
 				return HIT;
 			}
 			// Se ready Cycle for maior que o atual, a latencia é dada pela demora a chegar
@@ -159,6 +185,7 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
 		}
 	}
 	ttc += this->latency;
+	this->add_cache_miss();
 	return MISS;
 }
 
@@ -189,7 +216,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id) 
 }
 
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
+inline void cache_t::writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address) {
 	// printf("writeback in processor %d\n", processor_id);
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
         ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
@@ -208,6 +235,19 @@ inline void cache_t::writeBack(line_t *line, uint32_t processor_id) {
 				line->line_ptr_caches[processor_id][i]->clean_line();
 			}
 		}
+		memory_package_t* request = new memory_package_t();
+    	request->processor_id = processor_id;
+      	request->memory_address = memory_address;
+      	request->memory_operation = MEMORY_OPERATION_WRITE;
+      	request->is_hive = false;
+      	request->is_vima = false;
+      	request->status = PACKAGE_STATE_UNTREATED;
+      	request->readyAt = orcs_engine.get_global_cycle();
+      	request->born_cycle = orcs_engine.get_global_cycle();
+      	request->sent_to_ram = false;
+      	request->type = INSTRUCTION;
+      	request->op_count[request->memory_operation]++;
+    	orcs_engine.memory_controller->requestDRAM(request);
 	// Intermediate cache levels issues
 	} else {
 		uint32_t i = 0;
@@ -251,7 +291,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64
 		line = this->searchLru(&this->sets[idx]);
 		this->add_change_line();
 		if (this->sets[idx].lines[line].dirty == 1) {
-			this->writeBack(&this->sets[idx].lines[line], request->processor_id);
+			this->writeBack(&this->sets[idx].lines[line], request->processor_id, request->memory_address);
 			this->add_cache_writeback();
 		}
 	}
@@ -316,7 +356,7 @@ uint32_t cache_t::write(memory_package_t* request){
         line = this->searchLru(&this->sets[idx]);
         this->add_change_line();
         if (this->sets[idx].lines[line].dirty == 1) {
-            this->writeBack(&this->sets[idx].lines[line], request->processor_id);
+            this->writeBack(&this->sets[idx].lines[line], request->processor_id, request->memory_address);
             this->add_cache_writeback();
         }
     }
@@ -339,18 +379,34 @@ void cache_t::statistics() {
 		output = fopen(orcs_engine.output_file_name,"a+");
 	}
 	if (output != NULL){
-		utils_t::largeSeparator(output);
-		fprintf(output, "Cache_Level: %d - Cache_Type: %u\n", this->level, this->id);
-		fprintf(output, "%d_Cache_Access: %lu\n", this->level, this->get_cache_access());
-		fprintf(output, "%d_Cache_Hits: %lu\n", this->level, this->get_cache_hit());
-		fprintf(output, "%d_Cache_Miss: %lu\n", this->level, this->get_cache_miss());
-		fprintf(output, "%d_Cache_Eviction: %lu\n", this->level, this->get_cache_eviction());
-		fprintf(output, "%d_Cache_Read: %lu\n", this->level, this->get_cache_read());
-		fprintf(output, "%d_Cache_Write: %lu\n", this->level, this->get_cache_write());
-		if(this->get_cache_writeback()!=0){
-			fprintf(output, "%d_Cache_WriteBack: %lu\n", this->level, this->get_cache_writeback());
+		fprintf(output,"#========================================================================#\n");
+        fprintf(output,"#L%d %s Cache\n", this->level+1, get_enum_cache_type_char ((cacheId_t) this->id));
+        fprintf(output,"#========================================================================#\n");
+		fprintf(output, "%d_Cache_Access:       %lu\n", this->level, this->get_cache_access());
+		fprintf(output, "%d_Cache_Hits:         %lu\n", this->level, this->get_cache_hit());
+		fprintf(output, "%d_Cache_Miss:         %lu\n", this->level, this->get_cache_miss());
+		fprintf(output, "%d_Cache_Eviction:     %lu\n", this->level, this->get_cache_eviction());
+		fprintf(output, "%d_Cache_Read:         %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_READ]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_READ] != 0) fprintf(output, "%d_Cache_Read_Hit:     %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_READ]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_READ] != 0) fprintf(output, "%d_Cache_Read_Miss:    %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_READ]);
+		fprintf(output, "%d_Cache_Write:        %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_WRITE]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_WRITE] != 0) fprintf(output, "%d_Cache_Write_Hit:    %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_WRITE]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_WRITE] != 0)	fprintf(output, "%d_Cache_Write_Miss:   %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_WRITE]);
+		fprintf(output, "%d_Cache_Inst:         %lu\n", this->level, this->cache_count_per_type[MEMORY_OPERATION_INST]);
+		if (this->cache_hit_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Hit:     %lu\n", this->level, this->cache_hit_per_type[MEMORY_OPERATION_INST]);
+		if (this->cache_miss_per_type[MEMORY_OPERATION_INST] != 0) fprintf(output, "%d_Cache_Inst_Miss:    %lu\n", this->level, this->cache_miss_per_type[MEMORY_OPERATION_INST]);
+		for (int32_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+			if (this->cache_count_per_type[i] > 0){
+				//fprintf(output, "%d_Total_%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->total_per_type[i]);
+				fprintf(output, "%d_Avg._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->total_per_type[i]/this->cache_count_per_type[i]);
+				fprintf(output, "%d_Min._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->min_per_type[i]);
+				fprintf(output, "%d_Max._%s_Latency: %lu\n", this->level, get_enum_memory_operation_char((memory_operation_t) i), this->max_per_type[i]);
+			}
 		}
-		utils_t::largeSeparator(output);
+
+		if(this->get_cache_writeback()!=0) 
+		fprintf(output, "%d_Cache_WriteBack:    %lu\n", this->level, this->get_cache_writeback());
+		fprintf(output, "%d_MSHR_Max_Reached:   %u\n", this->level, this->get_max_reached());
 	}
 	if(close) fclose(output);
 }

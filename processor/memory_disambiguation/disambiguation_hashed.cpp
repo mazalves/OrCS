@@ -7,9 +7,7 @@ disambiguation_hashed_t::disambiguation_hashed_t(/* args */) {
     this->DESAMBIGUATION_BLOCK_SIZE = 0;
     this->ADDRESS_TO_ADDRESS = 0;
     this->REGISTER_FORWARD = 0;
-    this->MOB_DEBUG = 0;
     this->WAIT_CYCLE = 0;
-    this->DEBUG = 0;
     // HASHED LOAD/STORE
     this->disambiguation_load_hash = NULL;
     this->disambiguation_store_hash = NULL;
@@ -37,7 +35,6 @@ void disambiguation_hashed_t::allocate() {
     set_DESAMBIGUATION_BLOCK_SIZE (cfg_processor["DESAMBIGUATION_BLOCK_SIZE"]);
     set_ADDRESS_TO_ADDRESS (cfg_processor["ADDRESS_TO_ADDRESS"]);
     set_REGISTER_FORWARD (cfg_processor["REGISTER_FORWARD"]);
-    set_MOB_DEBUG (cfg_processor["MOB_DEBUG"]);
     set_WAIT_CYCLE (cfg_processor["WAIT_CYCLE"]);
 
 	// DISAMBIGUATION 
@@ -64,7 +61,6 @@ void disambiguation_hashed_t::allocate() {
 }
 
 void disambiguation_hashed_t::make_memory_dependences(memory_order_buffer_line_t *new_mob_line) {
-	//if (new_mob_line->is_hive) return;
 	uint64_t load_hash = new_mob_line->memory_address & this->disambiguation_load_hash_bits_mask;
 	uint64_t store_hash = new_mob_line->memory_address & this->disambiguation_store_hash_bits_mask;
 	load_hash >>= this->disambiguation_load_hash_bits_shift;
@@ -168,11 +164,6 @@ void disambiguation_hashed_t::solve_memory_dependences(memory_order_buffer_line_
 				mob_line->mem_deps_ptr_array[j]->rob_ptr->sent = true;
 				mob_line->mem_deps_ptr_array[j]->readyAt = orcs_engine.get_global_cycle() + REGISTER_FORWARD;
 				mob_line->mem_deps_ptr_array[j]->forwarded_data=true;
-				if (MOB_DEBUG) {
-					if(orcs_engine.get_global_cycle()>WAIT_CYCLE) {
-						ORCS_PRINTF("Forwarded To : %s\n",mob_line->mem_deps_ptr_array[j]->content_to_string().c_str())
-					}
-				}
 			}
 		}
 		/// This update the ready cycle, and it is usefull to compute the time each instruction waits for the functional unit
@@ -189,8 +180,10 @@ void disambiguation_hashed_t::statistics() {
 	}
 	if (output != NULL){
 			utils_t::largeSeparator(output);
-            fprintf(output,"Total_Read_false_Positives: %lu\n", this->get_stat_disambiguation_read_false_positive());
-            fprintf(output,"Total_Write_false_Positives: %lu\n", this->get_stat_disambiguation_write_false_positive());
+			fprintf(output,"#Memory Disambiguation\n");
+			utils_t::largeSeparator(output);
+            fprintf(output,"Total_Read_false_Positives:       %lu\n", this->get_stat_disambiguation_read_false_positive());
+            fprintf(output,"Total_Write_false_Positives:      %lu\n", this->get_stat_disambiguation_write_false_positive());
             fprintf(output,"Total_Resolve_Address_to_Address: %lu\n",this->get_stat_address_to_address());
             utils_t::largeSeparator(output);
     }

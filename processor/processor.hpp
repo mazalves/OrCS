@@ -140,11 +140,12 @@ class processor_t {
 
 	uint32_t QTDE_MEMORY_FU;
 
+	uint32_t VIMA_EXCEPT;
+
 	//uint32_t KILO = 1024;
 	//uint32_t MEGA = KILO*KILO;
 
 	uint32_t LINE_SIZE;
-	uint32_t CACHE_LEVELS;
 
 	uint32_t DATA_CACHES;
 	uint32_t *DATA_SIZE;
@@ -169,22 +170,6 @@ class processor_t {
 	uint32_t DISAMBIGUATION_ENABLED;
 	disambiguation_method_t DISAMBIGUATION_METHOD;
 
-	uint32_t DEBUG;
-	uint32_t PROCESSOR_DEBUG;
-	uint32_t FETCH_DEBUG;
-	uint32_t DECODE_DEBUG;
-	uint32_t RENAME_DEBUG;
-	uint32_t DISPATCH_DEBUG;
-	uint32_t EXECUTE_DEBUG;
-	uint32_t MOB_DEBUG;
-	uint32_t PRINT_MOB;
-	uint32_t PRINT_ROB;
-	uint32_t HIVE_DEBUG;
-	uint32_t VIMA_DEBUG;
-	uint32_t COMMIT_DEBUG;
-	uint32_t MSHR_DEBUG;
-	uint32_t MULTICORE_DEBUG;
-
 	uint32_t WAIT_CYCLE;
 
     public:
@@ -192,7 +177,7 @@ class processor_t {
 		// ====================================================================
 		/// Attributes
 		// ====================================================================
-		uint32_t processor_id;
+		uint64_t processor_id;
 		//control Branches
 		bool hasBranch;
 		opcode_package_t previousBranch;
@@ -365,7 +350,14 @@ class processor_t {
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
-		INSTANTIATE_GET_SET(uint32_t,processor_id)
+		uint64_t last_oldest_uop_dispatch;
+		uint64_t* total_latency;
+        uint64_t* total_operations;
+        uint64_t* min_wait_operations;
+        uint64_t* max_wait_operations;
+        uint64_t wait_time;
+
+		INSTANTIATE_GET_SET(uint64_t,processor_id)
 		// ====================================================================
 		// Statistics
 		// ====================================================================
@@ -494,6 +486,8 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,QTDE_MEMORY_FU)
 
+		INSTANTIATE_GET_SET_ADD(uint32_t,VIMA_EXCEPT)
+
 		INSTANTIATE_GET_SET_ADD(uint32_t,LINE_SIZE)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,RAM_LATENCY)
@@ -504,27 +498,10 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,DISAMBIGUATION_ENABLED)
 
-		INSTANTIATE_GET_SET_ADD(uint32_t,DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,PROCESSOR_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,FETCH_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,DECODE_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,RENAME_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,DISPATCH_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,EXECUTE_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,PRINT_MOB)
-		INSTANTIATE_GET_SET_ADD(uint32_t,PRINT_ROB)
-		INSTANTIATE_GET_SET_ADD(uint32_t,HIVE_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,VIMA_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,COMMIT_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,MSHR_DEBUG)
-		INSTANTIATE_GET_SET_ADD(uint32_t,MULTICORE_DEBUG)
-
 		INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_CACHES)
 		INSTANTIATE_GET_SET_ADD(uint32_t,DATA_CACHES)
-		INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
 		
 		// ====================================================================
 };

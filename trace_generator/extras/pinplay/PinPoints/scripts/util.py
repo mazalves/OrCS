@@ -776,6 +776,7 @@ def walk_callback(param, dirname, fnames):
                 s = 'calling method: ' + str(method)
                 s = s.replace('>', ' ').replace('<', '')
                 msg.PrintMsg(s)
+            msg.PrintMsg(s)
             _util_result = method(param, dirname, basename_file)
 
 

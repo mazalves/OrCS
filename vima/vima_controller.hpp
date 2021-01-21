@@ -2,7 +2,6 @@ class vima_controller_t {
     private:
         uint32_t VIMA_BUFFER;
         uint32_t VIMA_VECTOR_SIZE;
-        uint32_t VIMA_DEBUG;
         uint32_t VIMA_CACHE_ASSOCIATIVITY;
         uint32_t VIMA_CACHE_LATENCY;
         uint32_t VIMA_CACHE_SIZE;
@@ -23,13 +22,15 @@ class vima_controller_t {
         std::vector<memory_package_t*> vima_buffer;
         std::vector<memory_package_t*> sub_request_queue;
         std::vector<vima_vector_t*> working_vectors;
-
+        
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;
 
         uint64_t tag_bits_mask;
         uint64_t tag_bits_shift;
 
+        uint64_t cache_reads;
+        uint64_t cache_writes;
         uint64_t cache_hits;
         uint64_t cache_misses;
         uint64_t cache_accesses;
@@ -37,10 +38,11 @@ class vima_controller_t {
 
         uint64_t i;
         uint64_t current_index;
+        uint64_t request_count;
+        uint64_t total_wait;
 
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
-        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_DEBUG)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_ASSOCIATIVITY)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_LATENCY)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_SIZE)
@@ -49,6 +51,8 @@ class vima_controller_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t, lines)
         INSTANTIATE_GET_SET_ADD (uint32_t, sets)
+        INSTANTIATE_GET_SET_ADD (uint64_t, cache_reads)
+        INSTANTIATE_GET_SET_ADD (uint64_t, cache_writes)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_hits)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_misses)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_accesses)
@@ -56,7 +60,7 @@ class vima_controller_t {
         
         void print_vima_instructions();
         void check_cache (int index);
-        vima_vector_t* search_cache (uint64_t address);
+        vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);
         void write_to_cache (int index);
         
@@ -76,4 +80,5 @@ class vima_controller_t {
         void allocate();
         bool addRequest (memory_package_t* request);
         void instruction_ready (size_t index);
+        void statistics();
 };
