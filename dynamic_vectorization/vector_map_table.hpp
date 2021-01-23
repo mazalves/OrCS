@@ -23,7 +23,7 @@ class vector_map_table_t {
         bool new_store (opcode_package_t *inst);
 
         DV::DV_ERROR validate (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry);
-        void fill_vectorial_part (opcode_package_t *inst, char *signature, int32_t vr_id, int32_t num_part);
+        void fill_vectorial_part (opcode_package_t *inst, bool is_load, int32_t vr_id, int32_t num_part);
         DV::DV_ERROR vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward);
 
         void list_contents();

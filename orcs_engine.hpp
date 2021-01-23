@@ -38,6 +38,9 @@ class orcs_engine_t {
         hive_controller_t *hive_controller;
         vima_controller_t *vima_controller;
 
+        // Instruction set
+        instruction_set_t *instruction_set;
+
         // ====================================================================
         /// Statistics related
         // ====================================================================

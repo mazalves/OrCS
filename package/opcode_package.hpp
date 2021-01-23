@@ -7,6 +7,8 @@ class opcode_package_t : public memory_request_client_t {
         /// TRACE Variables
         char opcode_assembly[TRACE_LINE_SIZE];
         instruction_operation_t opcode_operation;
+
+        uint32_t instruction_id;
         uint64_t opcode_address;
         uint32_t opcode_size;
 
@@ -63,6 +65,7 @@ class opcode_package_t : public memory_request_client_t {
         
         opcode_package_t();
         ~opcode_package_t();
+
         #ifndef __PIN__
         void package_clean();
         std::string content_to_string();

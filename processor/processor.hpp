@@ -1,5 +1,27 @@
 // ============================================================================
 // ============================================================================
+
+class functional_unit_t {
+public:
+    uint32_t id;
+    uint64_t *slot;
+    uint32_t size, wait_next;
+    uint32_t dispatch_cnt;
+
+    functional_unit_t() {}
+    ~functional_unit_t() {
+        utils_t::template_delete_array<uint64_t>(this->slot);
+    }
+
+    void allocate(uint32_t id, uint32_t size, uint32_t wait_next) {
+        this->id = id;
+        this->size = size;
+        this->wait_next = wait_next;
+        this->dispatch_cnt = 0;
+        this->slot = utils_t::template_allocate_initialize_array<uint64_t>(size, 0);
+    }
+};
+
 class processor_t {
     private:    
 	//=============
@@ -146,6 +168,7 @@ class processor_t {
 	//uint32_t MEGA = KILO*KILO;
 
 	uint32_t LINE_SIZE;
+	uint32_t CACHE_LEVELS;
 
 	uint32_t DATA_CACHES;
 	uint32_t *DATA_SIZE;
@@ -205,7 +228,7 @@ class processor_t {
 		processor_t();
 		~processor_t();
 	    void allocate();
-	    void clock();
+        void clock();
 		void statistics();
 		void printConfiguration();
 		void printCache(FILE *output);
@@ -334,19 +357,15 @@ class processor_t {
 		// ======================
 		// Funcional Unitis - FUs
 		// ======================
-		// Integer FUs
-		uint64_t *fu_int_alu;
-		uint64_t *fu_int_mul;
-		uint64_t *fu_int_div;
-		// Floating Points FUs
-		uint64_t *fu_fp_alu;
-		uint64_t *fu_fp_mul;
-		uint64_t *fu_fp_div;
+        std::vector<functional_unit_t> functional_units;
+
 		// Memory FUs
-		uint64_t *fu_mem_load;
-		uint64_t *fu_mem_store;
-		uint64_t *fu_mem_hive;
-		uint64_t *fu_mem_vima;
+        functional_unit_t fu_mem_load;
+        functional_unit_t fu_mem_store;
+
+        functional_unit_t fu_mem_hive;
+        functional_unit_t fu_mem_vima;
+
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
 
@@ -512,6 +531,7 @@ class processor_t {
 
 		INSTANTIATE_GET_SET_ADD(uint32_t,INSTRUCTION_CACHES)
 		INSTANTIATE_GET_SET_ADD(uint32_t,DATA_CACHES)
+		INSTANTIATE_GET_SET_ADD(uint32_t,CACHE_LEVELS)
 		
 		// ====================================================================
 };

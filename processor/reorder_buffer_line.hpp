@@ -30,8 +30,6 @@ class reorder_buffer_line_t {
         uint32_t wake_up_elements_counter;              /// Counter of elements to wakeup
         memory_order_buffer_line_t* mob_ptr;            /// mob pointer to memory request 
         bool sent;                                      /// Control flag to remove robs entry
-
-
         // ====================================================================
         /// Methods
         // ====================================================================

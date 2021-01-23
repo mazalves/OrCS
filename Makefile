@@ -6,7 +6,7 @@ CPPFLAGS = $(FLAGS)
 BIN_NAME = orcs
 RM = rm -f
 
-FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic -fsanitize=leak
+FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic -fsanitize=leak -Wno-stringop-truncation
 LDFLAGS = -ggdb3
 ########################################################################
 ##FOLDERS
@@ -41,6 +41,7 @@ SRC_MEMORY_DISAMBIGUATION = $(FD_PROCESSOR)/$(FD_DISAMBIGUATION)/disambiguation_
 SRC_PROCESSOR =		$(FD_PROCESSOR)/processor.cpp\
 					$(FD_PROCESSOR)/reorder_buffer_line.cpp\
 					$(FD_PROCESSOR)/memory_order_buffer_line.cpp\
+					$(FD_PROCESSOR)/instruction_set.cpp
 
 SRC_BRANCH_PREDICTOR =	$(FD_BRANCH_PREDICTOR)/branch_predictor.cpp\
 						$(FD_BRANCH_PREDICTOR)/piecewise.cpp

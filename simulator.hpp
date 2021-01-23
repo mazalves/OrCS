@@ -30,6 +30,7 @@
 #include <map>
 #include <cassert>
 #include <libconfig.h++>
+#include <unordered_map>
 
 // ============================================================================
 /// Classes
@@ -64,7 +65,9 @@ class disambiguation_hashed_t;
 class uop_package_t;
 class reorder_buffer_line_t;
 class memory_order_buffer_line_t;
+class functional_unit_t;
 class processor_t;
+class instruction_set_t;
 
 //  =========================================//
 // Cache Classes
@@ -156,6 +159,8 @@ class register_rename_table_t;
 #include "./main_memory/memory_request_client.hpp"
 #include "./package/opcode_package.hpp"
 
+
+
 //  =========================================//
 // Usefull Classes
 //  =========================================//
@@ -175,6 +180,7 @@ class register_rename_table_t;
 #include "./processor/reorder_buffer_line.hpp"
 #include "./processor/memory_order_buffer_line.hpp"
 #include "./processor/processor.hpp"
+#include "./processor/instruction_set.hpp"
 //  =========================================//
 // Branch Predictor includes
 //  =========================================//

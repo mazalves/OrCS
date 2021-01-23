@@ -72,7 +72,12 @@ bool uop_package_t::operator==(const uop_package_t &package) {
 
     return OK;
 }
-void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t uop_operation, uint64_t memory_address, uint32_t memory_size, opcode_package_t opcode)
+void uop_package_t::opcode_to_uop(
+        uint64_t uop_number, 
+        instruction_operation_t uop_operation, 
+        uint64_t memory_address, uint32_t memory_size, 
+        uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,
+        opcode_package_t opcode)
 {
     // ERROR_ASSERT_PRINTF(this->state == PACKAGE_STATE_FREE,
     //                     "Trying to decode to uop in a non-free location\n");
@@ -84,6 +89,11 @@ void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t u
     this->opcode_address = opcode.opcode_address;
     this->opcode_size = opcode.opcode_size;
     this->opcode_number = opcode.opcode_number;
+
+    this->latency = latency;
+    this->throughput = throughput;
+    this->functional_unit = fu_id;
+
     memcpy(this->read_regs, opcode.read_regs, sizeof(int32_t) * MAX_REGISTERS);
     memcpy(this->write_regs, opcode.write_regs, sizeof(int32_t) * MAX_REGISTERS);
 

@@ -22,6 +22,7 @@ int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
 }
 
 DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
+
     // **************************************
     // Vectorizer_t:new_commit (!store)
     // **************************************
@@ -32,7 +33,16 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
             // Set R
             int32_t vr_id = inst->VR_id;
             VR_state_bits_t *state_VR = &this->vr_control_bits[vr_id];
-            state_VR->positions[inst->is_vectorial_part].R = true;
+            if (inst->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+            {
+            	state_VR->positions[inst->is_vectorial_part].R = true;
+            } else {
+
+            	for (int32_t i = 0; i < VECTORIZATION_SIZE; ++i)
+            	{
+            		state_VR->positions[i].R = true;
+            	}
+            }
 
         }
 
@@ -214,7 +224,6 @@ bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
         return true;
     }
 
-
     return false;
 }
 
@@ -320,7 +329,6 @@ void Vectorizer_t::GMRBB_changed () {
 }
 
 void Vectorizer_t::free_VR (int32_t vr_id) {
-
     int32_t PR = this->vr_state[vr_id];
 
     // Já está liberado
@@ -353,7 +361,6 @@ void Vectorizer_t::resume_pipeline() {
 Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
                            bool *pipeline_squashed, uint64_t *store_squashing)
 {
-    printf("Vectorizer_t::constructor();\n");
     GMRBB = 0;
 
     // Squash do pipeline

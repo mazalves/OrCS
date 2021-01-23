@@ -172,13 +172,48 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
     return DV::SUCCESS;
 }
 
-void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, char *signature, int32_t vr_id, int32_t num_part) {
-    // inst preparation
-    // Se existirem instruções vetoriais, também mudar uop_operation
-    strcpy(inst->opcode_assembly, signature);
+void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_load, int32_t vr_id, int32_t num_part) {
+    // Fill opcode_assembly
+    switch(inst->opcode_operation) {
+	    case INSTRUCTION_OPERATION_INT_ALU:
+	    	strcpy(inst->opcode_assembly, "VPADDQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+	    	break;
+	    case INSTRUCTION_OPERATION_INT_MUL:
+	    	strcpy(inst->opcode_assembly, "VPMULDQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+	    	break;
+	    case INSTRUCTION_OPERATION_FP_ALU:
+	    	strcpy(inst->opcode_assembly, "VADDPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+	    	break;
+	    case INSTRUCTION_OPERATION_MEM_LOAD:
+	    	break;
+	    default:
+	    	printf("Erro: Vetorização de operação não definida! Operação: %d - %s\n", inst->opcode_operation, inst->opcode_assembly);
+	    	exit(1);
+    }
+
+    // Fill instruction_id
+    auto &inst_id = orcs_engine.instruction_set->instructions_id;
+    std::string op_asm = std::string(inst->opcode_assembly);
+
+    if (inst_id.find(op_asm) != inst_id.end()) {
+        inst->instruction_id = inst_id[op_asm];
+    } else {
+        // Last inst_id has 0 uops, used when instruction is not represented
+        inst->instruction_id = inst_id.size() - 1;
+    }
+
+    // Fill opcode_operation
+    if (is_load) {
+	    inst->opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
+    } else {
+	    inst->opcode_operation = INSTRUCTION_OPERATION_OTHER;
+    }
+
+    // Generic inst preparation
     inst->is_vectorial_part = num_part;
     inst->VR_id = vr_id;
     inst->is_validation = false;
+
 }
 
 DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward) {
@@ -187,7 +222,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     int32_t vr_id = vectorizer->allocate_VR(inst->write_regs[0]);
 
     if (vr_id == -1) 
-    {
+    {   
        return DV::NOT_ENOUGH_VR;
     }
 
@@ -253,46 +288,28 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     	(*vrmt_entry)->source_operand_1 = register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg;
     	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
     }
+    if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
+        for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part)
+        {
+            // Clona a uop
+            opcode_package_t new_inst = (*inst);
 
-    for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part) {
+            // Preenche com dados de parte vetorial
+            fill_vectorial_part(&new_inst, true, vr_id, num_part); 
+
+            // Insere no pipeline
+            inst_list->push_back(new_inst);
+        }
+
+    } else {
         // Clona a uop
         opcode_package_t new_inst = (*inst);
-        for (int32_t i = 0; i < MAX_REGISTERS; ++i) {
-            new_inst.write_regs[i] = inst->write_regs[i];
-            new_inst.read_regs[i] = inst->read_regs[i];
-        }
 
         // Preenche com dados de parte vetorial
-        char signature[256];
-        switch (inst->opcode_operation) {
-        	case INSTRUCTION_OPERATION_MEM_LOAD:
-        		if (forward) {
-                    strcpy(signature, "VEC_LOAD_F_PART");
-        		} else {
-        			strcpy(signature, "VEC_LOAD_PART");
-        		}
-
-        		break;
-        	case INSTRUCTION_OPERATION_INT_ALU:
-            case INSTRUCTION_OPERATION_INT_MUL:
-            case INSTRUCTION_OPERATION_FP_ALU:
-        		if (forward) {
-                    strcpy(signature, "VEC_OP_F_PART");
-        		} else {
-        			strcpy(signature, "VEC_OP_PART");
-        		}
-        		break;
-
-        	default:
-        		printf("Error: VECTORIZATION_NOT_DEFINED\n");
-        		exit(1);
-        }
-
-        fill_vectorial_part(&new_inst, signature, vr_id, num_part); 
+        fill_vectorial_part(&new_inst, false, vr_id, 0); 
 
         // Insere no pipeline
         inst_list->push_back(new_inst);
-
     }
 
     return DV::SUCCESS;
