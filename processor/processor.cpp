@@ -611,7 +611,9 @@ void processor_t::allocate() {
 	// Dynamic vectorization
 	// =========================================================================================
 	this->inst_list.allocate(10); // Aloca tamanho suficiente para 1 vetorização
-	this->vectorizer = new Vectorizer_t (&inst_list, &pipeline_squashed);
+	pipeline_squashed = false;
+	store_squashing = 0;
+	this->vectorizer = new Vectorizer_t (&inst_list, &pipeline_squashed, &store_squashing);
 	
 	// parallel requests
 	// =========================================================================================
@@ -929,6 +931,12 @@ void processor_t::fetch(){
 
 			operation.opcode_number = this->fetchCounter;
 			this->fetchCounter++;
+
+			//============================
+			// Vetorização
+			//============================
+			// Envia para o pipeline
+			vectorizer->enter_pipeline(&operation);
 
 			//============================
 			///Solve Branch
@@ -1483,12 +1491,6 @@ void processor_t::rename(){
 			break;
 		}
 
-
-		//============================
-		// Vetorização
-		//============================
-		// Envia para o pipeline
-		vectorizer->enter_pipeline(this->decodeBuffer.front());
 
 
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n")

@@ -81,6 +81,7 @@ void cache_manager_t::get_cache_levels(cacheId_t cache_type, libconfig::Setting 
     vector<uint32_t> clevels, camount;
     libconfig::Setting &cfg_caches = cfg_cache_defs[string_cache_type];
     uint32_t N_CACHES = cfg_caches.getLength();
+
     for (uint32_t i = 0; i < N_CACHES; i++) {
         try {
             libconfig::Setting &cfg_cache = cfg_caches[i];

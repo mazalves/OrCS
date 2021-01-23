@@ -21,6 +21,7 @@ void uop_package_t::package_clean()
     this->is_vectorial_part = -1;
     this->VR_id = -1;
     this->is_validation = false;
+    this->will_validate_offset = -1;
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
@@ -93,7 +94,8 @@ void uop_package_t::opcode_to_uop(uint64_t uop_number, instruction_operation_t u
     this->is_vectorial_part = opcode.is_vectorial_part;
     this->VR_id = opcode.VR_id;    
 
-    this->is_validation = opcode.is_validation;         
+    this->is_validation = opcode.is_validation; 
+    this->will_validate_offset = opcode.will_validate_offset;       
     this->will_free = opcode.will_free;          
     this->will_free_offset = opcode.will_free_offset; 
 

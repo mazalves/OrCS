@@ -48,10 +48,11 @@ bool vector_map_table_t::compare_registers (opcode_package_t *inst, vector_map_t
     return false;
 }
 
-DV::DV_ERROR vector_map_table_t::convert_to_validation (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry) {
+DV::DV_ERROR vector_map_table_t::convert_to_validation (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry, int32_t validation_index) {
     inst->is_vectorial_part = -1;
     inst->VR_id = vrmt_entry->correspondent_VR;
     inst->is_validation = true;
+    inst->will_validate_offset = validation_index;
 
     // Set register as vectorial
     this->register_rename_table[inst->write_regs[0]].vectorial = true;
@@ -73,15 +74,19 @@ void vector_map_table_t::invalidate (vector_map_table_entry_t *vrmt_entry) {
     vrmt_entry->pc = 0;
 }
 
-void vector_map_table_t::new_store (opcode_package_t *inst) {
+bool vector_map_table_t::new_store (opcode_package_t *inst) {
+    bool r = false;
     for (int32_t i = 0; i < this->entries_size; ++i) {
 	    if(this->entries[i].is_load) {
 	    	if((entries[i].source_operand_1 <= inst->write_address) &&
-	    	  (entries[i].source_operand_2 > inst->write_address)) {
-                  this->invalidate(&this->entries[i]);
+	    	  (entries[i].source_operand_2 > inst->write_address))
+            {
+                this->invalidate(&this->entries[i]);
+		        r = true;
             }
         }
     }
+    return r;
 }
 
 DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry) {
@@ -97,7 +102,8 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
         vrmt_entry->offset++;
 
         // Convert to validation
-        this->convert_to_validation(inst, vrmt_entry);
+        this->convert_to_validation(inst, vrmt_entry, vrmt_entry->offset - 1);
+
 
         if (vrmt_entry->offset >= 4) {
             // Pre-vectorize next part
@@ -136,7 +142,7 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             }
 
             // Convert to validation
-            this->convert_to_validation(inst, new_vrmt_entry);
+            this->convert_to_validation(inst, new_vrmt_entry, 0);
 
             return DV::NEW_PARAMETERS_REVECTORIZING;
 
@@ -148,7 +154,7 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             vrmt_entry->offset++;
 
             // Convert to validation
-            this->convert_to_validation(inst, vrmt_entry);
+            this->convert_to_validation(inst, vrmt_entry, vrmt_entry->offset - 1);
 
             if (vrmt_entry->offset >= 4) {
 
@@ -176,7 +182,6 @@ void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, char *sign
 }
 
 DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward) {
-
 
     // Aloca um VR (vr_id)
     int32_t vr_id = vectorizer->allocate_VR(inst->write_regs[0]);
@@ -243,6 +248,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     		(*vrmt_entry)->source_operand_2 = inst->read_address + inst->read_size;
     	}
     } else {
+
         vectorizer->vectorized_ops++;
     	(*vrmt_entry)->source_operand_1 = register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg;
     	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;

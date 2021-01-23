@@ -16,11 +16,11 @@ class vector_map_table_t {
         ~vector_map_table_t ();
         int32_t allocate_entry ();
         bool compare_registers (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry);
-        DV::DV_ERROR convert_to_validation (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry);
+        DV::DV_ERROR convert_to_validation (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry, int32_t validation_index);
 
         vector_map_table_entry_t *find_pc (uint64_t pc);
         void invalidate (vector_map_table_entry_t *vrmt_entry);
-        void new_store (opcode_package_t *inst);
+        bool new_store (opcode_package_t *inst);
 
         DV::DV_ERROR validate (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry);
         void fill_vectorial_part (opcode_package_t *inst, char *signature, int32_t vr_id, int32_t num_part);

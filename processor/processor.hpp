@@ -364,6 +364,7 @@ class processor_t {
 		Vectorizer_t *vectorizer;
 		circular_buffer_t <opcode_package_t> inst_list;
 		bool pipeline_squashed;
+		uint64_t store_squashing;
 
 
 		INSTANTIATE_GET_SET(uint64_t,processor_id)

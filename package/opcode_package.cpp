@@ -46,6 +46,7 @@ opcode_package_t::opcode_package_t() {
     this->is_vectorial_part = -1;
     this->VR_id = -1;
     this->is_validation = false;
+    this->will_validate_offset = -1;
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
@@ -105,6 +106,7 @@ void opcode_package_t::package_clean() {
     this->is_vectorial_part = -1;
     this->VR_id = -1;
     this->is_validation = false;
+    this->will_validate_offset = -1;
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;

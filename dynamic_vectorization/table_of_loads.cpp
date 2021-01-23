@@ -22,6 +22,7 @@ table_of_loads_entry_t *table_of_loads_t::add_pc (uint64_t pc, uint64_t addr) {
 }
 
 table_of_loads_entry_t *table_of_loads_t::find_pc (uint64_t pc) {
+
     for (int32_t i = 0; i < this->entries_size; ++i) {
         if (this->entries[i].pc == pc)
             return &this->entries[i];

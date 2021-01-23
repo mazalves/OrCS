@@ -2,6 +2,14 @@
 
 
 int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
+    /*
+    printf("VR states: ");
+    for (int32_t i = 0; i < NUM_VR; ++i) {
+        printf("%d ", this->vr_state[i]);
+    }
+    printf("\n");
+    */
+
     for (int32_t i = 0; i < NUM_VR; ++i) {
         if (this->vr_state[i] == -1) {
             this->vr_state[i] = logical_register;
@@ -9,6 +17,7 @@ int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
             return i;
         }
     }
+
     return -1;
 }
 
@@ -32,23 +41,17 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
             // Reset U
             VR_state_bits_t * state_VR = &this->vr_control_bits[inst->VR_id];
 
-            // Find next offset to validate
-            int32_t offset = 0;
-            for (offset = 0; offset < VECTORIZATION_SIZE; ++offset) {
-            	if (state_VR->positions[offset].U) {
-            		break;
-            	}
-            }
-            state_VR->positions[offset].U = false;
-            state_VR->positions[offset].V = true;
+            state_VR->positions[inst->will_validate_offset].U = false;
+            state_VR->positions[inst->will_validate_offset].V = true;
 
         }
 
-        if (inst->will_free >= 0) {
+        if (inst->will_free >= 0 && inst->will_free_offset >= 0) {
             // Set F
             VR_state_bits_t *state_VR = &this->vr_control_bits[inst->will_free];
 
             state_VR->positions[inst->will_free_offset].F = true;
+
 
             // Tenta liberar
             // Liberou até a última posição
@@ -71,41 +74,20 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
     // **************************************
     if (inst->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
         // Resume pipeline
-        this->resume_pipeline();
+        if (inst->opcode_address == *store_squashing) {
+	        this->resume_pipeline();
+	        *store_squashing = 0;
+        }
 
     }
     return DV::SUCCESS;
 }
 
 DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
+
     if (inst->is_vectorial_part >= 0) return DV::SUCCESS;
 
-    // **************************************
-    // Vectorizer_t::new_inst (qualquer) [first]
-    // **************************************
-
-    // Descobre se já possui alguma entrada na vrmt
-    vector_map_table_entry_t * vrmt_entry = VRMT->find_pc(inst->opcode_address);
-
-    // Marca para liberar
-    // setar (F)
-    register_rename_table_t *destiny_reg = &register_rename_table[inst->write_regs[0]];
-    if (inst->write_regs[0] == -1) return DV::NOT_WRITING;
-    if (inst->write_regs[0] >= MAX_REGISTER_NUMBER) return DV::REGISTER_GREATER_THAN_MAX;
-
-    if (vrmt_entry == NULL) {
-    	if (destiny_reg->vectorial) {
-    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
-    		inst->will_free_offset = destiny_reg->offset;
-    	}
-
-    } else {
-    	// Como para duas instruções diferentes não é alocado o mesmo VR, basta ver se são iguais
-    	if (vrmt_entry->correspondent_VR != destiny_reg->correspondent_vectorial_reg) {
-    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
-    		inst->will_free_offset = destiny_reg->offset;
-    	}
-    }
+    
 
     // **************************************
     // Vectorizer_t::new_inst (load)
@@ -131,6 +113,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             if (vrmt_entry != NULL) {
                 // Faz a validação Ou seja, aloca o próximo se der
                 DV::DV_ERROR stats = VRMT->validate(inst, vrmt_entry);
+
                 return stats;
             } else {
                 // Vetoriza o load
@@ -141,7 +124,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
                 }
 
                 // Converte em validação
-                VRMT->convert_to_validation(inst, vrmt_entry);
+                VRMT->convert_to_validation(inst, vrmt_entry, 0);
 
                 return DV::SUCCESS;
             }
@@ -175,6 +158,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             // (O validate converte a inst em validação)
             VRMT->validate(inst, vrmt_entry);
 
+
         } else { // vrmt_entry == NULL
             // Verifica se os operandos são vetoriais
             bool op_vectorial;
@@ -186,7 +170,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
                 
                 // Convert to validation
                 if (stats == DV::SUCCESS) { 
-                    VRMT->convert_to_validation(inst, vrmt_entry);
+                    VRMT->convert_to_validation(inst, vrmt_entry, 0);
                 }
             }
 
@@ -201,10 +185,13 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_STORE) {
         
         // Invalida entradas com dados desse endereço
-        VRMT->new_store(inst);
+        bool found = VRMT->new_store(inst);
 
         // Squash pipeline
-        this->squash_pipeline();
+        if (found) {
+	        *this->store_squashing = inst->opcode_address;
+	        this->squash_pipeline();
+        }
 
     }
 
@@ -222,14 +209,42 @@ bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
     }
     register_rename_table_t *op_1 = &register_rename_table[inst->read_regs[0]];
     register_rename_table_t *op_2 = &register_rename_table[inst->read_regs[1]];
-    if (op_1->vectorial && op_2->vectorial) return true;
+    if (op_1->vectorial && op_2->vectorial) 
+    {
+        return true;
+    }
+
+
     return false;
 }
 
-void Vectorizer_t::enter_pipeline (uop_package_t *inst) {
+DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
+
+    // Descobre se já possui alguma entrada na vrmt
+    vector_map_table_entry_t * vrmt_entry = VRMT->find_pc(inst->opcode_address);
+
+    // Marca para liberar
+    // setar (F)
+    register_rename_table_t *destiny_reg = &register_rename_table[inst->write_regs[0]];
+    if (inst->write_regs[0] == -1) return DV::NOT_WRITING;
+    if (inst->write_regs[0] >= MAX_REGISTER_NUMBER) return DV::REGISTER_GREATER_THAN_MAX;
+
+    if (vrmt_entry == NULL) {
+    	if (destiny_reg->vectorial) {
+    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
+    		inst->will_free_offset = destiny_reg->offset;
+    	}
+
+    } else {
+    	// Como para duas instruções diferentes não é alocado o mesmo VR, basta ver se são iguais
+    	if (vrmt_entry->correspondent_VR != destiny_reg->correspondent_vectorial_reg) {
+    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
+    		inst->will_free_offset = destiny_reg->offset;
+    	}
+    }
+
     if (inst->VR_id >= 0) {
-        // Find vrmt_entry
-        vector_map_table_entry_t *vrmt_entry = VRMT->find_pc (inst->opcode_address);
+        // Check for vrmt_entry
 
         if (vrmt_entry == NULL)
         {
@@ -256,10 +271,13 @@ void Vectorizer_t::enter_pipeline (uop_package_t *inst) {
         // Set RAT as scalar register
         if ((inst->write_regs[0] != -1) && (inst->write_regs[0] < MAX_REGISTER_NUMBER)) {
             register_rename_table[inst->write_regs[0]].vectorial = false;
+
         }
 
     }
 
+    //printf("%lu libera %d [%d]\n", inst->opcode_address, inst->will_free, inst->will_free_offset);
+    return DV::SUCCESS;
 }
 
 
@@ -302,7 +320,13 @@ void Vectorizer_t::GMRBB_changed () {
 }
 
 void Vectorizer_t::free_VR (int32_t vr_id) {
+
     int32_t PR = this->vr_state[vr_id];
+
+    // Já está liberado
+    if (PR == -1) {
+        return;
+    }
 
     // Libera registrador lógico
     if  (register_rename_table[PR].correspondent_vectorial_reg == vr_id) {
@@ -327,13 +351,14 @@ void Vectorizer_t::resume_pipeline() {
 }
 
 Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
-                           bool *pipeline_squashed) 
+                           bool *pipeline_squashed, uint64_t *store_squashing)
 {
     printf("Vectorizer_t::constructor();\n");
     GMRBB = 0;
 
     // Squash do pipeline
     this->pipeline_squashed = pipeline_squashed;
+    this->store_squashing = store_squashing;
 
     // TL
     this->TL = new table_of_loads_t (TL_SIZE);
