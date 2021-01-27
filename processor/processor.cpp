@@ -861,7 +861,8 @@ void processor_t::fetch(){
 	// uint32_t position;
 	// Trace ->fetchBuffer
 	for (uint32_t i = 0; i < FETCH_WIDTH; i++) {
-		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST)){
+		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST) ||
+		    (inst_list.size > 0)){
 			operation.package_clean();
 			//bool updated = false;
 
@@ -982,30 +983,34 @@ void processor_t::fetch(){
                         this->robUsed);
 			#endif
 
-			memory_package_t* request = new memory_package_t();
+			if (fetchBuffer.back()->is_vectorial_part < 0) {
+				memory_package_t* request = new memory_package_t();
 
-			request->clients.push_back (fetchBuffer.back());
-			request->processor_id = this->processor_id;
-			request->uop_number = fetchBuffer.back()->opcode_number;
-			request->opcode_address = fetchBuffer.back()->opcode_address;
-			request->opcode_number = fetchBuffer.back()->opcode_number;
-			request->memory_address = fetchBuffer.back()->opcode_address;
-			request->memory_size = fetchBuffer.back()->opcode_size;
-			request->memory_operation = MEMORY_OPERATION_INST;
-			request->is_hive = false;
-			request->is_vima = false;
-			request->status = PACKAGE_STATE_UNTREATED;
-			request->readyAt = orcs_engine.get_global_cycle();
-			request->born_cycle = orcs_engine.get_global_cycle();
-			request->sent_to_ram = false;
-			request->type = INSTRUCTION;
-			request->op_count[request->memory_operation]++;
+				request->clients.push_back (fetchBuffer.back());
+				request->processor_id = this->processor_id;
+				request->uop_number = fetchBuffer.back()->opcode_number;
+				request->opcode_address = fetchBuffer.back()->opcode_address;
+				request->opcode_number = fetchBuffer.back()->opcode_number;
+				request->memory_address = fetchBuffer.back()->opcode_address;
+				request->memory_size = fetchBuffer.back()->opcode_size;
+				request->memory_operation = MEMORY_OPERATION_INST;
+				request->is_hive = false;
+				request->is_vima = false;
+				request->status = PACKAGE_STATE_UNTREATED;
+				request->readyAt = orcs_engine.get_global_cycle();
+				request->born_cycle = orcs_engine.get_global_cycle();
+				request->sent_to_ram = false;
+				request->type = INSTRUCTION;
+				request->op_count[request->memory_operation]++;
 
-			#if MEMORY_DEBUG
-				ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
-			#endif
+				#if MEMORY_DEBUG
+					ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+				#endif
 
-			if (!orcs_engine.cacheManager->searchData(request)) delete request;
+				if (!orcs_engine.cacheManager->searchData(request)) delete request;
+			} else {
+				fetchBuffer.back()->status = PACKAGE_STATE_READY;
+			}
 		}
 	}
 }
