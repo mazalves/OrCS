@@ -52,6 +52,8 @@ opcode_package_t::opcode_package_t() {
     this->will_free_offset = -1;
     this->is_BB = false;
     this->number_changed = false;
+    this->is_pre_vectorization = false;
+
 
     this->status = PACKAGE_STATE_FREE;
     #ifndef __PIN__
@@ -113,6 +115,8 @@ void opcode_package_t::package_clean() {
     this->will_free_offset = -1;
     this->is_BB = false;
     this->number_changed = false;
+    this->is_pre_vectorization = false;
+
 }
 
 /// Convert Instruction variables into String

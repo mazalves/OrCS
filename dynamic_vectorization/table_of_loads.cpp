@@ -51,6 +51,7 @@ void table_of_loads_t::update_stride (table_of_loads_entry_t *tl_entry, uint64_t
 }
 
 table_of_loads_t::table_of_loads_t  (int32_t num_entries) {
+    printf("table_of_loads_t::constructor\n");
     this->entries_size = num_entries;
     this->entries = new table_of_loads_entry_t [this->entries_size];
     this->next_replacement = 0;
@@ -60,4 +61,14 @@ table_of_loads_t::table_of_loads_t  (int32_t num_entries) {
 table_of_loads_t::~table_of_loads_t  () {
     delete[] this->entries;
 
+}
+
+void table_of_loads_t::list_contents() {
+    for (int32_t i = 0; i < this->entries_size; ++i) {
+        if (this->entries[i].pc != 0x0) {
+            printf("%lu: Last addr: %lu -- Stride: %d -- Conf: %d\n",
+                    this->entries[i].pc, this->entries[i].last_address,
+                    this->entries[i].stride, this->entries[i].confidence);
+        }
+    }
 }

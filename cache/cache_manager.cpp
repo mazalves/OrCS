@@ -467,7 +467,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
         #if MEMORY_DEBUG
             ORCS_PRINTF ("is new.\n")
         #endif
-    } 
+    }
     return true;
 }
 

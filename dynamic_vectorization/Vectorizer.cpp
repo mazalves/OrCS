@@ -1,6 +1,24 @@
 #include "./../simulator.hpp"
 
 
+// Constants defined by configuration
+int32_t VECTORIZATION_SIZE; // 4
+int32_t NUM_VR; // 32
+int32_t VRMT_SIZE; // 32 					// Acho que precisa ser maior ou igual ao VR. Deve ser 1 <-> 1
+int32_t TL_SIZE; // 1
+int32_t FU_VALIDATION_SIZE; // 100
+int32_t FU_VALIDATION_WAIT_NEXT; // 1
+
+int32_t FETCH_BUFFER_VECTORIZED; // 100 	// Tamanho do buffer auxiliar que passa instruções
+                                    	 	// vetorizadas para o decode
+int32_t DECODE_BUFFER_VECTORIZED; // 100  // Tamanho do buffer auxiliar que passa instruções
+                                    	   // vetorizadas para o rename
+
+uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para instruções vetoriais
+		                               			// Supostamente elas não entram no ROB, mas com esse espaço extra
+		                               			// dedicado fica mais fácil gerenciar
+
+
 int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
     /*
     printf("VR states: ");
@@ -26,7 +44,6 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
     // **************************************
     // Vectorizer_t:new_commit (!store)
     // **************************************
-
     if (inst->uop_operation != INSTRUCTION_OPERATION_MEM_STORE) {
 
         if (inst->is_vectorial_part >= 0) {
@@ -35,7 +52,11 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
             VR_state_bits_t *state_VR = &this->vr_control_bits[vr_id];
             if (inst->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
             {
-            	state_VR->positions[inst->is_vectorial_part].R = true;
+                for (int32_t i = 0; i < VECTORIZATION_SIZE; ++i)
+            	{
+            		state_VR->positions[i].R = true;
+            	}
+            	//state_VR->positions[inst->is_vectorial_part].R = true; // //ONE_LOAD
             } else {
 
             	for (int32_t i = 0; i < VECTORIZATION_SIZE; ++i)
@@ -50,16 +71,17 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
             // Set V
             // Reset U
             VR_state_bits_t * state_VR = &this->vr_control_bits[inst->VR_id];
-
-            state_VR->positions[inst->will_validate_offset].U = false;
-            state_VR->positions[inst->will_validate_offset].V = true;
+            if (inst->will_validate_offset < VECTORIZATION_SIZE){
+                state_VR->positions[inst->will_validate_offset].U = false;
+                state_VR->positions[inst->will_validate_offset].V = true;
+            }
 
         }
 
-        if (inst->will_free >= 0 && inst->will_free_offset >= 0) {
-            // Set F
-            VR_state_bits_t *state_VR = &this->vr_control_bits[inst->will_free];
+        if ((inst->will_free >= 0) && (inst->will_free_offset >= 0) && 
+            (inst->will_free < NUM_VR) && (inst->will_free_offset < VECTORIZATION_SIZE)) {
 
+            VR_state_bits_t *state_VR = &this->vr_control_bits[inst->will_free];
             state_VR->positions[inst->will_free_offset].F = true;
 
 
@@ -209,7 +231,9 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 }
 
 void Vectorizer_t::set_U (int32_t vr_id, int32_t index, bool value) {
-    this->vr_control_bits[vr_id].positions[index].U = value;
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].U = value;
+    }
 }
 
 
@@ -228,7 +252,17 @@ bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
 }
 
 DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
+    /*
+    printf("$$$$$$$$$$$$$$$$$$$\n");
+    printf("enter_pipeline\n");
+    if(inst->is_validation) {
+        printf(" --> Validação\n");
+    } else if(inst->is_vectorial_part >= 0) {
+        printf(" --> Parte %d\n", inst->is_vectorial_part);
 
+    }
+    printf("$$$$$$$$$$$$$$$$$$$\n");
+    */
     // Descobre se já possui alguma entrada na vrmt
     vector_map_table_entry_t * vrmt_entry = VRMT->find_pc(inst->opcode_address);
 
@@ -238,21 +272,16 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     if (inst->write_regs[0] == -1) return DV::NOT_WRITING;
     if (inst->write_regs[0] >= MAX_REGISTER_NUMBER) return DV::REGISTER_GREATER_THAN_MAX;
 
-    if (vrmt_entry == NULL) {
-    	if (destiny_reg->vectorial) {
-    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
-    		inst->will_free_offset = destiny_reg->offset;
-    	}
-
-    } else {
-    	// Como para duas instruções diferentes não é alocado o mesmo VR, basta ver se são iguais
-    	if (vrmt_entry->correspondent_VR != destiny_reg->correspondent_vectorial_reg) {
-    		inst->will_free = destiny_reg->correspondent_vectorial_reg;
-    		inst->will_free_offset = destiny_reg->offset;
-    	}
+    // A validação vai liberar (ela passa antes no pipeline)
+    // ONE_LOAD
+    if (destiny_reg->vectorial && inst->is_vectorial_part < 0) {
+    	inst->will_free = destiny_reg->correspondent_vectorial_reg;
+    	inst->will_free_offset = destiny_reg->offset;
     }
+    //printf("Got to free: %d[%d]\n", inst->will_free, inst->will_free_offset);
 
-    if (inst->VR_id >= 0) {
+
+    if (inst->VR_id >= 0 && inst->is_pre_vectorization == false) {
         // Check for vrmt_entry
 
         if (vrmt_entry == NULL)
@@ -267,22 +296,30 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
         register_rename_table[inst->write_regs[0]].vectorial = true;
         register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = inst->VR_id;
 
-        if (inst->is_validation) 
-        {
-        	register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset;
+        // Uma instrução acessa o que já foi validado
+        // Vectorial parts de forward vão acabar deixando em -1.
+        if (vrmt_entry->offset == 0) { // Pré-vetorização
+            register_rename_table[inst->write_regs[0]].offset = 3;
         } else {
-        	// Uma instrução acessa o que já foi validado
-            // Vectorial parts de forward vão acabar deixando em -1.
-        	register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1; 
+            register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1;
         }
 
-    } else { // inst->VR_id == -1
+        //printf("Vectorization: %d -- VR: %d -- Offset: %d\n", inst->write_regs[0], inst->VR_id,
+        //                                    register_rename_table[inst->write_regs[0]].offset);
+
+
+    } else if (inst->VR_id == -1) { // 
         // Set RAT as scalar register
         if ((inst->write_regs[0] != -1) && (inst->write_regs[0] < MAX_REGISTER_NUMBER)) {
             register_rename_table[inst->write_regs[0]].vectorial = false;
+            //printf("Scalarization: %d\n", inst->write_regs[0]);
 
         }
 
+    }
+    if (inst->is_validation){
+        // Remove registers dependency
+        inst->read_regs[0] = -1;
     }
 
     //printf("%lu libera %d [%d]\n", inst->opcode_address, inst->will_free, inst->will_free_offset);
@@ -345,6 +382,9 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
 
     // Libera registrador vetorial
     this->vr_state[vr_id] = -1;
+
+    // Impede re-liberação pelo GMRBB
+    vr_control_bits->MRBB = 0;
 
 }
 
@@ -425,4 +465,17 @@ void Vectorizer_t::statistics() {
         }
         if(close) fclose(output);
 
+}
+
+void Vectorizer_t::debug() {
+    printf(" ********* Table of loads (TL) ********* \n");
+    TL->list_contents();
+    printf(" ********* Vector Register Map Table (VRMT) ********* \n");
+    VRMT->list_contents();
+    printf("\n");
+    printf("Registers: ");
+    for (int32_t i = 0; i < NUM_VR; ++i) {
+        printf("%d ", this->vr_state[i]);
+    }
+    printf("\n");
 }

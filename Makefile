@@ -6,7 +6,7 @@ CPPFLAGS = $(FLAGS)
 BIN_NAME = orcs
 RM = rm -f
 
-FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O3 -pedantic -fsanitize=leak -Wno-stringop-truncation
+FLAGS =   -ggdb3 -g -Wall -Wextra -Werror -std=c++0x -lefence -O1 -pedantic -fsanitize=leak -Wno-stringop-truncation -lefence
 LDFLAGS = -ggdb3
 ########################################################################
 ##FOLDERS
@@ -107,3 +107,15 @@ clean:
 	-$(RM) $(BIN_NAME)
 	@echo OrCS cleaned!
 	@echo
+
+debug:
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose 2> log.valgrind  ./orcs_vet -c configuration_files/skylake.cfg -t ../simpleVecSum > log_debug_n
+
+orcs_vet: clean all
+	mv orcs orcs_vet
+	./orcs_vet -c configuration_files/skylake.cfg -t ../simpleVecSum512 > log_debug_n2
+
+
+10K_test:
+	./orcs_vet -c configuration_files/skylake.cfg -t ../simpleVecSum10K > log_debug_10K
+	./orcs_base -c configuration_files/skylake.cfg -t ../simpleVecSum10K > log_debug_base_10K

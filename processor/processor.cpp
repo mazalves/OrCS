@@ -1,5 +1,5 @@
 #include "./../simulator.hpp"
-
+int maiorNumPartes = 0;
 // =====================================================================
 processor_t::processor_t()
 {
@@ -16,6 +16,8 @@ processor_t::processor_t()
 	this->stall_full_MOB_Read = 0;
 	this->stall_full_MOB_Write = 0;
 	this->stall_full_ROB = 0;
+	this->stall_full_ROB_VET = 0;
+
 	//=============
 	//Statistics Dispatch
 	//=============
@@ -114,6 +116,7 @@ processor_t::processor_t()
 	this->MOB_WRITE = 0;
 	this->MOB_HIVE = 0;
 	this->MOB_VIMA = 0;
+	this->MOB_VECTORIAL = 0;
 	// =====================
 
 	// =====================
@@ -181,8 +184,8 @@ processor_t::processor_t()
 	this->memory_write_executed = 0;
 	this->memory_vima_executed = 0;
 	this->memory_hive_executed = 0;
+	this->memory_vectorial_executed = 0;
 
-	this->robUsed = 0;
 	//Setting Pointers to NULL
 	// ========OLDEST MEMORY OPERATIONS POINTER======
 	this->oldest_read_to_send = NULL;
@@ -194,6 +197,7 @@ processor_t::processor_t()
 	this->memory_order_buffer_write = NULL;
 	this->memory_order_buffer_hive = NULL;
 	this->memory_order_buffer_vima = NULL;
+	this->memory_order_buffer_vectorial = NULL;
 
 	this->memory_order_buffer_read_start = 0;
 	this->memory_order_buffer_read_used = 0;
@@ -207,12 +211,30 @@ processor_t::processor_t()
 	this->memory_order_buffer_vima_start = 0;
 	this->memory_order_buffer_vima_used = 0;
 	this->memory_order_buffer_vima_end = 0;
+	this->memory_order_buffer_vectorial_start = 0;
+	this->memory_order_buffer_vectorial_used = 0;
+	this->memory_order_buffer_vectorial_end = 0;
 	//=========DESAMBIGUATION ============
 	this->disambiguator = NULL;
 	// ==========RAT======
 	this->register_alias_table = NULL;
 	// ==========ROB========
-	this->reorderBuffer = NULL;
+	this->reorderBuffer.reorderBuffer = NULL;
+	this->vectorialReorderBuffer.reorderBuffer = NULL;
+
+	// Dynamic vectorization configs
+	VECTORIZATION_SIZE = 0;
+	NUM_VR = 0;
+	VRMT_SIZE = 0;
+	TL_SIZE = 0;
+	FU_VALIDATION_SIZE = 0;
+	FU_VALIDATION_WAIT_NEXT = 0;
+	FETCH_BUFFER_VECTORIZED = 0;
+	DECODE_BUFFER_VECTORIZED = 0;
+	ROB_VECTORIAL_SIZE = 0;
+
+
+
 }
 
 processor_t::~processor_t()
@@ -237,25 +259,35 @@ processor_t::~processor_t()
 		}
 	}
 
+	for (size_t i = 0; i < MOB_VECTORIAL; i++) {
+		utils_t::template_delete_array(this->memory_order_buffer_vectorial[i].mem_deps_ptr_array);
+	}
+
 	//Memory structures
 	utils_t::template_delete_array(this->memory_order_buffer_read);
 	utils_t::template_delete_array(this->memory_order_buffer_write);
 	utils_t::template_delete_array(this->memory_order_buffer_hive);
 	utils_t::template_delete_array(this->memory_order_buffer_vima);
+	utils_t::template_delete_array(this->memory_order_buffer_vectorial);
+
 	utils_t::template_delete_variable(this->disambiguator);
 	//auxiliar var to maintain status oldest instruction
 	utils_t::template_delete_variable(this->oldest_read_to_send);
 	utils_t::template_delete_variable(this->oldest_write_to_send);
 	utils_t::template_delete_variable(this->oldest_hive_to_send);
 	utils_t::template_delete_variable(this->oldest_vima_to_send);
+	utils_t::template_delete_variable(this->oldest_vectorial_to_send);
+
 
 	//deleting deps array rob
 	for (size_t i = 0; i < ROB_SIZE; i++)
 	{
-		utils_t::template_delete_array(this->reorderBuffer[i].reg_deps_ptr_array[0]);
+		utils_t::template_delete_array(this->reorderBuffer.reorderBuffer[i].reg_deps_ptr_array[0]);
 	}
 	// deleting rob
-	utils_t::template_delete_array(this->reorderBuffer);
+	utils_t::template_delete_array(this->reorderBuffer.reorderBuffer);
+	utils_t::template_delete_array(this->vectorialReorderBuffer.reorderBuffer);
+
 	//delete RAT
 	utils_t::template_delete_array(this->register_alias_table);
 
@@ -386,6 +418,7 @@ void processor_t::allocate() {
 
 	set_MOB_READ (cfg_processor["MOB_READ"]);
 	set_MOB_WRITE (cfg_processor["MOB_WRITE"]);
+	set_MOB_VECTORIAL (cfg_processor["MOB_VECTORIAL"]);
 
 	/*set_DEBUG(cfg_processor["DEBUG"]);
 	set_PROCESSOR_DEBUG(cfg_processor["PROCESSOR_DEBUG"]);
@@ -463,6 +496,7 @@ void processor_t::allocate() {
 	this->set_stall_wrong_branch(0);
 	this->memory_read_executed = 0;
 	this->memory_write_executed = 0;
+	this->memory_vectorial_executed = 0;
 
 	this->set_stall_full_FetchBuffer(0);
     this->set_stall_wrong_branch(0);
@@ -472,7 +506,11 @@ void processor_t::allocate() {
 	this->set_registerWrite(0);
 	this->set_stall_full_MOB_Read(0);
 	this->set_stall_full_MOB_Write(0);
+	this->set_stall_full_MOB_VET(0);
+
+
 	this->set_stall_full_ROB(0);
+	this->set_stall_full_ROB_VET(0);
 
 	this->set_stall_empty_RS(0);
 
@@ -501,21 +539,34 @@ void processor_t::allocate() {
 	// Initializating structures
 	//======================================================================
 	//======================================================================
+	// Vectorization
+	VECTORIZATION_SIZE = cfg_processor["VECTORIZATION_SIZE"];
+	NUM_VR = cfg_processor["NUM_VR"];
+	VRMT_SIZE = cfg_processor["VRMT_SIZE"];
+	TL_SIZE = cfg_processor["TL_SIZE"];
+	FU_VALIDATION_SIZE = cfg_processor["FU_VALIDATION_SIZE"];
+	FU_VALIDATION_WAIT_NEXT = cfg_processor["FU_VALIDATION_WAIT_NEXT"];
+	FETCH_BUFFER_VECTORIZED = cfg_processor["FETCH_BUFFER_VECTORIZED"];
+	DECODE_BUFFER_VECTORIZED = cfg_processor["DECODE_BUFFER_VECTORIZED"];
+	ROB_VECTORIAL_SIZE = cfg_processor["ROB_VECTORIAL_SIZE"];
+
 	// FetchBuffer
-	this->fetchBuffer.allocate(FETCH_BUFFER);
+	this->fetchBuffer.allocate(FETCH_BUFFER + FETCH_BUFFER_VECTORIZED);
+	vec_on_fetchBuffer = 0;
+	vec_on_decodeBuffer = 0;
+	esc_on_decodeBuffer = 0;
+
 	// DecodeBuffer
-	this->decodeBuffer.allocate(DECODE_BUFFER);
+	this->decodeBuffer.allocate(DECODE_BUFFER + DECODE_BUFFER_VECTORIZED);
+
 	// Register Alias Table
 	this->register_alias_table = utils_t::template_allocate_initialize_array<reorder_buffer_line_t *>(RAT_SIZE, NULL);
+
 	// Reorder Buffer
-	this->robStart = 0;
-	this->robEnd = 0;
-	this->robUsed = 0;
-	this->reorderBuffer = utils_t::template_allocate_array<reorder_buffer_line_t>(ROB_SIZE);
-	for (uint32_t i = 0; i < ROB_SIZE; i++)
-	{
-		this->reorderBuffer[i].reg_deps_ptr_array = utils_t::template_allocate_initialize_array<reorder_buffer_line_t *>(ROB_SIZE, NULL);
-	}
+	this->reorderBuffer.init(ROB_SIZE);
+
+	// Vectorial Reorder Buffer
+	this->vectorialReorderBuffer.init(ROB_VECTORIAL_SIZE);
 	// =========================================================================================
 	// // Memory Order Buffer Read
 	this->memory_order_buffer_read = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_READ);
@@ -567,6 +618,18 @@ void processor_t::allocate() {
 		this->memory_order_buffer_vima_used = 0;
 	}
 	// =========================================================================================
+	// // Memory Order Buffer Vectorial
+	this->memory_order_buffer_vectorial = utils_t::template_allocate_array<memory_order_buffer_line_t>(MOB_VECTORIAL);
+	for (size_t i = 0; i < MOB_VECTORIAL; i++)
+	{
+		this->memory_order_buffer_vectorial[i].mem_deps_ptr_array = utils_t::template_allocate_initialize_array<memory_order_buffer_line_t *>(ROB_SIZE, NULL);
+	}
+	// =========================================================================================
+	// LOAD
+	this->memory_order_buffer_vectorial_start = 0;
+	this->memory_order_buffer_vectorial_end = 0;
+	this->memory_order_buffer_vectorial_used = 0;
+	// =========================================================================================
 	//disambiguator
 	switch (this->DISAMBIGUATION_METHOD){
 		case DISAMBIGUATION_METHOD_HASHED:{
@@ -582,7 +645,7 @@ void processor_t::allocate() {
 
 	// =========================================================================================
 	// Dynamic vectorization
-	// =========================================================================================
+	// =========================================================================================	
 	this->inst_list.allocate(10); // Aloca tamanho suficiente para 1 vetorização
 	pipeline_squashed = false;
 	store_squashing = 0;
@@ -619,10 +682,15 @@ void processor_t::allocate() {
 	if (get_HAS_VIMA())
         this->fu_mem_vima.allocate(fu_cnt++, VIMA_UNIT, WAIT_NEXT_MEM_VIMA);
 
+	// Dispatch validation
+	this->fu_validation.allocate(fu_cnt++, FU_VALIDATION_SIZE, FU_VALIDATION_WAIT_NEXT);
+
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_reservation_station.reserve(ROB_SIZE);
+	this->unified_vectorial_reservation_station.reserve(ROB_VECTORIAL_SIZE);
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_functional_units.reserve(ROB_SIZE);
+	this->unified_vectorial_functional_units.reserve(ROB_VECTORIAL_SIZE);
 
 	this->last_oldest_uop_dispatch = 0;
 
@@ -643,7 +711,8 @@ bool processor_t::isBusy(){
 	return (this->traceIsOver == false ||
 			!this->fetchBuffer.is_empty() ||
 			!this->decodeBuffer.is_empty() ||
-			this->robUsed != 0);
+			reorderBuffer.robUsed != 0 ||
+			vectorialReorderBuffer.robUsed != 0);
 }
 
 // ======================================
@@ -651,19 +720,21 @@ bool processor_t::isBusy(){
 // The Reorder Buffer behavior is a Circular FIFO
 // @return position to insert
 // ======================================
-int32_t processor_t::searchPositionROB(){
+int32_t processor_t::searchPositionROB(ROB_t *rob){
 	int32_t position = POSITION_FAIL;
-	/// There is free space.
-	if (this->robUsed < ROB_SIZE)
+
+	/// There is free space
+	if (rob->robUsed < rob->SIZE)
 	{
-		position = this->robEnd;
-		this->robUsed++;
-		this->robEnd++;
-		if (this->robEnd >= ROB_SIZE)
+		position = rob->robEnd;
+		rob->robUsed++;
+		rob->robEnd++;
+		if (rob->robEnd >= rob->SIZE)
 		{
-			this->robEnd = 0;
+			rob->robEnd = 0;
 		}
 	}
+
 	return position;
 }
 
@@ -671,15 +742,15 @@ int32_t processor_t::searchPositionROB(){
 // Remove the Head of the reorder buffer
 // The Reorder Buffer behavior is a Circular FIFO
 // ======================================
-void processor_t::removeFrontROB(){
-	ERROR_ASSERT_PRINTF(this->robUsed > 0, "Removendo do ROB sem estar usado\n")
-	ERROR_ASSERT_PRINTF(this->reorderBuffer[this->robStart].reg_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n",this->reorderBuffer[this->robStart].content_to_string().c_str())
-	this->reorderBuffer[this->robStart].package_clean();
-	this->robUsed--;
-	this->robStart++;
-	if (this->robStart >= ROB_SIZE)
+void processor_t::removeFrontROB(ROB_t *rob){
+
+	ERROR_ASSERT_PRINTF(rob->reorderBuffer[rob->robStart].reg_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n",rob->reorderBuffer[rob->robStart].content_to_string().c_str())
+	rob->reorderBuffer[rob->robStart].package_clean();
+	rob->robUsed--;
+	rob->robStart++;
+	if (rob->robStart >= rob->SIZE)
 	{
-		this->robStart = 0;
+		rob->robStart = 0;
 	}
 }
 
@@ -722,6 +793,29 @@ void processor_t::remove_front_mob_read(){
 	if (this->memory_order_buffer_read_start >= MOB_READ)
 	{
 		this->memory_order_buffer_read_start = 0;
+	}
+}
+
+// ============================================================================
+// remove back mob read on rob entry missing
+// ============================================================================
+void processor_t::remove_back_mob_read(){
+	#if COMMIT_DEBUG
+		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+			ORCS_PRINTF("==========\n")
+			ORCS_PRINTF("RM MOB Read Back Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
+			ORCS_PRINTF("==========\n")
+		}
+	#endif
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_read_used > 0, "Removendo do MOB_READ sem estar usado\n")
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_read[this->memory_order_buffer_read_end].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n",this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
+	this->memory_order_buffer_read_used--;
+	this->memory_order_buffer_read[this->memory_order_buffer_read_end].package_clean();
+	if (this->memory_order_buffer_read_end == 0)
+	{
+		this->memory_order_buffer_read_end = MOB_READ - 1;
+	} else {
+		this->memory_order_buffer_read_end--;		
 	}
 }
 
@@ -809,6 +903,48 @@ void processor_t::remove_front_mob_vima(){
 }
 
 // ============================================================================
+// get position on MOB vectorial.
+// ============================================================================
+int32_t processor_t::search_position_mob_vectorial(){
+	int32_t position = POSITION_FAIL;
+	/// There is free space.
+	if (this->memory_order_buffer_vectorial_used < MOB_VECTORIAL)
+	{
+		position = this->memory_order_buffer_vectorial_end;
+		this->memory_order_buffer_vectorial_used++;
+		this->memory_order_buffer_vectorial_end++;
+		if (this->memory_order_buffer_vectorial_end >= MOB_VECTORIAL)
+		{
+			this->memory_order_buffer_vectorial_end = 0;
+		}
+	}
+	return position;
+}
+
+// ============================================================================
+// remove front mob read on commit
+// ============================================================================
+void processor_t::remove_front_mob_vectorial(){
+	#if COMMIT_DEBUG
+		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+			ORCS_PRINTF("==========\n")
+			ORCS_PRINTF("RM MOB vectorial Entry \n%s\n", this->memory_order_buffer_vectorial[this->memory_order_buffer_vectorial_start].content_to_string().c_str())
+			ORCS_PRINTF("==========\n")
+		}
+	#endif
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vectorial_used > 0, "Removendo do MOB_VECTORIAL sem estar usado\n")
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vectorial[this->memory_order_buffer_vectorial_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n",this->memory_order_buffer_vectorial[this->memory_order_buffer_vectorial_start].content_to_string().c_str())
+	this->memory_order_buffer_vectorial_used--;
+
+	this->memory_order_buffer_vectorial[this->memory_order_buffer_vectorial_start].package_clean();
+	this->memory_order_buffer_vectorial_start++;
+	if (this->memory_order_buffer_vectorial_start >= MOB_VECTORIAL)
+	{
+		this->memory_order_buffer_vectorial_start = 0;
+	}
+}
+
+// ============================================================================
 // get position on MOB write.
 // MOB read is a circular buffer
 // ============================================================================
@@ -852,6 +988,34 @@ void processor_t::remove_front_mob_write(){
 	{
 		this->memory_order_buffer_write_start = 0;
 	}
+
+}
+
+// ============================================================================
+// remove front mob read on commit
+// ============================================================================
+void processor_t::remove_back_mob_write(){
+	#if COMMIT_DEBUG
+		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+			ORCS_PRINTF("==========\n")
+			ORCS_PRINTF("RM MOB Write Back Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_end].content_to_string().c_str())
+			ORCS_PRINTF("==========\n")
+		}
+	#endif
+	#if MEMORY_DEBUG
+		ORCS_PRINTF ("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_write[this->memory_order_buffer_write_end].memory_address, get_enum_memory_operation_char (memory_order_buffer_write[this->memory_order_buffer_write_end].memory_operation), get_enum_package_state_char(this->memory_order_buffer_write[this->memory_order_buffer_write_end].status), this->memory_order_buffer_write[this->memory_order_buffer_write_end].readyAt)
+	#endif
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write_used > 0, "Removendo do MOB_WRITE sem estar usado\n")
+
+	this->memory_order_buffer_write_used--;
+	this->memory_order_buffer_write[this->memory_order_buffer_write_end].package_clean();
+	if (this->memory_order_buffer_write_end == 0)
+	{
+		this->memory_order_buffer_write_end = MOB_READ - 1;
+	} else {
+		this->memory_order_buffer_write_end--;		
+	}
+
 }
 // ============================================================================
 
@@ -860,7 +1024,7 @@ void processor_t::fetch(){
 	opcode_package_t operation;
 	// uint32_t position;
 	// Trace ->fetchBuffer
-	for (uint32_t i = 0; i < FETCH_WIDTH; i++) {
+	for (uint32_t i = 0; (i < FETCH_WIDTH) || (inst_list.size > 0); i++) {
 		if (orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_INST) ||
 		    (inst_list.size > 0)){
 			operation.package_clean();
@@ -876,7 +1040,7 @@ void processor_t::fetch(){
 			//=============================
 			//Stall full fetch buffer
 			//=============================
-			if (this->fetchBuffer.is_full()) {
+			if (this->fetchBuffer.size == (FETCH_BUFFER + vec_on_fetchBuffer)) {
 				this->add_stall_full_FetchBuffer();
 				break;
 			}
@@ -892,14 +1056,17 @@ void processor_t::fetch(){
 			if (inst_list.size > 0) {
 				operation = *this->inst_list.back();
 				this->inst_list.pop_back();
+				--i;
 
 			} else if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation)){
 				this->traceIsOver = true;
 				break;
 			}
 			#if FETCH_DEBUG
-				ORCS_PRINTF("Opcode Fetched %s\n", operation.content_to_string2().c_str())
+				ORCS_PRINTF("%s - Opcode Fetched %s\n", operation.opcode_assembly, operation.content_to_string2().c_str())
 			#endif
+
+			
 
 			//============================
 			// Vetorização
@@ -910,6 +1077,8 @@ void processor_t::fetch(){
 				printf("ERROR: One instruction with two reads\n");
 				exit(1);
 			}
+
+			//vectorizer->debug();
 
 			// * ============================ * //
 
@@ -967,20 +1136,23 @@ void processor_t::fetch(){
 			//============================
 			//Insert into fetch buffer
 			//============================
+		
 			if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
 				break;
 			}
-
+			
 			#if PROCESSOR_DEBUG
-				ORCS_PRINTF("%lu processor %lu fetch(): opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                        orcs_engine.get_global_cycle(),
+				ORCS_PRINTF("%lu processor %lu fetch(): addr %lu opcode %lu %s, Type: %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+						orcs_engine.get_global_cycle(),
                         this->processor_id,
+						operation.opcode_address,
                         operation.opcode_number,
                         get_enum_instruction_operation_char(operation.opcode_operation),
+						(operation.is_validation) ? "Val" : (operation.is_vectorial_part >= 0) ? "VP" : "Ins",
                         operation.readyAt,
                         this->fetchBuffer.get_size(),
                         this->decodeBuffer.get_size(),
-                        this->robUsed);
+                        reorderBuffer.robUsed);				
 			#endif
 
 			if (fetchBuffer.back()->is_vectorial_part < 0) {
@@ -1004,12 +1176,13 @@ void processor_t::fetch(){
 				request->op_count[request->memory_operation]++;
 
 				#if MEMORY_DEBUG
-					ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+					ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.I\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 				#endif
 
 				if (!orcs_engine.cacheManager->searchData(request)) delete request;
 			} else {
 				fetchBuffer.back()->status = PACKAGE_STATE_READY;
+				++vec_on_fetchBuffer;
 			}
 		}
 	}
@@ -1040,7 +1213,7 @@ void processor_t::fetch(){
 	============================================================================
 */
 std::map<std::string, int> instr_cnt;
-
+//int32_t validations = 0;
 void processor_t::decode(){
 	#if DECODE_DEBUG
 		ORCS_PRINTF("Decode Stage\n")
@@ -1051,27 +1224,28 @@ void processor_t::decode(){
 
 	uop_package_t new_uop;
 	int32_t statusInsert = POSITION_FAIL;
-
+	
 	for (size_t i = 0; i < DECODE_WIDTH; i++)
 	{
-        if (this->fetchBuffer.is_empty())
-            break;
+        if (this->fetchBuffer.is_empty()) {
+		    break;
+		}
 
-
-        opcode_package_t *instr = this->fetchBuffer.front();
-        instr_cnt[std::string(instr->opcode_assembly)]++;
+		opcode_package_t *instr = this->fetchBuffer.front();
         instruction_set_t *instr_set = orcs_engine.instruction_set;
         instruction_operation_t instr_op = instr->opcode_operation;
 
 
         // First instruction must be ready
-		if (instr->status != PACKAGE_STATE_READY || instr->readyAt > orcs_engine.get_global_cycle())
+		if (instr->status != PACKAGE_STATE_READY || instr->readyAt > orcs_engine.get_global_cycle()) {	
 			break;
+		}
 
         uint32_t num_uops = 0;
 
         if ((get_HAS_HIVE() && instr->is_hive) ||
-            (get_HAS_VIMA() && instr->is_vima))
+            (get_HAS_VIMA() && instr->is_vima) ||
+			(instr->is_validation))
             num_uops += 1;
         else {
             num_uops += instr->is_read + instr->is_read2 + instr->is_write;
@@ -1082,20 +1256,57 @@ void processor_t::decode(){
                 instr_op != INSTRUCTION_OPERATION_MEM_STORE)
                 num_uops += instr_set->uops_per_instruction[instr->instruction_id].size();
         }
-
+		
 
         // Make sure there's enough space in decodeBuffer
+		if (instr->is_vectorial_part < 0) {
+			if (DECODE_BUFFER - esc_on_decodeBuffer < num_uops) {
+				this->add_stall_full_DecodeBuffer();
+				//printf("Scalar decode full: %u/%u\n", esc_on_decodeBuffer, DECODE_BUFFER);
+				break;
+			}
+			esc_on_decodeBuffer += num_uops;
+		} else {
+			if (DECODE_BUFFER_VECTORIZED - vec_on_decodeBuffer < num_uops) {
+				this->add_stall_full_DecodeBuffer();
+				//printf("Vectorial decode full: %u/%u\n", vec_on_decodeBuffer, DECODE_BUFFER_VECTORIZED);
+				break;
+			}
+			vec_on_decodeBuffer += num_uops;
+
+		}
+		
+		/*
 		if (this->decodeBuffer.get_capacity() - this->decodeBuffer.get_size() < num_uops)
 		{
 			this->add_stall_full_DecodeBuffer();
 			break;
+		}*/
+
+		// Count execute instructions
+		if (instr->is_validation)
+		{
+			instr_cnt[std::string(instr->opcode_assembly) + " - Val"]++;
+		} else if (instr->is_vectorial_part >= 0) {
+			instr_cnt[std::string(instr->opcode_assembly) + " - VP"]++;
+		} else {
+			instr_cnt[std::string(instr->opcode_assembly) + " - INS"]++;
 		}
 
+		// REMOVE
+		/*printf("Is_validation: %s\n", (instr->is_validation) ? "true" : "false");
+		printf("Is_vec_part: %s\n", (instr->is_vectorial_part >= 0) ? "true" : "false");
+		
+		printf("---- New opcode: %lu - %d\n", instr->opcode_number, validations);
+		printf("---- Instr_op: %d\n", instr_op);*/
+		//instr->opcode_number -= validations;
 
+		//printf("Decode counter: %lu -- Received: %lu\n", this->decodeCounter, instr->opcode_number);
 		ERROR_ASSERT_PRINTF(this->decodeCounter == instr->opcode_number,
                 "Trying decode out-of-order");
 
 		this->decodeCounter++;
+
 
 		// HIVE
 		if (get_HAS_HIVE())
@@ -1257,182 +1468,235 @@ void processor_t::decode(){
 			}
 		}
 
-		// =====================
-		// Decode Read 1
-		// =====================
-		if (instr->is_read)
-		{
-			new_uop.package_clean();
-			new_uop.opcode_to_uop(this->uopCounter++,
-                    INSTRUCTION_OPERATION_MEM_LOAD,
-                    instr->read_address,
-                    instr->read_size,
-                    this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
-                    *this->fetchBuffer.front());
-
-            // If op is not load, clear registers
-			if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
+		if (instr->is_validation == false) {
+			// =====================
+			// Decode Read 1
+			// =====================
+			if (instr->is_read)
 			{
-				// ===== Read Regs =============================================
-				/// Clear RRegs
-                for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				new_uop.package_clean();
+				new_uop.opcode_to_uop(this->uopCounter++,
+        	            INSTRUCTION_OPERATION_MEM_LOAD,
+        	            instr->read_address,
+        	            instr->read_size,
+        	            this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
+        	            *this->fetchBuffer.front());
+
+        	    // If op is not load, clear registers
+				if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 				{
-                    new_uop.read_regs[i] = POSITION_FAIL;
+					// ===== Read Regs =============================================
+					/// Clear RRegs
+        	        for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+        	            new_uop.read_regs[i] = POSITION_FAIL;
+					}
+
+					/// Insert BASE and INDEX into RReg
+					new_uop.read_regs[0] = instr->base_reg;
+					new_uop.read_regs[1] = instr->index_reg;
+
+					// ===== Write Regs =============================================
+					/// Clear WRegs
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						new_uop.write_regs[i] = POSITION_FAIL;
+					}
+
+					/// Insert 258 into WRegs
+					new_uop.write_regs[0] = 258;
 				}
 
-				/// Insert BASE and INDEX into RReg
-				new_uop.read_regs[0] = instr->base_reg;
-				new_uop.read_regs[1] = instr->index_reg;
+				new_uop.updatePackageWait(DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
+				statusInsert = this->decodeBuffer.push_back(new_uop);
 
-				// ===== Write Regs =============================================
-				/// Clear WRegs
-				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-				{
-					new_uop.write_regs[i] = POSITION_FAIL;
-				}
+				#if DECODE_DEBUG
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				#endif
 
-				/// Insert 258 into WRegs
-				new_uop.write_regs[0] = 258;
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+        	            "Erro, Tentando decodificar mais uops que o maximo permitido");
 			}
 
-			new_uop.updatePackageWait(DECODE_LATENCY);
-			new_uop.born_cycle = orcs_engine.get_global_cycle();
-			this->total_operations[new_uop.opcode_operation]++;
-			statusInsert = this->decodeBuffer.push_back(new_uop);
-
-			#if DECODE_DEBUG
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			#endif
-
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-                    "Erro, Tentando decodificar mais uops que o maximo permitido");
-		}
-
-		// =====================
-		// Decode Read 2
-		// =====================
-		if (instr->is_read2)
-		{
-			new_uop.package_clean();
-			new_uop.opcode_to_uop(this->uopCounter++,
-                    INSTRUCTION_OPERATION_MEM_LOAD,
-                    instr->read2_address,
-                    instr->read2_size,
-                    this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
-                    *instr);
-
-            // If op is not load, clear registers
-			if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
+			// =====================
+			// Decode Read 2
+			// =====================
+			if (instr->is_read2)
 			{
-				// ===== Read Regs =============================================
-				/// Clear RRegs
-				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				new_uop.package_clean();
+				new_uop.opcode_to_uop(this->uopCounter++,
+        	            INSTRUCTION_OPERATION_MEM_LOAD,
+        	            instr->read2_address,
+        	            instr->read2_size,
+        	            this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
+        	            *instr);
+
+        	    // If op is not load, clear registers
+				if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 				{
-					new_uop.read_regs[i] = POSITION_FAIL;
+					// ===== Read Regs =============================================
+					/// Clear RRegs
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						new_uop.read_regs[i] = POSITION_FAIL;
+					}
+
+					/// Insert BASE and INDEX into RReg
+					new_uop.read_regs[0] = instr->base_reg;
+					new_uop.read_regs[1] = instr->index_reg;
+
+					// ===== Write Regs =============================================
+					/// Clear WRegs
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						new_uop.write_regs[i] = POSITION_FAIL;
+					}
+
+					/// Insert 258 into WRegs
+					new_uop.write_regs[0] = 258;
 				}
 
-				/// Insert BASE and INDEX into RReg
-				new_uop.read_regs[0] = instr->base_reg;
-				new_uop.read_regs[1] = instr->index_reg;
+				new_uop.updatePackageWait(DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
+				statusInsert = this->decodeBuffer.push_back(new_uop);
 
-				// ===== Write Regs =============================================
-				/// Clear WRegs
-				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-				{
-					new_uop.write_regs[i] = POSITION_FAIL;
-				}
+				#if DECODE_DEBUG
+					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				#endif
 
-				/// Insert 258 into WRegs
-				new_uop.write_regs[0] = 258;
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+        	            "Erro, Tentando decodificar mais uops que o maximo permitido");
 			}
 
-			new_uop.updatePackageWait(DECODE_LATENCY);
-			new_uop.born_cycle = orcs_engine.get_global_cycle();
-			this->total_operations[new_uop.opcode_operation]++;
-			statusInsert = this->decodeBuffer.push_back(new_uop);
+			// =====================
+			// Decode ALU Operation
+			// =====================
+			if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
+				instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
+				instr_op != INSTRUCTION_OPERATION_MEM_STORE)
+			{
+        	    uint32_t instr_id = instr->instruction_id;
+        	    std::vector<uint32_t> &uops = instr_set->uops_per_instruction[instr_id];
 
-			#if DECODE_DEBUG
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			#endif
+        	    // Iterate over uops from instruction
+        	    for (uint32_t uop_idx : uops)
+        	    {
+        	        uop_info_t uop = instr_set->uops[uop_idx];
 
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-                    "Erro, Tentando decodificar mais uops que o maximo permitido");
+        	        new_uop.package_clean();
+        	        new_uop.opcode_to_uop(this->uopCounter++,
+        	            instr_op,
+        	            0, 0,
+        	            uop.latency,
+        	            this->functional_units[uop.fu_id].wait_next,
+        	            &(this->functional_units[uop.fu_id]),
+        	            *instr);
+
+        	        if (instr->is_read || instr->is_read2)
+        	        {
+        	            // ===== Read Regs =============================================
+        	            //registers /258 aux onde pos[i] = fail
+        	            bool inserted_258 = false;
+        	            for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        	                if (new_uop.read_regs[i] == POSITION_FAIL) {
+        	                    new_uop.read_regs[i] = 258;
+        	                    inserted_258 = true;
+        	                    break;
+        	                }
+        	            }
+
+        	            ERROR_ASSERT_PRINTF(inserted_258,
+        	                    "Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
+        	                    MAX_REGISTERS);
+        	        }
+
+        	        if (instr->is_write)
+        	        {
+        	            // ===== Write Regs =============================================
+        	            //registers /258 aux onde pos[i] = fail
+        	            bool inserted_258 = false;
+        	            for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        	                if (new_uop.write_regs[i] == POSITION_FAIL) {
+        	                    new_uop.write_regs[i] = 258;
+        	                    inserted_258 = true;
+        	                    break;
+        	                }
+        	            }
+
+        	            ERROR_ASSERT_PRINTF(inserted_258,
+        	                    "Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
+        	                    MAX_REGISTERS);
+        	        }
+
+        	        new_uop.updatePackageWait(DECODE_LATENCY);
+        	        new_uop.born_cycle = orcs_engine.get_global_cycle();
+        	        this->total_operations[new_uop.opcode_operation]++;
+        	        statusInsert = this->decodeBuffer.push_back(new_uop);
+
+        	        #if DECODE_DEBUG
+        	            ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+        	        #endif
+
+        	        ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+        	                "Erro, Tentando decodificar mais uops que o maximo permitido");
+        	    }
+			}
+		} else { // Se é uma validação
+				// Envia para commit
+			// REMOVE
+			new_uop.package_clean();
+        	new_uop.opcode_to_uop(this->uopCounter++, // 0
+        	    instr_op,
+        	    0, 0,
+        	    0,
+        	    this->fu_validation.wait_next,
+        	    &(this->fu_validation),
+        	    *instr);
+
+
+			new_uop.read_regs[0] = 258;
+
+        	if (instr->is_write)
+        	{
+        	    // ===== Write Regs =============================================
+        	    //registers /258 aux onde pos[i] = fail
+        	    bool inserted_258 = false;
+        	    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
+        	        if (new_uop.write_regs[i] == POSITION_FAIL) {
+        	            new_uop.write_regs[i] = 258;
+        	            inserted_258 = true;
+        	            break;
+        	        }
+        	    }
+        	    ERROR_ASSERT_PRINTF(inserted_258,
+        	            "Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
+        	            MAX_REGISTERS);
+        	}
+			new_uop.updatePackageWait(0);
+        	new_uop.born_cycle = orcs_engine.get_global_cycle();
+        	this->total_operations[new_uop.opcode_operation]++;
+			// REMOVE
+        	statusInsert = this->decodeBuffer.push_back(new_uop);
+
+			// Send to commit
+			//this->reorderBuffer[pos_rob].uop = new_uop;
+			//this->reorderBuffer[pos_rob].stage = PROCESSOR_STAGE_COMMIT;
+			//this->reorderBuffer[pos_rob].uop.status = PACKAGE_STATE_READY;
+			//this->reorderBuffer[pos_rob].uop.readyAt = orcs_engine.get_global_cycle();
+			//validations++;
+			//this->decodeCounter--;
+			//vectorizer->new_commit(&new_uop);
+
+        	#if DECODE_DEBUG
+        	    ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+        	#endif
+
+        	//ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+        	//        "Erro, Tentando decodificar mais uops que o maximo permitido");
 		}
-
-		// =====================
-		// Decode ALU Operation
-		// =====================
-		if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
-			instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
-			instr_op != INSTRUCTION_OPERATION_MEM_STORE)
-		{
-            uint32_t instr_id = instr->instruction_id;
-            std::vector<uint32_t> &uops = instr_set->uops_per_instruction[instr_id];
-
-            // Iterate over uops from instruction
-            for (uint32_t uop_idx : uops)
-            {
-                uop_info_t uop = instr_set->uops[uop_idx];
-
-                new_uop.package_clean();
-                new_uop.opcode_to_uop(this->uopCounter++,
-                    instr_op,
-                    0, 0,
-                    uop.latency,
-                    this->functional_units[uop.fu_id].wait_next,
-                    &(this->functional_units[uop.fu_id]),
-                    *instr);
-
-                if (instr->is_read || instr->is_read2)
-                {
-                    // ===== Read Regs =============================================
-                    //registers /258 aux onde pos[i] = fail
-                    bool inserted_258 = false;
-                    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-                        if (new_uop.read_regs[i] == POSITION_FAIL) {
-                            new_uop.read_regs[i] = 258;
-                            inserted_258 = true;
-                            break;
-                        }
-                    }
-
-                    ERROR_ASSERT_PRINTF(inserted_258,
-                            "Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
-                            MAX_REGISTERS);
-                }
-
-                if (instr->is_write)
-                {
-                    // ===== Write Regs =============================================
-                    //registers /258 aux onde pos[i] = fail
-                    bool inserted_258 = false;
-                    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-                        if (new_uop.write_regs[i] == POSITION_FAIL) {
-                            new_uop.write_regs[i] = 258;
-                            inserted_258 = true;
-                            break;
-                        }
-                    }
-
-                    ERROR_ASSERT_PRINTF(inserted_258,
-                            "Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
-                            MAX_REGISTERS);
-                }
-
-                new_uop.updatePackageWait(DECODE_LATENCY);
-                new_uop.born_cycle = orcs_engine.get_global_cycle();
-                this->total_operations[new_uop.opcode_operation]++;
-                statusInsert = this->decodeBuffer.push_back(new_uop);
-
-                #if DECODE_DEBUG
-                    ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-                #endif
-
-                ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-                        "Erro, Tentando decodificar mais uops que o maximo permitido");
-            }
-		}
-
 		// =====================
 		//Decode Branch
 		// =====================
@@ -1499,7 +1763,7 @@ void processor_t::decode(){
 		// =====================
 		//Decode Write
 		// =====================
-		if (instr->is_write)
+		if (instr->is_write && (instr->is_validation == false))
 		{
 			new_uop.package_clean();
 			new_uop.opcode_to_uop(this->uopCounter++,
@@ -1546,18 +1810,25 @@ void processor_t::decode(){
 		}
 
 		#if PROCESSOR_DEBUG
-			ORCS_PRINTF("%lu processor %lu decode(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF("%lu processor %lu decode(): addr %lu uop %lu %s, Type: %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+					orcs_engine.get_global_cycle(),
                     this->processor_id,
+					new_uop.opcode_address,
                     new_uop.uop_number,
                     get_enum_instruction_operation_char(new_uop.uop_operation),
+					(new_uop.is_validation) ? "Val" : (new_uop.is_vectorial_part >= 0) ? "VP" : "Ins",
                     new_uop.readyAt,
                     this->fetchBuffer.get_size(),
                     this->decodeBuffer.get_size(),
-                    this->robUsed);
+                    reorderBuffer.robUsed);
 		#endif
 
+		if (new_uop.is_vectorial_part >= 0) {
+			--vec_on_fetchBuffer;
+			--i; // Parte vetorial não conta pq começa aqui
+		}
 		this->fetchBuffer.pop_front();
+		
 	}
 }
 
@@ -1607,6 +1878,7 @@ void processor_t::rename(){
 	for (i = 0; i < RENAME_WIDTH; i++)
 	{
 		memory_order_buffer_line_t *mob_line = NULL;
+
 		// Checando se há uop decodificado, se está pronto, e se o ciclo de pronto
 		// é maior ou igual ao atual
 		if (this->decodeBuffer.is_empty() ||
@@ -1614,27 +1886,33 @@ void processor_t::rename(){
             this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()) {
 			break;
 		}
-
+	
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n");
-
-
-
+		bool is_vectorial_part = (this->decodeBuffer.front()->is_vectorial_part >= 0);
 		//=======================
 		// Memory Operation Read
 		//=======================
 		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD && (this->decodeBuffer.front()->is_validation == false))
 		{
-			if(	this->memory_order_buffer_read_used>=MOB_READ || this->robUsed>=ROB_SIZE ) {
+
+			if(	(is_vectorial_part == false) && (this->memory_order_buffer_read_used>=MOB_READ || reorderBuffer.robUsed>=ROB_SIZE) ) {
+				break;
+			} else if ( (is_vectorial_part == true) && (this->memory_order_buffer_vectorial_used>=MOB_VECTORIAL || vectorialReorderBuffer.robUsed>=ROB_VECTORIAL_SIZE) ) {
 				break;
 			}
-
-			pos_mob = this->search_position_mob_read();
+			
+			pos_mob = (is_vectorial_part == false) ? this->search_position_mob_read()
+												   : this->search_position_mob_vectorial();
 			if (pos_mob == POSITION_FAIL)
 			{
 				#if RENAME_DEBUG
 					ORCS_PRINTF("Stall_MOB_Read_Full\n")
 				#endif
+				if (is_vectorial_part == false) {
 				this->add_stall_full_MOB_Read();
+				} else {
+					this->add_stall_full_MOB_VET();
+				}
 				break;
 			}
 
@@ -1642,16 +1920,20 @@ void processor_t::rename(){
 				ORCS_PRINTF("Get_Position_MOB_READ %d\n",pos_mob);
 			#endif
 
-			mob_line = &this->memory_order_buffer_read[pos_mob];
+			mob_line = (is_vectorial_part == false) ? &this->memory_order_buffer_read[pos_mob]
+													: &this->memory_order_buffer_vectorial[pos_mob];
+			
 		}
 
 		//=======================
 		// Memory Operation Write
 		//=======================
 		if (this->decodeBuffer.front()->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
-			if (this->memory_order_buffer_write_used >= MOB_WRITE || this->robUsed >= ROB_SIZE)
-                break;
+			if(	this->memory_order_buffer_write_used>=MOB_READ || reorderBuffer.robUsed>=ROB_SIZE ) {
+				break;
+			}
 
+			
 			pos_mob = this->search_position_mob_write();
 			if (pos_mob == POSITION_FAIL) {
 				#if RENAME_DEBUG
@@ -1685,7 +1967,7 @@ void processor_t::rename(){
                 uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
                 uop_operation == INSTRUCTION_OPERATION_HIVE_STORE)
             {
-				if (this->memory_order_buffer_hive_used>=MOB_HIVE || this->robUsed>=ROB_SIZE)
+				if (this->memory_order_buffer_hive_used>=MOB_HIVE || reorderBuffer.robUsed>=ROB_SIZE)
                     break;
 
 				pos_mob = this->search_position_mob_hive();
@@ -1716,7 +1998,7 @@ void processor_t::rename(){
                 uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
                 uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)
             {
-				if (this->memory_order_buffer_vima_used >= MOB_VIMA || this->robUsed >= ROB_SIZE)
+				if (this->memory_order_buffer_vima_used >= MOB_VIMA || reorderBuffer.robUsed >= ROB_SIZE)
                     break;
 				else {
 					#if VIMA_DEBUGG
@@ -1737,266 +2019,307 @@ void processor_t::rename(){
 		}
 
 		//=======================
-		// Verificando se tem espaco no ROB se sim bamos inserir
+		// Verificando se tem espaco no ROB se sim vamos inserir
 		//=======================
-		pos_rob = this->searchPositionROB();
+		pos_rob = this->searchPositionROB((is_vectorial_part == false) ? &reorderBuffer : &vectorialReorderBuffer);
 		if (pos_rob == POSITION_FAIL)
 		{
 			#if RENAME_DEBUG
-				ORCS_PRINTF("Stall_MOB_Read_Full\n")
+				ORCS_PRINTF("Stall_ROB_Full\n")
 			#endif
-			this->add_stall_full_ROB();
+			/*ORCS_PRINTF("%lu - Stall_ROB_Full common: %u/%u -- vectorial: %u/%u\n", 
+						orcs_engine.get_global_cycle(), 
+						reorderBuffer.robUsed, reorderBuffer.SIZE, 
+						vectorialReorderBuffer.robUsed, 
+						vectorialReorderBuffer.SIZE);*/
+			if (is_vectorial_part == false) {
+				this->add_stall_full_ROB();
+			} else {
+				this->add_stall_full_ROB_VET();
+			}
 			break;
 		}
 
 		// ===============================================
 		// Inserting on ROB
 		// ===============================================
-		this->reorderBuffer[pos_rob].uop = *this->decodeBuffer.front();
+		reorder_buffer_line_t *rob_line = NULL;
+		if (is_vectorial_part == false) {
+			rob_line = &this->reorderBuffer.reorderBuffer[pos_rob];
+		} else {
+			rob_line = &this->vectorialReorderBuffer.reorderBuffer[pos_rob];
+		}
+
+		rob_line->uop = *this->decodeBuffer.front();
 
 		//remove uop from decodebuffer
+		if (is_vectorial_part == false) {
+			--esc_on_decodeBuffer;
+		} else {
+			--vec_on_decodeBuffer;
+			--i; // Não conta no decode
+		}
 		this->decodeBuffer.front()->package_clean();
 		this->decodeBuffer.pop_front();
 		this->renameCounter++;
 
+
 		// =======================
 		// Setting controls to ROB.
 		// =======================
-		this->reorderBuffer[pos_rob].stage = PROCESSOR_STAGE_RENAME;
-		this->reorderBuffer[pos_rob].uop.updatePackageWait(RENAME_LATENCY + DISPATCH_LATENCY);
-		this->reorderBuffer[pos_rob].mob_ptr = mob_line;
-		this->reorderBuffer[pos_rob].processor_id = this->processor_id;
-
+		rob_line->stage = PROCESSOR_STAGE_RENAME;
+		rob_line->uop.updatePackageWait(RENAME_LATENCY + DISPATCH_LATENCY);
+		rob_line->mob_ptr = mob_line;
+		rob_line->processor_id = this->processor_id;
+		
 		// =======================
 		// Making registers dependences
 		// =======================
-		this->update_registers(&this->reorderBuffer[pos_rob]);
+		if(is_vectorial_part == false) this->update_registers(rob_line);
+
+
+
 		#if RENAME_DEBUG
-			ORCS_PRINTF("Rename %s\n", this->reorderBuffer[pos_rob].content_to_string().c_str())
+			ORCS_PRINTF("Rename %s\n", rob_line->content_to_string().c_str())
 		#endif
 
 		// =======================
 		// Insert into Reservation Station
 		// =======================
-		this->unified_reservation_station.push_back(&this->reorderBuffer[pos_rob]);
+		// ONE_LOAD
+		// Faz a validação ir direto ao commit
+		if (rob_line->uop.is_validation == false) {
+			if (is_vectorial_part == false)
+				this->unified_reservation_station.push_back(rob_line);
+			else 
+				this->unified_vectorial_reservation_station.push_back(rob_line);
+		} else {
+			rob_line->stage = PROCESSOR_STAGE_COMMIT;
+			rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
+
+		}
+
 
 		// =======================
 		// Insert into MOB.
 		// =======================
-		if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD  && (this->reorderBuffer[pos_rob].uop.is_validation == false))
+		if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD  && (rob_line->uop.is_validation == false))
 		{
 			#if RENAME_DEBUG
 				ORCS_PRINTF("Mem Load\n")
 			#endif
-			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.memory_address;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_size = this->reorderBuffer[pos_rob].uop.memory_size;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_READ;
-			this->reorderBuffer[pos_rob].mob_ptr->status = PACKAGE_STATE_WAIT;
-			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
-			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
-			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
+			rob_line->mob_ptr->memory_address = rob_line->uop.memory_address;
+			rob_line->mob_ptr->memory_size = rob_line->uop.memory_size;
+			rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_READ;
+			rob_line->mob_ptr->status = PACKAGE_STATE_WAIT;
+			rob_line->mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
+			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
+			rob_line->mob_ptr->processor_id = this->processor_id;
 			#if MEMORY_DEBUG
 				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer.\n",
                         orcs_engine.get_global_cycle(),
-                        this->reorderBuffer[pos_rob].mob_ptr->memory_address,
-                        get_enum_memory_operation_char (this->reorderBuffer[pos_rob].mob_ptr->memory_operation));
+                        rob_line->mob_ptr->memory_address,
+                        get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
 			#endif
 		}
-		else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		else if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
         {
 			#if RENAME_DEBUG
 				ORCS_PRINTF("Mem Store\n")
 			#endif
-			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.memory_address;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_size = this->reorderBuffer[pos_rob].uop.memory_size;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_WRITE;
-			this->reorderBuffer[pos_rob].mob_ptr->status = PACKAGE_STATE_WAIT;
-			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
-			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
-			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
+			rob_line->mob_ptr->memory_address = rob_line->uop.memory_address;
+			rob_line->mob_ptr->memory_size = rob_line->uop.memory_size;
+			rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_WRITE;
+			rob_line->mob_ptr->status = PACKAGE_STATE_WAIT;
+			rob_line->mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
+			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
+			rob_line->mob_ptr->processor_id = this->processor_id;
 			#if MEMORY_DEBUG
 				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer.\n",
                         orcs_engine.get_global_cycle(),
-                        this->reorderBuffer[pos_rob].mob_ptr->memory_address,
-                        get_enum_memory_operation_char (this->reorderBuffer[pos_rob].mob_ptr->memory_operation));
+                        rob_line->mob_ptr->memory_address,
+                        get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
 			#endif
 		}
 		else if (this->get_HAS_HIVE() &&
-                (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
+                (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
         {
-			this->reorderBuffer[pos_rob].mob_ptr->is_hive = true;
-			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
-			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
-			this->reorderBuffer[pos_rob].mob_ptr->hive_read1 = this->reorderBuffer[pos_rob].uop.hive_read1;
-			this->reorderBuffer[pos_rob].mob_ptr->hive_read2 = this->reorderBuffer[pos_rob].uop.hive_read2;
-			this->reorderBuffer[pos_rob].mob_ptr->hive_write = this->reorderBuffer[pos_rob].uop.hive_write;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_size = this->reorderBuffer[pos_rob].uop.memory_size;
+			rob_line->mob_ptr->is_hive = true;
+			rob_line->mob_ptr->is_hive = false;
+			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
+			rob_line->mob_ptr->hive_read1 = rob_line->uop.hive_read1;
+			rob_line->mob_ptr->hive_read2 = rob_line->uop.hive_read2;
+			rob_line->mob_ptr->hive_write = rob_line->uop.hive_write;
+			rob_line->mob_ptr->memory_size = rob_line->uop.memory_size;
 
-			switch (this->reorderBuffer[pos_rob].uop.uop_operation){
+			switch (rob_line->uop.uop_operation){
 				case INSTRUCTION_OPERATION_HIVE_LOCK:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_LOCK;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_LOCK;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_UNLOCK:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_UNLOCK;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_UNLOCK;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_LOAD:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_LOAD;
-					this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.read_address;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_LOAD;
+					rob_line->mob_ptr->memory_address = rob_line->uop.read_address;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_STORE:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_STORE;
-					this->reorderBuffer[pos_rob].mob_ptr->memory_address = this->reorderBuffer[pos_rob].uop.write_address;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_STORE;
+					rob_line->mob_ptr->memory_address = rob_line->uop.write_address;
 					break;
 				case INSTRUCTION_OPERATION_HIVE_INT_ALU:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_ALU;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_ALU;
 					break;
             	case INSTRUCTION_OPERATION_HIVE_INT_MUL:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_MUL;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_MUL;
 					break;
             	case INSTRUCTION_OPERATION_HIVE_INT_DIV:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_DIV;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_INT_DIV;
 					break;
             	case INSTRUCTION_OPERATION_HIVE_FP_ALU:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_ALU;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_ALU;
 					break;
             	case INSTRUCTION_OPERATION_HIVE_FP_MUL:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_MUL;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_MUL;
 					break;
             	case INSTRUCTION_OPERATION_HIVE_FP_DIV:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_DIV;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_HIVE_FP_DIV;
 					break;
 				default:
 					break;
 			}
-			this->reorderBuffer[pos_rob].mob_ptr->status = PACKAGE_STATE_WAIT;
-			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
-			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
-			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			rob_line->mob_ptr->status = PACKAGE_STATE_WAIT;
+			rob_line->mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
+			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
+			rob_line->mob_ptr->processor_id = this->processor_id;
 		}
 		else if (this->get_HAS_VIMA() &&
-                (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
+                (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
         {
-			this->reorderBuffer[pos_rob].mob_ptr->is_hive = false;
-			this->reorderBuffer[pos_rob].mob_ptr->is_vima = true;
-			this->reorderBuffer[pos_rob].mob_ptr->vima_read1 = this->reorderBuffer[pos_rob].uop.read_address;
-			this->reorderBuffer[pos_rob].mob_ptr->vima_read2 = this->reorderBuffer[pos_rob].uop.read2_address;
-			this->reorderBuffer[pos_rob].mob_ptr->vima_write = this->reorderBuffer[pos_rob].uop.write_address;
-			this->reorderBuffer[pos_rob].mob_ptr->opcode_address = this->reorderBuffer[pos_rob].uop.opcode_address;
-			this->reorderBuffer[pos_rob].mob_ptr->memory_size = this->reorderBuffer[pos_rob].uop.memory_size;
+			rob_line->mob_ptr->is_hive = false;
+			rob_line->mob_ptr->is_vima = true;
+			rob_line->mob_ptr->vima_read1 = rob_line->uop.read_address;
+			rob_line->mob_ptr->vima_read2 = rob_line->uop.read2_address;
+			rob_line->mob_ptr->vima_write = rob_line->uop.write_address;
+			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
+			rob_line->mob_ptr->memory_size = rob_line->uop.memory_size;
 
-			switch (this->reorderBuffer[pos_rob].uop.uop_operation){
+			switch (rob_line->uop.uop_operation){
 				case INSTRUCTION_OPERATION_VIMA_INT_ALU:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_ALU;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_ALU;
 					break;
             	case INSTRUCTION_OPERATION_VIMA_INT_MUL:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_MUL;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_MUL;
 					break;
             	case INSTRUCTION_OPERATION_VIMA_INT_DIV:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_DIV;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_DIV;
 					break;
             	case INSTRUCTION_OPERATION_VIMA_FP_ALU:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_ALU;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_ALU;
 					break;
             	case INSTRUCTION_OPERATION_VIMA_FP_MUL:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_MUL;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_MUL;
 					break;
             	case INSTRUCTION_OPERATION_VIMA_FP_DIV:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_DIV;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_DIV;
 					break;
 				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_MLA;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_INT_MLA;
 					break;
 				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
-                	this->reorderBuffer[pos_rob].mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_MLA;
+                	rob_line->mob_ptr->memory_operation = MEMORY_OPERATION_VIMA_FP_MLA;
 					break;
 				default:
 					break;
 			}
-			this->reorderBuffer[pos_rob].mob_ptr->status = PACKAGE_STATE_WAIT;
-			this->reorderBuffer[pos_rob].mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
-			this->reorderBuffer[pos_rob].mob_ptr->uop_number = this->reorderBuffer[pos_rob].uop.uop_number;
-			this->reorderBuffer[pos_rob].mob_ptr->processor_id = this->processor_id;
+			rob_line->mob_ptr->status = PACKAGE_STATE_WAIT;
+			rob_line->mob_ptr->readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
+			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
+			rob_line->mob_ptr->processor_id = this->processor_id;
 		}
 
 		//linking rob and mob
-		if (this->reorderBuffer[pos_rob].uop.is_validation) {
+		if (rob_line->uop.is_validation) {
 			// Nada.
-		} else if (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
-			this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		} else if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
+			rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
 		{
 			
-			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
+			mob_line->rob_ptr = rob_line;
 			if (DISAMBIGUATION_ENABLED){
-				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
+				this->disambiguator->make_memory_dependences(rob_line->mob_ptr);
 			}
 		} else if (this->get_HAS_HIVE() &&
-                (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
+                (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
 		{
-			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
+			mob_line->rob_ptr = rob_line;
 			if (DISAMBIGUATION_ENABLED){
-				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
+				this->disambiguator->make_memory_dependences(rob_line->mob_ptr);
 			}
 		} else if (this->get_HAS_VIMA() &&
-                (this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-                this->reorderBuffer[pos_rob].uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
+                (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
 		{
-			mob_line->rob_ptr = &this->reorderBuffer[pos_rob];
+			mob_line->rob_ptr = rob_line;
 			#if VIMA_DEBUGG
 				ORCS_PRINTF ("%lu Processor rename(): VIMA instruction %lu uop %lu renamed!\n",
                         orcs_engine.get_global_cycle(),
-                        this->reorderBuffer[pos_rob].uop.opcode_number,
-                        this->reorderBuffer[pos_rob].uop.uop_number);
+                        rob_line->uop.opcode_number,
+                        rob_line->uop.uop_number);
 			#endif
 
 			if (DISAMBIGUATION_ENABLED){
-				this->disambiguator->make_memory_dependences(this->reorderBuffer[pos_rob].mob_ptr);
+				this->disambiguator->make_memory_dependences(rob_line->mob_ptr);
 			}
 		}
 
 		#if PROCESSOR_DEBUG
-			ORCS_PRINTF ("%lu processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF ("%lu processor %lu rename(): uop %lu %s, Type: %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+					orcs_engine.get_global_cycle(),
                     this->processor_id,
-                    this->reorderBuffer[pos_rob].uop.uop_number,
-                    get_enum_instruction_operation_char(this->reorderBuffer[pos_rob].uop.uop_operation),
-                    this->reorderBuffer[pos_rob].uop.readyAt,
+                    rob_line->uop.uop_number,
+                    get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+                    (rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "VP" : "Ins",
+					rob_line->uop.readyAt,
                     this->fetchBuffer.get_size(),
                     this->decodeBuffer.get_size(),
-                    this->robUsed)
+                    reorderBuffer.robUsed)
 		#endif
+
+
 	} //end for
 }
 
@@ -2011,115 +2334,128 @@ void processor_t::dispatch(){
     this->fu_mem_load.dispatch_cnt = 0;
     this->fu_mem_store.dispatch_cnt = 0;
 
-    if (get_HAS_VIMA())
+    if (get_HAS_VIMA()) {
         this->fu_mem_vima.dispatch_cnt = 0;
-
-    if (get_HAS_HIVE())
+	}
+    if (get_HAS_HIVE()) {
         this->fu_mem_hive.dispatch_cnt = 0;
+	}
+	this->fu_validation.dispatch_cnt = 0;
+	for (uint32_t type = 0; type < 2; ++type) {
+		total_dispatched = 0; // Pode despachar mais vetoriais
+		container_ptr_reorder_buffer_line_t *urs = (type == 0) ? &this->unified_reservation_station
+															   : &this->unified_vectorial_reservation_station;
+    	container_ptr_reorder_buffer_line_t *ufs = (type == 0) ? &this->unified_functional_units
+															   : &this->unified_vectorial_functional_units;
+		
+		for (uint32_t i = 0; i < urs->size() && i < UNIFIED_RS; i++)
+    	{
+    	    //pointer to entry
+    	    reorder_buffer_line_t *rob_line = (*urs)[i];
+    	    uop_package_t *uop = &(rob_line->uop);
 
-    for (uint32_t i = 0; i < this->unified_reservation_station.size() && i < UNIFIED_RS; i++)
-    {
-        //pointer to entry
-        reorder_buffer_line_t *rob_line = this->unified_reservation_station[i];
-        uop_package_t *uop = &(rob_line->uop);
+			#if DISPATCH_DEBUG
+    	        if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+    	            ORCS_PRINTF("cycle %lu\n", orcs_engine.get_global_cycle())
+    	            ORCS_PRINTF("=================\n")
+    	            ORCS_PRINTF("Unified Reservations Station on use: %lu\n",urs->size())
+    	            ORCS_PRINTF("Trying Dispatch %s - %s\n", (rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "VP" : "Ins", rob_line->content_to_string().c_str())
+    	            ORCS_PRINTF("=================\n")
+    	        }
+			#endif
 
-		#if DISPATCH_DEBUG
-            if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-                ORCS_PRINTF("cycle %lu\n", orcs_engine.get_global_cycle())
-                ORCS_PRINTF("=================\n")
-                ORCS_PRINTF("Unified Reservations Station on use: %lu\n",this->unified_reservation_station.size())
-                ORCS_PRINTF("Trying Dispatch %s\n", rob_line->content_to_string().c_str())
-                ORCS_PRINTF("=================\n")
-            }
-		#endif
+    	    if (total_dispatched >= DISPATCH_WIDTH){
+    	        break;
+    	    }
 
-        if (total_dispatched >= DISPATCH_WIDTH){
-            break;
-        }
+    	    if (VIMA_EXCEPT) {
+    	        if	(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+    	             rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MLA)
+    	        {
+    	            rob_line->wait_reg_deps_number = 0;
+    	        }
+    	    }
 
-        if (VIMA_EXCEPT) {
-            if	(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-                 rob_line->uop.uop_operation ==  INSTRUCTION_OPERATION_VIMA_FP_MLA)
-            {
-                rob_line->wait_reg_deps_number = 0;
-            }
-        }
+    	    if ((uop->readyAt <= orcs_engine.get_global_cycle()) && (rob_line->wait_reg_deps_number == 0))
+    	    {
+    	        ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT,
+    	                "Error, uop not ready being dispatched\n %s\n",
+    	                rob_line->content_to_string().c_str());
 
-        if ((uop->readyAt <= orcs_engine.get_global_cycle()) && (rob_line->wait_reg_deps_number == 0))
-        {
-            ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT,
-                    "Error, uop not ready being dispatched\n %s\n",
-                    rob_line->content_to_string().c_str());
+    	        ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME,
+    	                "Error, uop not in Rename to rename stage\n %s\n",
+    	                rob_line->content_to_string().c_str());
 
-            ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME,
-                    "Error, uop not in Rename to rename stage\n %s\n",
-                    rob_line->content_to_string().c_str());
+    	        //if dispatched
+    	        bool dispatched = false;
 
-            //if dispatched
-            bool dispatched = false;
+    	        if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_BARRIER ||
+    	            rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HMC_ROA ||
+    	            rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HMC_ROWA ||
+    	            rob_line->uop.uop_operation == INSTRUCTION_OPERATION_LAST)
+    	        {
+    	            ERROR_PRINTF("Invalid instruction LAST||BARRIER||HMC_ROA||HMC_ROWA being dispatched.\n");
+    	            continue;
+    	        }
 
-            if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_BARRIER ||
-                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HMC_ROA ||
-                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HMC_ROWA ||
-                rob_line->uop.uop_operation == INSTRUCTION_OPERATION_LAST)
-            {
-                ERROR_PRINTF("Invalid instruction LAST||BARRIER||HMC_ROA||HMC_ROWA being dispatched.\n");
-                continue;
-            }
+    	        functional_unit_t *fu = uop->functional_unit;
+    	        if (fu->dispatch_cnt < fu->size)
+    	        {
+    	            for (uint8_t k = 0; k < fu->size; ++k)
+    	            {
+    	                if (fu->slot[k] <= orcs_engine.get_global_cycle())
+    	                {
+    	                    fu->slot[k] = orcs_engine.get_global_cycle() + fu->wait_next;
+    	                    fu->dispatch_cnt++;
+    	                    dispatched = true;
+    	                    rob_line->stage = PROCESSOR_STAGE_EXECUTION;
+							uop->updatePackageWait(uop->latency);
 
-            functional_unit_t *fu = uop->functional_unit;
+    	                    break;
+    	                }
+    	            }
+    	        }
 
-            if (fu->dispatch_cnt < fu->size)
-            {
-                for (uint8_t k = 0; k < fu->size; ++k)
-                {
-                    if (fu->slot[k] <= orcs_engine.get_global_cycle())
-                    {
-                        fu->slot[k] = orcs_engine.get_global_cycle() + fu->wait_next;
-                        fu->dispatch_cnt++;
-                        dispatched = true;
-                        rob_line->stage = PROCESSOR_STAGE_EXECUTION;
-                        uop->updatePackageWait(uop->latency);
-                        break;
-                    }
-                }
-            }
 
-            //remover os postos em execucao aqui
-            if (dispatched == true)
-            {
-			    #if PROCESSOR_DEBUG
-                    if(orcs_engine.get_global_cycle()>WAIT_CYCLE) {
-                        ORCS_PRINTF("Dispatched %s\n", rob_line->content_to_string().c_str())
-                        ORCS_PRINTF("===================================================================\n")
-                    }
-                #endif
+    	        //remover os postos em execucao aqui
+    	        if (dispatched == true)
+    	        {
 
-                // update Dispatched
-                total_dispatched++;
-                // insert on FUs waiting structure
-                this->unified_functional_units.push_back(rob_line);
-                // remove from reservation station
-                this->unified_reservation_station.erase(this->unified_reservation_station.begin() + i);
-                i--;
-            } //end if dispatched
+				    #if PROCESSOR_DEBUG
+    	                if(orcs_engine.get_global_cycle()>WAIT_CYCLE) {
+    	                    ORCS_PRINTF("Dispatched %s\n", rob_line->content_to_string().c_str())
+    	                    ORCS_PRINTF("===================================================================\n")
+    	                }
+    	            #endif
 
-			#if PROCESSOR_DEBUG
-                ORCS_PRINTF ("%lu processor %u dispatch(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                        orcs_engine.get_global_cycle(),
-                        this->processor_id, rob_line->uop.uop_number,
-                        get_enum_instruction_operation_char (rob_line->uop.uop_operation),
-                        rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), this->robUsed);
-            #endif
+    	            // update Dispatched
+    	            total_dispatched++;
+    	            // insert on FUs waiting structure
+    	            ufs->push_back(rob_line);
+    	            // remove from reservation station
+    	            urs->erase(urs->begin() + i);
+    	            i--;
+    	        } //end if dispatched
 
-        } //end if robline is ready
-    } //end for
+				#if PROCESSOR_DEBUG
+    	            ORCS_PRINTF ("%lu processor %lu dispatch(): uop %lu %s, Type: %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+							orcs_engine.get_global_cycle(),
+    	                    this->processor_id, rob_line->uop.uop_number,
+    	                    get_enum_instruction_operation_char (rob_line->uop.uop_operation),
+							(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "VP" : "Ins",
+    	                    rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), reorderBuffer.robUsed);
+    	        #endif
+
+
+    	    } //end if robline is ready
+    	} //end for
+	}
 } //end method
 
 //clean_mob_write() copy!
@@ -2169,6 +2505,67 @@ void processor_t::clean_mob_vima(){
 		}
 		pos++;
 		if(pos >= MOB_VIMA) pos = 0;
+	}
+}
+
+void processor_t::clean_mob_vectorial(){
+	// ==================================
+	// verificar leituras prontas no ciclo,
+	// remover do MOB e atualizar os registradores,
+	// ==================================
+	uint32_t pos = this->memory_order_buffer_vectorial_start;
+	for (uint8_t i = 0; i < this->memory_order_buffer_vectorial_used; i++)
+    {
+		if (this->memory_order_buffer_vectorial[pos].status == PACKAGE_STATE_READY &&
+			this->memory_order_buffer_vectorial[pos].readyAt <= orcs_engine.get_global_cycle() &&
+			this->memory_order_buffer_vectorial[pos].processed == false)
+        {
+			#if MEMORY_DEBUG
+				ORCS_PRINTF ("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n",
+                        orcs_engine.get_global_cycle(),
+                        memory_order_buffer_vectorial[pos].memory_address,
+                        get_enum_memory_operation_char (memory_order_buffer_vectorial[pos].memory_operation),
+                        get_enum_package_state_char(this->memory_order_buffer_vectorial[pos].status),
+                        this->memory_order_buffer_vectorial[pos].readyAt);
+			#endif
+
+			ERROR_ASSERT_PRINTF(this->memory_order_buffer_vectorial[pos].uop_executed == true,
+                    "Removing memory read before being executed.\n");
+
+			ERROR_ASSERT_PRINTF(this->memory_order_buffer_vectorial[pos].wait_mem_deps_number == 0,
+                    "Number of memory dependencies should be zero.\n %s\n",
+                    this->memory_order_buffer_vectorial[i].rob_ptr->content_to_string().c_str());
+
+			#if EXECUTE_DEBUG
+				if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+					ORCS_PRINTF("\nSolving %s\n\n", this->memory_order_buffer_vectorial[pos].rob_ptr->content_to_string().c_str())
+				}
+			#endif
+
+			this->memory_order_buffer_vectorial[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
+			this->memory_order_buffer_vectorial[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
+			this->memory_order_buffer_vectorial[pos].processed=true;
+			this->memory_vectorial_executed--;
+			this->solve_registers_dependency(this->memory_order_buffer_vectorial[pos].rob_ptr);
+
+			if (DISAMBIGUATION_ENABLED){
+				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vectorial[pos]);
+			}
+
+			if(this->memory_order_buffer_vectorial[pos].waiting_DRAM){
+				ERROR_ASSERT_PRINTF(this->request_DRAM > 0,"ERRO, Contador negativo Waiting DRAM\n");
+				#if EXECUTE_DEBUG
+					if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+						ORCS_PRINTF("\nReducing DRAM COUNTER\n\n");
+					}
+				#endif
+
+				this->request_DRAM--;
+			}
+		}
+
+		pos++;
+		if (pos >= MOB_VECTORIAL) pos = 0;
 	}
 }
 
@@ -2233,6 +2630,8 @@ void processor_t::clean_mob_read(){
 	}
 }
 
+
+
 // ============================================================================
 void processor_t::execute()
 {
@@ -2247,165 +2646,188 @@ void processor_t::execute()
 	if (this->get_HAS_HIVE()) this->clean_mob_hive();
 
 	this->clean_mob_read();
+	this->clean_mob_vectorial();
 	uint32_t uop_total_executed = 0;
-	for (uint32_t i = 0; i < this->unified_functional_units.size(); i++){
+	for (int32_t type = 0; type < 2; ++type) {
+		container_ptr_reorder_buffer_line_t * unified_fu = (type == 0) ? &this->unified_functional_units
+																	   : &this->unified_vectorial_functional_units;
+		
 
-		reorder_buffer_line_t *rob_line = this->unified_functional_units[i];
-		if (uop_total_executed == EXECUTE_WIDTH){
-			break;
-		}
-		if (rob_line == NULL){
-			break;
-		}
-
-		if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle()){
-			ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_EXECUTION, "ROB not on execution state")
-			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "FU with Package not in ready state")
-			switch (rob_line->uop.uop_operation){
-				// =============================================================
-				// BRANCHES
-				case INSTRUCTION_OPERATION_BRANCH:
-				// INTEGERS ===============================================
-				case INSTRUCTION_OPERATION_INT_ALU:
-				case INSTRUCTION_OPERATION_NOP:
-				case INSTRUCTION_OPERATION_OTHER:
-				case INSTRUCTION_OPERATION_INT_MUL:
-				case INSTRUCTION_OPERATION_INT_DIV:
-				// FLOAT POINT ===============================================
-				case INSTRUCTION_OPERATION_FP_ALU:
-				case INSTRUCTION_OPERATION_FP_MUL:
-				case INSTRUCTION_OPERATION_FP_DIV:
-				{
-					rob_line->stage = PROCESSOR_STAGE_COMMIT;
-					rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
-					this->solve_registers_dependency(rob_line);
-					uop_total_executed++;
-					/// Remove from the Functional Units
-					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-					this->unified_functional_units.shrink_to_fit();
-					i--;
-				}
+		for (uint32_t i = 0; i < unified_fu->size(); i++){
+			reorder_buffer_line_t *rob_line = (*unified_fu)[i];
+			
+			if (uop_total_executed == EXECUTE_WIDTH){
 				break;
-				// HIVE ==========================================
-				case INSTRUCTION_OPERATION_HIVE_LOCK:
-                case INSTRUCTION_OPERATION_HIVE_UNLOCK:
-                case INSTRUCTION_OPERATION_HIVE_LOAD:
-                case INSTRUCTION_OPERATION_HIVE_STORE:
-                case INSTRUCTION_OPERATION_HIVE_INT_ALU:
-                case INSTRUCTION_OPERATION_HIVE_INT_MUL:
-                case INSTRUCTION_OPERATION_HIVE_INT_DIV:
-                case INSTRUCTION_OPERATION_HIVE_FP_ALU :
-                case INSTRUCTION_OPERATION_HIVE_FP_MUL :
-                case INSTRUCTION_OPERATION_HIVE_FP_DIV :
-				{
-					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
-					this->memory_hive_executed++;
-					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
-					uop_total_executed++;
-					/// Remove from the Functional Units
-					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-					this->unified_functional_units.shrink_to_fit();
-					i--;
-
-					#if DEBUG
-						ORCS_PRINTF ("Processor execute(): HIVE instruction %lu executed!\n", rob_line->uop.uop_number)
-					#endif
-				}
+			}
+			if (rob_line == NULL){
 				break;
-				// VIMA ==========================================
-				case INSTRUCTION_OPERATION_VIMA_INT_ALU:
-                case INSTRUCTION_OPERATION_VIMA_INT_MUL:
-                case INSTRUCTION_OPERATION_VIMA_INT_DIV:
-                case INSTRUCTION_OPERATION_VIMA_FP_ALU :
-                case INSTRUCTION_OPERATION_VIMA_FP_MUL :
-                case INSTRUCTION_OPERATION_VIMA_FP_DIV :
-				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
-				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
-				{
-					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
-					this->memory_vima_executed++;
-					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
-					uop_total_executed++;
-					/// Remove from the Functional Units
-					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-					this->unified_functional_units.shrink_to_fit();
-					i--;
+			}
 
-					#if VIMA_DEBUGG
-						ORCS_PRINTF ("%lu Processor execute(): VIMA instruction %lu executed!\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number)
-					#endif
-				}
-				break;
-				case INSTRUCTION_OPERATION_MEM_LOAD:
-				{
-					
-					if (rob_line->uop.is_validation) {
+			if (rob_line->uop.readyAt <= orcs_engine.get_global_cycle()){
+				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_EXECUTION, "ROB not on execution state")
+				ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT, "FU with Package not in ready state")
+				bool is_vectorial_part = (rob_line->uop.is_vectorial_part >= 0);
+				switch (rob_line->uop.uop_operation){
+					// =============================================================
+					// BRANCHES
+					case INSTRUCTION_OPERATION_BRANCH:
+					// INTEGERS ===============================================
+					case INSTRUCTION_OPERATION_INT_ALU:
+					case INSTRUCTION_OPERATION_NOP:
+					case INSTRUCTION_OPERATION_OTHER:
+					case INSTRUCTION_OPERATION_INT_MUL:
+					case INSTRUCTION_OPERATION_INT_DIV:
+					// FLOAT POINT ===============================================
+					case INSTRUCTION_OPERATION_FP_ALU:
+					case INSTRUCTION_OPERATION_FP_MUL:
+					case INSTRUCTION_OPERATION_FP_DIV:
+					{
 						rob_line->stage = PROCESSOR_STAGE_COMMIT;
 						rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
 						this->solve_registers_dependency(rob_line);
 						uop_total_executed++;
 						/// Remove from the Functional Units
-						this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-						this->unified_functional_units.shrink_to_fit();
+						unified_fu->erase(unified_fu->begin() + i);
+						unified_fu->shrink_to_fit();
 						i--;
-					} else {
+					}
+					break;
+					// HIVE ==========================================
+					case INSTRUCTION_OPERATION_HIVE_LOCK:
+    	            case INSTRUCTION_OPERATION_HIVE_UNLOCK:
+    	            case INSTRUCTION_OPERATION_HIVE_LOAD:
+    	            case INSTRUCTION_OPERATION_HIVE_STORE:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_ALU:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_MUL:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_DIV:
+    	            case INSTRUCTION_OPERATION_HIVE_FP_ALU :
+    	            case INSTRUCTION_OPERATION_HIVE_FP_MUL :
+    	            case INSTRUCTION_OPERATION_HIVE_FP_DIV :
+					{
 						ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
-						this->memory_read_executed++;
+						this->memory_hive_executed++;
 						rob_line->mob_ptr->uop_executed = true;
 						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 						uop_total_executed++;
 						/// Remove from the Functional Units
-						this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-						this->unified_functional_units.shrink_to_fit();
+						unified_fu->erase(unified_fu->begin() + i);
+						unified_fu->shrink_to_fit();
+						i--;
+
+						#if DEBUG
+							ORCS_PRINTF ("Processor execute(): HIVE instruction %lu executed!\n", rob_line->uop.uop_number)
+						#endif
+					}
+					break;
+					// VIMA ==========================================
+					case INSTRUCTION_OPERATION_VIMA_INT_ALU:
+    	            case INSTRUCTION_OPERATION_VIMA_INT_MUL:
+    	            case INSTRUCTION_OPERATION_VIMA_INT_DIV:
+    	            case INSTRUCTION_OPERATION_VIMA_FP_ALU :
+    	            case INSTRUCTION_OPERATION_VIMA_FP_MUL :
+    	            case INSTRUCTION_OPERATION_VIMA_FP_DIV :
+					case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+					case INSTRUCTION_OPERATION_VIMA_FP_MLA:
+					{
+						ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
+						this->memory_vima_executed++;
+						rob_line->mob_ptr->uop_executed = true;
+						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
+						uop_total_executed++;
+						/// Remove from the Functional Units
+						unified_fu->erase(unified_fu->begin() + i);
+						unified_fu->shrink_to_fit();
+						i--;
+
+						#if VIMA_DEBUGG
+							ORCS_PRINTF ("%lu Processor execute(): VIMA instruction %lu executed!\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number)
+						#endif
+					}
+					break;
+					case INSTRUCTION_OPERATION_MEM_LOAD:
+					{
+
+						if (rob_line->uop.is_validation) {
+							printf("Erro: validação no estágio execute\n");
+							exit(1);
+							//rob_line->stage = PROCESSOR_STAGE_COMMIT;
+							//rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
+							//this->solve_registers_dependency(rob_line);
+							//uop_total_executed++;
+							///// Remove from the Functional Units
+							//unified_fu->erase(unified_fu->begin() + i);
+							//unified_fu->shrink_to_fit();
+							//i--;
+						} else {
+							ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Read with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
+							
+							if (is_vectorial_part == false)	this->memory_read_executed++;
+							else this->memory_vectorial_executed++;
+							
+							rob_line->mob_ptr->uop_executed = true;
+							rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
+							uop_total_executed++;
+							/// Remove from the Functional Units
+							unified_fu->erase(unified_fu->begin() + i);
+							unified_fu->shrink_to_fit();
+							i--;
+
+						}
+					}
+					break;
+					case INSTRUCTION_OPERATION_MEM_STORE:
+					{
+						ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Write with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
+						this->memory_write_executed++;
+						rob_line->mob_ptr->uop_executed = true;
+						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
+						uop_total_executed++;
+						/// Remove from the Functional Units
+						unified_fu->erase(unified_fu->begin() + i);
+						unified_fu->shrink_to_fit();
 						i--;
 					}
-				}
-				break;
-				case INSTRUCTION_OPERATION_MEM_STORE:
-				{
-					ERROR_ASSERT_PRINTF(rob_line->mob_ptr != NULL, "Write with a NULL pointer to MOB\n%s\n",rob_line->content_to_string().c_str())
-					this->memory_write_executed++;
-					rob_line->mob_ptr->uop_executed = true;
-					rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
-					uop_total_executed++;
-					/// Remove from the Functional Units
-					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
-					this->unified_functional_units.shrink_to_fit();
-					i--;
-				}
-				break;
-				case INSTRUCTION_OPERATION_BARRIER:
-				case INSTRUCTION_OPERATION_HMC_ROA:
-				case INSTRUCTION_OPERATION_HMC_ROWA:
-				case INSTRUCTION_OPERATION_LAST:
-					ERROR_PRINTF("Invalid BARRIER | HMC ROA | HMC ROWA | ÇAST.\n");
 					break;
-			} //end switch
-			#if EXECUTE_DEBUG
-				if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-					ORCS_PRINTF("Executed %s\n", rob_line->content_to_string().c_str())
-				}
-			#endif
+					case INSTRUCTION_OPERATION_BARRIER:
+					case INSTRUCTION_OPERATION_HMC_ROA:
+					case INSTRUCTION_OPERATION_HMC_ROWA:
+					case INSTRUCTION_OPERATION_LAST:
+						ERROR_PRINTF("Invalid BARRIER | HMC ROA | HMC ROWA | ÇAST.\n");
+						break;
+				} //end switch
+				#if EXECUTE_DEBUG
+					if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+						ORCS_PRINTF("Executed %s\n", rob_line->content_to_string().c_str())
+					}
+				#endif
 
-			#if PROCESSOR_DEBUG
-				ORCS_PRINTF ("%lu processor %lu execute(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                        orcs_engine.get_global_cycle(),
-                        this->processor_id,
-                        rob_line->uop.uop_number,
-                        get_enum_instruction_operation_char(rob_line->uop.uop_operation),
-                        rob_line->uop.readyAt,
-                        this->fetchBuffer.get_size(),
-                        this->decodeBuffer.get_size(),
-                        this->robUsed);
-			#endif
-		} //end if ready package
-	}	 //end for
+				#if PROCESSOR_DEBUG
+					ORCS_PRINTF ("%lu processor %lu execute(): uop %lu %s, Type: %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+							orcs_engine.get_global_cycle(),
+    	                    this->processor_id,
+    	                    rob_line->uop.uop_number,
+    	                    get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+							(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "VP" : "Ins",
+    	                    rob_line->uop.readyAt,
+    	                    this->fetchBuffer.get_size(),
+    	                    this->decodeBuffer.get_size(),
+    	                    reorderBuffer.robUsed);
+				#endif
+
+
+
+			} //end if ready package
+			else {
+				printf(" -> Pronta: False\n");
+
+			}
+		}	 //end for
+	} // end type
 	#if EXECUTE_DEBUG
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 			ORCS_PRINTF("Memory Operations Read Executed %u\n",this->memory_read_executed)
 			ORCS_PRINTF("Memory Operations Write Executed %u\n",this->memory_write_executed)
+			ORCS_PRINTF("Memory Operations Vectorial Executed %u\n",this->memory_vectorial_executed)			
 			ORCS_PRINTF("Requests to DRAM on the Fly %d \n",this->request_DRAM)
 		}
 	#endif
@@ -2416,6 +2838,8 @@ void processor_t::execute()
 	for (size_t i = 0; i < PARALLEL_LOADS; i++){
 		if(this->memory_read_executed!=0){
 			this->mob_read();
+		} else if (this->memory_vectorial_executed != 0) {
+			this->mob_vectorial();
 		}
 	}
 
@@ -2493,7 +2917,7 @@ uint32_t processor_t::mob_read(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n",
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
                     orcs_engine.get_global_cycle(),
                     request->memory_address,
                     get_enum_memory_operation_char(request->memory_operation));
@@ -2535,6 +2959,18 @@ void processor_t::print_mob_vima(){
                 this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].uop_number,
                 this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].wait_mem_deps_number,
                 this->memory_order_buffer_hive[(this->memory_order_buffer_vima_start+j) % MOB_VIMA].readyToGo);
+	}
+}
+
+void processor_t::print_mob_vectorial(){
+	ORCS_PRINTF ("Cycle: %lu\n", orcs_engine.get_global_cycle())
+	for(uint32_t j = 0; j < this->memory_order_buffer_vectorial_used; j++){
+		ORCS_PRINTF ("Processor print_mob_vectorial(): %s %s %lu %u %lu.\n",
+                get_enum_package_state_char (this->memory_order_buffer_vectorial[(this->memory_order_buffer_vectorial_start+j) % MOB_VECTORIAL].status),
+                get_enum_memory_operation_char (this->memory_order_buffer_vectorial[(this->memory_order_buffer_vectorial_start+j) % MOB_VECTORIAL].memory_operation),
+                this->memory_order_buffer_vectorial[(this->memory_order_buffer_vectorial_start+j) % MOB_VECTORIAL].uop_number,
+                this->memory_order_buffer_vectorial[(this->memory_order_buffer_vectorial_start+j) % MOB_VECTORIAL].wait_mem_deps_number,
+                this->memory_order_buffer_vectorial[(this->memory_order_buffer_vectorial_start+j) % MOB_VECTORIAL].readyToGo);
 	}
 }
 
@@ -2582,6 +3018,26 @@ memory_order_buffer_line_t* processor_t::get_next_op_vima(){
 }
 
 // ============================================================================
+memory_order_buffer_line_t* processor_t::get_next_op_vectorial() {
+	uint32_t pos = this->memory_order_buffer_vectorial_start;
+	for(uint32_t i = 0 ; i < this->memory_order_buffer_vectorial_used; i++)
+    {
+		if (this->memory_order_buffer_vectorial[pos].uop_executed &&
+			this->memory_order_buffer_vectorial[pos].status == PACKAGE_STATE_WAIT &&
+			this->memory_order_buffer_vectorial[pos].sent==false &&
+        	this->memory_order_buffer_vectorial[pos].wait_mem_deps_number == 0 &&
+			this->memory_order_buffer_vectorial[pos].readyToGo <= orcs_engine.get_global_cycle())
+        {
+				return &this->memory_order_buffer_vectorial[pos];
+		}
+
+		pos++;
+		if (pos >= MOB_VECTORIAL) pos = 0;
+	}
+	return NULL;
+}
+
+// ============================================================================
 uint32_t processor_t::mob_hive(){
 	if(this->oldest_hive_to_send==NULL)	this->oldest_hive_to_send = this->get_next_op_hive();
 
@@ -2611,7 +3067,7 @@ uint32_t processor_t::mob_hive(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.H\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		#endif
 
 		if (orcs_engine.cacheManager->searchData(request)){
@@ -2654,7 +3110,7 @@ uint32_t processor_t::mob_vima(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.V\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		#endif
 
 		if (orcs_engine.cacheManager->searchData(request)){
@@ -2666,10 +3122,59 @@ uint32_t processor_t::mob_vima(){
 	}
 	return OK;
 }
+// ============================================================================
+uint32_t processor_t::mob_vectorial(){
+	if(this->oldest_vectorial_to_send == NULL) this->oldest_vectorial_to_send = this->get_next_op_vectorial();
 
+	if (this->oldest_vectorial_to_send != NULL && !this->oldest_vectorial_to_send->sent){
+		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
+		memory_package_t* request = new memory_package_t();
+
+		request->clients.push_back (oldest_vectorial_to_send);
+		request->opcode_address = oldest_vectorial_to_send->opcode_address;
+		request->memory_address = oldest_vectorial_to_send->memory_address;
+		request->memory_size = oldest_vectorial_to_send->memory_size;
+		request->memory_operation = oldest_vectorial_to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = false;
+		request->is_vima = false;
+		request->hive_read1 = oldest_vectorial_to_send->hive_read1;
+		request->hive_read2 = oldest_vectorial_to_send->hive_read2;
+		request->hive_write = oldest_vectorial_to_send->hive_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->sent_to_ram = false;
+		request->type = DATA;
+		request->uop_number = oldest_vectorial_to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
+		request->clients.shrink_to_fit();
+
+		#if MEMORY_DEBUG
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
+                    orcs_engine.get_global_cycle(),
+                    request->memory_address,
+                    get_enum_memory_operation_char(request->memory_operation));
+		#endif
+
+		if (orcs_engine.cacheManager->searchData(request)){
+			this->oldest_vectorial_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_vectorial_to_send->sent=true;
+			this->oldest_vectorial_to_send->rob_ptr->sent=true;								///Setting flag which marks sent request. set to remove entry on mob at commit
+
+		} else {
+			this->add_times_reach_parallel_requests_read();
+			delete request;
+		}
+
+		this->oldest_vectorial_to_send = NULL;
+	} //end if request null
+	return OK;
+} //end method
 // ============================================================================
 memory_order_buffer_line_t* processor_t::get_next_op_store(){
 	uint32_t i = this->memory_order_buffer_write_start;
+
 	if(this->memory_order_buffer_write[i].uop_executed &&
 		this->memory_order_buffer_write[i].status == PACKAGE_STATE_WAIT &&
 		this->memory_order_buffer_write[i].sent ==false  &&
@@ -2685,9 +3190,12 @@ uint32_t processor_t::mob_write(){
 	if (this->oldest_write_to_send == NULL)
         this->oldest_write_to_send = this->get_next_op_store();
 
+
 	if (this->oldest_write_to_send != NULL && !this->oldest_write_to_send->sent) {
+		
 		if (!orcs_engine.cacheManager->available(this->processor_id, MEMORY_OPERATION_WRITE))
             return OK;
+		
 
 		memory_package_t* request = new memory_package_t();
 
@@ -2711,25 +3219,20 @@ uint32_t processor_t::mob_write(){
 		request->op_count[request->memory_operation]++;
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.\n",
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.W\n",
                     orcs_engine.get_global_cycle(),
                     request->memory_address,
                     get_enum_memory_operation_char (request->memory_operation));
 		#endif
 
 		if (orcs_engine.cacheManager->searchData(request)) {
+
 			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
 			this->oldest_write_to_send->sent=true;
 			this->oldest_write_to_send->rob_ptr->sent=true;	///Setting flag which marks sent request. set to remove entry on mob at commit
 			this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 			this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 			this->oldest_write_to_send->processed=true;
-			//ORCS_PRINTF("%lu uop: %lu | %s | %u | %u.\n",
-            //            orcs_engine.get_global_cycle(),
-            //            this->oldest_write_to_send->rob_ptr->uop.uop_number,
-            //            get_enum_processor_stage_char(this->oldest_write_to_send->rob_ptr->stage),
-            //            this->counter_mshr_write,
-            //            this->MAX_PARALLEL_REQUESTS_CORE);
 			this->memory_write_executed--;
 			this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
 
@@ -2738,6 +3241,7 @@ uint32_t processor_t::mob_write(){
 			}
 
 			this->remove_front_mob_write();
+
 		} else {
 			this->add_times_reach_parallel_requests_write();
 			delete request;
@@ -2751,221 +3255,277 @@ uint32_t processor_t::mob_write(){
 
 // ============================================================================
 void processor_t::commit(){
+
 	#if COMMIT_DEBUG
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 		{
 			ORCS_PRINTF("=========================================================================\n")
 			ORCS_PRINTF("========== Commit Stage ==========\n")
 			ORCS_PRINTF("Cycle %lu\n", orcs_engine.get_global_cycle())
-			ORCS_PRINTF("ROB Head %s\n",this->reorderBuffer[this->robStart].content_to_string().c_str())
+			if (this->reorderBuffer.robUsed > 0)
+				std::cout << "ROB Head " << this->reorderBuffer.reorderBuffer[reorderBuffer.robStart].content_to_string() << std::endl;
+			if (this->vectorialReorderBuffer.robUsed > 0)
+				ORCS_PRINTF("ROB Vectorial Head %s\n",this->vectorialReorderBuffer.reorderBuffer[vectorialReorderBuffer.robStart].content_to_string().c_str())
+			
+			if (orcs_engine.get_global_cycle() > 5000){
+			//for (uint32_t i = this->reorderBuffer.robStart;  i != this->reorderBuffer.robEnd; (i == this->ROB_SIZE - 1) ? i = 0 : ++i) {
+			//	ORCS_PRINTF("ROB[%u] %s\n", i, this->reorderBuffer.reorderBuffer[i].content_to_string().c_str())
+			//}
+			printf("Fim de jogo ROB start: %u ROB end: %u Elements: %u:p\n", 
+											this->reorderBuffer.robStart,
+											this->reorderBuffer.robEnd,
+											this->reorderBuffer.robUsed);
+			exit(1);
+			}
 			ORCS_PRINTF("==================================\n")
 		}
 	#endif
+
 	int32_t pos_buffer;
 	/// Commit the packages
-	for (uint32_t i = 0; i < COMMIT_WIDTH; i++){
-		pos_buffer = this->robStart;
-		if (this->robUsed != 0 &&
-			this->reorderBuffer[pos_buffer].stage == PROCESSOR_STAGE_COMMIT &&
-			this->reorderBuffer[pos_buffer].uop.status == PACKAGE_STATE_READY &&
-			this->reorderBuffer[pos_buffer].uop.readyAt <= orcs_engine.get_global_cycle())
-		{
-			// Vectorizer
-			vectorizer->new_commit(&this->reorderBuffer[pos_buffer].uop);
+	for (int32_t type = 0; type < 2; ++type) {
+		ROB_t *rob = (type == 0) ? &this->reorderBuffer
+								 : &this->vectorialReorderBuffer;
 
-			this->commit_uop_counter++;
-			switch (this->reorderBuffer[pos_buffer].uop.uop_operation){
-				// INTEGERS ALU
-				case INSTRUCTION_OPERATION_INT_ALU:
-					this->add_stat_inst_int_alu_completed();
-					break;
+		if (rob->robUsed == 0) {
+			continue;
+		}
 
-				// INTEGERS MUL
-				case INSTRUCTION_OPERATION_INT_MUL:
-					this->add_stat_inst_mul_alu_completed();
-					break;
 
-				// INTEGERS DIV
-				case INSTRUCTION_OPERATION_INT_DIV:
-					this->add_stat_inst_div_alu_completed();
-					break;
+		for (uint32_t i = 0; i < COMMIT_WIDTH; i++){
+			pos_buffer = rob->robStart;
+			reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos_buffer];
+			/*
+			printf("%lu: Trying commit %lu %s -- stage: %s -> %s Ready at: %lu [%u/%u]\n",
+					orcs_engine.get_global_cycle(),
+					rob_line->uop.uop_number,
+					(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "Vec" : "Ins",
+					get_enum_processor_stage_char(rob_line->stage),
+					get_enum_package_state_char(rob_line->uop.status),
+					rob_line->uop.readyAt,
+					rob->robUsed, rob->SIZE);*/
 
-				// FLOAT POINT ALU
-				case INSTRUCTION_OPERATION_FP_ALU:
-					this->add_stat_inst_int_fp_completed();
-					break;
+			if ((rob->robUsed != 0) &&
+				rob_line->stage == PROCESSOR_STAGE_COMMIT &&
+				rob_line->uop.status == PACKAGE_STATE_READY &&
+				rob_line->uop.readyAt <= orcs_engine.get_global_cycle() &&
+				((rob_line->uop.is_validation == false) ||
+				 (vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset].R == true)))
+			{
+				bool is_vectorial_part = (rob_line->uop.is_vectorial_part >= 0);
 
-				// FLOAT POINT MUL
-				case INSTRUCTION_OPERATION_FP_MUL:
-					this->add_stat_inst_mul_fp_completed();
-					break;
+				// Vectorizer
+				vectorizer->new_commit(&rob_line->uop);
+				if (rob_line->uop.is_validation) {
+					this->solve_registers_dependency(rob_line);
+				}
 
-				// FLOAT POINT DIV
-				case INSTRUCTION_OPERATION_FP_DIV:
-					this->add_stat_inst_div_fp_completed();
-					break;
+				this->commit_uop_counter++;
+				switch (rob_line->uop.uop_operation){
+					// INTEGERS ALU
+					case INSTRUCTION_OPERATION_INT_ALU:
+						this->add_stat_inst_int_alu_completed();
+						break;
 
-				case INSTRUCTION_OPERATION_HIVE_LOCK:
-                case INSTRUCTION_OPERATION_HIVE_UNLOCK:
-                case INSTRUCTION_OPERATION_HIVE_LOAD:
-                case INSTRUCTION_OPERATION_HIVE_STORE:
-                case INSTRUCTION_OPERATION_HIVE_INT_ALU:
-                case INSTRUCTION_OPERATION_HIVE_INT_MUL:
-                case INSTRUCTION_OPERATION_HIVE_INT_DIV:
-                case INSTRUCTION_OPERATION_HIVE_FP_ALU :
-                case INSTRUCTION_OPERATION_HIVE_FP_MUL :
-                case INSTRUCTION_OPERATION_HIVE_FP_DIV :
-					this->add_stat_inst_hive_completed();
-					#if DEBUG
-						ORCS_PRINTF("Processor commit(): instruction HIVE %lu, %s committed, readyAt %lu.\n",
-                                this->reorderBuffer[pos_buffer].uop.uop_number,
-                                get_enum_instruction_operation_char(this->reorderBuffer[pos_buffer].uop.uop_operation),
-                                this->reorderBuffer[pos_buffer].uop.readyAt);
-					#endif
-					break;
-				case INSTRUCTION_OPERATION_VIMA_INT_ALU:
-                case INSTRUCTION_OPERATION_VIMA_INT_MUL:
-                case INSTRUCTION_OPERATION_VIMA_INT_DIV:
-                case INSTRUCTION_OPERATION_VIMA_FP_ALU :
-                case INSTRUCTION_OPERATION_VIMA_FP_MUL :
-                case INSTRUCTION_OPERATION_VIMA_FP_DIV :
-				case INSTRUCTION_OPERATION_VIMA_INT_MLA:
-				case INSTRUCTION_OPERATION_VIMA_FP_MLA:
-					this->add_stat_inst_vima_completed();
-					#if VIMA_DEBUGG
-						ORCS_PRINTF("%lu Processor commit(): instruction VIMA %lu, %s committed, readyAt %lu.\n",
-                                orcs_engine.get_global_cycle(),
-                                this->reorderBuffer[pos_buffer].uop.uop_number,
-                                get_enum_instruction_operation_char(this->reorderBuffer[pos_buffer].uop.uop_operation),
-                                this->reorderBuffer[pos_buffer].uop.readyAt);
-					#endif
-					break;
-				// MEMORY OPERATIONS - READ
-				case INSTRUCTION_OPERATION_MEM_LOAD:{
-					#if MEMORY_DEBUG
-						ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
-                                orcs_engine.get_global_cycle(),
-                                this->reorderBuffer[pos_buffer].mob_ptr->memory_address,
-                                get_enum_memory_operation_char (this->reorderBuffer[pos_buffer].mob_ptr->memory_operation));
-					#endif
-					if(this->reorderBuffer[pos_buffer].uop.is_validation) {
+					// INTEGERS MUL
+					case INSTRUCTION_OPERATION_INT_MUL:
+						this->add_stat_inst_mul_alu_completed();
+						break;
+
+					// INTEGERS DIV
+					case INSTRUCTION_OPERATION_INT_DIV:
+						this->add_stat_inst_div_alu_completed();
+						break;
+
+					// FLOAT POINT ALU
+					case INSTRUCTION_OPERATION_FP_ALU:
+						this->add_stat_inst_int_fp_completed();
+						break;
+
+					// FLOAT POINT MUL
+					case INSTRUCTION_OPERATION_FP_MUL:
+						this->add_stat_inst_mul_fp_completed();
+						break;
+
+					// FLOAT POINT DIV
+					case INSTRUCTION_OPERATION_FP_DIV:
+						this->add_stat_inst_div_fp_completed();
+						break;
+
+					case INSTRUCTION_OPERATION_HIVE_LOCK:
+    	            case INSTRUCTION_OPERATION_HIVE_UNLOCK:
+    	            case INSTRUCTION_OPERATION_HIVE_LOAD:
+    	            case INSTRUCTION_OPERATION_HIVE_STORE:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_ALU:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_MUL:
+    	            case INSTRUCTION_OPERATION_HIVE_INT_DIV:
+    	            case INSTRUCTION_OPERATION_HIVE_FP_ALU :
+    	            case INSTRUCTION_OPERATION_HIVE_FP_MUL :
+    	            case INSTRUCTION_OPERATION_HIVE_FP_DIV :
+						this->add_stat_inst_hive_completed();
+						#if DEBUG
+							ORCS_PRINTF("Processor commit(): instruction HIVE %lu, %s committed, readyAt %lu.\n",
+    	                            rob_line->uop.uop_number,
+    	                            get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+    	                            rob_line->uop.readyAt);
+						#endif
+						break;
+					case INSTRUCTION_OPERATION_VIMA_INT_ALU:
+    	            case INSTRUCTION_OPERATION_VIMA_INT_MUL:
+    	            case INSTRUCTION_OPERATION_VIMA_INT_DIV:
+    	            case INSTRUCTION_OPERATION_VIMA_FP_ALU :
+    	            case INSTRUCTION_OPERATION_VIMA_FP_MUL :
+    	            case INSTRUCTION_OPERATION_VIMA_FP_DIV :
+					case INSTRUCTION_OPERATION_VIMA_INT_MLA:
+					case INSTRUCTION_OPERATION_VIMA_FP_MLA:
+						this->add_stat_inst_vima_completed();
+						#if VIMA_DEBUGG
+							ORCS_PRINTF("%lu Processor commit(): instruction VIMA %lu, %s committed, readyAt %lu.\n",
+    	                            orcs_engine.get_global_cycle(),
+    	                            rob_line->uop.uop_number,
+    	                            get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+    	                            rob_line->uop.readyAt);
+						#endif
+						break;
+					// MEMORY OPERATIONS - READ
+					case INSTRUCTION_OPERATION_MEM_LOAD:{
+
+						if(rob_line->uop.is_validation) {
+							#if MEMORY_DEBUG
+							ORCS_PRINTF("[ROBL] %lu Validation load uop: %s removed from reorder order buffer.\n",
+    	                            orcs_engine.get_global_cycle(),
+    	                            get_enum_instruction_operation_char (rob_line->uop.opcode_operation));
+							#endif
+							break;
+						}
+						#if MEMORY_DEBUG
+							ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
+    	                            orcs_engine.get_global_cycle(),
+    	                            rob_line->mob_ptr->memory_address,
+    	                            get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
+						#endif
+						if(rob_line->mob_ptr->waiting_DRAM){
+							this->core_ram_request_wait_cycles+=(rob_line->mob_ptr->readyAt - rob_line->mob_ptr->cycle_send_request);
+							this->add_core_ram_requests();
+						}
+
+						this->mem_req_wait_cycles += (rob_line->mob_ptr->readyAt - rob_line->mob_ptr->readyToGo);
+    	                // #if PROCESSOR_DEBUG
+    	                //    ORCS_PRINTF ("%lu processor %lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+    	                //                 this->processor_id,
+    	                //                 orcs_engine.get_global_cycle(),
+    	                //                 rob_line->uop.uop_number,
+    	                //                 get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+    	                //                 rob_line->uop.readyAt,
+    	                //                 this->fetchBuffer.get_size(),
+    	                //                 this->decodeBuffer.get_size(),
+    	                //                 reorderBuffer.robUsed);
+    	                // #endif
+						this->add_stat_inst_load_completed();
 						break;
 					}
-					if(this->reorderBuffer[pos_buffer].mob_ptr->waiting_DRAM){
-						this->core_ram_request_wait_cycles+=(this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->cycle_send_request);
-						this->add_core_ram_requests();
+					// MEMORY OPERATIONS - WRITE
+					case INSTRUCTION_OPERATION_MEM_STORE:
+						#if MEMORY_DEBUG
+							ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
+    	                            orcs_engine.get_global_cycle(),
+    	                            rob_line->mob_ptr->memory_address,
+    	                            get_enum_memory_operation_char(rob_line->mob_ptr->memory_operation));
+						#endif
+
+						this->add_stat_inst_store_completed();
+						break;
+
+    	            // BRANCHES
+					case INSTRUCTION_OPERATION_BRANCH:
+						this->add_stat_inst_branch_completed();
+						break;
+
+					// NOP
+					case INSTRUCTION_OPERATION_NOP:
+						this->add_stat_inst_nop_completed();
+						break;
+
+					// NOT IDENTIFIED
+					case INSTRUCTION_OPERATION_OTHER:
+						this->add_stat_inst_other_completed();
+						break;
+
+					case INSTRUCTION_OPERATION_BARRIER:
+					case INSTRUCTION_OPERATION_HMC_ROWA:
+					case INSTRUCTION_OPERATION_HMC_ROA:
+					case INSTRUCTION_OPERATION_LAST:
+						ERROR_PRINTF("Invalid instruction BARRIER | HMC ROA | HMC ROWA | LAST.\n");
+						break;
+				}
+
+				ERROR_ASSERT_PRINTF(uint32_t(pos_buffer) == rob->robStart, "Commiting different from the position start\n");
+				#if PROCESSOR_DEBUG
+					ORCS_PRINTF("%lu processor %lu commit(): uop %lu %s, Type: %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+							orcs_engine.get_global_cycle(),
+    	                    this->processor_id,
+    	                    rob_line->uop.uop_number,
+    	                    get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+							(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "VP" : "Ins",
+    	                    rob_line->uop.readyAt,
+    	                    this->fetchBuffer.get_size(),
+    	                    this->decodeBuffer.get_size(),
+    	                    rob->robUsed);
+				#endif
+
+
+				#if COMMIT_DEBUG
+					if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+					{
+						ORCS_PRINTF("======================================\n")
+						ORCS_PRINTF("RM ROB Entry \n%s\n", rob->reorderBuffer[rob->robStart].content_to_string().c_str())
 					}
+				#endif
 
-					this->mem_req_wait_cycles += (this->reorderBuffer[pos_buffer].mob_ptr->readyAt - this->reorderBuffer[pos_buffer].mob_ptr->readyToGo);
-                    // #if PROCESSOR_DEBUG
-                    //    ORCS_PRINTF ("%lu processor %lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                    //                 this->processor_id,
-                    //                 orcs_engine.get_global_cycle(),
-                    //                 this->reorderBuffer[pos_buffer].uop.uop_number,
-                    //                 get_enum_instruction_operation_char(this->reorderBuffer[pos_buffer].uop.uop_operation),
-                    //                 this->reorderBuffer[pos_buffer].uop.readyAt,
-                    //                 this->fetchBuffer.get_size(),
-                    //                 this->decodeBuffer.get_size(),
-                    //                 this->robUsed);
-                    // #endif
-					this->add_stat_inst_load_completed();
-					break;
+				if (rob->reorderBuffer[rob->robStart].sent==true){
+					if(rob->reorderBuffer[rob->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_LOAD) {
+						if (is_vectorial_part == false) {
+							this->remove_front_mob_read();
+						} else {
+							this->remove_front_mob_vectorial();
+						}
+					} else if (rob->reorderBuffer[rob->robStart].uop.is_hive) {
+						this->remove_front_mob_hive();
+					} else if (rob->reorderBuffer[rob->robStart].uop.is_vima) {
+						this->remove_front_mob_vima();
+					}
 				}
-				// MEMORY OPERATIONS - WRITE
-				case INSTRUCTION_OPERATION_MEM_STORE:
-					#if MEMORY_DEBUG
-						ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
-                                orcs_engine.get_global_cycle(),
-                                this->reorderBuffer[pos_buffer].mob_ptr->memory_address,
-                                get_enum_memory_operation_char(this->reorderBuffer[pos_buffer].mob_ptr->memory_operation));
-					#endif
 
-					this->add_stat_inst_store_completed();
-					break;
+				this->wait_time = orcs_engine.get_global_cycle() - rob_line->uop.born_cycle;
+				this->total_latency[rob_line->uop.opcode_operation] += this->wait_time;
 
-                // BRANCHES
-				case INSTRUCTION_OPERATION_BRANCH:
-					this->add_stat_inst_branch_completed();
-					break;
+				if (this->wait_time > this->max_wait_operations[rob_line->uop.opcode_operation])
+    	            this->max_wait_operations[rob_line->uop.opcode_operation] = this->wait_time;
 
-				// NOP
-				case INSTRUCTION_OPERATION_NOP:
-					this->add_stat_inst_nop_completed();
-					break;
+				if (this->wait_time < this->min_wait_operations[rob_line->uop.opcode_operation])
+    	            this->min_wait_operations[rob_line->uop.opcode_operation] = this->wait_time;
 
-				// NOT IDENTIFIED
-				case INSTRUCTION_OPERATION_OTHER:
-					this->add_stat_inst_other_completed();
-					break;
-
-				case INSTRUCTION_OPERATION_BARRIER:
-				case INSTRUCTION_OPERATION_HMC_ROWA:
-				case INSTRUCTION_OPERATION_HMC_ROA:
-				case INSTRUCTION_OPERATION_LAST:
-					ERROR_PRINTF("Invalid instruction BARRIER | HMC ROA | HMC ROWA | LAST.\n");
-					break;
+				this->removeFrontROB(rob);
 			}
-
-			ERROR_ASSERT_PRINTF(uint32_t(pos_buffer) == this->robStart, "Commiting different from the position start\n");
-			#if PROCESSOR_DEBUG
-				ORCS_PRINTF("%lu processor %lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-                        orcs_engine.get_global_cycle(),
-                        this->processor_id,
-                        this->reorderBuffer[pos_buffer].uop.uop_number,
-                        get_enum_instruction_operation_char(this->reorderBuffer[pos_buffer].uop.uop_operation),
-                        this->reorderBuffer[pos_buffer].uop.readyAt,
-                        this->fetchBuffer.get_size(),
-                        this->decodeBuffer.get_size(),
-                        this->robUsed);
-			#endif
-
-			#if COMMIT_DEBUG
-				if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-				{
-					ORCS_PRINTF("======================================\n")
-					ORCS_PRINTF("RM ROB Entry \n%s\n", this->reorderBuffer[this->robStart].content_to_string().c_str())
-				}
-			#endif
-
-			if (this->reorderBuffer[this->robStart].sent==true){
-				if(this->reorderBuffer[this->robStart].uop.uop_operation==INSTRUCTION_OPERATION_MEM_LOAD) {
-					this->remove_front_mob_read();
-				} else if (this->reorderBuffer[this->robStart].uop.is_hive) {
-					this->remove_front_mob_hive();
-				} else if (this->reorderBuffer[this->robStart].uop.is_vima) {
-					this->remove_front_mob_vima();
-				}
+			/// Could not commit the older, then stop looking for ready uops
+			else
+			{
+				i = 0;
+				#if DEBUG
+					//ORCS_PRINTF ("=======Processor %lu, Cycle %lu=========\n", this->processor_id+1, orcs_engine.get_global_cycle())
+					for (uint32_t i = 0; i < reorderBuffer.robUsed + vectorialReorderBuffer.robUsed; i++){
+						ORCS_PRINTF("%u COMMIT: %s %s %s %lu %lu\n",
+    	                        i, get_enum_processor_stage_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].stage),
+    	                        get_enum_instruction_operation_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation),
+    	                        get_enum_package_state_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status),
+    	                        this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number,
+    	                        this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
+					}
+				#endif
+				break;
 			}
-
-			this->wait_time = orcs_engine.get_global_cycle() - this->reorderBuffer[pos_buffer].uop.born_cycle;
-			this->total_latency[this->reorderBuffer[pos_buffer].uop.opcode_operation] += this->wait_time;
-
-			if (this->wait_time > this->max_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation])
-                this->max_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation] = this->wait_time;
-
-			if (this->wait_time < this->min_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation])
-                this->min_wait_operations[this->reorderBuffer[pos_buffer].uop.opcode_operation] = this->wait_time;
-
-			this->removeFrontROB();
-		}
-		/// Could not commit the older, then stop looking for ready uops
-		else
-		{
-			i = 0;
-			#if DEBUG
-				//ORCS_PRINTF ("=======Processor %lu, Cycle %lu=========\n", this->processor_id+1, orcs_engine.get_global_cycle())
-				for (uint32_t i = 0; i < this->robUsed; i++){
-					ORCS_PRINTF("%u COMMIT: %s %s %s %lu %lu\n",
-                            i, get_enum_processor_stage_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].stage),
-                            get_enum_instruction_operation_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_operation),
-                            get_enum_package_state_char(this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.status),
-                            this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.uop_number,
-                            this->reorderBuffer[(i+robStart) % ROB_SIZE].uop.readyAt);
-				}
-			#endif
-			break;
-		}
-	}
+		} // end for
+	} // end type
 
 	#if COMMIT_DEBUG
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
@@ -3048,7 +3608,13 @@ void processor_t::statistics(){
 		fprintf(output, "Total_HIVE_Instructions:          %lu\n", this->get_stat_inst_hive_completed());
 		fprintf(output, "Total_VIMA_Instructions:          %lu\n", this->get_stat_inst_vima_completed());
 		utils_t::largestSeparator(output);
+		fprintf(output, "Stalls Fetch:          %lu\n", this->get_stall_full_FetchBuffer());
+		fprintf(output, "Stalls Decode:          %lu\n", this->get_stall_full_DecodeBuffer());
+		fprintf(output, "Stalls Rename:          %lu\n", this->get_stall_full_ROB());
+		fprintf(output, "Stalls Rename Vectorial:          %lu\n", this->get_stall_full_ROB_VET());
 
+
+		utils_t::largestSeparator(output);
 		for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++){
 			if (this->total_operations[i] > 0){
 				fprintf(output, "Total_%s_Instructions:         %lu\n", get_enum_instruction_operation_char ((instruction_operation_t) i), this->total_operations[i]);
@@ -3106,6 +3672,7 @@ void processor_t::printConfiguration(){
 		fprintf(output, "Decode Buffer ->%u\n", DECODE_BUFFER);
 		fprintf(output, "RAT ->%u\n", RAT_SIZE);
 		fprintf(output, "ROB ->%u\n", ROB_SIZE);
+		fprintf(output, "Vectorial ROB ->%u\n", ROB_VECTORIAL_SIZE);
 		fprintf(output, "MOB Read ->%u\n", MOB_READ);
 		fprintf(output, "MOB Write->%u\n", MOB_WRITE);
 		fprintf(output, "Reservation Station->%u\n", UNIFIED_RS);
@@ -3139,7 +3706,7 @@ void processor_t::clock(){
 	//// ExecuteStage
 	//// DispatchStage
 	/////////////////////////////////////////////////
-		if (this->robUsed != 0)
+		if ((reorderBuffer.robUsed != 0) || (vectorialReorderBuffer.robUsed != 0))
 		{
 			this->commit();   //commit instructions -> remove from ROB
 			this->execute();  //verify Uops ready on UFs, then remove

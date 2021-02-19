@@ -110,7 +110,7 @@ void uop_package_t::opcode_to_uop(
     this->will_free_offset = opcode.will_free_offset; 
 
     this->is_BB = opcode.is_BB;                 
-    this->number_changed = opcode.number_changed;        
+    this->number_changed = opcode.number_changed;
                     
 }
 
@@ -165,6 +165,9 @@ std::string uop_package_t::content_to_string() {
 std::string uop_package_t::content_to_string2() {
     std::string content_string;
     content_string = "";
+
+    content_string = content_string + "Uop Number " + utils_t::uint64_to_string(this->uop_number);
+
 
     content_string = content_string + " " + utils_t::uint64_to_string(this->opcode_address);
     content_string = content_string + " " + get_enum_instruction_operation_char(this->uop_operation);

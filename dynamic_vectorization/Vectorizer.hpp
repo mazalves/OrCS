@@ -32,6 +32,7 @@ class Vectorizer_t {
                      bool *pipeline_squashed, uint64_t *store_squashing);
         ~Vectorizer_t();
         void statistics();
+        void debug();
 
 };
 #endif

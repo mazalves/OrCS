@@ -54,6 +54,9 @@ class opcode_package_t : public memory_request_client_t {
         bool is_BB;                     // Indica se é um backward branch
         bool number_changed;            // Indica que já passou pela função de vetorização e já teve
                                     // seu uop_number alterado
+        bool is_pre_vectorization;
+
+        
 
         // ====================================================================
         /// Status Control

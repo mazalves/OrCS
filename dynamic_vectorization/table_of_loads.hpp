@@ -9,4 +9,6 @@ class table_of_loads_t {
         void update_stride (table_of_loads_entry_t *tl_entry, uint64_t addr);
         table_of_loads_t  (int32_t num_entries);
         ~table_of_loads_t ();
+
+        void list_contents();
 };

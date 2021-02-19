@@ -8,6 +8,7 @@ class vector_map_table_t {
         register_rename_table_t *register_rename_table;
         circular_buffer_t <opcode_package_t> *inst_list;
 
+
         vector_map_table_t  (int32_t num_entries, 
                              register_rename_table_t *RRT,
                              Vectorizer_t *vectorizer, 

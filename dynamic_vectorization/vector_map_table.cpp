@@ -54,10 +54,6 @@ DV::DV_ERROR vector_map_table_t::convert_to_validation (opcode_package_t *inst, 
     inst->is_validation = true;
     inst->will_validate_offset = validation_index;
 
-    // Set register as vectorial
-    this->register_rename_table[inst->write_regs[0]].vectorial = true;
-    this->register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1;
-    this->register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = vrmt_entry->correspondent_VR;
 
     return DV::SUCCESS;
 }
@@ -90,6 +86,10 @@ bool vector_map_table_t::new_store (opcode_package_t *inst) {
 }
 
 DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry) {
+    #if DV_DEBUG == 1
+        printf("ACTION::Validation\n");
+    #endif
+
     // **************************************
     // vector_map_table_t::validate (load)
     // **************************************
@@ -110,6 +110,9 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             DV::DV_ERROR stats = vectorize(inst, &vrmt_entry, true);
             return stats;
         }
+        #if DV_DEBUG == 1
+            printf("Stats::SUCCESS\n");
+        #endif
 
         return DV::SUCCESS;
 
@@ -128,6 +131,17 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             // Invalidate vrmt_entry
             this->invalidate(vrmt_entry);
 
+            // Check for vectorial operands
+            bool op_vectorial;
+            op_vectorial = vectorizer->vectorial_operands(inst);
+
+            if (op_vectorial == false) {
+                #if DV_DEBUG == 1
+                    printf("Stats::NEW_PARAMETERS_NOT_VECTORIZED\n");
+                #endif
+            	return DV::NEW_PARAMETERS_NOT_VECTORIZED;
+            }
+
             // Create new operation with the right parameters
             vector_map_table_entry_t *new_vrmt_entry = NULL;
 
@@ -137,13 +151,18 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
 	            register_rename_table[inst->write_regs[0]].vectorial = false;
 	            register_rename_table[inst->write_regs[0]].offset = 0;
  	            register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = -1;
-	            return DV::NOT_ENOUGH_VR;
+                #if DV_DEBUG == 1
+                    printf("Stats::NOT_ENOUGH_VR\n");
+	            #endif
+                return DV::NOT_ENOUGH_VR;
 
             }
 
             // Convert to validation
             this->convert_to_validation(inst, new_vrmt_entry, 0);
-
+            #if DV_DEBUG == 1
+                printf("Stats::NEW_PARAMETERS_REVECTORIZING\n");
+            #endif
             return DV::NEW_PARAMETERS_REVECTORIZING;
 
         } else {
@@ -155,20 +174,17 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
 
             // Convert to validation
             this->convert_to_validation(inst, vrmt_entry, vrmt_entry->offset - 1);
-
-            if (vrmt_entry->offset >= 4) {
-
-                // Pre-vectorize next part
-                this->vectorize (inst, &vrmt_entry, true);
-
-                return DV::VECTORIZE_OPERATION_FORWARD;
-
-            }
+            #if DV_DEBUG == 1
+                printf("Stats::SUCCESS\n");
+            #endif
             return DV::SUCCESS;
         }
 
 
     }
+    #if DV_DEBUG == 1
+        printf("Stats::SUCCESS\n");
+    #endif
     return DV::SUCCESS;
 }
 
@@ -217,13 +233,24 @@ void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_lo
 }
 
 DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward) {
+    #if DV_DEBUG == 1
+    if (forward) {
+        printf("ACTION::Pré-vectorization\n");
+    } else {
+        printf("ACTION::Vectorization\n");
+    }
+    #endif
 
+    
     // Aloca um VR (vr_id)
     int32_t vr_id = vectorizer->allocate_VR(inst->write_regs[0]);
 
     if (vr_id == -1) 
     {   
-       return DV::NOT_ENOUGH_VR;
+        #if DV_DEBUG == 1
+            printf("Stats::NOT_ENOUGH_VR\n");
+        #endif
+        return DV::NOT_ENOUGH_VR;
     }
 
     // Preenche VR
@@ -267,20 +294,26 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     (*vrmt_entry)->value = 0;
     (*vrmt_entry)->correspondent_VR = vr_id;
     (*vrmt_entry)->is_load = (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD);
-
+    
+    table_of_loads_entry_t *tl_entry = 0x0;
     // Define operandos vetoriais ou regiões de memória.
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
         vectorizer->vectorized_loads++;
-    	table_of_loads_entry_t *tl_entry = TL->find_pc (inst->opcode_address);
+    	tl_entry = TL->find_pc (inst->opcode_address);
     	int32_t stride = tl_entry->stride;
-
+        int32_t read_start;
+        if (forward) {
+            read_start = inst->read_address + tl_entry->stride;
+        } else {
+            read_start = inst->read_address;
+        }
     	if (stride >= 0) {
-    		(*vrmt_entry)->source_operand_1 = inst->read_address;
-    		(*vrmt_entry)->source_operand_2 = inst->read_address + (VECTORIZATION_SIZE - 1) * stride + inst->read_size;
+    		(*vrmt_entry)->source_operand_1 = read_start;
+    		(*vrmt_entry)->source_operand_2 = read_start + (VECTORIZATION_SIZE - 1) * stride + inst->read_size;
 
     	} else {
-    		(*vrmt_entry)->source_operand_1 = inst->read_address + (VECTORIZATION_SIZE - 1) * stride;
-    		(*vrmt_entry)->source_operand_2 = inst->read_address + inst->read_size;
+    		(*vrmt_entry)->source_operand_1 = read_start + (VECTORIZATION_SIZE - 1) * stride;
+    		(*vrmt_entry)->source_operand_2 = read_start + inst->read_size;
     	}
     } else {
 
@@ -289,13 +322,17 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
     }
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
-        for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part)
+        for (int32_t num_part = 0; num_part < 1; ++num_part)
+        //for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part) //ONE_LOAD
         {
             // Clona a uop
             opcode_package_t new_inst = (*inst);
+            int32_t idx = (forward) ? num_part + 1 : num_part;
+            new_inst.read_address += tl_entry->stride*idx;
 
             // Preenche com dados de parte vetorial
-            fill_vectorial_part(&new_inst, true, vr_id, num_part); 
+            fill_vectorial_part(&new_inst, true, vr_id, num_part);
+            new_inst.is_pre_vectorization = forward;
 
             // Insere no pipeline
             inst_list->push_back(new_inst);
@@ -306,20 +343,27 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
         opcode_package_t new_inst = (*inst);
 
         // Preenche com dados de parte vetorial
-        fill_vectorial_part(&new_inst, false, vr_id, 0); 
+        fill_vectorial_part(&new_inst, false, vr_id, 0);
+        new_inst.is_pre_vectorization = forward;
 
         // Insere no pipeline
         inst_list->push_back(new_inst);
     }
-
+    #if DV_DEBUG == 1
+        printf("Stats::SUCCESS\n");
+    #endif
     return DV::SUCCESS;
 
 }
 
 void vector_map_table_t::list_contents() {
-    printf("VRMT Contents:\n");
-    for (int32_t i = 0; i < VRMT_SIZE; ++i) {
-        printf("%d: %lu\n", i, this->entries[i].pc);
+    for (int32_t i = 0; i < this->entries_size; ++i) {
+        if (this->entries[i].pc != 0x0) {
+            printf("%lu: Offset: %d -- Source_1: %lu -- Source_2: %lu --> VR: %d\n",
+                    this->entries[i].pc, this->entries[i].offset,
+                    this->entries[i].source_operand_1,
+                    this->entries[i].source_operand_2,
+                    this->entries[i].correspondent_VR);
+        }
     }
-    
 }
