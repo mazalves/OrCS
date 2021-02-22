@@ -1065,7 +1065,6 @@ void processor_t::fetch(){
 			#if FETCH_DEBUG
 				ORCS_PRINTF("%s - Opcode Fetched %s\n", operation.opcode_assembly, operation.content_to_string2().c_str())
 			#endif
-
 			
 
 			//============================
@@ -1100,7 +1099,6 @@ void processor_t::fetch(){
 			//============================
 			// Envia para o pipeline
 			vectorizer->enter_pipeline(&operation);
-
 
 			//============================
 			///Solve Branch
@@ -3267,7 +3265,7 @@ void processor_t::commit(){
 			if (this->vectorialReorderBuffer.robUsed > 0)
 				ORCS_PRINTF("ROB Vectorial Head %s\n",this->vectorialReorderBuffer.reorderBuffer[vectorialReorderBuffer.robStart].content_to_string().c_str())
 			
-			if (orcs_engine.get_global_cycle() > 5000){
+			if (orcs_engine.get_global_cycle() > 10000){
 			//for (uint32_t i = this->reorderBuffer.robStart;  i != this->reorderBuffer.robEnd; (i == this->ROB_SIZE - 1) ? i = 0 : ++i) {
 			//	ORCS_PRINTF("ROB[%u] %s\n", i, this->reorderBuffer.reorderBuffer[i].content_to_string().c_str())
 			//}
@@ -3295,16 +3293,36 @@ void processor_t::commit(){
 		for (uint32_t i = 0; i < COMMIT_WIDTH; i++){
 			pos_buffer = rob->robStart;
 			reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos_buffer];
-			/*
-			printf("%lu: Trying commit %lu %s -- stage: %s -> %s Ready at: %lu [%u/%u]\n",
+			
+			/*printf("%lu: Trying commit %lu %s (op_n: %lu) -- stage: %s -> %s Ready at: %lu [%u/%u]\n",
 					orcs_engine.get_global_cycle(),
 					rob_line->uop.uop_number,
 					(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "Vec" : "Ins",
+					rob_line->uop.opcode_number,
 					get_enum_processor_stage_char(rob_line->stage),
 					get_enum_package_state_char(rob_line->uop.status),
 					rob_line->uop.readyAt,
-					rob->robUsed, rob->SIZE);*/
-
+					rob->robUsed, rob->SIZE);
+			if (rob_line->uop.is_validation) {
+				auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset];
+				printf(" -> Val VR: %d Part %d [V: %s; R: %s; U: %s; F: %s\n",
+				rob_line->uop.VR_id,
+				rob_line->uop.will_validate_offset,
+				bits->V ? "true" : "false",
+				bits->R ? "true" : "false",
+				bits->U ? "true" : "false",
+				bits->F ? "true" : "false");
+			}
+			if (rob_line->uop.is_vectorial_part >= 0) {
+				auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.is_vectorial_part];
+				printf(" -> Vec VR: %d Part %d [V: %s; R: %s; U: %s; F: %s\n",
+				rob_line->uop.VR_id,
+				rob_line->uop.is_vectorial_part,
+				bits->V ? "true" : "false",
+				bits->R ? "true" : "false",
+				bits->U ? "true" : "false",
+				bits->F ? "true" : "false");
+			}*/
 			if ((rob->robUsed != 0) &&
 				rob_line->stage == PROCESSOR_STAGE_COMMIT &&
 				rob_line->uop.status == PACKAGE_STATE_READY &&

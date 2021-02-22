@@ -145,7 +145,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             if (vrmt_entry != NULL) {
                 // Faz a validação Ou seja, aloca o próximo se der
                 DV::DV_ERROR stats = VRMT->validate(inst, vrmt_entry);
-
+                
                 return stats;
             } else {
                 // Vetoriza o load
@@ -264,7 +264,10 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     printf("$$$$$$$$$$$$$$$$$$$\n");
     */
     // Descobre se já possui alguma entrada na vrmt
-    vector_map_table_entry_t * vrmt_entry = VRMT->find_pc(inst->opcode_address);
+    vector_map_table_entry_t * vrmt_entry = NULL;
+    if (inst->is_vectorial_part >= 0) {
+        vrmt_entry = VRMT->find_pc(inst->opcode_address);
+    }
 
     // Marca para liberar
     // setar (F)
@@ -273,7 +276,7 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     if (inst->write_regs[0] >= MAX_REGISTER_NUMBER) return DV::REGISTER_GREATER_THAN_MAX;
 
     // A validação vai liberar (ela passa antes no pipeline)
-    // ONE_LOAD
+   // ONE_LOAD
     if (destiny_reg->vectorial && inst->is_vectorial_part < 0) {
     	inst->will_free = destiny_reg->correspondent_vectorial_reg;
     	inst->will_free_offset = destiny_reg->offset;
@@ -284,7 +287,7 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     if (inst->VR_id >= 0 && inst->is_pre_vectorization == false) {
         // Check for vrmt_entry
 
-        if (vrmt_entry == NULL)
+        if (inst->is_vectorial_part >= 0 && vrmt_entry == NULL)
         {
         	printf("Vectorizer_t::enter_pipeline\n");
         	printf("Error: VRMT entry (%lu) not found\n", inst->opcode_address);
@@ -298,8 +301,11 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
 
         // Uma instrução acessa o que já foi validado
         // Vectorial parts de forward vão acabar deixando em -1.
-        if (vrmt_entry->offset == 0) { // Pré-vetorização
+        if (inst->is_validation) {
+            register_rename_table[inst->write_regs[0]].offset = inst->will_validate_offset;
+        } else if (vrmt_entry->offset == 0) { // Pré-vetorização
             register_rename_table[inst->write_regs[0]].offset = 3;
+            printf("Pre");
         } else {
             register_rename_table[inst->write_regs[0]].offset = vrmt_entry->offset - 1;
         }

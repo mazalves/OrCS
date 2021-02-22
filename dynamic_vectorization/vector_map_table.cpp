@@ -54,7 +54,6 @@ DV::DV_ERROR vector_map_table_t::convert_to_validation (opcode_package_t *inst, 
     inst->is_validation = true;
     inst->will_validate_offset = validation_index;
 
-
     return DV::SUCCESS;
 }
 
@@ -105,8 +104,9 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
         this->convert_to_validation(inst, vrmt_entry, vrmt_entry->offset - 1);
 
 
-        if (vrmt_entry->offset >= 4) {
+        if (inst->will_validate_offset == VECTORIZATION_SIZE - 1) {
             // Pre-vectorize next part
+            //printf("Offset maior ou igual a 3: %d\n", vrmt_entry->offset);
             DV::DV_ERROR stats = vectorize(inst, &vrmt_entry, true);
             return stats;
         }
@@ -148,9 +148,11 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             DV::DV_ERROR stats = vectorize(inst, &new_vrmt_entry, false); 
 
             if (stats == DV::NOT_ENOUGH_VR) {
-	            register_rename_table[inst->write_regs[0]].vectorial = false;
+	            /* Na hora de entrar no pipeline isso acontece
+                register_rename_table[inst->write_regs[0]].vectorial = false;
 	            register_rename_table[inst->write_regs[0]].offset = 0;
  	            register_rename_table[inst->write_regs[0]].correspondent_vectorial_reg = -1;
+                */
                 #if DV_DEBUG == 1
                     printf("Stats::NOT_ENOUGH_VR\n");
 	            #endif
@@ -241,6 +243,12 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     }
     #endif
 
+    // Invalida qualquer vrmt_entry existente
+    vector_map_table_entry_t *vrmt_entry_temp = this->find_pc(inst->opcode_address);
+    if (vrmt_entry_temp)
+    {
+    	this->invalidate(vrmt_entry_temp);
+    }
     
     // Aloca um VR (vr_id)
     int32_t vr_id = vectorizer->allocate_VR(inst->write_regs[0]);
@@ -278,12 +286,6 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     	state_VR->positions[0].V = false;
     }
 
-    // Invalida qualquer vrmt_entry existente
-    vector_map_table_entry_t *vrmt_entry_temp = this->find_pc(inst->opcode_address);
-    if (vrmt_entry_temp)
-    {
-    	this->invalidate(vrmt_entry_temp);
-    }
 
     // Aloca uma vrmt_entry
     *vrmt_entry = &entries[this->allocate_entry()];
@@ -291,6 +293,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     // Preenche vrmt_entry
     (*vrmt_entry)->pc = inst->opcode_address;
     (*vrmt_entry)->offset = (forward) ? 0 : 1;
+    //printf("Offset definido para: %d\n", (*vrmt_entry)->offset);
     (*vrmt_entry)->value = 0;
     (*vrmt_entry)->correspondent_VR = vr_id;
     (*vrmt_entry)->is_load = (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD);
