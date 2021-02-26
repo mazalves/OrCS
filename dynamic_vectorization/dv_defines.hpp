@@ -30,7 +30,7 @@ extern int32_t DECODE_BUFFER_VECTORIZED; // 100  // Tamanho do buffer auxiliar q
 extern uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para instruções vetoriais
 		                               			// Supostamente elas não entram no ROB, mas com esse espaço extra
 		                               			// dedicado fica mais fácil gerenciar
-
+extern int32_t VECTORIZATION_ENABLED;
 
 /*
 #define VECTORIZATION_SIZE 4

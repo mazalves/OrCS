@@ -1,4 +1,6 @@
 #include "./../simulator.hpp"
+extern std::map<std::string, std::string> vec_correspondent;
+
 vector_map_table_t::vector_map_table_t  (int32_t num_entries, 
                                         register_rename_table_t *RRT,
                                         Vectorizer_t *vectorizer, 
@@ -13,6 +15,18 @@ vector_map_table_t::vector_map_table_t  (int32_t num_entries,
     this->vectorizer = vectorizer;
     this->register_rename_table = RRT;
     this->inst_list = inst_list;
+
+    // Instruções e correspondentes vetoriais
+    vec_correspondent[std::string("ADD")] = std::string("VPADDQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("SUB")] = std::string("VPSUBB_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("SHL")] = std::string("VPSLLW_XMMdq_XMMdq_IMMb+R128+R128+I8");
+    vec_correspondent[std::string("SHR")] = std::string("VPSRLW_YMMqq_YMMqq_IMMb+R256+R256+I8");
+    vec_correspondent[std::string("DIV")] = std::string("VDIVPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("MUL")] = std::string("VMULPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("NEG")] = std::string("PSIGNB_XMMdq_XMMdq+R128+R128");
+    vec_correspondent[std::string("AND")] = std::string("VANDPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("OR")] = std::string("VORPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+
 }
         
 vector_map_table_t::~vector_map_table_t () {
@@ -192,9 +206,11 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
 
 void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_load, int32_t vr_id, int32_t num_part) {
     // Fill opcode_assembly
+    /*
     switch(inst->opcode_operation) {
 	    case INSTRUCTION_OPERATION_INT_ALU:
 	    	strcpy(inst->opcode_assembly, "VPADDQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+
 	    	break;
 	    case INSTRUCTION_OPERATION_INT_MUL:
 	    	strcpy(inst->opcode_assembly, "VPMULDQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
@@ -207,6 +223,10 @@ void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_lo
 	    default:
 	    	printf("Erro: Vetorização de operação não definida! Operação: %d - %s\n", inst->opcode_operation, inst->opcode_assembly);
 	    	exit(1);
+    }
+    */
+    if (inst->opcode_operation != INSTRUCTION_OPERATION_MEM_LOAD){
+     strcpy(inst->opcode_assembly, vec_correspondent[std::string(inst->opcode_assembly)].c_str());
     }
 
     // Fill instruction_id

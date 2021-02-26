@@ -465,7 +465,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
         requests.push_back (request);
         requests.shrink_to_fit();
         #if MEMORY_DEBUG
-            ORCS_PRINTF ("is new.\n")
+            ORCS_PRINTF ("is new from uop: %lu\n", request->uop_number);
         #endif
     }
     return true;

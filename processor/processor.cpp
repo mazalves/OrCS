@@ -232,6 +232,7 @@ processor_t::processor_t()
 	FETCH_BUFFER_VECTORIZED = 0;
 	DECODE_BUFFER_VECTORIZED = 0;
 	ROB_VECTORIAL_SIZE = 0;
+	VECTORIZATION_ENABLED = 0;
 
 
 
@@ -549,6 +550,7 @@ void processor_t::allocate() {
 	FETCH_BUFFER_VECTORIZED = cfg_processor["FETCH_BUFFER_VECTORIZED"];
 	DECODE_BUFFER_VECTORIZED = cfg_processor["DECODE_BUFFER_VECTORIZED"];
 	ROB_VECTORIAL_SIZE = cfg_processor["ROB_VECTORIAL_SIZE"];
+	VECTORIZATION_ENABLED = cfg_processor["VECTORIZATION_ENABLED"];
 
 	// FetchBuffer
 	this->fetchBuffer.allocate(FETCH_BUFFER + FETCH_BUFFER_VECTORIZED);
@@ -1019,7 +1021,8 @@ void processor_t::remove_back_mob_write(){
 }
 // ============================================================================
 
-
+uint64_t vet = 0;
+uint64_t esc = 0;
 void processor_t::fetch(){
 	opcode_package_t operation;
 	// uint32_t position;
@@ -1040,7 +1043,9 @@ void processor_t::fetch(){
 			//=============================
 			//Stall full fetch buffer
 			//=============================
+			//printf("%u\n",this->fetchBuffer.size - vec_on_fetchBuffer);
 			if (this->fetchBuffer.size == (FETCH_BUFFER + vec_on_fetchBuffer)) {
+				//printf("STALL\n");
 				this->add_stall_full_FetchBuffer();
 				break;
 			}
@@ -1062,9 +1067,6 @@ void processor_t::fetch(){
 				this->traceIsOver = true;
 				break;
 			}
-			#if FETCH_DEBUG
-				ORCS_PRINTF("%s - Opcode Fetched %s\n", operation.opcode_assembly, operation.content_to_string2().c_str())
-			#endif
 			
 
 			//============================
@@ -1072,10 +1074,11 @@ void processor_t::fetch(){
 			//============================
 			// Tenta vetorizar
 			vectorizer->new_inst (&operation);
-			if (operation.is_read && operation.is_read2) {
+			/*if (operation.is_read && operation.is_read2) {
 				printf("ERROR: One instruction with two reads\n");
+				printf(">> %s\n", operation.opcode_assembly);
 				exit(1);
-			}
+			}*/
 
 			//vectorizer->debug();
 
@@ -1090,16 +1093,26 @@ void processor_t::fetch(){
 				operation.readyAt = orcs_engine.get_global_cycle();
 			}
 
+			#if FETCH_DEBUG
+				ORCS_PRINTF("%s - Opcode Fetched %s %s\n", operation.opcode_assembly, 
+				(operation.is_vectorial_part >= 0) ? "Vec" :
+				(operation.is_validation) ? "Val" : "Ins",
+				 operation.content_to_string2().c_str())
+			#endif
+
 			operation.opcode_number = this->fetchCounter;
 			this->fetchCounter++;
-
 
 			//============================
 			// Vetorização
 			//============================
 			// Envia para o pipeline
 			vectorizer->enter_pipeline(&operation);
-
+			if (operation.is_vectorial_part >= 0) {
+				++vet;
+			} else {
+				++esc;
+			}
 			//============================
 			///Solve Branch
 			//============================
@@ -1258,7 +1271,9 @@ void processor_t::decode(){
 
         // Make sure there's enough space in decodeBuffer
 		if (instr->is_vectorial_part < 0) {
+			//printf("Decode left: %d\n",DECODE_BUFFER - esc_on_decodeBuffer);			
 			if (DECODE_BUFFER - esc_on_decodeBuffer < num_uops) {
+				//printf("Decode STALL\n");
 				this->add_stall_full_DecodeBuffer();
 				//printf("Scalar decode full: %u/%u\n", esc_on_decodeBuffer, DECODE_BUFFER);
 				break;
@@ -1915,7 +1930,11 @@ void processor_t::rename(){
 			}
 
 			#if RENAME_DEBUG
-				ORCS_PRINTF("Get_Position_MOB_READ %d\n",pos_mob);
+				if (is_vectorial_part) {
+					ORCS_PRINTF("Get_Position_MOB_VECTORIAL %d\n",pos_mob);
+				} else {
+					ORCS_PRINTF("Get_Position_MOB_READ %d\n",pos_mob);
+				}
 			#endif
 
 			mob_line = (is_vectorial_part == false) ? &this->memory_order_buffer_read[pos_mob]
@@ -2020,6 +2039,7 @@ void processor_t::rename(){
 		// Verificando se tem espaco no ROB se sim vamos inserir
 		//=======================
 		pos_rob = this->searchPositionROB((is_vectorial_part == false) ? &reorderBuffer : &vectorialReorderBuffer);
+		//printf("ROB USED: %d\n", reorderBuffer.robUsed);
 		if (pos_rob == POSITION_FAIL)
 		{
 			#if RENAME_DEBUG
@@ -2031,6 +2051,7 @@ void processor_t::rename(){
 						vectorialReorderBuffer.robUsed, 
 						vectorialReorderBuffer.SIZE);*/
 			if (is_vectorial_part == false) {
+				//printf("ROB STALL\n");
 				this->add_stall_full_ROB();
 			} else {
 				this->add_stall_full_ROB_VET();
@@ -2078,7 +2099,10 @@ void processor_t::rename(){
 
 
 		#if RENAME_DEBUG
-			ORCS_PRINTF("Rename %s\n", rob_line->content_to_string().c_str())
+			ORCS_PRINTF("Rename [%s] %s\n", 
+			(rob_line->uop.is_vectorial_part >= 0) ? "Vec" :
+			(rob_line->uop.is_validation) ? "Val" : "Ins",
+			 rob_line->content_to_string().c_str())
 		#endif
 
 		// =======================
@@ -2093,7 +2117,7 @@ void processor_t::rename(){
 				this->unified_vectorial_reservation_station.push_back(rob_line);
 		} else {
 			rob_line->stage = PROCESSOR_STAGE_COMMIT;
-			rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
+			rob_line->uop.updatePackageReady(COMMIT_LATENCY);
 
 		}
 
@@ -2115,10 +2139,11 @@ void processor_t::rename(){
 			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
 			rob_line->mob_ptr->processor_id = this->processor_id;
 			#if MEMORY_DEBUG
-				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer.\n",
+				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer (Ready: %lu).\n",
                         orcs_engine.get_global_cycle(),
                         rob_line->mob_ptr->memory_address,
-                        get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
+                        get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation),
+						rob_line->mob_ptr->readyToGo);
 			#endif
 		}
 		else if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
@@ -2815,10 +2840,6 @@ void processor_t::execute()
 
 
 			} //end if ready package
-			else {
-				printf(" -> Pronta: False\n");
-
-			}
 		}	 //end for
 	} // end type
 	#if EXECUTE_DEBUG
@@ -2834,10 +2855,13 @@ void processor_t::execute()
 	//  e executar a mais antiga no MOB
 	// =========================================================================
 	for (size_t i = 0; i < PARALLEL_LOADS; i++){
-		if(this->memory_read_executed!=0){
+		/*if(this->memory_read_executed!=0){
 			this->mob_read();
 		} else if (this->memory_vectorial_executed != 0) {
 			this->mob_vectorial();
+		}*/
+		if ((this->memory_read_executed!=0) || (this->memory_vectorial_executed != 0)){
+			this->mob_vet_and_read();
 		}
 	}
 
@@ -2877,6 +2901,7 @@ memory_order_buffer_line_t* processor_t::get_next_op_load() {
         	this->memory_order_buffer_read[pos].wait_mem_deps_number == 0 &&
 			this->memory_order_buffer_read[pos].readyToGo <= orcs_engine.get_global_cycle())
         {
+				assert(this->memory_order_buffer_read[pos].rob_ptr != NULL);
 				return &this->memory_order_buffer_read[pos];
 		}
 
@@ -3020,6 +3045,7 @@ memory_order_buffer_line_t* processor_t::get_next_op_vectorial() {
 	uint32_t pos = this->memory_order_buffer_vectorial_start;
 	for(uint32_t i = 0 ; i < this->memory_order_buffer_vectorial_used; i++)
     {
+
 		if (this->memory_order_buffer_vectorial[pos].uop_executed &&
 			this->memory_order_buffer_vectorial[pos].status == PACKAGE_STATE_WAIT &&
 			this->memory_order_buffer_vectorial[pos].sent==false &&
@@ -3028,6 +3054,8 @@ memory_order_buffer_line_t* processor_t::get_next_op_vectorial() {
         {
 				return &this->memory_order_buffer_vectorial[pos];
 		}
+
+
 
 		pos++;
 		if (pos >= MOB_VECTORIAL) pos = 0;
@@ -3122,9 +3150,11 @@ uint32_t processor_t::mob_vima(){
 }
 // ============================================================================
 uint32_t processor_t::mob_vectorial(){
+	printf("Mob vectorial\n");
 	if(this->oldest_vectorial_to_send == NULL) this->oldest_vectorial_to_send = this->get_next_op_vectorial();
-
 	if (this->oldest_vectorial_to_send != NULL && !this->oldest_vectorial_to_send->sent){
+		printf("Request from uop: %lu\n", this->oldest_vectorial_to_send->uop_number);
+		
 		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
 		memory_package_t* request = new memory_package_t();
 
@@ -3147,7 +3177,10 @@ uint32_t processor_t::mob_vectorial(){
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
 		request->clients.shrink_to_fit();
-
+		if(request->uop_number == 356)
+		{
+			printf("Request with uop: 356\n");
+		}
 		#if MEMORY_DEBUG
 			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
                     orcs_engine.get_global_cycle(),
@@ -3166,6 +3199,73 @@ uint32_t processor_t::mob_vectorial(){
 		}
 
 		this->oldest_vectorial_to_send = NULL;
+	} //end if request null
+	return OK;
+} //end method
+
+// ============================================================================
+uint32_t processor_t::mob_vet_and_read(){
+	if(this->oldest_read_to_send == NULL) this->oldest_read_to_send = this->get_next_op_load();
+	if(this->oldest_vectorial_to_send == NULL) this->oldest_vectorial_to_send = this->get_next_op_vectorial();
+	
+
+	memory_order_buffer_line_t *to_send = this->oldest_read_to_send;
+	if ((this->oldest_vectorial_to_send != NULL) &&
+	    ((this->oldest_read_to_send == NULL) || 
+	    this->oldest_read_to_send->sent    ||
+		this->oldest_read_to_send->uop_number > this->oldest_vectorial_to_send->uop_number)){
+		to_send = this->oldest_vectorial_to_send;
+	} 
+	
+
+	if (to_send != NULL && !to_send->sent){
+		assert(to_send->rob_ptr != NULL);
+		if (!orcs_engine.cacheManager->available (this->processor_id, MEMORY_OPERATION_READ)) return OK;
+		memory_package_t* request = new memory_package_t();
+
+		request->clients.push_back (to_send);
+		request->opcode_address = to_send->opcode_address;
+		request->memory_address = to_send->memory_address;
+		request->memory_size = to_send->memory_size;
+		request->memory_operation = to_send->memory_operation;
+		request->status = PACKAGE_STATE_UNTREATED;
+		request->is_hive = false;
+		request->is_vima = false;
+		request->hive_read1 = to_send->hive_read1;
+		request->hive_read2 = to_send->hive_read2;
+		request->hive_write = to_send->hive_write;
+		request->readyAt = orcs_engine.get_global_cycle();
+		request->born_cycle = orcs_engine.get_global_cycle();
+		request->sent_to_ram = false;
+		request->type = DATA;
+		request->uop_number = to_send->uop_number;
+		request->processor_id = this->processor_id;
+		request->op_count[request->memory_operation]++;
+		request->clients.shrink_to_fit();
+
+		#if MEMORY_DEBUG
+			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
+                    orcs_engine.get_global_cycle(),
+                    request->memory_address,
+                    get_enum_memory_operation_char(request->memory_operation));
+		#endif
+
+		if (orcs_engine.cacheManager->searchData(request)){
+			to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			to_send->sent=true;
+			to_send->rob_ptr->sent=true;							///Setting flag which marks sent request. set to remove entry on mob at commit
+
+		} else {
+			this->add_times_reach_parallel_requests_read();
+			delete request;
+		}
+
+		if (to_send == this->oldest_read_to_send) {
+			this->oldest_read_to_send = NULL;
+		} else {
+			this->oldest_vectorial_to_send = NULL;
+		}
+
 	} //end if request null
 	return OK;
 } //end method
@@ -3265,7 +3365,7 @@ void processor_t::commit(){
 			if (this->vectorialReorderBuffer.robUsed > 0)
 				ORCS_PRINTF("ROB Vectorial Head %s\n",this->vectorialReorderBuffer.reorderBuffer[vectorialReorderBuffer.robStart].content_to_string().c_str())
 			
-			if (orcs_engine.get_global_cycle() > 10000){
+			/*if (orcs_engine.get_global_cycle() > 10000){
 			//for (uint32_t i = this->reorderBuffer.robStart;  i != this->reorderBuffer.robEnd; (i == this->ROB_SIZE - 1) ? i = 0 : ++i) {
 			//	ORCS_PRINTF("ROB[%u] %s\n", i, this->reorderBuffer.reorderBuffer[i].content_to_string().c_str())
 			//}
@@ -3274,7 +3374,7 @@ void processor_t::commit(){
 											this->reorderBuffer.robEnd,
 											this->reorderBuffer.robUsed);
 			exit(1);
-			}
+			}*/
 			ORCS_PRINTF("==================================\n")
 		}
 	#endif
@@ -3601,6 +3701,7 @@ void processor_t::statistics(){
     }
 
 	if (output != NULL){
+		printf("Vetorial: %lu -- Escalar: %lu\n", vet, esc);
 		utils_t::largestSeparator(output);
 		fprintf(output, "Total_Cycle:  %lu\n", this->get_ended_cycle());
 		utils_t::largeSeparator(output);

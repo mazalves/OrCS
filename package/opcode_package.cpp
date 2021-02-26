@@ -158,6 +158,7 @@ std::string opcode_package_t::content_to_string() {
 std::string opcode_package_t::content_to_string2() {
     std::string content_string;
     content_string = "";
+    content_string = content_string + " " + this->opcode_assembly;
     content_string = content_string + " " + get_enum_instruction_operation_char(this->opcode_operation);
     content_string = content_string + " $" + utils_t::big_uint64_to_string(this->opcode_address);
     content_string = content_string + " Size:" + utils_t::uint32_to_string(this->opcode_size);

@@ -310,6 +310,7 @@ class processor_t {
 		void clean_mob_hive();
 		uint32_t mob_vima();
 		void clean_mob_vima();
+		uint32_t mob_vet_and_read();
 		uint32_t mob_vectorial();
 		void clean_mob_vectorial();
 		

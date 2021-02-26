@@ -46,6 +46,10 @@ void table_of_loads_t::update_stride (table_of_loads_entry_t *tl_entry, uint64_t
         }
     }
 
+    if (VECTORIZATION_ENABLED == 0) {
+        tl_entry->confidence = 0;
+    }
+    
     tl_entry->last_address = addr;
 
 }

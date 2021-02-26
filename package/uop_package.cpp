@@ -167,6 +167,7 @@ std::string uop_package_t::content_to_string2() {
     content_string = "";
 
     content_string = content_string + "Uop Number " + utils_t::uint64_to_string(this->uop_number);
+    content_string = content_string + " Opcode Number " + utils_t::uint64_to_string(this->opcode_number);
 
 
     content_string = content_string + " " + utils_t::uint64_to_string(this->opcode_address);

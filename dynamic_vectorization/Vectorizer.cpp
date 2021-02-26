@@ -17,7 +17,9 @@ int32_t DECODE_BUFFER_VECTORIZED; // 100  // Tamanho do buffer auxiliar que pass
 uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para instruções vetoriais
 		                               			// Supostamente elas não entram no ROB, mas com esse espaço extra
 		                               			// dedicado fica mais fácil gerenciar
+int32_t VECTORIZATION_ENABLED;
 
+    std::map<std::string, std::string> vec_correspondent;
 
 int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
     /*
@@ -118,8 +120,7 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
 DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
     if (inst->is_vectorial_part >= 0) return DV::SUCCESS;
-
-    
+    if (inst->is_read && inst->is_read2) return DV::SUCCESS;    
 
     // **************************************
     // Vectorizer_t::new_inst (load)
@@ -180,35 +181,38 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
     if ((inst->opcode_operation == INSTRUCTION_OPERATION_INT_ALU) ||
        (inst->opcode_operation == INSTRUCTION_OPERATION_INT_MUL) ||
        (inst->opcode_operation == INSTRUCTION_OPERATION_FP_ALU))    {
+           //printf("%s - %lu\n", inst->opcode_assembly, vec_correspondent.count(std::string(inst->opcode_assembly)));
+            if (vec_correspondent.count(std::string(inst->opcode_assembly)) == 1)
+            {
+            // Search for PC in VRMT
+            vector_map_table_entry_t *vrmt_entry;
+            vrmt_entry = VRMT->find_pc(inst->opcode_address);
 
-        // Search for PC in VRMT
-        vector_map_table_entry_t *vrmt_entry;
-        vrmt_entry = VRMT->find_pc(inst->opcode_address);
-
-        if (vrmt_entry != NULL) {
-            // Valida a entrada da VRMT convertendo em uma validação
-            // (O validate converte a inst em validação)
-            VRMT->validate(inst, vrmt_entry);
+            if (vrmt_entry != NULL) {
+                // Valida a entrada da VRMT convertendo em uma validação
+                // (O validate converte a inst em validação)
+                VRMT->validate(inst, vrmt_entry);
 
 
-        } else { // vrmt_entry == NULL
-            // Verifica se os operandos são vetoriais
-            bool op_vectorial;
-            op_vectorial = this->vectorial_operands(inst);
+            } else { // vrmt_entry == NULL
+                // Verifica se os operandos são vetoriais
+                bool op_vectorial;
+                op_vectorial = this->vectorial_operands(inst);
 
-            if (op_vectorial) {
-                // Vectorize operation
-                DV::DV_ERROR stats = VRMT->vectorize(inst, &vrmt_entry, false);
-                
-                // Convert to validation
-                if (stats == DV::SUCCESS) { 
-                    VRMT->convert_to_validation(inst, vrmt_entry, 0);
+                if (op_vectorial) {
+                    // Vectorize operation
+                    DV::DV_ERROR stats = VRMT->vectorize(inst, &vrmt_entry, false);
+
+                    // Convert to validation
+                    if (stats == DV::SUCCESS) { 
+                        VRMT->convert_to_validation(inst, vrmt_entry, 0);
+                    }
                 }
+
             }
+            return DV::SUCCESS;
 
         }
-        return DV::SUCCESS;
-
     }
 
     // **************************************
