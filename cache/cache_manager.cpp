@@ -326,7 +326,7 @@ void cache_manager_t::print_requests(){
 
 void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_indexes){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[CACM] %lu %lu %s finishes! Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation), orcs_engine.get_global_cycle()-request->born_cycle)
+        ORCS_PRINTF ("[CACM] %lu {%lu} %lu %s finishes! Took %lu cycles.\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char (request->memory_operation), orcs_engine.get_global_cycle()-request->born_cycle)
     #endif
     wait_time = (orcs_engine.get_global_cycle() - request->born_cycle);
     if (request->sent_to_ram && !request->is_hive && !request->is_vima){
@@ -456,7 +456,7 @@ void cache_manager_t::install (memory_package_t* request){
 
 bool cache_manager_t::searchData(memory_package_t *request) {
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[CACM] %lu %lu %s enters | ", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation))
+        ORCS_PRINTF ("[CACM] %lu {%lu} %lu %s enters | ", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char (request->memory_operation))
     #endif
     if (request->memory_operation == MEMORY_OPERATION_READ) this->add_reads();
     else if (request->memory_operation == MEMORY_OPERATION_WRITE) this->add_writes();
@@ -473,7 +473,7 @@ bool cache_manager_t::searchData(memory_package_t *request) {
 
 void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[CACM] %lu %lu %s will now be processed |", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation))
+        ORCS_PRINTF ("[CACM] %lu {%lu} %lu %s will now be processed |", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char (request->memory_operation))
     #endif
     #if PROCESSOR_DEBUG
         ORCS_PRINTF ("%lu Cache Manager process(): request %lu, %s %s, readyAt %lu \n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status), request->readyAt)
@@ -543,7 +543,6 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
 }
 
 void cache_manager_t::clock() {
-    // printf("clock executing\n");
     if (requests.size() > 0) {
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
         for (size_t i = 0; i < requests.size(); i++){

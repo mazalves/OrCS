@@ -1,16 +1,14 @@
 #include "./../simulator.hpp"
 extern std::map<std::string, std::string> vec_correspondent;
 
-vector_map_table_t::vector_map_table_t  (int32_t num_entries, 
+vector_map_table_t::vector_map_table_t (int32_t num_entries,
+                                        int32_t associativity,
                                         register_rename_table_t *RRT,
                                         Vectorizer_t *vectorizer, 
                                         table_of_loads_t *TL, 
                                         circular_buffer_t <opcode_package_t> *inst_list) {
     // Inicializações
-    this->entries_size = num_entries;
-    this->entries = new vector_map_table_entry_t[this->entries_size];
-    this->next_replacement = 0;
-
+    this->entries.allocate(num_entries, associativity, 0);
     this->TL = TL;
     this->vectorizer = vectorizer;
     this->register_rename_table = RRT;
@@ -30,21 +28,30 @@ vector_map_table_t::vector_map_table_t  (int32_t num_entries,
 }
         
 vector_map_table_t::~vector_map_table_t () {
-
-    // Libera alocações
-    delete[] this->entries;
-
+    //list_contents();
 }
 
-int32_t vector_map_table_t::allocate_entry () {
-    int32_t r = next_replacement;
-    ++next_replacement;
+vector_map_table_entry_t* vector_map_table_t::allocate_entry (uint64_t pc) {
+    //=========================
+    // Find oldest entry
+    //=========================
+    // Aloca
+    uint32_t oldest_last_use = 0;
+    uint32_t oldest_id = 0;
 
-    if(next_replacement == entries_size) 
-    	next_replacement = 0;
+    vector_map_table_entry_t *possible_entries = this->entries.map_set(pc);
+    oldest_last_use = possible_entries[0].last_use;
+    oldest_id = 0;
 
-    return r;
+    for (uint32_t i=1; i < this->entries.get_associativity(); ++i) {
+        if (oldest_last_use > possible_entries[i].last_use) {
+            oldest_last_use = possible_entries[i].last_use;
+            oldest_id = i;
+        }
+    }
 
+    possible_entries[oldest_id].last_use = orcs_engine.get_global_cycle();
+    return &possible_entries[oldest_id];
 }
 
 
@@ -72,26 +79,31 @@ DV::DV_ERROR vector_map_table_t::convert_to_validation (opcode_package_t *inst, 
 }
 
 vector_map_table_entry_t *vector_map_table_t::find_pc (uint64_t pc) {
-    for (int32_t i = 0; i < this->entries_size; ++i) {
-        if(this->entries[i].pc == pc)
-            return &this->entries[i];
+    vector_map_table_entry_t* possible_entries = this->entries.map_set(pc);
+
+    for (uint32_t i=0; i < this->entries.get_associativity(); ++i) {
+        if(possible_entries[i].pc == pc)
+            return &possible_entries[i];
     }
     return NULL;
 }
 
 void vector_map_table_t::invalidate (vector_map_table_entry_t *vrmt_entry) {
     vrmt_entry->pc = 0;
+    vectorizer->vr_control_bits[vrmt_entry->correspondent_VR].associated_entry = 0x0;
 }
 
 bool vector_map_table_t::new_store (opcode_package_t *inst) {
     bool r = false;
-    for (int32_t i = 0; i < this->entries_size; ++i) {
-	    if(this->entries[i].is_load) {
-	    	if((entries[i].source_operand_1 <= inst->write_address) &&
-	    	  (entries[i].source_operand_2 > inst->write_address))
-            {
-                this->invalidate(&this->entries[i]);
-		        r = true;
+    for (uint32_t i = 0; i < this->entries.get_num_sets(); ++i) {
+        for (uint32_t j = 0; j < this->entries.get_associativity(); ++j) {
+	        if(this->entries[i][j].is_load) {
+	        	if((entries[i][j].source_operand_1 <= inst->write_address) &&
+	        	  (entries[i][j].source_operand_2 > inst->write_address))
+                {
+                    this->invalidate(&this->entries[i][j]);
+		            r = true;
+                }
             }
         }
     }
@@ -108,8 +120,10 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
     // **************************************
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
 
-        // Set_U
-        vectorizer->set_U (vrmt_entry->correspondent_VR,  vrmt_entry->offset, true);
+        // Set that was sent to pipeline
+        // // Is made on decode
+        //vectorizer->set_sent(vrmt_entry->correspondent_VR, vrmt_entry->offset, true);
+        //vectorizer->set_U (vrmt_entry->correspondent_VR,  vrmt_entry->offset, true);
 
         // Offset++
         vrmt_entry->offset++;
@@ -182,8 +196,10 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             return DV::NEW_PARAMETERS_REVECTORIZING;
 
         } else {
-            // Set_U
-            vectorizer->set_U(vrmt_entry->correspondent_VR, vrmt_entry->offset, true);
+            // Set_sent
+            // // Is made on decode
+            //vectorizer->set_sent(vrmt_entry->correspondent_VR, vrmt_entry->offset, true);
+            //vectorizer->set_U(vrmt_entry->correspondent_VR, vrmt_entry->offset, true);
 
             // Increment offset
             vrmt_entry->offset++;
@@ -308,7 +324,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
 
 
     // Aloca uma vrmt_entry
-    *vrmt_entry = &entries[this->allocate_entry()];
+    *vrmt_entry = this->allocate_entry(inst->opcode_address);
 
     // Preenche vrmt_entry
     (*vrmt_entry)->pc = inst->opcode_address;
@@ -318,6 +334,10 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     (*vrmt_entry)->correspondent_VR = vr_id;
     (*vrmt_entry)->is_load = (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD);
     
+    // Associa ao VR
+    vectorizer->vr_control_bits[vr_id].associated_entry = (*vrmt_entry);
+
+
     table_of_loads_entry_t *tl_entry = 0x0;
     // Define operandos vetoriais ou regiões de memória.
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
@@ -380,13 +400,29 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
 }
 
 void vector_map_table_t::list_contents() {
-    for (int32_t i = 0; i < this->entries_size; ++i) {
-        if (this->entries[i].pc != 0x0) {
-            printf("%lu: Offset: %d -- Source_1: %lu -- Source_2: %lu --> VR: %d\n",
-                    this->entries[i].pc, this->entries[i].offset,
-                    this->entries[i].source_operand_1,
-                    this->entries[i].source_operand_2,
-                    this->entries[i].correspondent_VR);
+    for (uint32_t i=0; i < this->entries.get_num_sets(); ++i) {
+        printf("#########\n");
+        printf("Set %u\n", i);
+        printf("#########\n");
+        for (uint32_t j=0; j < this->entries.get_associativity(); ++j) {
+            if (this->entries[i][j].pc != 0x0) {
+                printf("%lu: Offset: %d -- Source_1: %lu -- Source_2: %lu --> VR: %d\n",
+                        this->entries[i][j].pc, this->entries[i][j].offset,
+                        this->entries[i][j].source_operand_1,
+                        this->entries[i][j].source_operand_2,
+                        this->entries[i][j].correspondent_VR);
+            }
         }
+        printf("########################\n");
+    }
+    printf("All content: \n");
+    for (uint32_t i=0; i < this->entries.get_num_sets(); ++i) {
+        printf("Set %u: ", i);
+        for (uint32_t j=0; j < this->entries.get_associativity(); ++j) {
+                printf("%lu[%lu] ",
+                        this->entries[i][j].pc, this->entries[i][j].last_use);
+        }
+        printf("\n");
+        printf("########################\n");
     }
 }

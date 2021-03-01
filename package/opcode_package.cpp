@@ -51,6 +51,7 @@ opcode_package_t::opcode_package_t() {
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
+    this->BB_addr = 0x0;
     this->number_changed = false;
     this->is_pre_vectorization = false;
 
@@ -114,6 +115,7 @@ void opcode_package_t::package_clean() {
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
+    this->BB_addr = 0x0;
     this->number_changed = false;
     this->is_pre_vectorization = false;
 

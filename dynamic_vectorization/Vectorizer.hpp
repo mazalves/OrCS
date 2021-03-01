@@ -20,7 +20,6 @@ class Vectorizer_t {
         int32_t allocate_VR(int32_t logical_register);
         DV::DV_ERROR new_commit (uop_package_t *inst);
         DV::DV_ERROR new_inst (opcode_package_t *inst);
-        void set_U (int32_t vr_id, int32_t index, bool value);
 
         bool vectorial_operands (opcode_package_t *inst);
         DV::DV_ERROR enter_pipeline (opcode_package_t *inst);
@@ -34,5 +33,82 @@ class Vectorizer_t {
         void statistics();
         void debug();
 
+        // Registers SETTERs and GETTERs
+        inline void set_executed (int32_t vr_id, int32_t index, bool value);        
+        inline void set_sent (int32_t vr_id, int32_t index, bool value);
+        inline void set_free (int32_t vr_id, int32_t index, bool value);
+        inline void set_V (int32_t vr_id, int32_t index, uint32_t value);
+        inline void set_R (int32_t vr_id, int32_t index, uint32_t value);
+        inline void set_U (int32_t vr_id, int32_t index, uint32_t value);
+        inline void set_F (int32_t vr_id, int32_t index, uint32_t value);
+
+        // Register operations
+        inline void sub_V (int32_t vr_id, int32_t index, uint32_t value);
+        inline void sub_R (int32_t vr_id, int32_t index, uint32_t value);
+        inline void sub_U (int32_t vr_id, int32_t index, uint32_t value);
+        inline void sub_F (int32_t vr_id, int32_t index, uint32_t value);
+
 };
+
+inline void Vectorizer_t::set_V (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].V = value;
+    }
+}
+inline void Vectorizer_t::set_R (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].R = value;
+    }
+}
+inline void Vectorizer_t::set_U (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].U = value;
+    }
+}
+inline void Vectorizer_t::set_F (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].F = value;
+    }
+}
+
+
+inline void Vectorizer_t::set_executed (int32_t vr_id, int32_t index, bool value){
+    assert(this->vr_control_bits[vr_id].positions[index].executed == false);
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].executed = value;
+    }
+}      
+inline void Vectorizer_t::set_sent (int32_t vr_id, int32_t index, bool value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].sent = value;
+    }
+}
+
+inline void Vectorizer_t::set_free (int32_t vr_id, int32_t index, bool value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].free = value;
+    }
+}
+
+inline void Vectorizer_t::sub_V (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].V -= value;
+    }
+}
+inline void Vectorizer_t::sub_R (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].R -= value;
+    }
+}
+inline void Vectorizer_t::sub_U (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].U -= value;
+    }
+}
+inline void Vectorizer_t::sub_F (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].F -= value;
+    }
+}
+
 #endif

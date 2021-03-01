@@ -18,7 +18,9 @@ enum DV_ERROR
 extern int32_t VECTORIZATION_SIZE; // 4
 extern int32_t NUM_VR; // 32
 extern int32_t VRMT_SIZE; // 32 					// Acho que precisa ser maior ou igual ao VR. Deve ser 1 <-> 1
-extern int32_t TL_SIZE; // 1
+extern int32_t VRMT_ASSOCIATIVITY;
+extern int32_t TL_SIZE; // 1]
+extern int32_t TL_ASSOCIATIVITY;
 extern int32_t FU_VALIDATION_SIZE; // 100
 extern int32_t FU_VALIDATION_WAIT_NEXT; // 1
 

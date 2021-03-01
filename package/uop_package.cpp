@@ -25,6 +25,7 @@ void uop_package_t::package_clean()
     this->will_free = -1;
     this->will_free_offset = -1;
     this->is_BB = false;
+    this->BB_addr = 0x0;
     this->number_changed = false;
     
 
@@ -103,13 +104,13 @@ void uop_package_t::opcode_to_uop(
 
     this->is_vectorial_part = opcode.is_vectorial_part;
     this->VR_id = opcode.VR_id;    
-
     this->is_validation = opcode.is_validation; 
     this->will_validate_offset = opcode.will_validate_offset;       
     this->will_free = opcode.will_free;          
     this->will_free_offset = opcode.will_free_offset; 
 
-    this->is_BB = opcode.is_BB;                 
+    this->is_BB = opcode.is_BB;
+    this->BB_addr = opcode.BB_addr;            
     this->number_changed = opcode.number_changed;
                     
 }

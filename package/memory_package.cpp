@@ -48,7 +48,7 @@ memory_package_t::~memory_package_t(){
 
 void memory_package_t::updatePackageUntreated (uint32_t stallTime){
     #if MEMORY_DEBUG 
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_UNTREATED;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -60,7 +60,7 @@ void memory_package_t::updatePackageUntreated (uint32_t stallTime){
 
 void memory_package_t::updatePackageReady(){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))        
     #endif
     this->status = PACKAGE_STATE_READY;
     this->readyAt = orcs_engine.get_global_cycle();
@@ -71,7 +71,7 @@ void memory_package_t::updatePackageReady(){
 
 void memory_package_t::updatePackageWait (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_WAIT;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -83,7 +83,7 @@ void memory_package_t::updatePackageWait (uint32_t stallTime){
 
 void memory_package_t::updatePackageTransmit (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_TRANSMIT;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -95,7 +95,7 @@ void memory_package_t::updatePackageTransmit (uint32_t stallTime){
 
 void memory_package_t::updatePackageFree (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_FREE;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -107,7 +107,7 @@ void memory_package_t::updatePackageFree (uint32_t stallTime){
 
 void memory_package_t::updatePackageHive (uint32_t stallTime){
     #if MEMORY_DEBUG || HIVE_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_HIVE;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -119,7 +119,7 @@ void memory_package_t::updatePackageHive (uint32_t stallTime){
 
 void memory_package_t::updatePackageVima (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_VIMA;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -131,7 +131,7 @@ void memory_package_t::updatePackageVima (uint32_t stallTime){
 
 void memory_package_t::updatePackageDRAMFetch (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_DRAM_FETCH;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
@@ -143,7 +143,7 @@ void memory_package_t::updatePackageDRAMFetch (uint32_t stallTime){
 
 void memory_package_t::updatePackageDRAMReady (uint32_t stallTime){
     #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu %lu %s %s -> ", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_DRAM_READY;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;

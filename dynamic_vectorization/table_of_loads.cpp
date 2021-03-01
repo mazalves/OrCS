@@ -1,21 +1,36 @@
 #include "./../simulator.hpp"
 
 table_of_loads_entry_t *table_of_loads_t::add_pc (uint64_t pc, uint64_t addr) {
+    //=========================
+    // Find oldest entry
+    //=========================
     // Aloca
-    int32_t tl_id = this->next_replacement;
-    this->next_replacement += 1;
-    if(this->next_replacement == entries_size)
-    {
-    	this->next_replacement = 0;
+    uint32_t oldest_last_use = 0;
+    uint32_t oldest_id = 0;
+
+    table_of_loads_entry_t *possible_entries = this->entries.map_set(pc);
+    oldest_last_use = possible_entries[0].last_use;
+    oldest_id = 0;
+
+    for (uint32_t i=1; i < this->entries.get_associativity(); ++i) {
+        if (oldest_last_use > possible_entries[i].last_use) {
+            oldest_last_use = possible_entries[i].last_use;
+            oldest_id = i;
+        }
     }
 
-    table_of_loads_entry_t *tl_entry = &this->entries[tl_id];
+    //=========================
+    //Fill entry
+    //=========================
+
+    table_of_loads_entry_t *tl_entry = &possible_entries[oldest_id];
 
     // Preenche
     tl_entry->pc = pc;
     tl_entry->last_address = addr;
     tl_entry->stride = 0;
     tl_entry->confidence = 0;
+    tl_entry->last_use = orcs_engine.get_global_cycle();
 
     return tl_entry;
 
@@ -23,11 +38,24 @@ table_of_loads_entry_t *table_of_loads_t::add_pc (uint64_t pc, uint64_t addr) {
 
 table_of_loads_entry_t *table_of_loads_t::find_pc (uint64_t pc) {
 
-    for (int32_t i = 0; i < this->entries_size; ++i) {
-        if (this->entries[i].pc == pc)
-            return &this->entries[i];
+    //=========================
+    // Get set
+    //=========================
+    table_of_loads_entry_t* possible_entries = this->entries.map_set(pc);
 
+
+    //=========================
+    // Search for the element
+    //=========================
+    for (uint32_t i=0; i < this->entries.get_associativity(); ++i) {
+        if (possible_entries[i].pc == pc) {
+            return &possible_entries[i];
+        }
     }
+
+    //=========================
+    // Element not found
+    //=========================
     return NULL;
 
 }
@@ -51,28 +79,28 @@ void table_of_loads_t::update_stride (table_of_loads_entry_t *tl_entry, uint64_t
     }
     
     tl_entry->last_address = addr;
-
 }
 
-table_of_loads_t::table_of_loads_t  (int32_t num_entries) {
+table_of_loads_t::table_of_loads_t (uint32_t num_entries, uint32_t associativity) {
     printf("table_of_loads_t::constructor\n");
-    this->entries_size = num_entries;
-    this->entries = new table_of_loads_entry_t [this->entries_size];
-    this->next_replacement = 0;
+    this->entries.allocate(num_entries, associativity, 0);
 
 }
 
 table_of_loads_t::~table_of_loads_t  () {
-    delete[] this->entries;
-
+   //this->list_contents();
 }
 
 void table_of_loads_t::list_contents() {
-    for (int32_t i = 0; i < this->entries_size; ++i) {
-        if (this->entries[i].pc != 0x0) {
-            printf("%lu: Last addr: %lu -- Stride: %d -- Conf: %d\n",
-                    this->entries[i].pc, this->entries[i].last_address,
-                    this->entries[i].stride, this->entries[i].confidence);
+    printf("TL contents:\n");
+    uint32_t n_sets = this->entries.get_num_sets();
+    uint32_t associativity = this->entries.get_associativity();
+
+    for (uint32_t i=0; i < n_sets; ++i) {
+        printf("Set %u: ", i);
+        for (uint32_t j=0; j < associativity; ++j) {
+            printf(" %lu[%lu] ", this->entries[i][j].pc, this->entries[i][j].last_use);
         }
+        printf("\n");
     }
 }

@@ -230,6 +230,7 @@ class processor_t {
 		//control Branches
 		bool hasBranch;
 		opcode_package_t previousBranch;
+		opcode_package_t *previousBranchPtr;
 		//error at insert fetch buffer
 		bool insertError;
 		opcode_package_t opcodeError;
@@ -313,6 +314,7 @@ class processor_t {
 		uint32_t mob_vet_and_read();
 		uint32_t mob_vectorial();
 		void clean_mob_vectorial();
+		void set_registers_bits(opcode_package_t *inst, int32_t num_uops);
 		
 		void commit();
 		// ====================================================================

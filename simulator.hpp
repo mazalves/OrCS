@@ -166,6 +166,7 @@ class register_rename_table_t;
 //  =========================================//
 #include "./utils/circular_buffer.hpp"
 #include "./utils/utils.hpp"
+#include "./utils/set_associative.hpp"
 //  =========================================//
 // Core Includes
 //  =========================================//

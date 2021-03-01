@@ -1,5 +1,8 @@
 #include "./../simulator.hpp"
 int maiorNumPartes = 0;
+int DEBUG_STARTED = false;
+int reps = 0;
+
 // =====================================================================
 processor_t::processor_t()
 {
@@ -296,6 +299,7 @@ processor_t::~processor_t()
     delete[] this->total_operations;
     delete[] this->min_wait_operations;
     delete[] this->max_wait_operations;
+	delete vectorizer;
 }
 
 uint32_t processor_t::get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL) {
@@ -544,7 +548,9 @@ void processor_t::allocate() {
 	VECTORIZATION_SIZE = cfg_processor["VECTORIZATION_SIZE"];
 	NUM_VR = cfg_processor["NUM_VR"];
 	VRMT_SIZE = cfg_processor["VRMT_SIZE"];
+	VRMT_ASSOCIATIVITY = cfg_processor["VRMT_ASSOCIATIVITY"];
 	TL_SIZE = cfg_processor["TL_SIZE"];
+	TL_ASSOCIATIVITY = cfg_processor["TL_ASSOCIATIVITY"];
 	FU_VALIDATION_SIZE = cfg_processor["FU_VALIDATION_SIZE"];
 	FU_VALIDATION_WAIT_NEXT = cfg_processor["FU_VALIDATION_WAIT_NEXT"];
 	FETCH_BUFFER_VECTORIZED = cfg_processor["FETCH_BUFFER_VECTORIZED"];
@@ -781,6 +787,7 @@ int32_t processor_t::search_position_mob_read(){
 // ============================================================================
 void processor_t::remove_front_mob_read(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB Read Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
@@ -803,6 +810,7 @@ void processor_t::remove_front_mob_read(){
 // ============================================================================
 void processor_t::remove_back_mob_read(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB Read Back Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
@@ -865,6 +873,7 @@ int32_t processor_t::search_position_mob_vima(){
 // ============================================================================
 void processor_t::remove_front_mob_hive(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB HIVE Entry \n%s\n", this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].content_to_string().c_str())
@@ -887,6 +896,7 @@ void processor_t::remove_front_mob_hive(){
 // ============================================================================
 void processor_t::remove_front_mob_vima(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB VIMA Entry \n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_vima_start].content_to_string().c_str())
@@ -928,6 +938,7 @@ int32_t processor_t::search_position_mob_vectorial(){
 // ============================================================================
 void processor_t::remove_front_mob_vectorial(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB vectorial Entry \n%s\n", this->memory_order_buffer_vectorial[this->memory_order_buffer_vectorial_start].content_to_string().c_str())
@@ -971,6 +982,7 @@ int32_t processor_t::search_position_mob_write(){
 // ============================================================================
 void processor_t::remove_front_mob_write(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB Write Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_start].content_to_string().c_str())
@@ -998,6 +1010,7 @@ void processor_t::remove_front_mob_write(){
 // ============================================================================
 void processor_t::remove_back_mob_write(){
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
 			ORCS_PRINTF("==========\n")
 			ORCS_PRINTF("RM MOB Write Back Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_end].content_to_string().c_str())
@@ -1067,7 +1080,8 @@ void processor_t::fetch(){
 				this->traceIsOver = true;
 				break;
 			}
-			
+
+
 
 			//============================
 			// Vetorização
@@ -1079,6 +1093,7 @@ void processor_t::fetch(){
 				printf(">> %s\n", operation.opcode_assembly);
 				exit(1);
 			}*/
+
 
 			//vectorizer->debug();
 
@@ -1093,15 +1108,19 @@ void processor_t::fetch(){
 				operation.readyAt = orcs_engine.get_global_cycle();
 			}
 
-			#if FETCH_DEBUG
-				ORCS_PRINTF("%s - Opcode Fetched %s %s\n", operation.opcode_assembly, 
-				(operation.is_vectorial_part >= 0) ? "Vec" :
-				(operation.is_validation) ? "Val" : "Ins",
-				 operation.content_to_string2().c_str())
-			#endif
-
 			operation.opcode_number = this->fetchCounter;
 			this->fetchCounter++;
+
+			#if FETCH_DEBUG
+			if (DEBUG_STARTED)
+				ORCS_PRINTF("%s - Opcode Fetched %s (%d - VR: %d) Opcode Number %lu %s\n", operation.opcode_assembly, 
+				(operation.is_vectorial_part >= 0) ? "Vec" :
+				(operation.is_validation) ? "Val" : "Ins",
+				(operation.is_validation) ? operation.will_validate_offset : operation.is_vectorial_part,
+				 operation.VR_id,
+				 operation.opcode_number,
+				 operation.content_to_string2().c_str())
+			#endif
 
 			//============================
 			// Vetorização
@@ -1113,6 +1132,8 @@ void processor_t::fetch(){
 			} else {
 				++esc;
 			}
+
+
 			//============================
 			///Solve Branch
 			//============================
@@ -1126,7 +1147,8 @@ void processor_t::fetch(){
 				// Vectorization
 				// // Change GMRBB
 				if (this->previousBranch.opcode_address > operation.opcode_address) {
-					this->previousBranch.is_BB = true;
+					operation.is_BB = true; // A próxima indica que houve mudança
+					operation.BB_addr = this->previousBranch.opcode_address;
 				}
 
 				//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
@@ -1147,7 +1169,7 @@ void processor_t::fetch(){
 			//============================
 			//Insert into fetch buffer
 			//============================
-		
+
 			if (POSITION_FAIL == this->fetchBuffer.push_back(operation)){
 				break;
 			}
@@ -1187,7 +1209,7 @@ void processor_t::fetch(){
 				request->op_count[request->memory_operation]++;
 
 				#if MEMORY_DEBUG
-					ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.I\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+					ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.I\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 				#endif
 
 				if (!orcs_engine.cacheManager->searchData(request)) delete request;
@@ -1198,6 +1220,33 @@ void processor_t::fetch(){
 		}
 	}
 }
+
+void processor_t::set_registers_bits(opcode_package_t *instr, int32_t num_uops) {
+	// Check that is not in the sent state
+		if (instr->VR_id >= 0)
+		{
+			if (instr->is_validation) {
+				vectorizer->set_sent(instr->VR_id, instr->will_validate_offset, true);
+				vectorizer->set_U(instr->VR_id, instr->will_validate_offset, num_uops);
+				vectorizer->set_V(instr->VR_id, instr->will_validate_offset, num_uops);
+			} else if (instr->is_vectorial_part >= 0) {
+				for (int32_t i=0; i < VECTORIZATION_SIZE; ++i) {
+					vectorizer->set_executed(instr->VR_id, i, true);
+					vectorizer->set_R(instr->VR_id, i, num_uops);
+				}
+			}
+
+			vectorizer->vr_control_bits[instr->VR_id].associated_not_decoded--;
+		}
+		if (instr->will_free >= 0) {
+			vectorizer->set_free(instr->will_free, instr->will_free_offset, true);
+			vectorizer->set_F(instr->will_free, instr->will_free_offset, num_uops);
+		}
+
+}
+
+
+
 // ============================================================================
 /*
 	===========================
@@ -1227,15 +1276,16 @@ std::map<std::string, int> instr_cnt;
 //int32_t validations = 0;
 void processor_t::decode(){
 	#if DECODE_DEBUG
-		ORCS_PRINTF("Decode Stage\n")
-		if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
-			ORCS_PRINTF("Opcode to decode %s\n", this->fetchBuffer.front()->content_to_string2().c_str())
-		}
+		if (DEBUG_STARTED)
+			ORCS_PRINTF("Decode Stage\n")
+		if (DEBUG_STARTED)
+			if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
+				ORCS_PRINTF("Opcode to decode %lu %s\n", this->fetchBuffer.front()->opcode_number, this->fetchBuffer.front()->content_to_string2().c_str())
+			}
 	#endif
-
+	
 	uop_package_t new_uop;
 	int32_t statusInsert = POSITION_FAIL;
-	
 	for (size_t i = 0; i < DECODE_WIDTH; i++)
 	{
         if (this->fetchBuffer.is_empty()) {
@@ -1245,7 +1295,7 @@ void processor_t::decode(){
 		opcode_package_t *instr = this->fetchBuffer.front();
         instruction_set_t *instr_set = orcs_engine.instruction_set;
         instruction_operation_t instr_op = instr->opcode_operation;
-
+		int32_t uops_created = 0;
 
         // First instruction must be ready
 		if (instr->status != PACKAGE_STATE_READY || instr->readyAt > orcs_engine.get_global_cycle()) {	
@@ -1340,7 +1390,7 @@ void processor_t::decode(){
 						1,
                         this->LATENCY_MEM_HIVE, this->WAIT_NEXT_MEM_HIVE, &(this->fu_mem_hive),
                         *instr);
-
+				++uops_created;
 				new_uop.is_hive = true;
 				new_uop.is_vima = false;
 				new_uop.hive_read1 = instr->hive_read1;
@@ -1353,6 +1403,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1360,6 +1411,7 @@ void processor_t::decode(){
                         "Erro, Tentando decodificar mais uops que o maximo permitido");
 
 				this->fetchBuffer.pop_front();
+				set_registers_bits(instr, uops_created);
 				return;
 			} else if (instr_op == INSTRUCTION_OPERATION_HIVE_LOAD){
 				new_uop.package_clean();
@@ -1370,6 +1422,7 @@ void processor_t::decode(){
                         this->LATENCY_MEM_HIVE, this->WAIT_NEXT_MEM_HIVE, &(this->fu_mem_hive),
                         *instr);
 
+				++uops_created;
 				new_uop.is_hive = true;
 				new_uop.is_vima = false;
 				new_uop.hive_read1    = instr->hive_read1;
@@ -1385,6 +1438,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1392,6 +1446,7 @@ void processor_t::decode(){
                         "Erro, Tentando decodificar mais uops que o maximo permitido");
 
 				this->fetchBuffer.pop_front();
+				set_registers_bits(instr, uops_created);
 				return;
 			} else if (instr_op == INSTRUCTION_OPERATION_HIVE_STORE){
 				new_uop.package_clean();
@@ -1401,7 +1456,7 @@ void processor_t::decode(){
                         instr->write_size,
                         this->LATENCY_MEM_HIVE, this->WAIT_NEXT_MEM_HIVE, &(this->fu_mem_hive),
                         *instr);
-
+				++uops_created;
 				new_uop.is_hive = true;
 				new_uop.is_vima = false;
 				new_uop.hive_read1    = instr->hive_read1;
@@ -1417,6 +1472,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1424,6 +1480,7 @@ void processor_t::decode(){
                         "Erro, Tentando decodificar mais uops que o maximo permitido");
 
 				this->fetchBuffer.pop_front();
+				set_registers_bits(instr, uops_created);
 				return;
 			}
 		}
@@ -1449,6 +1506,7 @@ void processor_t::decode(){
                         this->LATENCY_MEM_VIMA, this->WAIT_NEXT_MEM_VIMA, &(this->fu_mem_vima),
                         *instr);
 
+				++uops_created;
 				new_uop.is_hive = false;
 				new_uop.hive_read1 = -1;
 				new_uop.hive_read2 = -1;
@@ -1465,6 +1523,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1477,6 +1536,7 @@ void processor_t::decode(){
                         "Erro, Tentando decodificar mais uops que o maximo permitido");
 
 				this->fetchBuffer.pop_front();
+				set_registers_bits(instr, uops_created);
 				return;
 			}
 		}
@@ -1495,6 +1555,7 @@ void processor_t::decode(){
         	            this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
         	            *this->fetchBuffer.front());
 
+				++uops_created;
         	    // If op is not load, clear registers
 				if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 				{
@@ -1526,6 +1587,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1546,6 +1608,7 @@ void processor_t::decode(){
         	            this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
         	            *instr);
 
+				++uops_created;				
         	    // If op is not load, clear registers
 				if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 				{
@@ -1577,6 +1640,7 @@ void processor_t::decode(){
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 				#endif
 
@@ -1608,6 +1672,7 @@ void processor_t::decode(){
         	            &(this->functional_units[uop.fu_id]),
         	            *instr);
 
+					++uops_created;
         	        if (instr->is_read || instr->is_read2)
         	        {
         	            // ===== Read Regs =============================================
@@ -1650,6 +1715,7 @@ void processor_t::decode(){
         	        statusInsert = this->decodeBuffer.push_back(new_uop);
 
         	        #if DECODE_DEBUG
+					if (DEBUG_STARTED)
         	            ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
         	        #endif
 
@@ -1669,7 +1735,7 @@ void processor_t::decode(){
         	    &(this->fu_validation),
         	    *instr);
 
-
+			++uops_created;
 			new_uop.read_regs[0] = 258;
 
         	if (instr->is_write)
@@ -1704,6 +1770,7 @@ void processor_t::decode(){
 			//vectorizer->new_commit(&new_uop);
 
         	#if DECODE_DEBUG
+			if (DEBUG_STARTED)
         	    ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
         	#endif
 
@@ -1721,7 +1788,7 @@ void processor_t::decode(){
                     0, 0,
                     this->LATENCY_INTEGER_ALU, this->WAIT_NEXT_INT_ALU, &(this->functional_units[0]),
                     *instr);
-
+			++uops_created;
 			if (instr->is_read || instr->is_read2)
 			{
 				// ===== Read Regs =============================================
@@ -1766,6 +1833,7 @@ void processor_t::decode(){
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
 			#if DECODE_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			#endif
 
@@ -1786,6 +1854,7 @@ void processor_t::decode(){
                     this->LATENCY_MEM_STORE, this->WAIT_NEXT_MEM_STORE, &(this->fu_mem_store),
                     *instr);
 
+			++uops_created;
 			//
 			if (instr_op != INSTRUCTION_OPERATION_MEM_STORE)
             {
@@ -1815,6 +1884,7 @@ void processor_t::decode(){
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
 			#if DECODE_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			#endif
 
@@ -1835,6 +1905,9 @@ void processor_t::decode(){
                     this->decodeBuffer.get_size(),
                     reorderBuffer.robUsed);
 		#endif
+	
+
+		set_registers_bits(instr, uops_created);
 
 		if (new_uop.is_vectorial_part >= 0) {
 			--vec_on_fetchBuffer;
@@ -1883,6 +1956,7 @@ void processor_t::update_registers(reorder_buffer_line_t *new_rob_line){
 // ============================================================================
 void processor_t::rename(){
 	#if RENAME_DEBUG
+	if (DEBUG_STARTED)
 		ORCS_PRINTF("Rename Stage\n")
 	#endif
 	size_t i;
@@ -1919,6 +1993,7 @@ void processor_t::rename(){
 			if (pos_mob == POSITION_FAIL)
 			{
 				#if RENAME_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("Stall_MOB_Read_Full\n")
 				#endif
 				if (is_vectorial_part == false) {
@@ -1930,11 +2005,13 @@ void processor_t::rename(){
 			}
 
 			#if RENAME_DEBUG
+			if (DEBUG_STARTED){		
 				if (is_vectorial_part) {
 					ORCS_PRINTF("Get_Position_MOB_VECTORIAL %d\n",pos_mob);
 				} else {
 					ORCS_PRINTF("Get_Position_MOB_READ %d\n",pos_mob);
 				}
+			}
 			#endif
 
 			mob_line = (is_vectorial_part == false) ? &this->memory_order_buffer_read[pos_mob]
@@ -1954,6 +2031,7 @@ void processor_t::rename(){
 			pos_mob = this->search_position_mob_write();
 			if (pos_mob == POSITION_FAIL) {
 				#if RENAME_DEBUG
+				if (DEBUG_STARTED)
 					ORCS_PRINTF("Stall_MOB_Read_Full\n")
 				#endif
 				this->add_stall_full_MOB_Write();
@@ -1961,6 +2039,7 @@ void processor_t::rename(){
 			}
 
 			#if RENAME_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("Get_Position_MOB_WRITE %d\n",pos_mob);
 			#endif
 
@@ -2043,6 +2122,7 @@ void processor_t::rename(){
 		if (pos_rob == POSITION_FAIL)
 		{
 			#if RENAME_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("Stall_ROB_Full\n")
 			#endif
 			/*ORCS_PRINTF("%lu - Stall_ROB_Full common: %u/%u -- vectorial: %u/%u\n", 
@@ -2099,10 +2179,13 @@ void processor_t::rename(){
 
 
 		#if RENAME_DEBUG
-			ORCS_PRINTF("Rename [%s] %s\n", 
+		if (DEBUG_STARTED) {
+			ORCS_PRINTF("Rename [%s] Opcode number: %lu %s\n", 
 			(rob_line->uop.is_vectorial_part >= 0) ? "Vec" :
 			(rob_line->uop.is_validation) ? "Val" : "Ins",
+			rob_line->uop.opcode_number,
 			 rob_line->content_to_string().c_str())
+		}
 		#endif
 
 		// =======================
@@ -2128,6 +2211,7 @@ void processor_t::rename(){
 		if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD  && (rob_line->uop.is_validation == false))
 		{
 			#if RENAME_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("Mem Load\n")
 			#endif
 			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
@@ -2139,8 +2223,9 @@ void processor_t::rename(){
 			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
 			rob_line->mob_ptr->processor_id = this->processor_id;
 			#if MEMORY_DEBUG
-				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer (Ready: %lu).\n",
+				ORCS_PRINTF("[ROBL] %lu {%lu} %lu %s added to reorder order buffer (Ready: %lu).\n",
                         orcs_engine.get_global_cycle(),
+						rob_line->uop.opcode_number,
                         rob_line->mob_ptr->memory_address,
                         get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation),
 						rob_line->mob_ptr->readyToGo);
@@ -2149,6 +2234,7 @@ void processor_t::rename(){
 		else if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
         {
 			#if RENAME_DEBUG
+			if (DEBUG_STARTED)
 				ORCS_PRINTF("Mem Store\n")
 			#endif
 			rob_line->mob_ptr->opcode_address = rob_line->uop.opcode_address;
@@ -2160,8 +2246,9 @@ void processor_t::rename(){
 			rob_line->mob_ptr->uop_number = rob_line->uop.uop_number;
 			rob_line->mob_ptr->processor_id = this->processor_id;
 			#if MEMORY_DEBUG
-				ORCS_PRINTF("[ROBL] %lu %lu %s added to reorder order buffer.\n",
+				ORCS_PRINTF("[ROBL] %lu {%lu} %lu %s added to reorder order buffer.\n",
                         orcs_engine.get_global_cycle(),
+						rob_line->uop.opcode_number,
                         rob_line->mob_ptr->memory_address,
                         get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
 			#endif
@@ -2377,6 +2464,7 @@ void processor_t::dispatch(){
     	    reorder_buffer_line_t *rob_line = (*urs)[i];
     	    uop_package_t *uop = &(rob_line->uop);
 
+
 			#if DISPATCH_DEBUG
     	        if(orcs_engine.get_global_cycle()>WAIT_CYCLE){
     	            ORCS_PRINTF("cycle %lu\n", orcs_engine.get_global_cycle())
@@ -2539,6 +2627,12 @@ void processor_t::clean_mob_vectorial(){
 	uint32_t pos = this->memory_order_buffer_vectorial_start;
 	for (uint8_t i = 0; i < this->memory_order_buffer_vectorial_used; i++)
     {
+		if (DEBUG_STARTED)
+			printf("Next mob vectorial: uop: %lu Status: %s ReadyAt: %u Processed %s\n",
+				this->memory_order_buffer_vectorial[pos].uop_number,
+				get_enum_package_state_char(this->memory_order_buffer_vectorial[pos].status),
+				this->memory_order_buffer_vectorial[pos].readyAt,
+				this->memory_order_buffer_vectorial[pos].processed ? "true" : "false");
 		if (this->memory_order_buffer_vectorial[pos].status == PACKAGE_STATE_READY &&
 			this->memory_order_buffer_vectorial[pos].readyAt <= orcs_engine.get_global_cycle() &&
 			this->memory_order_buffer_vectorial[pos].processed == false)
@@ -2940,8 +3034,7 @@ uint32_t processor_t::mob_read(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.R\n", orcs_engine.get_global_cycle(), request->opcode_number,
                     request->memory_address,
                     get_enum_memory_operation_char(request->memory_operation));
 		#endif
@@ -3093,7 +3186,7 @@ uint32_t processor_t::mob_hive(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.H\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.H\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		#endif
 
 		if (orcs_engine.cacheManager->searchData(request)){
@@ -3136,7 +3229,7 @@ uint32_t processor_t::mob_vima(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.V\n", orcs_engine.get_global_cycle(), request->memory_address , get_enum_memory_operation_char (request->memory_operation))
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.V\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address , get_enum_memory_operation_char (request->memory_operation))
 		#endif
 
 		if (orcs_engine.cacheManager->searchData(request)){
@@ -3177,13 +3270,9 @@ uint32_t processor_t::mob_vectorial(){
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
 		request->clients.shrink_to_fit();
-		if(request->uop_number == 356)
-		{
-			printf("Request with uop: 356\n");
-		}
+
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.R\n", orcs_engine.get_global_cycle(), request->opcode_number,
                     request->memory_address,
                     get_enum_memory_operation_char(request->memory_operation));
 		#endif
@@ -3207,9 +3296,9 @@ uint32_t processor_t::mob_vectorial(){
 uint32_t processor_t::mob_vet_and_read(){
 	if(this->oldest_read_to_send == NULL) this->oldest_read_to_send = this->get_next_op_load();
 	if(this->oldest_vectorial_to_send == NULL) this->oldest_vectorial_to_send = this->get_next_op_vectorial();
-	
 
 	memory_order_buffer_line_t *to_send = this->oldest_read_to_send;
+
 	if ((this->oldest_vectorial_to_send != NULL) &&
 	    ((this->oldest_read_to_send == NULL) || 
 	    this->oldest_read_to_send->sent    ||
@@ -3244,8 +3333,7 @@ uint32_t processor_t::mob_vet_and_read(){
 		request->clients.shrink_to_fit();
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.R\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.R\n", orcs_engine.get_global_cycle(), request->opcode_number,
                     request->memory_address,
                     get_enum_memory_operation_char(request->memory_operation));
 		#endif
@@ -3267,6 +3355,7 @@ uint32_t processor_t::mob_vet_and_read(){
 		}
 
 	} //end if request null
+
 	return OK;
 } //end method
 // ============================================================================
@@ -3317,8 +3406,7 @@ uint32_t processor_t::mob_write(){
 		request->op_count[request->memory_operation]++;
 
 		#if MEMORY_DEBUG
-			ORCS_PRINTF ("[PROC] %lu %lu %s sent to memory.W\n",
-                    orcs_engine.get_global_cycle(),
+			ORCS_PRINTF ("[PROC] %lu {%lu} %lu %s sent to memory.W\n", orcs_engine.get_global_cycle(), request->opcode_number,
                     request->memory_address,
                     get_enum_memory_operation_char (request->memory_operation));
 		#endif
@@ -3355,6 +3443,15 @@ uint32_t processor_t::mob_write(){
 void processor_t::commit(){
 
 	#if COMMIT_DEBUG
+	if (this->reorderBuffer.reorderBuffer[reorderBuffer.robStart].uop.uop_number >= 69221) {
+		reps++;
+		DEBUG_STARTED = true;
+		if (reps >= 1000) {
+			DEBUG_STARTED = false;
+			exit(1);
+		}
+	}
+	if (DEBUG_STARTED)
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 		{
 			ORCS_PRINTF("=========================================================================\n")
@@ -3378,6 +3475,7 @@ void processor_t::commit(){
 			ORCS_PRINTF("==================================\n")
 		}
 	#endif
+	
 
 	int32_t pos_buffer;
 	/// Commit the packages
@@ -3394,46 +3492,63 @@ void processor_t::commit(){
 			pos_buffer = rob->robStart;
 			reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos_buffer];
 			
-			/*printf("%lu: Trying commit %lu %s (op_n: %lu) -- stage: %s -> %s Ready at: %lu [%u/%u]\n",
-					orcs_engine.get_global_cycle(),
-					rob_line->uop.uop_number,
-					(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "Vec" : "Ins",
-					rob_line->uop.opcode_number,
-					get_enum_processor_stage_char(rob_line->stage),
-					get_enum_package_state_char(rob_line->uop.status),
-					rob_line->uop.readyAt,
-					rob->robUsed, rob->SIZE);
-			if (rob_line->uop.is_validation) {
-				auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset];
-				printf(" -> Val VR: %d Part %d [V: %s; R: %s; U: %s; F: %s\n",
-				rob_line->uop.VR_id,
-				rob_line->uop.will_validate_offset,
-				bits->V ? "true" : "false",
-				bits->R ? "true" : "false",
-				bits->U ? "true" : "false",
-				bits->F ? "true" : "false");
-			}
-			if (rob_line->uop.is_vectorial_part >= 0) {
-				auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.is_vectorial_part];
-				printf(" -> Vec VR: %d Part %d [V: %s; R: %s; U: %s; F: %s\n",
-				rob_line->uop.VR_id,
-				rob_line->uop.is_vectorial_part,
-				bits->V ? "true" : "false",
-				bits->R ? "true" : "false",
-				bits->U ? "true" : "false",
-				bits->F ? "true" : "false");
-			}*/
+			if (DEBUG_STARTED)
+				printf("%lu: Trying commit %lu %s (op_n: %lu) -- stage: %s -> %s Executed: %s (sent:%s) Ready at: %lu [%u/%u]\n",
+						orcs_engine.get_global_cycle(),
+						rob_line->uop.uop_number,
+						(rob_line->uop.is_validation) ? "Val" : (rob_line->uop.is_vectorial_part >= 0) ? "Vec" : "Ins",
+						rob_line->uop.opcode_number,
+						get_enum_processor_stage_char(rob_line->stage),
+						get_enum_package_state_char(rob_line->uop.status),
+						(rob_line->mob_ptr) ? ((rob_line->mob_ptr->uop_executed) ? "true" : "false") : "--",
+						(rob_line->mob_ptr) ? ((rob_line->mob_ptr->sent) ? "true" : "false") : "--",
+						rob_line->uop.readyAt,
+						rob->robUsed, rob->SIZE);
+			if (DEBUG_STARTED)			
+				if (rob_line->uop.is_validation) {
+					auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset];
+					printf(" -> Val VR: %d Part %d [V: %d; R: %d; U: %d; F: %d] Sent: %s Exec: %s Free: %s\n",
+					rob_line->uop.VR_id,
+					rob_line->uop.will_validate_offset,
+					bits->V,
+					bits->R,
+					bits->U,
+					bits->F,
+					bits->sent ? "true" : "false",
+					bits->executed ? "true" : "false",
+					bits->free ? "true" : "false");
+				}
+			if (DEBUG_STARTED)			
+				if (rob_line->uop.is_vectorial_part >= 0) {
+					auto bits = &vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.is_vectorial_part];
+					printf(" -> Vec VR: %d Part %d [V: %d; R: %d; U: %d; F: %d] Sent: %s Exec: %s Free: %s\n",
+					rob_line->uop.VR_id,
+					rob_line->uop.is_vectorial_part,
+					bits->V,
+					bits->R,
+					bits->U,
+					bits->F,
+					bits->sent ? "true" : "false",
+					bits->executed ? "true" : "false",
+					bits->free ? "true" : "false");
+				}
+
+
+
+
 			if ((rob->robUsed != 0) &&
 				rob_line->stage == PROCESSOR_STAGE_COMMIT &&
 				rob_line->uop.status == PACKAGE_STATE_READY &&
 				rob_line->uop.readyAt <= orcs_engine.get_global_cycle() &&
 				((rob_line->uop.is_validation == false) ||
-				 (vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset].R == true)))
+				 (vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset].R == 0 && 
+				 vectorizer->vr_control_bits[rob_line->uop.VR_id].positions[rob_line->uop.will_validate_offset].executed == true)))
 			{
 				bool is_vectorial_part = (rob_line->uop.is_vectorial_part >= 0);
 
 				// Vectorizer
 				vectorizer->new_commit(&rob_line->uop);
+				
 				if (rob_line->uop.is_validation) {
 					this->solve_registers_dependency(rob_line);
 				}
@@ -3510,15 +3625,17 @@ void processor_t::commit(){
 
 						if(rob_line->uop.is_validation) {
 							#if MEMORY_DEBUG
-							ORCS_PRINTF("[ROBL] %lu Validation load uop: %s removed from reorder order buffer.\n",
-    	                            orcs_engine.get_global_cycle(),
+							ORCS_PRINTF("[ROBL] %lu {%lu} Validation load uop: %s removed from reorder order buffer.\n",
+									orcs_engine.get_global_cycle(),
+									rob_line->uop.opcode_number,
     	                            get_enum_instruction_operation_char (rob_line->uop.opcode_operation));
 							#endif
 							break;
 						}
 						#if MEMORY_DEBUG
-							ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
+							ORCS_PRINTF("[ROBL] %lu {%lu} %lu %s removed from reorder order buffer.\n",
     	                            orcs_engine.get_global_cycle(),
+									rob_line->uop.opcode_number,
     	                            rob_line->mob_ptr->memory_address,
     	                            get_enum_memory_operation_char (rob_line->mob_ptr->memory_operation));
 						#endif
@@ -3545,8 +3662,9 @@ void processor_t::commit(){
 					// MEMORY OPERATIONS - WRITE
 					case INSTRUCTION_OPERATION_MEM_STORE:
 						#if MEMORY_DEBUG
-							ORCS_PRINTF("[ROBL] %lu %lu %s removed from reorder order buffer.\n",
+							ORCS_PRINTF("[ROBL] %lu {%lu} %lu %s removed from reorder order buffer.\n",
     	                            orcs_engine.get_global_cycle(),
+									rob_line->uop.opcode_number,
     	                            rob_line->mob_ptr->memory_address,
     	                            get_enum_memory_operation_char(rob_line->mob_ptr->memory_operation));
 						#endif
@@ -3593,6 +3711,7 @@ void processor_t::commit(){
 
 
 				#if COMMIT_DEBUG
+				if (DEBUG_STARTED)
 					if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 					{
 						ORCS_PRINTF("======================================\n")
@@ -3643,9 +3762,11 @@ void processor_t::commit(){
 				break;
 			}
 		} // end for
+
 	} // end type
 
 	#if COMMIT_DEBUG
+	if (DEBUG_STARTED)
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE){
 			ORCS_PRINTF("=========================================================================\n")
 		}
