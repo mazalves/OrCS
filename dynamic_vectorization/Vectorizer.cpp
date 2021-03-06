@@ -64,7 +64,6 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
         {
             VR_entry_state_t *vr_state = &this->vr_control_bits[inst->will_free].positions[VECTORIZATION_SIZE-1];
             if (vr_state->free && vr_state->F == 0) {
-                printf("Free normal\n");
                 this->free_VR(inst->will_free);
             }
         }
@@ -72,7 +71,6 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
     }
 
     if (inst->is_BB == true) {
-        printf("GMRBB free\n");
         this->GMRBB = inst->BB_addr;
         this->GMRBB_changed();
     }
@@ -366,7 +364,7 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
             break;
         }
     }
-    printf("Free VR: %d\n", vr_id);
+
     // Limpa o registrador
     VR_state_bits_t* state = &this->vr_control_bits[vr_id];
     for (int32_t i=0; i < VECTORIZATION_SIZE; ++i) {
@@ -473,12 +471,15 @@ Vectorizer_t::~Vectorizer_t()
     }
     printf("VR status:");
     for (int32_t i=0; i<NUM_VR; ++i) {
-        printf("%d: ", i);
+        printf("%d (Linked entry: %lu): ", i, (uint64_t) ((void *)this->vr_control_bits[i].associated_entry));
         for (int32_t j=0; j<VECTORIZATION_SIZE; ++j) {
-            printf("[%d %d %d %d] ", this->vr_control_bits[i].positions[j].V
+            printf("[%d %d %d %d S: %s E: %s F: %s] ", this->vr_control_bits[i].positions[j].V
                                    , this->vr_control_bits[i].positions[j].R
                                    , this->vr_control_bits[i].positions[j].U
-                                   , this->vr_control_bits[i].positions[j].F);
+                                   , this->vr_control_bits[i].positions[j].F
+                                   , this->vr_control_bits[i].positions[j].sent ? "true" : "false"
+                                   , this->vr_control_bits[i].positions[j].executed ? "true" : "false"
+                                   , this->vr_control_bits[i].positions[j].free ? "true" : "false");
         }
         printf("{%lu}\n", this->vr_control_bits[i].MRBB);
         printf(" -> Associated not decoded: %u\n", this->vr_control_bits[i].associated_not_decoded);

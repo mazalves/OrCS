@@ -3443,13 +3443,15 @@ uint32_t processor_t::mob_write(){
 void processor_t::commit(){
 
 	#if COMMIT_DEBUG
-	if (this->reorderBuffer.reorderBuffer[reorderBuffer.robStart].uop.uop_number >= 69221) {
+	if (orcs_engine.get_global_cycle() >= 318957) {
 		reps++;
 		DEBUG_STARTED = true;
 		if (reps >= 1000) {
 			DEBUG_STARTED = false;
 			exit(1);
 		}
+	} else if (orcs_engine.get_global_cycle() % 100000 == 0) {
+		printf(">> %lu\n", orcs_engine.get_global_cycle());
 	}
 	if (DEBUG_STARTED)
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
