@@ -303,7 +303,8 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     }
 
     // Register on VR
-    if (inst->VR_id >= 0) {
+    // Vectorial parts are added when created
+    if (inst->VR_id >= 0 && inst->is_vectorial_part < 0) {
 		this->vr_control_bits[inst->VR_id].associated_not_decoded++;
 	}
 
@@ -358,10 +359,15 @@ void Vectorizer_t::GMRBB_changed () {
 
 void Vectorizer_t::free_VR (int32_t vr_id) {
 
+    // Check if have dependencies
+    if (this->vr_control_bits[vr_id].associated_not_decoded != 0) {
+        return;
+    }
+
     // Check if it was executed
     for (int32_t i=0; i < VECTORIZATION_SIZE; ++i) {
         if (this->vr_control_bits[vr_id].positions[i].executed != 0 || this->vr_control_bits[vr_id].positions[i].executed == false) {
-            break;
+            return;
         }
     }
 
@@ -390,6 +396,7 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
         this->vr_control_bits[vr_id].associated_entry->correspondent_VR == vr_id) {
         this->vr_control_bits[vr_id].associated_entry->pc = 0x0;
     }
+    this->vr_control_bits[vr_id].associated_entry = NULL;
 
     // Desvincula ao registrador lógico
     int32_t PR = this->vr_state[vr_id];

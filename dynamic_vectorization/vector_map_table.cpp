@@ -365,20 +365,26 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
     }
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
-        for (int32_t num_part = 0; num_part < 1; ++num_part)
-        //for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part) //ONE_LOAD
+        //for (int32_t num_part = 0; num_part < 1; ++num_part) //ONE_LOAD
+        uint64_t last_read = 0;
+        for (int32_t num_part = 0; num_part < VECTORIZATION_SIZE; ++num_part)
         {
             // Clona a uop
             opcode_package_t new_inst = (*inst);
             int32_t idx = (forward) ? num_part + 1 : num_part;
             new_inst.read_address += tl_entry->stride*idx;
+            if (!this->same_block(new_inst.read_address, last_read)) {
+                // Preenche com dados de parte vetorial
+                fill_vectorial_part(&new_inst, true, vr_id, num_part);
+                new_inst.is_pre_vectorization = forward;
 
-            // Preenche com dados de parte vetorial
-            fill_vectorial_part(&new_inst, true, vr_id, num_part);
-            new_inst.is_pre_vectorization = forward;
+                // Insere no pipeline
+                inst_list->push_back(new_inst);
 
-            // Insere no pipeline
-            inst_list->push_back(new_inst);
+                // Marca para vetor esperar ela
+                state_VR->associated_not_decoded += 1;
+            }
+            last_read = new_inst.read_address;
         }
 
     } else {
@@ -391,6 +397,9 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
 
         // Insere no pipeline
         inst_list->push_back(new_inst);
+
+        // Marca para vetor esperar ela
+        state_VR->associated_not_decoded += 1;
     }
     #if DV_DEBUG == 1
         printf("Stats::SUCCESS\n");

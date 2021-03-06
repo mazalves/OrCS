@@ -1232,7 +1232,7 @@ void processor_t::set_registers_bits(opcode_package_t *instr, int32_t num_uops) 
 			} else if (instr->is_vectorial_part >= 0) {
 				for (int32_t i=0; i < VECTORIZATION_SIZE; ++i) {
 					vectorizer->set_executed(instr->VR_id, i, true);
-					vectorizer->set_R(instr->VR_id, i, num_uops);
+					vectorizer->add_R(instr->VR_id, i, num_uops);
 				}
 			}
 

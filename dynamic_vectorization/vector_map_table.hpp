@@ -27,4 +27,15 @@ class vector_map_table_t {
         DV::DV_ERROR vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward);
 
         void list_contents();
+
+        // Check if two addresses are in the same cache line
+        inline bool same_block(uint64_t addr_a, uint64_t addr_b);
 };
+
+inline bool vector_map_table_t::same_block(uint64_t addr_a, uint64_t addr_b) {
+    // Considerando caches de 64 bytes
+    uint64_t block_a = addr_a >> 6;
+    uint64_t block_b = addr_b >> 6;
+    if (block_a == block_b) return true;
+    return false;
+}

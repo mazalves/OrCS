@@ -48,6 +48,8 @@ class Vectorizer_t {
         inline void sub_U (int32_t vr_id, int32_t index, uint32_t value);
         inline void sub_F (int32_t vr_id, int32_t index, uint32_t value);
 
+        inline void add_R (int32_t vr_id, int32_t index, uint32_t value);
+
 };
 
 inline void Vectorizer_t::set_V (int32_t vr_id, int32_t index, uint32_t value) {
@@ -73,7 +75,6 @@ inline void Vectorizer_t::set_F (int32_t vr_id, int32_t index, uint32_t value) {
 
 
 inline void Vectorizer_t::set_executed (int32_t vr_id, int32_t index, bool value){
-    assert(this->vr_control_bits[vr_id].positions[index].executed == false);
     if (index < VECTORIZATION_SIZE) {
         this->vr_control_bits[vr_id].positions[index].executed = value;
     }
@@ -110,5 +111,9 @@ inline void Vectorizer_t::sub_F (int32_t vr_id, int32_t index, uint32_t value) {
         this->vr_control_bits[vr_id].positions[index].F -= value;
     }
 }
-
+inline void Vectorizer_t::add_R (int32_t vr_id, int32_t index, uint32_t value) {
+    if (index < VECTORIZATION_SIZE) {
+        this->vr_control_bits[vr_id].positions[index].R += value;
+    }
+}
 #endif
