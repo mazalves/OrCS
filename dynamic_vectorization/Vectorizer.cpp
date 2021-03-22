@@ -21,10 +21,23 @@ uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para instruçõ
 		                               			// dedicado fica mais fácil gerenciar
 int32_t VECTORIZATION_ENABLED;
 
+
 std::map<std::string, std::string> vec_correspondent;
 
 int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
+    int32_t *vr_id = this->free_VR_list.front();
+    int32_t value = -1;
+    if (vr_id == NULL) {
+        return -1;
+    } else {
+        value = *vr_id;
+    }
 
+    this->free_VR_list.pop_front();
+    this->vr_state[value] = logical_register;
+    this->vr_control_bits[value].MRBB = this->GMRBB;
+    return value;
+    /*
     for (int32_t i = 0; i < NUM_VR; ++i) {
         if (this->vr_state[i] == -1) {
             this->vr_state[i] = logical_register;
@@ -34,6 +47,7 @@ int32_t Vectorizer_t::allocate_VR(int32_t logical_register) {
     }
 
     return -1;
+    */
 }
 
 DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
@@ -366,7 +380,7 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
 
     // Check if it was executed
     for (int32_t i=0; i < VECTORIZATION_SIZE; ++i) {
-        if (this->vr_control_bits[vr_id].positions[i].executed != 0 || this->vr_control_bits[vr_id].positions[i].executed == false) {
+        if (this->vr_control_bits[vr_id].positions[i].R != 0 || this->vr_control_bits[vr_id].positions[i].executed == false) {
             return;
         }
     }
@@ -401,12 +415,16 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
     // Desvincula ao registrador lógico
     int32_t PR = this->vr_state[vr_id];
 
-
+    
+    
 
     // Já está liberado
     if (PR == -1) {
         return;
     }
+
+  
+
 
     // Libera registrador lógico
     if  (register_rename_table[PR].correspondent_vectorial_reg == vr_id) {
@@ -417,6 +435,9 @@ void Vectorizer_t::free_VR (int32_t vr_id) {
 
     // Libera registrador vetorial
     this->vr_state[vr_id] = -1;
+
+    // Coloca na lista de liberados
+    this->free_VR_list.push_back(vr_id);
 
 }
 
@@ -446,10 +467,13 @@ Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
     this->register_rename_table = new register_rename_table_t[MAX_REGISTER_NUMBER];
 
     // VR data
+    this->free_VR_list.allocate(NUM_VR);
     this->vr_control_bits = new VR_state_bits_t [NUM_VR];
+
     for (int32_t i = 0; i < NUM_VR; ++i) {
         this->vr_control_bits[i].MRBB = 0;
         this->vr_control_bits[i].positions = new VR_entry_state_t [VECTORIZATION_SIZE];
+        this->free_VR_list.push_back(i);
     }
 
     this->vr_state = std::vector<int32_t>(NUM_VR, -1);
@@ -476,9 +500,9 @@ Vectorizer_t::~Vectorizer_t()
     for (int32_t i=0; i<NUM_VR; ++i) {
         printf("%d ", this->vr_state[i]);
     }
-    printf("VR status:");
+    printf("\nVR status:\n");
     for (int32_t i=0; i<NUM_VR; ++i) {
-        printf("%d (Linked entry: %lu): ", i, (uint64_t) ((void *)this->vr_control_bits[i].associated_entry));
+        printf("%d (Linked entry: %lu, state: %d): ", i, (uint64_t) ((void *)this->vr_control_bits[i].associated_entry), this->vr_state[i]);
         for (int32_t j=0; j<VECTORIZATION_SIZE; ++j) {
             printf("[%d %d %d %d S: %s E: %s F: %s] ", this->vr_control_bits[i].positions[j].V
                                    , this->vr_control_bits[i].positions[j].R

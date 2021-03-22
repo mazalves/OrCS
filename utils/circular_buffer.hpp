@@ -219,6 +219,17 @@ void circular_buffer_t<CB_TYPE>::pop_front() {
     }
 }
 
+template <>
+inline void circular_buffer_t<int32_t>::pop_front() {
+    if (this->size > 0) {
+        this->size--;
+        this->data[beg_index] = -1;
+
+        this->beg_index++;
+        if (this->beg_index >= this->capacity)
+            this->beg_index = 0;
+    }
+}
 // ============================================================================
 /// Remove the oldest element
 template <class CB_TYPE>

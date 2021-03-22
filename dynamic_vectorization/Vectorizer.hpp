@@ -5,6 +5,9 @@ class Vectorizer_t {
         uint64_t GMRBB;
         VR_state_bits_t *vr_control_bits;
         std::vector<int32_t> vr_state;
+        circular_buffer_t<int32_t> free_VR_list; // Lista de registradores livres para alocação rápida
+        std::list<int32_t> allocated_VR_list; // Lista de registradores alocados para verificação rápida do MRBB
+
         bool *pipeline_squashed;
         uint64_t *store_squashing;
 

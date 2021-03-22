@@ -302,25 +302,17 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
 
     state_VR->MRBB = vectorizer->GMRBB;
 
-    if (forward)
-    {
-    	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = false;
-    	state_VR->positions[0].V = false;
-    } else {
-    	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = true;
-    	state_VR->positions[0].V = false;
+    for (int32_t pos = 0; pos < VECTORIZATION_SIZE; ++pos) {
+      	state_VR->positions[pos].F = 0;
+    	state_VR->positions[pos].R = 0;
+    	state_VR->positions[pos].U = 0;
+    	state_VR->positions[pos].V = 0;
+        state_VR->positions[pos].executed = false;
+        state_VR->positions[pos].sent = false;
+        state_VR->positions[pos].free = false;
+
     }
 
-    for (int32_t pos = 1; pos < VECTORIZATION_SIZE; ++pos) {
-      	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = false;
-    	state_VR->positions[0].V = false;
-    }
 
 
     // Aloca uma vrmt_entry
