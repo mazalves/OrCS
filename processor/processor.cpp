@@ -1347,11 +1347,24 @@ void processor_t::decode(){
 		}*/
 
 		// Count execute instructions
+		if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
+				vectorizer->totalLoadInstructions++;
+		} else {
+			vectorizer->totalOtherInstructions++;
+		}
+
 		if (instr->is_validation)
 		{
 			instr_cnt[std::string(instr->opcode_assembly) + " - Val"]++;
+			if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
+				vectorizer->vectorizedLoads++;
+			} else {
+				vectorizer->vectorizedOther++;
+			}
+
 		} else if (instr->is_vectorial_part >= 0) {
 			instr_cnt[std::string(instr->opcode_assembly) + " - VP"]++;
+	
 		} else {
 			instr_cnt[std::string(instr->opcode_assembly) + " - INS"]++;
 		}

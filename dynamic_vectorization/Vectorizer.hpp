@@ -18,6 +18,16 @@ class Vectorizer_t {
         // Statistics
         uint64_t vectorized_loads;
         uint64_t vectorized_ops;
+        uint64_t totalLoadInstructions;
+        uint64_t vectorizedLoads; // All loads that became validations
+        uint64_t totalOtherInstructions;
+        uint64_t vectorizedOther;
+
+        uint64_t withoutReadRegs;
+        uint64_t withDoubleVecSources;
+        uint64_t notDoubleVecSources;
+        uint64_t noneDoubleVecSources;
+        uint64_t notVectorizedOutsider;
 
         // Methods
         int32_t allocate_VR(int32_t logical_register);

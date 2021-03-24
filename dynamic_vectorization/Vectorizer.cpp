@@ -199,6 +199,8 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             }
             return DV::SUCCESS;
 
+        } else {
+            notVectorizedOutsider++;
         }
     }
 
@@ -225,15 +227,21 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
 bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
     if ((inst->read_regs[0] == -1) || (inst->read_regs[1] == -1)) {
+        withoutReadRegs++;
         return false;
     }
     register_rename_table_t *op_1 = &register_rename_table[inst->read_regs[0]];
     register_rename_table_t *op_2 = &register_rename_table[inst->read_regs[1]];
     if (op_1->vectorial && op_2->vectorial) 
     {
+        withDoubleVecSources++;
         return true;
     }
-
+    if (op_1->vectorial || op_2->vectorial) {
+        notDoubleVecSources++;
+    } else {
+        noneDoubleVecSources++;
+    }
     return false;
 }
 
@@ -254,6 +262,7 @@ DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
     if (inst->is_vectorial_part >= 0) {
         vrmt_entry = VRMT->find_pc(inst->opcode_address);
     }
+
 
     // Marca para liberar
     // setar (F)
@@ -489,7 +498,15 @@ Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
     // Statistics
     vectorized_loads = 0;
     vectorized_ops = 0;
-    
+    totalLoadInstructions = 0;
+    vectorizedLoads = 0;
+    totalOtherInstructions = 0;
+    vectorizedOther = 0;
+    withoutReadRegs = 0;
+    withDoubleVecSources = 0;
+    notDoubleVecSources = 0;
+    noneDoubleVecSources = 0;
+    notVectorizedOutsider = 0;
 
 }
 
@@ -540,6 +557,18 @@ void Vectorizer_t::statistics() {
             fprintf(output,"Vectorizer\n");
             fprintf(output, "Vectorized loads: %lu\n", this->vectorized_loads);
             fprintf(output, "Vectorized operations: %lu\n", this->vectorized_ops);
+            fprintf(output, "uOPS type:\n");
+            fprintf(output, ">> Total Load Instructions: %lu\n", totalLoadInstructions);
+            fprintf(output, ">> Vectorized Loads: %lu\n", vectorizedLoads);
+            fprintf(output, ">> Total Other Instructions: %lu\n", totalOtherInstructions);
+            fprintf(output, ">> Vectorized Other: %lu\n", vectorizedOther);
+
+            fprintf(output, ">> Without Read Regs: %lu\n", withoutReadRegs);
+            fprintf(output, ">> With Double Vec Sources: %lu\n", withDoubleVecSources);
+            fprintf(output, ">> Not Double Vec Sources: %lu\n", notDoubleVecSources);
+            fprintf(output, ">> None Double Vec Sources: %lu\n", noneDoubleVecSources);
+            fprintf(output, ">> Not Vectorized Outsider: %lu\n", notVectorizedOutsider);
+
             utils_t::largestSeparator(output);
         }
         if(close) fclose(output);
