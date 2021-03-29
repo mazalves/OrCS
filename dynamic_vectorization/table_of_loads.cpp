@@ -63,13 +63,29 @@ table_of_loads_entry_t *table_of_loads_t::find_pc (uint64_t pc) {
 void table_of_loads_t::update_stride (table_of_loads_entry_t *tl_entry, uint64_t addr) {
     if (tl_entry->confidence == 0) {
 	    tl_entry->stride = addr - tl_entry->last_address;
-	    tl_entry->confidence = 1;
+        // Verifica se stride ultrapassa o máximo
+        if (MAX_LOAD_STRIDE > -1 && abs(tl_entry->stride) > MAX_LOAD_STRIDE) {
+            vectorizer->stride_greater_than_max++;
+            tl_entry->confidence = 0;
+        } else {
+            tl_entry->confidence = 1;
+        }
+	    
     } else {
-    	int32_t new_stride =  addr - tl_entry->last_address;
+    	int32_t new_stride = addr - tl_entry->last_address;
     	if (new_stride != tl_entry->stride) {
-    		tl_entry->confidence = 1;
-    		tl_entry->stride = new_stride;
+            vectorizer->stride_changed++;
+            tl_entry->stride = new_stride;
+            
+    		// Verifica se novo stride ultrapassa o máximo
+            if (MAX_LOAD_STRIDE > -1 && abs(tl_entry->stride) > MAX_LOAD_STRIDE) {
+                vectorizer->stride_greater_than_max++;
+                tl_entry->confidence = 0;
+            } else {
+                tl_entry->confidence = 1;
+            }
     	} else {
+            vectorizer->stride_confirmed++;
             tl_entry->confidence = 2;
         }
     }
@@ -81,8 +97,9 @@ void table_of_loads_t::update_stride (table_of_loads_entry_t *tl_entry, uint64_t
     tl_entry->last_address = addr;
 }
 
-table_of_loads_t::table_of_loads_t (uint32_t num_entries, uint32_t associativity) {
+table_of_loads_t::table_of_loads_t (uint32_t num_entries, uint32_t associativity, Vectorizer_t *vectorizer) {
     printf("table_of_loads_t::constructor\n");
+    this->vectorizer = vectorizer;
     this->entries.allocate(num_entries, associativity, 0);
 
 }

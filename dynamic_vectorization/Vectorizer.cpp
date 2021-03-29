@@ -21,6 +21,7 @@ uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para instruçõ
 		                               			// dedicado fica mais fácil gerenciar
 int32_t VECTORIZATION_ENABLED;
 
+int32_t MAX_LOAD_STRIDE; // -1 for unlimited
 
 std::map<std::string, std::string> vec_correspondent;
 
@@ -103,11 +104,18 @@ DV::DV_ERROR Vectorizer_t::new_commit (uop_package_t *inst) {
     }
     return DV::SUCCESS;
 }
-
+std::map<std::string, int> outsider_cnt;
 DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
     if (inst->is_vectorial_part >= 0) return DV::SUCCESS;
-    if (inst->is_read && inst->is_read2) return DV::SUCCESS;    
+    if (inst->is_read && inst->is_read2) {
+        if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
+            twoReadsLoads++;
+        } else {
+            twoReadsOthers++;
+        }
+        return DV::SUCCESS;    
+    }
 
     // **************************************
     // Vectorizer_t::new_inst (load)
@@ -117,6 +125,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
         // Procura pelo load na TL
         table_of_loads_entry_t *tl_entry;
         tl_entry = TL->find_pc(inst->opcode_address);
+
 
         // Adiciona PC ou valida o stride
         if (tl_entry == NULL) {
@@ -133,7 +142,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             if (vrmt_entry != NULL) {
                 // Faz a validação Ou seja, aloca o próximo se der
                 DV::DV_ERROR stats = VRMT->validate(inst, vrmt_entry);
-                
+
                 return stats;
             } else {
                 // Vetoriza o load
@@ -150,9 +159,10 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
             }
 
 
-        } else { // vrmt_entry->confidence < 2
+        } else { // tl_entry->confidence < 2
             // Invalida qualquer entrada existente na VRMT
             if (vrmt_entry) {
+                changing_vectorized_stride++;
 	            VRMT->invalidate(vrmt_entry);
             }
 
@@ -160,17 +170,22 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
         }
 
+    } else {
+        notLoads++;
     }
 
     // **************************************
     // Vectorizer_t::new_inst (operation)
     // **************************************
-    if ((inst->opcode_operation == INSTRUCTION_OPERATION_INT_ALU) ||
-       (inst->opcode_operation == INSTRUCTION_OPERATION_INT_MUL) ||
-       (inst->opcode_operation == INSTRUCTION_OPERATION_FP_ALU))    {
+
+    if ((inst->opcode_operation != INSTRUCTION_OPERATION_MEM_LOAD) &&
+       (inst->opcode_operation != INSTRUCTION_OPERATION_MEM_STORE) &&
+       (inst->opcode_operation != INSTRUCTION_OPERATION_BRANCH)    &&
+       (inst->opcode_operation != INSTRUCTION_OPERATION_BARRIER))    {
            //printf("%s - %lu\n", inst->opcode_assembly, vec_correspondent.count(std::string(inst->opcode_assembly)));
             if (vec_correspondent.count(std::string(inst->opcode_assembly)) == 1)
             {
+            otherInsider++;
             // Search for PC in VRMT
             vector_map_table_entry_t *vrmt_entry;
             vrmt_entry = VRMT->find_pc(inst->opcode_address);
@@ -179,7 +194,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
                 // Valida a entrada da VRMT convertendo em uma validação
                 // (O validate converte a inst em validação)
                 VRMT->validate(inst, vrmt_entry);
-
+                validated++;
 
             } else { // vrmt_entry == NULL
                 // Verifica se os operandos são vetoriais
@@ -187,6 +202,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
                 op_vectorial = this->vectorial_operands(inst);
 
                 if (op_vectorial) {
+                    withVectorialOperands++;
                     // Vectorize operation
                     DV::DV_ERROR stats = VRMT->vectorize(inst, &vrmt_entry, false);
 
@@ -194,6 +210,9 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
                     if (stats == DV::SUCCESS) { 
                         VRMT->convert_to_validation(inst, vrmt_entry, 0);
                     }
+                } else {
+                    withoutVectorialOperands++;
+
                 }
 
             }
@@ -201,6 +220,7 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
         } else {
             notVectorizedOutsider++;
+            outsider_cnt[std::string(inst->opcode_assembly)]++;
         }
     }
 
@@ -226,23 +246,21 @@ DV::DV_ERROR Vectorizer_t::new_inst (opcode_package_t *inst) {
 
 
 bool Vectorizer_t::vectorial_operands (opcode_package_t *inst) {
-    if ((inst->read_regs[0] == -1) || (inst->read_regs[1] == -1)) {
-        withoutReadRegs++;
+
+    if (inst->read_regs[0] == -1)
         return false;
-    }
+
     register_rename_table_t *op_1 = &register_rename_table[inst->read_regs[0]];
-    register_rename_table_t *op_2 = &register_rename_table[inst->read_regs[1]];
-    if (op_1->vectorial && op_2->vectorial) 
-    {
-        withDoubleVecSources++;
-        return true;
-    }
-    if (op_1->vectorial || op_2->vectorial) {
-        notDoubleVecSources++;
-    } else {
-        noneDoubleVecSources++;
-    }
-    return false;
+    register_rename_table_t *op_2 = (inst->read_regs[1] == -1)
+                                    ? NULL
+                                    : &register_rename_table[inst->read_regs[1]];
+    if (op_1->vectorial == false)
+        return false;
+
+    if (op_2 != NULL && op_2->vectorial == false)
+        return false;
+
+    return true;
 }
 
 DV::DV_ERROR Vectorizer_t::enter_pipeline (opcode_package_t *inst) {
@@ -470,7 +488,7 @@ Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
     this->store_squashing = store_squashing;
 
     // TL
-    this->TL = new table_of_loads_t (TL_SIZE, TL_ASSOCIATIVITY);
+    this->TL = new table_of_loads_t (TL_SIZE, TL_ASSOCIATIVITY, this);
 
     // RRT
     this->register_rename_table = new register_rename_table_t[MAX_REGISTER_NUMBER];
@@ -499,14 +517,34 @@ Vectorizer_t::Vectorizer_t(circular_buffer_t <opcode_package_t> *inst_list,
     vectorized_loads = 0;
     vectorized_ops = 0;
     totalLoadInstructions = 0;
-    vectorizedLoads = 0;
+    validationsLoads = 0;
     totalOtherInstructions = 0;
-    vectorizedOther = 0;
-    withoutReadRegs = 0;
-    withDoubleVecSources = 0;
-    notDoubleVecSources = 0;
-    noneDoubleVecSources = 0;
+    validationsOther = 0;
+ 
+    validated = 0;
+    registersChanged = 0;
+    withVectorialOperands = 0;
+    withoutVectorialOperands = 0;
+    notLoads = 0;
+    otherInsider = 0;
     notVectorizedOutsider = 0;
+    vectorialPartsLoads = 0;
+    vectorialPartsOthers = 0;
+    commonInstructionsLoads = 0;
+    commonInstructionsOthers = 0;
+
+    twoReadsLoads = 0;
+    twoReadsOthers = 0;
+
+    stride_changed = 0;
+    stride_confirmed = 0;
+    stride_greater_than_max = 0;
+
+    pre_vectorizations = 0;
+
+    source_changes_before_end = 0;
+    source_changes_after_end = 0;
+    changing_vectorized_stride = 0;
 
 }
 
@@ -556,18 +594,58 @@ void Vectorizer_t::statistics() {
 			utils_t::largestSeparator(output);
             fprintf(output,"Vectorizer\n");
             fprintf(output, "Vectorized loads: %lu\n", this->vectorized_loads);
-            fprintf(output, "Vectorized operations: %lu\n", this->vectorized_ops);
+            fprintf(output, "Vectorized operations: %lu (Registers Changed + with Vectorial Operands)\n", this->vectorized_ops);
             fprintf(output, "uOPS type:\n");
             fprintf(output, ">> Total Load Instructions: %lu\n", totalLoadInstructions);
-            fprintf(output, ">> Vectorized Loads: %lu\n", vectorizedLoads);
+            fprintf(output, ">> Validations Loads: %lu\n\n", validationsLoads);
             fprintf(output, ">> Total Other Instructions: %lu\n", totalOtherInstructions);
-            fprintf(output, ">> Vectorized Other: %lu\n", vectorizedOther);
+            fprintf(output, ">> Validations Other: %lu\n\n", validationsOther);
+            
+            fprintf(output, ">> Vectorial Parts Loads: %lu\n", vectorialPartsLoads);
+            fprintf(output, ">> Vectorial Parts Others: %lu\n\n", vectorialPartsOthers);
 
-            fprintf(output, ">> Without Read Regs: %lu\n", withoutReadRegs);
-            fprintf(output, ">> With Double Vec Sources: %lu\n", withDoubleVecSources);
-            fprintf(output, ">> Not Double Vec Sources: %lu\n", notDoubleVecSources);
-            fprintf(output, ">> None Double Vec Sources: %lu\n", noneDoubleVecSources);
-            fprintf(output, ">> Not Vectorized Outsider: %lu\n", notVectorizedOutsider);
+            fprintf(output, ">> Common Instructions Loads: %lu\n", commonInstructionsLoads);
+            fprintf(output, ">> Common Instructions Others: %lu\n\n", commonInstructionsOthers);
+
+            
+
+            fprintf(output, ">> validated: %lu\n", validated);
+            fprintf(output, ">> Registers Changed: %lu\n", registersChanged);
+            fprintf(output, ">> with Vectorial Operands: %lu\n", withVectorialOperands);
+            fprintf(output, ">> without Vectorial Operands: %lu\n\n", withoutVectorialOperands);
+
+            
+            fprintf(output, ">> Not Loads: %lu\n", notLoads);
+            fprintf(output, ">> Other Insider: %lu\n", otherInsider);
+            fprintf(output, ">> Not Vectorized Outsider: %lu\n\n", notVectorizedOutsider);
+
+            fprintf(output, ">> Two Reads Loads: %lu\n", twoReadsLoads);
+            fprintf(output, ">> Two Reads Others: %lu\n", twoReadsOthers);
+
+            fprintf(output, ">> Stride changed: %lu\n", stride_changed);
+            fprintf(output, ">> Stride confirmed: %lu\n", stride_confirmed);
+            fprintf(output, ">> Stride greater than max: %lu\n", stride_greater_than_max);
+
+            fprintf(output, ">> Pre vectorizations: %lu\n", pre_vectorizations);
+
+            fprintf(output, ">> Source changes before end: %lu\n", source_changes_before_end);
+            fprintf(output, ">> Source changes after end: %lu\n", source_changes_after_end);
+            fprintf(output, ">> Changing vectorized stride: %lu\n", changing_vectorized_stride);
+
+            
+            
+            
+
+            fprintf(output, "Outsider List:\n");
+            for (auto it : outsider_cnt) {
+                std::cout << it.first << " - " << it.second << std::endl;
+            }
+
+            fprintf(output, ">> Loads vectorized from total loads: %lf%%\n", validationsLoads/(totalLoadInstructions + 0.0));
+            fprintf(output, ">> Others vectorized from total possibilities: %lf%%\n", validationsOther/(otherInsider + 0.0));
+            fprintf(output, ">> Others vectorized from total others: %lf%%\n", validationsOther/(otherInsider + notVectorizedOutsider + 0.0));
+            fprintf(output, ">> Loads vectorized from total instructions: %lf%%\n", validationsLoads/(totalLoadInstructions + totalOtherInstructions + 0.0));
+            fprintf(output, ">> Others vectorized from total instructions: %lf%%\n", validationsOther/(totalLoadInstructions + totalOtherInstructions + 0.0));
 
             utils_t::largestSeparator(output);
         }

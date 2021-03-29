@@ -236,7 +236,7 @@ processor_t::processor_t()
 	DECODE_BUFFER_VECTORIZED = 0;
 	ROB_VECTORIAL_SIZE = 0;
 	VECTORIZATION_ENABLED = 0;
-
+	MAX_LOAD_STRIDE = 0;
 
 
 }
@@ -557,6 +557,7 @@ void processor_t::allocate() {
 	DECODE_BUFFER_VECTORIZED = cfg_processor["DECODE_BUFFER_VECTORIZED"];
 	ROB_VECTORIAL_SIZE = cfg_processor["ROB_VECTORIAL_SIZE"];
 	VECTORIZATION_ENABLED = cfg_processor["VECTORIZATION_ENABLED"];
+	MAX_LOAD_STRIDE = cfg_processor["MAX_LOAD_STRIDE"];
 
 	// FetchBuffer
 	this->fetchBuffer.allocate(FETCH_BUFFER + FETCH_BUFFER_VECTORIZED);
@@ -1348,7 +1349,7 @@ void processor_t::decode(){
 
 		// Count execute instructions
 		if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
-				vectorizer->totalLoadInstructions++;
+			vectorizer->totalLoadInstructions++;
 		} else {
 			vectorizer->totalOtherInstructions++;
 		}
@@ -1357,16 +1358,26 @@ void processor_t::decode(){
 		{
 			instr_cnt[std::string(instr->opcode_assembly) + " - Val"]++;
 			if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
-				vectorizer->vectorizedLoads++;
+				vectorizer->validationsLoads++;
 			} else {
-				vectorizer->vectorizedOther++;
+				vectorizer->validationsOther++;
 			}
 
 		} else if (instr->is_vectorial_part >= 0) {
 			instr_cnt[std::string(instr->opcode_assembly) + " - VP"]++;
-	
+			if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
+				vectorizer->vectorialPartsLoads++;
+			} else {
+				vectorizer->vectorialPartsOthers++;
+			}
+
 		} else {
 			instr_cnt[std::string(instr->opcode_assembly) + " - INS"]++;
+			if (instr_op == INSTRUCTION_OPERATION_MEM_LOAD) {
+				vectorizer->commonInstructionsLoads++;
+			} else {
+				vectorizer->commonInstructionsOthers++;
+			}
 		}
 
 		// REMOVE
@@ -3456,7 +3467,7 @@ uint32_t processor_t::mob_write(){
 void processor_t::commit(){
 
 	#if COMMIT_DEBUG
-	if (orcs_engine.get_global_cycle() >= 318957) {
+	if (orcs_engine.get_global_cycle() >= 1) {
 		reps++;
 		DEBUG_STARTED = true;
 		if (reps >= 1000) {

@@ -19,15 +19,39 @@ class Vectorizer_t {
         uint64_t vectorized_loads;
         uint64_t vectorized_ops;
         uint64_t totalLoadInstructions;
-        uint64_t vectorizedLoads; // All loads that became validations
+        uint64_t validationsLoads; // All loads that became validations
         uint64_t totalOtherInstructions;
-        uint64_t vectorizedOther;
+        uint64_t validationsOther;
 
-        uint64_t withoutReadRegs;
-        uint64_t withDoubleVecSources;
-        uint64_t notDoubleVecSources;
-        uint64_t noneDoubleVecSources;
+        uint64_t validated;
+        uint64_t registersChanged;
+        uint64_t withVectorialOperands;
+        uint64_t withoutVectorialOperands;
+        uint64_t notLoads;
+        uint64_t otherInsider;
         uint64_t notVectorizedOutsider;
+        uint64_t vectorialPartsLoads;
+        uint64_t vectorialPartsOthers;
+        uint64_t commonInstructionsLoads;
+        uint64_t commonInstructionsOthers;
+
+        uint64_t twoReadsLoads;
+        uint64_t twoReadsOthers;
+
+        uint64_t stride_changed;
+        uint64_t stride_confirmed;
+        uint64_t stride_greater_than_max;
+
+        uint64_t pre_vectorizations;
+
+        // Vetorização incorreta
+        uint64_t source_changes_before_end;
+        uint64_t source_changes_after_end;
+        uint64_t changing_vectorized_stride;
+
+
+
+
 
         // Methods
         int32_t allocate_VR(int32_t logical_register);
