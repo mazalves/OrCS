@@ -551,6 +551,7 @@ void cache_manager_t::clock() {
                 if (requests[i]->status == PACKAGE_STATE_WAIT){
                     if (requests[i]->sent_to_ram) this->install (requests[i]);
                     this->finishRequest (requests[i], cache_indexes);
+                    --i;
                 }
                 else if (!requests[i]->sent_to_ram) this->process (requests[i], cache_indexes);
             }
