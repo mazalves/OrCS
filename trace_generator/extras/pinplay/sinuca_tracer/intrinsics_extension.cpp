@@ -238,13 +238,16 @@ INT icheck_conditions(std::string rtn_name) {
 
 // ===========================================================================
 
-#define CMP_2PARAM_COUNT 24
+#define CMP_2PARAM_COUNT 36
 
 static const int cmp_2param_idx[CMP_2PARAM_COUNT] = { 8, 9, 14, 15, 16,
                                                     17, 24, 25, 56, 57,
                                                     58, 59, 68, 69, 74,
                                                     75, 84, 85, 92, 93,
-                                                    98, 99, 108, 109
+                                                    98, 99, 108, 109, 120,
+                                                    121, 122, 123, 144, 145,
+                                                    156, 157, 164, 165, 166,
+                                                    167
                                                     };
 
 INT icheck_2parameters(std::string rtn_name) {
