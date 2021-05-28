@@ -17,6 +17,7 @@ public:
     void make_memory_dependences(memory_order_buffer_line_t *mob_line);
     void solve_memory_dependences(memory_order_buffer_line_t *mob_line);
     void statistics();
+    void reset_statistics();
 
     // ============================================
     memory_order_buffer_line_t* *disambiguation_load_hash;

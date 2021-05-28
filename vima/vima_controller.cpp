@@ -78,6 +78,25 @@ void vima_controller_t::statistics(){
     }
 }
 
+void vima_controller_t::reset_statistics(){
+    this->set_cache_reads(0);
+    this->set_cache_writes(0);
+    this->set_cache_hits(0);
+    this->set_cache_misses(0);
+    this->set_cache_accesses(0);
+    this->set_cache_writebacks(0);
+    
+    for (i = 0; i < sets; i++) {
+        this->cache[i]->fetch_count = 0;
+        this->cache[i]->fetch_latency_total = 0;
+        this->cache[i]->writeback_count = 0;
+        this->cache[i]->writeback_latency_total = 0;
+    }
+
+    this->total_wait = 0;
+    this->request_count = 0;
+}
+
 void vima_controller_t::print_vima_instructions(){
     ORCS_PRINTF ("=======VIMA INSTRUCTIONS=========\n")
     for (size_t i = 0; i < vima_buffer.size(); i++){

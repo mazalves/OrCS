@@ -68,6 +68,7 @@ class cache_t {
         int64_t* min_per_type;
 
         void statistics();
+        void reset_statistics();
         void allocate(uint32_t NUMBER_OF_PROCESSORS, uint32_t INSTRUCTION_LEVELS, uint32_t DATA_LEVELS);//allocate data structure
         void writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address);       //makes writeback of line
         void returnLine(memory_package_t* request, cache_t *cache);//return line from lower cache level

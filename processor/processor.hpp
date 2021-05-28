@@ -207,6 +207,7 @@ class processor_t {
 	    void allocate();
 	    void clock();
 		void statistics();
+		void reset_statistics();
 		void printConfiguration();
 		void printCache(FILE *output);
 		uint32_t get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL);

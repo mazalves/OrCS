@@ -46,6 +46,7 @@ enum directoryStatus_t {
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type
 enum instruction_operation_t {
+    INSTRUCTION_OPERATION_ZERO,
     /// NOP
     INSTRUCTION_OPERATION_NOP,
     /// INTEGERS

@@ -119,6 +119,16 @@ inline uint32_t branch_predictor_t::searchLRU(btb_t *btb) {
 	return index;
 }
 
+void branch_predictor_t::reset_statistics() {
+	this->btbHits = 0;;
+	this->btbMiss = 0;
+	this->branches = 0;
+	this->branchTaken = 0;
+	this->branchNotTaken = 0;
+	this->branchTakenMiss = 0;
+	this->branchNotTakenMiss = 0;
+}
+
 void branch_predictor_t::statistics() {
 	bool close = false;
 	FILE *output = stdout;

@@ -1280,7 +1280,7 @@ void processor_t::decode(){
 		}
 		// =====================
 		//Decode Branch
-		// =====================https://old.reddit.com/r/rupaulsdragrace/
+		// =====================
 		if (this->fetchBuffer.front()->opcode_operation == INSTRUCTION_OPERATION_BRANCH)
 		{
 			new_uop.package_clean();
@@ -1797,6 +1797,7 @@ void processor_t::dispatch(){
 				switch (rob_line->uop.uop_operation)
 				{
 				// NOP operation
+				case INSTRUCTION_OPERATION_ZERO:
 				case INSTRUCTION_OPERATION_NOP:
 				// integer alu// add/sub/logical
 				case INSTRUCTION_OPERATION_INT_ALU:
@@ -2185,6 +2186,15 @@ void processor_t::execute()
 			switch (rob_line->uop.uop_operation){
 				// =============================================================
 				// BRANCHES
+				case INSTRUCTION_OPERATION_ZERO:
+				{
+					rob_line->stage = PROCESSOR_STAGE_COMMIT;
+					rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
+					this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
+					this->unified_functional_units.shrink_to_fit();
+					i--;
+					break;
+				}
 				case INSTRUCTION_OPERATION_BRANCH:
 				// INTEGERS ===============================================
 				case INSTRUCTION_OPERATION_INT_ALU:
@@ -2724,6 +2734,7 @@ void processor_t::commit(){
 					break;
 
 				// NOP
+				case INSTRUCTION_OPERATION_ZERO:
 				case INSTRUCTION_OPERATION_NOP:
 					this->add_stat_inst_nop_completed();
 					break;
@@ -2820,6 +2831,23 @@ void processor_t::solve_registers_dependency(reorder_buffer_line_t *rob_line){
 				break;
 			}
 		}
+}
+// ============================================================================
+void processor_t::reset_statistics(){
+	this->fetchCounter = 0;
+	this->decodeCounter = 0;
+	this->renameCounter = 0;
+	this->commit_uop_counter = 0;
+		
+	this->mem_req_wait_cycles = 0;
+	this->core_ram_request_wait_cycles = 0;
+	this->set_core_ram_requests (0);
+	this->set_stat_inst_load_completed (0);
+	this->set_stat_inst_store_completed (0);
+	this->set_stat_inst_hive_completed (0);
+	this->set_stat_inst_vima_completed (0);
+	for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++) this->total_operations[i] = 0;
+	this->disambiguator->reset_statistics();
 }
 // ============================================================================
 void processor_t::statistics(){

@@ -21,6 +21,7 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_MEM_STORE:   return "OP_STORE "; break;
         // ====================================================================
         /// NOP or NOT IDENTIFIED
+        case INSTRUCTION_OPERATION_ZERO:        return "OP_ZERO";   break;
         case INSTRUCTION_OPERATION_NOP:         return "OP_NOP   "; break;
         case INSTRUCTION_OPERATION_OTHER:       return "OP_OTHER "; break;
         // ====================================================================

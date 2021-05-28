@@ -53,5 +53,6 @@ class hive_controller_t {
         void clock();
         void allocate();
         void statistics();
+        void reset_statistics();
         bool addRequest (memory_package_t* request);
 };
