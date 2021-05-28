@@ -565,7 +565,7 @@ VOID DynamicOMP_char(char *sync_str, THREADID threadid, bool is_spawn) {
 // This routine is executed for each image.
 VOID ImageLoad(IMG img, VOID *) {
     // HMC data initialization - HMC Traces
-    data_instr hmc_x86_data[20], vim_x86_data[112], mps_x86_data[28];
+    data_instr hmc_x86_data[HMC_INS_COUNT], vim_x86_data[VIMA_INS_COUNT], mps_x86_data[MPS_INS_COUNT];
     initialize_intrinsics(hmc_x86_data, vim_x86_data, mps_x86_data);
 
     TRACE_GENERATOR_DEBUG_PRINTF("ImageLoad()\n");
