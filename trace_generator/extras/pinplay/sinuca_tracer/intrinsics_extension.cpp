@@ -462,7 +462,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
         }
         //  revisar esses 2 laços. antes o default era pra ser
         //  HMC_ROWA em um else.
-        for (int i = 0; i < HMC_INS_COUNT; i++) {
+        /*for (int i = 0; i < HMC_INS_COUNT; i++) {
             if (rtn_name.compare(4,
                                 hmc_inst_names[i].size(),
                                 hmc_inst_names[i].c_str()) == 0) {
@@ -475,7 +475,7 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                                 hmc_roa_names[i].c_str()) == 0) {
                 NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROA;
             }
-        }
+        }*/
 
         if (icheck_2parameters(rtn_name) == 1
         || icheck_1parameter(rtn_name)) {

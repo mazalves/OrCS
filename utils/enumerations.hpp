@@ -46,7 +46,6 @@ enum directoryStatus_t {
 // ======================================================
 /// Enumerates the INSTRUCTION (Opcode and Uop) operation type
 enum instruction_operation_t {
-    INSTRUCTION_OPERATION_ZERO,
     /// NOP
     INSTRUCTION_OPERATION_NOP,
     /// INTEGERS
@@ -94,6 +93,7 @@ enum instruction_operation_t {
     INSTRUCTION_OPERATION_VIMA_FP_DIV,    //29
     INSTRUCTION_OPERATION_VIMA_INT_MLA,   //30
     INSTRUCTION_OPERATION_VIMA_FP_MLA,   //31
+    INSTRUCTION_OPERATION_ZERO,
     INSTRUCTION_OPERATION_LAST
 };
 
