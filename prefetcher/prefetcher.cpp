@@ -7,7 +7,7 @@ prefetcher_t::prefetcher_t(){
 
 prefetcher_t::~prefetcher_t()
 {
-    if(this->prefetcher!=NULL) delete &this->prefetcher;
+    //if(this->prefetcher!=NULL) delete &this->prefetcher;
     //dtor
 }
 void prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS){
