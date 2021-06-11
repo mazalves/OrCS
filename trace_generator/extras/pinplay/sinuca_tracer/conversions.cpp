@@ -437,6 +437,29 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_STOSD:          // Store String
         case XED_ICLASS_STOSQ:          // Store String
         case XED_ICLASS_STOSW:          // Store String
+
+        case XED_ICLASS_VPBROADCASTB:
+        case XED_ICLASS_VPBROADCASTD:
+        case XED_ICLASS_VPBROADCASTMB2Q:
+        case XED_ICLASS_VPBROADCASTMW2D:
+        case XED_ICLASS_VPBROADCASTQ:
+        case XED_ICLASS_VPBROADCASTW :
+
+        case XED_ICLASS_VPGATHERDD:
+        case XED_ICLASS_VPGATHERDQ:
+        case XED_ICLASS_VPGATHERQD:
+        case XED_ICLASS_VPGATHERQQ:
+
+        case XED_ICLASS_VPSCATTERDD:
+        case XED_ICLASS_VPSCATTERDQ:
+        case XED_ICLASS_VPSCATTERQD:
+        case XED_ICLASS_VPSCATTERQQ:
+        case XED_ICLASS_VMOVDQU:
+        case XED_ICLASS_VMOVDQU16:
+        case XED_ICLASS_VMOVDQU32:
+        case XED_ICLASS_VMOVDQU64:
+        case XED_ICLASS_VMOVDQU8:
+        case XED_ICLASS_VPERMD:
             if (NewInstruction.is_read
                 || NewInstruction.is_read2
                 || NewInstruction.is_write) {
@@ -608,6 +631,37 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_SUBPS:          // Sub Packed Single-Precision FP
         case XED_ICLASS_SUBSS:          // Sub Scalar Single-Precision FP
         case XED_ICLASS_SUBSD:          // Sub Low Double-Precision FP
+        case XED_ICLASS_VPAND:
+        case XED_ICLASS_VPANDD:
+        case XED_ICLASS_VPANDN:
+        case XED_ICLASS_VPANDND:
+        case XED_ICLASS_VPANDNQ:
+        case XED_ICLASS_VPANDQ:
+        case XED_ICLASS_VPADDB:
+        case XED_ICLASS_VPADDD:
+        case XED_ICLASS_VPADDQ:
+        case XED_ICLASS_VPADDSB:
+        case XED_ICLASS_VPADDSW:
+        case XED_ICLASS_VPADDUSB:
+        case XED_ICLASS_VPADDUSW:
+        case XED_ICLASS_VPADDW:
+        case XED_ICLASS_VPSLLD:
+        case XED_ICLASS_VPSLLDQ:
+        case XED_ICLASS_VPSLLQ:
+        case XED_ICLASS_VPSLLVD:
+        case XED_ICLASS_VPSLLVQ:
+        case XED_ICLASS_VPSLLVW:
+        case XED_ICLASS_VPSLLW:
+        case XED_ICLASS_VPTEST:
+        case XED_ICLASS_VPTESTMB:
+        case XED_ICLASS_VPTESTMD:
+        case XED_ICLASS_VPTESTMQ:
+        case XED_ICLASS_VPTESTMW:
+        case XED_ICLASS_VPTESTNMB:
+        case XED_ICLASS_VPTESTNMD:
+        case XED_ICLASS_VPTESTNMQ:
+        case XED_ICLASS_VPTESTNMW:
+        case XED_ICLASS_KORW:
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_ALU;
             TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n",
                                         INS_Disassemble(ins).c_str());
@@ -634,6 +688,10 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_MULPS:          // Multiply Packed Single-FP Values
 
         case XED_ICLASS_PMULUDQ:        // Multiply Packed Unsigned DW Integers
+
+        case XED_ICLASS_VPMULLD:
+        case XED_ICLASS_VPMULLQ:
+        case XED_ICLASS_VPMULLW:
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_MUL;
             TRACE_GENERATOR_DEBUG_PRINTF("\t FP MUL:%s\n",
                                         INS_Disassemble(ins).c_str());

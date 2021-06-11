@@ -303,6 +303,29 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 case XED_ICLASS_STOSD:          // Store String
                 case XED_ICLASS_STOSQ:          // Store String
                 case XED_ICLASS_STOSW:          // Store String
+
+                case XED_ICLASS_VPBROADCASTB:
+                case XED_ICLASS_VPBROADCASTD:
+                case XED_ICLASS_VPBROADCASTMB2Q:
+                case XED_ICLASS_VPBROADCASTMW2D:
+                case XED_ICLASS_VPBROADCASTQ:
+                case XED_ICLASS_VPBROADCASTW :
+
+                case XED_ICLASS_VPGATHERDD:
+                case XED_ICLASS_VPGATHERDQ:
+                case XED_ICLASS_VPGATHERQD:
+                case XED_ICLASS_VPGATHERQQ:
+
+                case XED_ICLASS_VPSCATTERDD:
+                case XED_ICLASS_VPSCATTERDQ:
+                case XED_ICLASS_VPSCATTERQD:
+                case XED_ICLASS_VPSCATTERQQ:
+                case XED_ICLASS_VMOVDQU:
+                case XED_ICLASS_VMOVDQU16:
+                case XED_ICLASS_VMOVDQU32:
+                case XED_ICLASS_VMOVDQU64:
+                case XED_ICLASS_VMOVDQU8:
+                case XED_ICLASS_VPERMD:
                                         if (!INS_IsMemoryRead(ins) && !INS_HasMemoryRead2(ins) && !INS_IsMemoryWrite(ins)) {
                                             DEBUG_PRINTF("\t FP ALU:%s - %s\n", INS_Disassemble(ins).c_str(), INS_Mnemonic(ins).c_str());
                                             BBL_InsertCall(bbl, IPOINT_ANYWHERE, AFUNPTR(docount),IARG_UINT32, (uint32_t)INSTRUCTION_OPERATION_FP_ALU ,IARG_THREAD_ID, IARG_END);
@@ -369,6 +392,37 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 case XED_ICLASS_SUBPD:          // Sub Packed Double-Precision Floating-Point Values
                 case XED_ICLASS_SUBSD:          // Sub Low Double-Precision Floating-Point Value
                 case XED_ICLASS_XORPD:          // Bitwise Logical XOR for Double-FP Values
+                case XED_ICLASS_VPAND:
+                case XED_ICLASS_VPANDD:
+                case XED_ICLASS_VPANDN:
+                case XED_ICLASS_VPANDND:
+                case XED_ICLASS_VPANDNQ:
+                case XED_ICLASS_VPANDQ:
+                case XED_ICLASS_VPADDB:
+                case XED_ICLASS_VPADDD:
+                case XED_ICLASS_VPADDQ:
+                case XED_ICLASS_VPADDSB:
+                case XED_ICLASS_VPADDSW:
+                case XED_ICLASS_VPADDUSB:
+                case XED_ICLASS_VPADDUSW:
+                case XED_ICLASS_VPADDW:
+                case XED_ICLASS_VPSLLD:
+                case XED_ICLASS_VPSLLDQ:
+                case XED_ICLASS_VPSLLQ:
+                case XED_ICLASS_VPSLLVD:
+                case XED_ICLASS_VPSLLVQ:
+                case XED_ICLASS_VPSLLVW:
+                case XED_ICLASS_VPSLLW:
+                case XED_ICLASS_VPTEST:
+                case XED_ICLASS_VPTESTMB:
+                case XED_ICLASS_VPTESTMD:
+                case XED_ICLASS_VPTESTMQ:
+                case XED_ICLASS_VPTESTMW:
+                case XED_ICLASS_VPTESTNMB:
+                case XED_ICLASS_VPTESTNMD:
+                case XED_ICLASS_VPTESTNMQ:
+                case XED_ICLASS_VPTESTNMW:
+                case XED_ICLASS_KORW:
                                             DEBUG_PRINTF("\t FP ALU:%s - %s\n", INS_Disassemble(ins).c_str(), INS_Mnemonic(ins).c_str());
                                             BBL_InsertCall(bbl, IPOINT_ANYWHERE, AFUNPTR(docount),IARG_UINT32, (uint32_t)INSTRUCTION_OPERATION_FP_ALU ,IARG_THREAD_ID, IARG_END);
                                         break;
@@ -392,6 +446,10 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 case XED_ICLASS_MULPD:          // Multiply Packed Double-FP Values
 
                 case XED_ICLASS_PMULUDQ:        // Multiply Packed Unsigned DW Integers
+
+                case XED_ICLASS_VPMULLD:
+                case XED_ICLASS_VPMULLQ:
+                case XED_ICLASS_VPMULLW:
                                             DEBUG_PRINTF("\t FP MUL:%s - %s\n", INS_Disassemble(ins).c_str(), INS_Mnemonic(ins).c_str());
                                             BBL_InsertCall(bbl, IPOINT_ANYWHERE, AFUNPTR(docount),IARG_UINT32, (uint32_t)INSTRUCTION_OPERATION_FP_ALU ,IARG_THREAD_ID, IARG_END);
                                         break;

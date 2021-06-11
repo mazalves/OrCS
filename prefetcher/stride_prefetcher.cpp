@@ -3,7 +3,7 @@
 stride_prefetcher_t::stride_prefetcher_t(){}
 
 stride_prefetcher_t::~stride_prefetcher_t() {
-    if(this->stride_table) delete[] &this->stride_table;
+    //if(this->stride_table) delete[] &this->stride_table;
 }
 
 void stride_prefetcher_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {

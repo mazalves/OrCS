@@ -35,7 +35,7 @@
 // ========================
 #define MAX_UOP_DECODED 5
 #define MAX_REGISTERS 32         /// opcode_package_t uop_package_t  (Max number of register (read or write) for one opcode/uop)
-#define MAX_ASSEMBLY_SIZE 32    /// In general 20 is enough
+#define MAX_ASSEMBLY_SIZE 256    /// In general 20 is enough
 #define MAX_REGISTER_NUMBER 256
 // ========================
 
