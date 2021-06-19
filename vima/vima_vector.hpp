@@ -16,6 +16,8 @@ class vima_vector_t {
         package_state_t status;
         uint64_t tag;
         uint64_t lru;
+        bool gather;
+        bool scatter;
         bool dirty;
 
         uint64_t fetch_start;

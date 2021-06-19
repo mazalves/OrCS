@@ -16,6 +16,8 @@ vima_vector_t::vima_vector_t(){
     this->tag = 0;
     this->lru = 0;
     this->dirty = false;
+    this->gather = false;
+    this->scatter = false;
 }
 vima_vector_t::~vima_vector_t(){
     delete[] sub_requests;
@@ -43,7 +45,8 @@ void vima_vector_t::clock() {
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
                         sub_requests[i].row_buffer = false;
-                        sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+                        if (this->scatter) sub_requests[i].memory_address = address + i*this->get_LINE_SIZE() + (rand() % UINT32_MAX);
+                        else sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
                         sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
                     }
@@ -82,7 +85,8 @@ void vima_vector_t::clock() {
                         sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                         sub_requests[i].sent_to_ram = false;
                         sub_requests[i].row_buffer = false;
-                        sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+                        if (this->gather) sub_requests[i].memory_address = address + i*this->get_LINE_SIZE() + (rand() % UINT32_MAX);
+                        else sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
                         sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
 
                         orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);

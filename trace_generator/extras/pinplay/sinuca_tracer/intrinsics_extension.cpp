@@ -865,30 +865,10 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             (rtn_name.compare(4, cmp_name189.size(), cmp_name189.c_str()) == 0) ||            
             (rtn_name.compare(4, cmp_name190.size(), cmp_name190.c_str()) == 0) ||
             (rtn_name.compare(4, cmp_name191.size(), cmp_name191.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name196.size(), cmp_name196.c_str()) == 0) || //gather
-            (rtn_name.compare(4, cmp_name197.size(), cmp_name197.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name198.size(), cmp_name198.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name199.size(), cmp_name199.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name200.size(), cmp_name200.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name201.size(), cmp_name201.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name202.size(), cmp_name202.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name203.size(), cmp_name203.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name204.size(), cmp_name204.c_str()) == 0) || //scatter
-            (rtn_name.compare(4, cmp_name205.size(), cmp_name205.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name206.size(), cmp_name206.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name207.size(), cmp_name207.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name208.size(), cmp_name208.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name209.size(), cmp_name209.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name210.size(), cmp_name210.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name211.size(), cmp_name211.c_str()) == 0) ||            
             (rtn_name.compare(4, cmp_name212.size(), cmp_name212.c_str()) == 0) || //dot product
             (rtn_name.compare(4, cmp_name213.size(), cmp_name213.c_str()) == 0) ||            
             (rtn_name.compare(4, cmp_name214.size(), cmp_name214.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name215.size(), cmp_name215.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name216.size(), cmp_name216.c_str()) == 0) || //scatter OR
-            (rtn_name.compare(4, cmp_name217.size(), cmp_name217.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name218.size(), cmp_name218.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name219.size(), cmp_name219.c_str()) == 0)){
+            (rtn_name.compare(4, cmp_name215.size(), cmp_name215.c_str()) == 0)){
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_INT_ALU;
         }
         else if ((rtn_name.compare(4, cmp_name84.size(), cmp_name84.c_str()) == 0) || //add float
@@ -965,6 +945,30 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name129.size(), cmp_name129.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MLA;
         }
+        else if ((rtn_name.compare(4, cmp_name196.size(), cmp_name196.c_str()) == 0) || //gather
+            (rtn_name.compare(4, cmp_name197.size(), cmp_name197.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name198.size(), cmp_name198.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name199.size(), cmp_name199.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name200.size(), cmp_name200.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name201.size(), cmp_name201.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name202.size(), cmp_name202.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name203.size(), cmp_name203.c_str()) == 0)){
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_GATHER;
+        }
+        else if ((rtn_name.compare(4, cmp_name204.size(), cmp_name204.c_str()) == 0) || //scatter
+            (rtn_name.compare(4, cmp_name205.size(), cmp_name205.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name206.size(), cmp_name206.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name207.size(), cmp_name207.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name208.size(), cmp_name208.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name209.size(), cmp_name209.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name210.size(), cmp_name210.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name211.size(), cmp_name211.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name216.size(), cmp_name216.c_str()) == 0) || //scatter OR
+            (rtn_name.compare(4, cmp_name217.size(), cmp_name217.c_str()) == 0) ||            
+            (rtn_name.compare(4, cmp_name218.size(), cmp_name218.c_str()) == 0) ||
+            (rtn_name.compare(4, cmp_name219.size(), cmp_name219.c_str()) == 0)){
+            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_SCATTER;
+            }
         else if ((rtn_name.compare(4, cmp_name0.size(), cmp_name0.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name1.size(), cmp_name1.c_str()) == 0) ||
                  (rtn_name.compare(4, cmp_name2.size(), cmp_name2.c_str()) == 0) ||

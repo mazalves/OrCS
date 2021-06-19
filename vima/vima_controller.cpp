@@ -240,6 +240,9 @@ void vima_controller_t::check_cache (int index) {
         }
     } else write = NULL;
 
+    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER) read1->gather = true;
+    else if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) write->scatter = true;
+
     if (read1 != NULL && result_read1 == MISS){
         this->add_cache_misses();
         if (read1->status == PACKAGE_STATE_READY){
@@ -383,6 +386,10 @@ void vima_controller_t::allocate(){
     vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_INT_MLA] * this->CORE_TO_BUS_CLOCK_RATIO);
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] = cfg_vima["VIMA_LATENCY_FP_MLA"];
     vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_FP_MLA] * this->CORE_TO_BUS_CLOCK_RATIO);
+    vima_op_latencies[MEMORY_OPERATION_VIMA_GATHER] = cfg_vima["VIMA_LATENCY_GATHER"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_GATHER] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_GATHER] * this->CORE_TO_BUS_CLOCK_RATIO);
+    vima_op_latencies[MEMORY_OPERATION_VIMA_SCATTER] = cfg_vima["VIMA_LATENCY_SCATTER"];
+    vima_op_latencies[MEMORY_OPERATION_VIMA_SCATTER] = ceil (this->vima_op_latencies[MEMORY_OPERATION_VIMA_SCATTER] * this->CORE_TO_BUS_CLOCK_RATIO);
 
     set_cache_accesses(0);
     set_cache_hits(0);

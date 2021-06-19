@@ -530,6 +530,8 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         case MEMORY_OPERATION_VIMA_INT_DIV:
         case MEMORY_OPERATION_VIMA_INT_MLA:
         case MEMORY_OPERATION_VIMA_FP_MLA:
+        case MEMORY_OPERATION_VIMA_GATHER:
+        case MEMORY_OPERATION_VIMA_SCATTER:
             #if MEMORY_DEBUG 
                 ORCS_PRINTF (" sent to VIMA Controller.\n")
             #endif
