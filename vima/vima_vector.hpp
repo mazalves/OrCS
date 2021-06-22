@@ -19,6 +19,7 @@ class vima_vector_t {
         bool gather;
         bool scatter;
         bool dirty;
+        bool taken;
 
         uint64_t fetch_start;
         uint64_t fetch_count;
@@ -34,6 +35,8 @@ class vima_vector_t {
         void allocate();
         void print_vector();
         bool ready();
+        void fetch (bool random);
+        void writeback (bool random);
 
         INSTANTIATE_GET_SET_ADD (uint32_t,no_sub_requests)
         INSTANTIATE_GET_SET_ADD (uint64_t,address)

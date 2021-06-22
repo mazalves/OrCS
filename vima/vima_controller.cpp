@@ -130,7 +130,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
                     ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
                 #endif
                 return &cache[i][0];
-            } else if (cache[i][0].lru < lru_cycle) {
+            } else if (cache[i][0].lru < lru_cycle && !cache[i][0].taken) {
                 lru_cycle = cache[i][0].lru;
                 lru_way = i;
             }
@@ -145,7 +145,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
                 #endif
 		        return &cache[index][i];
             }
-            else if (cache[index][i].lru < lru_cycle) {
+            else if (cache[index][i].lru < lru_cycle && !cache[i][i].taken) {
                 lru_cycle = cache[index][i].lru;
                 lru_way = i;
             }
@@ -187,9 +187,11 @@ void vima_controller_t::check_completion (int index){
 
     if (read1 != NULL) {
         read1->set_lru (orcs_engine.get_global_cycle());
+        read1->taken = false;
     }
     if (read2 != NULL) {
         read2->set_lru (orcs_engine.get_global_cycle());
+        read2->taken = false;
     }
 }
 
@@ -222,11 +224,14 @@ void vima_controller_t::check_cache (int index) {
     if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_read2 && vima_buffer[index]->vima_read2 != 0) {
         read1 = search_cache (vima_buffer[index]->vima_read1, &result_read1);
         read1->set_lru (orcs_engine.get_global_cycle());
+        read1->taken = true;
         read2 = search_cache (vima_buffer[index]->vima_read2, &result_read2);
         read2->set_lru (orcs_engine.get_global_cycle());
+        read2->taken = true;
     } else {
         read1 = search_cache (vima_buffer[index]->vima_read1, &result_read1);
         read1->set_lru (orcs_engine.get_global_cycle());
+        read1->taken = true;
         read2 = NULL;
     }
     
@@ -234,14 +239,21 @@ void vima_controller_t::check_cache (int index) {
         if (vima_buffer[index]->vima_read1 != vima_buffer[index]->vima_write && vima_buffer[index]->vima_read2 != vima_buffer[index]->vima_write){
             write = search_cache (vima_buffer[index]->vima_write, &result_write);
             write->set_lru (orcs_engine.get_global_cycle());
+            write->taken = true;
         } else {
             if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read1) write = read1;
             else if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read2) write = read2;
         }
     } else write = NULL;
 
-    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER) read1->gather = true;
-    else if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) write->scatter = true;
+    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER) {
+        read1->gather = true;
+        result_read1 = MISS;
+    }
+    else if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) {
+        write->scatter = true;
+        result_write = MISS;
+    }
 
     if (read1 != NULL && result_read1 == MISS){
         this->add_cache_misses();
