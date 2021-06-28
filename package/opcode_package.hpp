@@ -1,5 +1,6 @@
 #ifndef OPCODE_PACKAGE_H
 #define OPCODE_PACKAGE_H
+#include <vector>
 // ============================================================================
 // ============================================================================
 class opcode_package_t : public memory_request_client_t {
@@ -18,7 +19,15 @@ class opcode_package_t : public memory_request_client_t {
         uint32_t base_reg;
         uint32_t index_reg;
 
-        bool is_read;
+
+        uint64_t reads_addr[MAX_MEM_OPERATIONS];
+        uint32_t reads_size[MAX_MEM_OPERATIONS];
+        uint32_t num_reads;
+        uint64_t writes_addr[MAX_MEM_OPERATIONS];
+        uint32_t writes_size[MAX_MEM_OPERATIONS];
+        uint32_t num_writes;
+
+       /* bool is_read;
         uint64_t read_address;
         uint32_t read_size;
 
@@ -28,7 +37,7 @@ class opcode_package_t : public memory_request_client_t {
 
         bool is_write;
         uint64_t write_address;
-        uint32_t write_size;
+        uint32_t write_size;*/
 
         branch_t branch_type;
         bool is_indirect;
@@ -44,6 +53,7 @@ class opcode_package_t : public memory_request_client_t {
         bool is_vima;
 
         // Vectorization
+        int32_t end_vectorial_part;     // Identifica até onde load carregou
         int is_vectorial_part;          // Identifica se é parte de uma instrução vetorial maior
         int32_t VR_id;                  // Contém o VR de uma instrução vetorial
                                         // (se for uma instrução vetorial ou sua validação)
@@ -57,7 +67,7 @@ class opcode_package_t : public memory_request_client_t {
                                     // seu uop_number alterado
         bool is_pre_vectorization;
 
-        
+        uint64_t last_trasition;
 
         // ====================================================================
         /// Status Control
@@ -69,6 +79,7 @@ class opcode_package_t : public memory_request_client_t {
         
         opcode_package_t();
         ~opcode_package_t();
+
 
         #ifndef __PIN__
         void package_clean();

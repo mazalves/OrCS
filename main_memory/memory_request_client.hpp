@@ -15,6 +15,7 @@ class memory_request_client_t {
         virtual void updatePackageReady(uint32_t stallTime);
         virtual void updatePackageWait(uint32_t stallTime);
         virtual void updatePackageFree(uint32_t stallTime);
+        virtual void updatePackageWaitTM(uint32_t stallTime);        
         #endif
 };
 #endif

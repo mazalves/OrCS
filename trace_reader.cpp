@@ -1,4 +1,5 @@
 #include "simulator.hpp"
+std::map<int, uint32_t> reads_count;
 
 // =====================================================================
 trace_reader_t::trace_reader_t() {
@@ -33,6 +34,11 @@ trace_reader_t::~trace_reader_t() {
         gzclose(gzStaticTraceFile);
         gzclose(gzDynamicTraceFile);
         gzclose(gzMemoryTraceFile);
+        printf("Instructions by reads:\n");
+        for (auto i : reads_count) {
+            std::cout << i.first << " reads -- " << i.second << " instructions" << std::endl;
+        }
+
             /// De-Allocate memory to prevent memory leak
         utils_t::template_delete_array<char>(line_static);
         utils_t::template_delete_matrix<char>(line_dynamic, TRACE_LINE_SIZE);
@@ -265,17 +271,18 @@ void trace_reader_t::generate_binary_dict() {
 /// @2
 /// CALL_NEAR 9 4345036 5 2 35 15 2 35 15 15 0 1 0 0 1 0 0 0
 ///
+
 bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t *opcode) {
     char *sub_string = NULL;
     char *tmp_ptr = NULL;
     uint32_t sub_fields, count, i;
     count = 0;
 
-    for (i = 0; input_string[i] != '\0'; i++) {
+    /* for (i = 0; input_string[i] != '\0'; i++) {
         count += (input_string[i] == ' ');
-    }
+    }*/
 
-    ERROR_ASSERT_PRINTF(count >= 13, "Error converting Text to Instruction (Wrong  number of fields %d), input_string = %s\n", count, input_string)
+    //ERROR_ASSERT_PRINTF(count >= 13, "Error converting Text to Instruction (Wrong  number of fields %d), input_string = %s\n", count, input_string)
 
     sub_string = strtok_r(input_string, " ", &tmp_ptr);
     strcpy(opcode->opcode_assembly, sub_string);
@@ -329,8 +336,20 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->index_reg = strtoull(sub_string, NULL, 10);
 
-
+    // Número de leituras
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->num_reads = strtoul(sub_string, NULL, 10);
+    assert(opcode->num_reads <= MAX_MEM_OPERATIONS);
+    reads_count[opcode->num_reads]++;
+ 
+
+    // Número de escritas
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->num_writes = strtoul(sub_string, NULL, 10);
+    assert(opcode->num_writes <= MAX_MEM_OPERATIONS);
+
+
+    /*
     opcode->is_read = (sub_string[0] == '1');
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
@@ -338,6 +357,7 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->is_write = (sub_string[0] == '1');
+    */
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->branch_type = branch_t(strtoull(sub_string, NULL, 10));
@@ -508,6 +528,10 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_operation = static_cast<instruction_operation_t> (std::strtoul(sub_string, NULL, 10));
+    if (m->opcode_operation == -1) {
+        printf("OPCODE -1: %s", next_instruction);
+        exit(1);
+    }
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_address = std::strtoull(sub_string, NULL, 10);
@@ -528,7 +552,9 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->index_reg = std::strtoul(sub_string, NULL, 10);
-
+    printf("CORRIGIR IMPLEMENTAÇÂO DE LEITURAS E ESCRITAS\n");
+    exit(1);
+    /*
     /// Read 1
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->is_read = (sub_string[0] == '1');
@@ -557,7 +583,8 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     m->write_address = std::strtoull(sub_string, NULL, 10);
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
-    m->write_size = std::strtoul(sub_string, NULL, 10);
+    m->write_size = std::strtoul(sub_string, NULL, 10);*/
+
     /// Branches
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->branch_type = static_cast<branch_t> (strtoull(sub_string, NULL, 10));
@@ -626,26 +653,20 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     /// If it is LOAD/STORE -> Fetch new MEMORY inside the memory file
     // =========================================================================
     bool mem_is_read;
-    if (m->is_read) {
-        trace_next_memory(&m->read_address, &m->read_size, &mem_is_read);
-        m->read_address |= this->address_translation;
+    for (uint32_t r=0; r < m->num_reads; ++r) {
+        trace_next_memory(&m->reads_addr[r], &m->reads_size[r], &mem_is_read);
+        m->reads_addr[r] |= this->address_translation;
         //ORCS_PRINTF ("read1: %lu | ", m->read_address)
         ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read from memory trace\n");
     }
 
-    if (m->is_read2) {
-        trace_next_memory(&m->read2_address, &m->read2_size, &mem_is_read);
-        m->read2_address |= this->address_translation;
-        //ORCS_PRINTF ("read2: %lu | ", m->read2_address)
-        ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read2 from memory trace\n");
-    }
-
-    if (m->is_write) {
-        trace_next_memory(&m->write_address, &m->write_size, &mem_is_read);
-        m->write_address |= this->address_translation;
+    for (uint32_t w=0; w < m->num_writes; ++w) {
+        trace_next_memory(&m->writes_addr[w], &m->writes_size[w], &mem_is_read);
+        m->writes_addr[w] |= this->address_translation;
         //ORCS_PRINTF ("write: %lu | ", m->write_address)
         ERROR_ASSERT_PRINTF(mem_is_read == false, "Expecting a write from memory trace\n");
     }
+
 
     //if (m->is_read || m->is_read2 || m->is_write) ORCS_PRINTF (" operation = %s \n", get_enum_instruction_operation_char (m->opcode_operation))
 

@@ -28,6 +28,7 @@ class memory_package_t {
         uint64_t vima_read1;
         uint64_t vima_read2;
         uint64_t vima_write;
+        int32_t is_vectorial_part;
 
         bool row_buffer;
         cacheId_t type;
@@ -49,6 +50,7 @@ class memory_package_t {
         void updatePackageTransmit(uint32_t stallTime);
         void updatePackageDRAMFetch(uint32_t stallTime);
         void updatePackageDRAMReady(uint32_t stallTime);
+        void updatePackageWaitTM(uint32_t stallTime);
         void updateClients();
         void printPackage();
 };

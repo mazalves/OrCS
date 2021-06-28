@@ -120,7 +120,8 @@ enum package_state_t {
     PACKAGE_STATE_HIVE,
     PACKAGE_STATE_VIMA,
     PACKAGE_STATE_DRAM_FETCH,
-    PACKAGE_STATE_DRAM_READY
+    PACKAGE_STATE_DRAM_READY,
+    PACKAGE_STATE_WAIT_TM // Espera operações da TM
 };
 const char *get_enum_package_state_char(package_state_t type);
 // ============================================================================
@@ -199,7 +200,8 @@ const char *get_enum_memory_controller_command_char(memory_controller_command_t 
 // ============================================================================
 enum request_priority_t {
     REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST,
-    REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE
+    REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE,
+    REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST
 };
 const char *get_enum_request_priority_char(request_priority_t type);
 // ============================================================================

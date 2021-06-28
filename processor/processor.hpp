@@ -25,13 +25,14 @@ public:
 class functional_unit_t {
 public:
     uint32_t id;
-    uint64_t *slot;
+    uint64_t *slot = NULL;
     uint32_t size, wait_next;
     uint32_t dispatch_cnt;
 
     functional_unit_t() {}
     ~functional_unit_t() {
-        utils_t::template_delete_array<uint64_t>(this->slot);
+		if (slot != NULL)
+        	utils_t::template_delete_array<uint64_t>(this->slot);
     }
 
     void allocate(uint32_t id, uint32_t size, uint32_t wait_next) {
@@ -317,6 +318,8 @@ class processor_t {
 		void set_registers_bits(opcode_package_t *inst, int32_t num_uops);
 		
 		void commit();
+		void commit_vectorial();
+
 		// ====================================================================
 		// Bool Functions @return 
 		bool isBusy();

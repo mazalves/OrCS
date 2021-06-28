@@ -53,7 +53,7 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_LAST:         return "LAST        "; break;
         
     }
-    ERROR_PRINTF("Wrong INSTRUCTION_OPERATION\n");
+    ERROR_PRINTF("Wrong INSTRUCTION_OPERATION %d\n", (int) type);
     return "FAIL";
 }
 // ============================================================================
@@ -114,6 +114,7 @@ const char *get_enum_package_state_char(package_state_t type) {
         case PACKAGE_STATE_VIMA:    return "VIMA"; break;
         case PACKAGE_STATE_DRAM_FETCH:  return "DRAM_FETCH"; break;
         case PACKAGE_STATE_DRAM_READY:  return "DRAM_READY"; break;
+        case PACKAGE_STATE_WAIT_TM: return "WAIT_TM"; break;
     }
     ERROR_PRINTF("Wrong PACKAGE_STATE\n");
     return "FAIL";
@@ -170,6 +171,7 @@ const char *get_enum_request_priority_char (request_priority_t type){
     switch (type) {
         case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:  return "FIRST_COME_FIRST_SERVE"; break;
         case REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST: return "ROW_BUFFER_HITS_FIRST"; break;
+        case REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST: return "ROW_BUFFER_NORMAL_HITS_FIRST"; break;
     }
     ERROR_PRINTF("Wrong REQUEST_PRIORITY\n");
     return "FAIL";

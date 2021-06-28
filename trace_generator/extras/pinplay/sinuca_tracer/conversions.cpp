@@ -146,14 +146,52 @@ opcode_package_t x86_to_static(const INS& ins) {
     NewInstruction.base_reg = INS_MemoryBaseReg(ins);
     NewInstruction.index_reg = INS_MemoryIndexReg(ins);
 
-    NewInstruction.is_read = INS_IsMemoryRead(ins);
-    NewInstruction.is_read2 = INS_HasMemoryRead2(ins);
-    NewInstruction.is_write = INS_IsMemoryWrite(ins);
+    NewInstruction.num_reads = 0;
+    NewInstruction.num_writes = 0;
+
+    if (INS_hasKnownMemorySize(ins)) {
+        if (INS_IsMemoryRead(ins)) NewInstruction.num_reads++;
+        if (INS_HasMemoryRead2(ins)) NewInstruction.num_reads++;
+        if (INS_IsMemoryWrite(ins)) NewInstruction.num_writes++;
+    } else {
+        int32_t numAccesses, accessSize, indexSize;
+        
+
+        if(INS_IsVgather(ins)) {
+            GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
+            NewInstruction.num_reads = numAccesses;
+            if (numAccesses > 1) {
+                std::cerr << "Encontrei com " << numAccesses << "!!" << std::endl;
+            } else {
+                std::cerr << "Just one!!" << std::endl;
+            }
+
+        } else if (INS_IsVscatter(ins)) {
+            GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
+            NewInstruction.num_writes = numAccesses;
+
+        } else {
+            std::cerr << "vgather_vscatter_to_static: Unknown instruction type!" << std::endl;
+            exit(1);
+        }
+    }
+
+    //NewInstruction.is_read = INS_IsMemoryRead(ins);
+    //NewInstruction.is_read2 = INS_HasMemoryRead2(ins);
+    //NewInstruction.is_write = INS_IsMemoryWrite(ins);
 
     NewInstruction.is_predicated = INS_IsPredicated(ins);
     NewInstruction.is_prefetch = INS_IsPrefetch(ins);
 
-    if (NewInstruction.is_read) {
+    if (NewInstruction.num_reads > 0) {
+        NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
+        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD (%u reads):%s\n", NewInstruction.num_reads, INS_Disassemble(ins).c_str());
+    }
+    if (NewInstruction.num_writes > 0) {
+        NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_STORE;
+        TRACE_GENERATOR_DEBUG_PRINTF("\t MEM STORE (%u writes):%s\n", NewInstruction.num_writes, INS_Disassemble(ins).c_str());
+    }
+    /*if (NewInstruction.is_read) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
         TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n", INS_Disassemble(ins).c_str());
     }
@@ -162,11 +200,13 @@ opcode_package_t x86_to_static(const INS& ins) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
         TRACE_GENERATOR_DEBUG_PRINTF("\t MEM LOAD:%s\n", INS_Disassemble(ins).c_str());
     }
-
     if (NewInstruction.is_write) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_MEM_STORE;
         TRACE_GENERATOR_DEBUG_PRINTF("\t MEM STORE:%s\n", INS_Disassemble(ins).c_str());
     }
+    */
+
+
 
     if (INS_IsBranchOrCall(ins) || INS_IsSyscall(ins)) {
         NewInstruction.opcode_operation = INSTRUCTION_OPERATION_BRANCH;
@@ -268,14 +308,21 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_MOVSXD:         // Move with Sign-Extension
         case XED_ICLASS_MOVSD:          // Move Data from String to String
         case XED_ICLASS_MOVSQ:          // Move Data from String to String
-
+                                /*
                                 if (NewInstruction.is_read || NewInstruction.is_read2 || NewInstruction.is_write) {
                                     TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
                                 }
                                 else {
                                     NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
                                     TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n", INS_Disassemble(ins).c_str());
+                                }*/
+                                if (NewInstruction.num_reads > 0 || NewInstruction.num_writes > 0) {
+                                    TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
                                 }
+                                else {
+                                    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
+                                    TRACE_GENERATOR_DEBUG_PRINTF("\t INT ALU:%s\n", INS_Disassemble(ins).c_str());
+                                }  
                                 break;
 
         //==================================================================
@@ -407,7 +454,15 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_STOSD:          // Store String
         case XED_ICLASS_STOSQ:          // Store String
         case XED_ICLASS_STOSW:          // Store String
-                                if (NewInstruction.is_read || NewInstruction.is_read2 || NewInstruction.is_write) {
+
+                                /*if (NewInstruction.is_read || NewInstruction.is_read2 || NewInstruction.is_write) {
+                                    TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
+                                }
+                                else {
+                                    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_INT_ALU;
+                                    TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n", INS_Disassemble(ins).c_str());
+                                }*/
+                                if (NewInstruction.num_reads > 0 || NewInstruction.num_writes > 0) {
                                     TRACE_GENERATOR_DEBUG_PRINTF("\t MEM:%s\n", INS_Disassemble(ins).c_str());
                                 }
                                 else {
@@ -659,176 +714,5 @@ opcode_package_t x86_to_static(const INS& ins) {
 
     return NewInstruction;
 }
-// ***************************************************************************************************************************************
-
-opcode_package_t make_VGather_Vscatter(const INS& ins) {
-    opcode_package_t NewInstruction;
-
-    strcpy(NewInstruction.opcode_assembly, INS_Mnemonic(ins).c_str());
-
-
-   for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-        NewInstruction.read_regs[i] = POSITION_FAIL;
-    }
-    for (uint32_t i = 0; i < INS_MaxNumRRegs(ins); i++) {
-        NewInstruction.read_regs[i] = INS_RegR(ins, i);
-    }
-
-
-    for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-        NewInstruction.write_regs[i] = POSITION_FAIL;
-    }
-    for (uint32_t i = 0; i < INS_MaxNumWRegs(ins); i++) {
-        NewInstruction.write_regs[i] = INS_RegW(ins, i);
-    }
-    NewInstruction.base_reg = INS_MemoryBaseReg(ins);
-    NewInstruction.index_reg = INS_MemoryIndexReg(ins);
-
-    NewInstruction.is_predicated = INS_IsPredicated(ins);
-    NewInstruction.is_prefetch = INS_IsPrefetch(ins);
-
-    NewInstruction.is_hive = false;
-    NewInstruction.is_vima = false;
-
-    return NewInstruction;
-}
-
-std::vector<opcode_package_t>* vgather_vscatter_to_static(const INS& ins) {
-    //std::cerr << "Codificando instrução gather/scatter: " << std::endl;
-    //std::cerr << "ASM: " << INS_Disassemble(ins) << std::endl;
-    //std::cerr << "is_Vgather: " << INS_IsVgather(ins) << " is_Vscatter: " << INS_IsVscatter(ins) << std::endl;
-    //std::cerr << "Addr: " << INS_Address(ins) << "    Size: " << INS_Size(ins) << std::endl;
-
-    std::vector<opcode_package_t> *ops = new std::vector<opcode_package_t>;
-
-   if(INS_IsVgather(ins)) {
-        int32_t numAccesses, accessSize, indexSize;
-        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
-        //std::cout << "Vgather -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
-        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
-        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
-
-        // -----------------------------------------------------------------------
-        // Create reads
-        // -----------------------------------------------------------------------
-        ops->reserve(numAccesses);
-
-        // -----------------------------------------------------------------------
-        // Make all possible double reads sets
-        // -----------------------------------------------------------------------
-        int32_t max = floor ((numAccesses + 0.0f)/2);
-        int32_t i;
-        for (i = 0; i < max; ++i) {
-
-            opcode_package_t op = make_VGather_Vscatter(ins);
-
-            // -------------------------------------------------------------------
-            // Shift each instruction inside the real one
-            // -------------------------------------------------------------------
-            op.opcode_address = INS_Address(ins) + i;
-            if((i * 2) != (numAccesses - 2)) {
-                op.opcode_size = 1;
-            } else {
-                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
-            }
-
-            // -------------------------------------------------------------------
-            // Configure to a memory read
-            // -------------------------------------------------------------------
-            op.is_read = true;
-            op.is_read2 = true;
-            op.is_write = false;
-            op.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
-
-            // -------------------------------------------------------------------
-            // Save to be added in the bbl instructions list
-            // -------------------------------------------------------------------
-            ops->push_back(op);
-        }
-
-        // -------------------------------------------------------------------
-        // If necessary, send the last mem read
-        // -------------------------------------------------------------------
-        if((i*2) != numAccesses) {
-            opcode_package_t op = make_VGather_Vscatter(ins);
-
-            // -------------------------------------------------------------------
-            // Shift each instruction inside the real one
-            // -------------------------------------------------------------------
-            op.opcode_address = INS_Address(ins) + i;
-            op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
-
-
-            // -------------------------------------------------------------------
-            // Configure to a memory read
-            // -------------------------------------------------------------------
-            op.is_read = true;
-            op.is_read2 = false;
-            op.is_write = false;
-            op.opcode_operation = INSTRUCTION_OPERATION_MEM_LOAD;
-
-            // -------------------------------------------------------------------
-            // Save to be added in the bbl instructions list
-            // -------------------------------------------------------------------
-            ops->push_back(op);
-        }
-
-
-
-   } else if (INS_IsVscatter(ins)) {
-        int32_t numAccesses, accessSize, indexSize;
-        GetNumberAndSizeOfMemAccesses(ins, &numAccesses, &accessSize, &indexSize);
-        //std::cout << "Vscatter -- NumAcessos: " << numAccesses << " Tamanho dos acessos: " << accessSize << " Tamanho index: " << indexSize  << std::endl;
-        //std::cout << "Number of write registers assigned: " << INS_MaxNumWRegs(ins) << std::endl;
-        //std::cout << "Number of read registers assigned: " << INS_MaxNumRRegs(ins) << std::endl;
-        // -----------------------------------------------------------------------
-        // Create writes
-        // -----------------------------------------------------------------------
-        ops->reserve(numAccesses);
-
-        for (int32_t i = 0; i < numAccesses; ++i) {
-
-            opcode_package_t op = make_VGather_Vscatter(ins);
-
-            // -------------------------------------------------------------------
-            // Shift each instruction inside the real one
-            // -------------------------------------------------------------------
-            if(i < numAccesses - 1) {
-                op.opcode_address = INS_Address(ins) + i;
-                op.opcode_size = 1;
-            } else {
-                op.opcode_address = INS_Address(ins) + i;
-                op.opcode_size = (INS_Address(ins) + INS_Size(ins)) - op.opcode_address;
-            }
-
-            // -------------------------------------------------------------------
-            // Configure to a memory write
-            // -------------------------------------------------------------------
-            op.is_read = false;
-            op.is_read2 = false;
-            op.is_write = true;
-            op.opcode_operation = INSTRUCTION_OPERATION_MEM_STORE;
-
-            // -------------------------------------------------------------------
-            // Save to be added in the bbl instructions list
-            // -------------------------------------------------------------------
-            ops->push_back(op);
-        }
-
-   } else {
-       std::cerr << "vgather_vscatter_to_static: Unknown instruction type!" << std::endl;
-       exit(1);
-   }
-
-    /*opcode_package_t NewInstruction;
-    sprintf(NewInstruction.opcode_assembly, "vgather_vscatter");
-    NewInstruction.opcode_operation = INSTRUCTION_OPERATION_LAST;
-    NewInstruction.opcode_address = INS_Address(ins);
-    NewInstruction.opcode_size = INS_Size(ins);
-    return NewInstruction;*/
-
-    return ops;
-}
-
 
 #endif

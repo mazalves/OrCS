@@ -476,13 +476,17 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
 
         if (icheck_2parameters(rtn_name) == 1
         || icheck_1parameter(rtn_name)) {
-            NewInstruction.is_read = 1;
+            NewInstruction.num_reads = 1;
+            NewInstruction.num_writes = 1;
+            /*NewInstruction.is_read = 1;
             NewInstruction.is_read2 = 0;
-            NewInstruction.is_write = 1;
+            NewInstruction.is_write = 1;*/
         } else {
-            NewInstruction.is_read2 = 1;
+            NewInstruction.num_reads = 2;
+            NewInstruction.num_writes = 1;
+            /*NewInstruction.is_read2 = 1;
             NewInstruction.is_read = 1;
-            NewInstruction.is_write = 1;
+            NewInstruction.is_write = 1;*/
         }
 
         NewInstruction.is_indirect = 0;

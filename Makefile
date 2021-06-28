@@ -62,7 +62,9 @@ SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
 SRC_HIVE = $(FD_HIVE)/hive_controller.cpp
 
 SRC_VIMA = $(FD_VIMA)/vima_controller.cpp\
-			$(FD_VIMA)/vima_vector.cpp
+			$(FD_VIMA)/vima_vector.cpp\
+			$(FD_VIMA)/transactions_controller.cpp\
+			$(FD_VIMA)/transactional_operation.cpp
 
 SRC_DYNAMIC_VECTORIZATION = $(FD_DYNAMIC_VECTORIZATION)/table_of_loads.cpp\
 							$(FD_DYNAMIC_VECTORIZATION)/vector_map_table.cpp\
@@ -109,7 +111,7 @@ clean:
 	@echo
 
 debug:
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose 2> log.valgrind  ./orcs_vet -c configuration_files/skylake.cfg -t ../simpleVecSum > log_debug_n
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose 2> log.valgrind  ./orcs -c configuration_files/skylakeProposta.cfg -t '../Traces/vecSumScalar' > ../Logs/vecSumScalar.vet.log
 
 orcs_vet: clean all
 	mv orcs orcs_vet

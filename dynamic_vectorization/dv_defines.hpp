@@ -11,7 +11,8 @@ enum DV_ERROR
  VECTORIZE_OPERATION_FORWARD,
  NOT_WRITING,
  REGISTER_GREATER_THAN_MAX,
- NEW_PARAMETERS_NOT_VECTORIZED
+ NEW_PARAMETERS_NOT_VECTORIZED,
+ ENTRIES_INVALIDATED // Usado para avisar que um acesso à memória invalidou ao menos uma instrução
 };
 }
 // Constants defined by configuration
@@ -33,6 +34,8 @@ extern uint32_t ROB_VECTORIAL_SIZE; // 100 	// Espaço adicional no ROB para ins
 		                               			// Supostamente elas não entram no ROB, mas com esse espaço extra
 		                               			// dedicado fica mais fácil gerenciar
 extern int32_t VECTORIZATION_ENABLED;
+
+extern int32_t MAX_LOAD_STRIDE; // -1 for unlimited
 
 /*
 #define VECTORIZATION_SIZE 4

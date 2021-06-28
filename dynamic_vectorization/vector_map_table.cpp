@@ -1,6 +1,8 @@
 #include "./../simulator.hpp"
 extern std::map<std::string, std::string> vec_correspondent;
 
+std::map<uint64_t, uint64_t> vectorized_strides;
+
 vector_map_table_t::vector_map_table_t (int32_t num_entries,
                                         int32_t associativity,
                                         register_rename_table_t *RRT,
@@ -24,11 +26,29 @@ vector_map_table_t::vector_map_table_t (int32_t num_entries,
     vec_correspondent[std::string("NEG")] = std::string("PSIGNB_XMMdq_XMMdq+R128+R128");
     vec_correspondent[std::string("AND")] = std::string("VANDPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
     vec_correspondent[std::string("OR")] = std::string("VORPD_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    vec_correspondent[std::string("cmp")] = std::string("VPCMPEQQ_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+
+    // // Shifts
+    vec_correspondent[std::string("SAR")] = std::string("VPSRAD_YMMqq_YMMqq_IMMb+R256+R256+I8");
+    vec_correspondent[std::string("SHL")] = std::string("VPSLLD_YMMqq_YMMqq_IMMb+R256+R256+I8");
+    vec_correspondent[std::string("SHR")] = std::string("VPSRLDQ_YMMqq_YMMqq_IMMb+R256+R256+I8");
+
+    vec_correspondent[std::string("XOR")] = std::string("VPXOR_YMMqq_YMMqq_YMMqq+R256+R256+R256");
+    
+
+
+    
 
 }
         
 vector_map_table_t::~vector_map_table_t () {
     //list_contents();
+    printf("************************** ~VRMT **************************\n");
+    printf("Vectorized strides:\n");
+    for (auto v : vectorized_strides) {
+        printf("Stride: %lu -- Loads: %lu\n", v.first, v.second);
+    }
+    printf("***********************************************************\n");
 }
 
 vector_map_table_entry_t* vector_map_table_t::allocate_entry (uint64_t pc) {
@@ -56,15 +76,27 @@ vector_map_table_entry_t* vector_map_table_t::allocate_entry (uint64_t pc) {
 
 
 bool vector_map_table_t::compare_registers (opcode_package_t *inst, vector_map_table_entry_t *vrmt_entry) {
-    // Verifica interferência de instruções escalares
-    if (register_rename_table[inst->read_regs[0]].vectorial && register_rename_table[inst->read_regs[1]].vectorial){
+    if (vrmt_entry->one_register) {
+        // Verifica interferência de instruções escalares
+        if (register_rename_table[inst->read_regs[0]].vectorial){
 
-    	// Verifica se os VR se mantém
-    	if (   (vrmt_entry->source_operand_1 == (uint64_t)register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg)
-       		&& (vrmt_entry->source_operand_2 == (uint64_t)register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg) ) 
-    	{
-    		return true;
-    	}
+        	// Verifica se os VR se mantém
+        	if (vrmt_entry->source_operand_1 == (uint64_t)register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg) 
+        	{
+        		return true;
+        	}
+        }
+    } else {
+        // Verifica interferência de instruções escalares
+        if (register_rename_table[inst->read_regs[0]].vectorial && register_rename_table[inst->read_regs[1]].vectorial){
+
+        	// Verifica se os VR se mantém
+        	if (   (vrmt_entry->source_operand_1 == (uint64_t)register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg)
+           		&& (vrmt_entry->source_operand_2 == (uint64_t)register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg) ) 
+        	{
+        		return true;
+        	}
+        }
     }
     return false;
 }
@@ -98,8 +130,8 @@ bool vector_map_table_t::new_store (opcode_package_t *inst) {
     for (uint32_t i = 0; i < this->entries.get_num_sets(); ++i) {
         for (uint32_t j = 0; j < this->entries.get_associativity(); ++j) {
 	        if(this->entries[i][j].is_load) {
-	        	if((entries[i][j].source_operand_1 <= inst->write_address) &&
-	        	  (entries[i][j].source_operand_2 > inst->write_address))
+	        	if((entries[i][j].source_operand_1 <= inst->writes_addr[0]) &&
+	        	  (entries[i][j].source_operand_2 > inst->writes_addr[0]))
                 {
                     this->invalidate(&this->entries[i][j]);
 		            r = true;
@@ -121,7 +153,7 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
 
         // Set that was sent to pipeline
-        // // Is made on decode
+        // // It's made on decode
         //vectorizer->set_sent(vrmt_entry->correspondent_VR, vrmt_entry->offset, true);
         //vectorizer->set_U (vrmt_entry->correspondent_VR,  vrmt_entry->offset, true);
 
@@ -136,6 +168,9 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
             // Pre-vectorize next part
             //printf("Offset maior ou igual a 3: %d\n", vrmt_entry->offset);
             DV::DV_ERROR stats = vectorize(inst, &vrmt_entry, true);
+            if (stats == DV::SUCCESS) {
+                vectorizer->pre_vectorizations++;
+            }
             return stats;
         }
         #if DV_DEBUG == 1
@@ -155,7 +190,13 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
         bool registers_persist = compare_registers(inst, vrmt_entry);
 
         if (registers_persist == false) {
-
+            // Statistics
+            if (vrmt_entry->offset < VECTORIZATION_SIZE) {
+                vectorizer->source_changes_before_end++;
+            } else {
+                vectorizer->source_changes_after_end++;
+            }
+            
             // Invalidate vrmt_entry
             this->invalidate(vrmt_entry);
 
@@ -172,7 +213,7 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
 
             // Create new operation with the right parameters
             vector_map_table_entry_t *new_vrmt_entry = NULL;
-
+            vectorizer->registersChanged++;
             DV::DV_ERROR stats = vectorize(inst, &new_vrmt_entry, false); 
 
             if (stats == DV::NOT_ENOUGH_VR) {
@@ -220,7 +261,7 @@ DV::DV_ERROR vector_map_table_t::validate (opcode_package_t *inst, vector_map_ta
     return DV::SUCCESS;
 }
 
-void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_load, int32_t vr_id, int32_t num_part) {
+void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_load, int32_t vr_id, int32_t num_part, int32_t end_vectorial_part) {
     // Fill opcode_assembly
     /*
     switch(inst->opcode_operation) {
@@ -264,11 +305,13 @@ void vector_map_table_t::fill_vectorial_part (opcode_package_t *inst, bool is_lo
     }
 
     // Generic inst preparation
+    inst->end_vectorial_part = end_vectorial_part; // Loads carregam múltiplas partes
     inst->is_vectorial_part = num_part;
     inst->VR_id = vr_id;
     inst->is_validation = false;
 
 }
+
 
 DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_table_entry_t **vrmt_entry, bool forward) {
     #if DV_DEBUG == 1
@@ -302,25 +345,17 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
 
     state_VR->MRBB = vectorizer->GMRBB;
 
-    if (forward)
-    {
-    	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = false;
-    	state_VR->positions[0].V = false;
-    } else {
-    	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = true;
-    	state_VR->positions[0].V = false;
+    for (int32_t pos = 0; pos < VECTORIZATION_SIZE; ++pos) {
+      	state_VR->positions[pos].F = 0;
+    	state_VR->positions[pos].R = 0;
+    	state_VR->positions[pos].U = 0;
+    	state_VR->positions[pos].V = 0;
+        state_VR->positions[pos].executed = false;
+        state_VR->positions[pos].sent = false;
+        state_VR->positions[pos].free = false;
+
     }
 
-    for (int32_t pos = 1; pos < VECTORIZATION_SIZE; ++pos) {
-      	state_VR->positions[0].F = false;
-    	state_VR->positions[0].R = false;
-    	state_VR->positions[0].U = false;
-    	state_VR->positions[0].V = false;
-    }
 
 
     // Aloca uma vrmt_entry
@@ -341,28 +376,37 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
     table_of_loads_entry_t *tl_entry = 0x0;
     // Define operandos vetoriais ou regiões de memória.
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
+
         vectorizer->vectorized_loads++;
     	tl_entry = TL->find_pc (inst->opcode_address);
     	int32_t stride = tl_entry->stride;
+        vectorized_strides[stride]++;
         int32_t read_start;
         if (forward) {
-            read_start = inst->read_address + tl_entry->stride;
+            read_start = inst->reads_addr[0] + tl_entry->stride;
         } else {
-            read_start = inst->read_address;
+            read_start = inst->reads_addr[0];
         }
     	if (stride >= 0) {
     		(*vrmt_entry)->source_operand_1 = read_start;
-    		(*vrmt_entry)->source_operand_2 = read_start + (VECTORIZATION_SIZE - 1) * stride + inst->read_size;
+    		(*vrmt_entry)->source_operand_2 = read_start + (VECTORIZATION_SIZE - 1) * stride + inst->reads_size[0];
 
     	} else {
     		(*vrmt_entry)->source_operand_1 = read_start + (VECTORIZATION_SIZE - 1) * stride;
-    		(*vrmt_entry)->source_operand_2 = read_start + inst->read_size;
+    		(*vrmt_entry)->source_operand_2 = read_start + inst->reads_size[0];
     	}
+        (*vrmt_entry)->one_register = false;
     } else {
 
         vectorizer->vectorized_ops++;
     	(*vrmt_entry)->source_operand_1 = register_rename_table[inst->read_regs[0]].correspondent_vectorial_reg;
-    	(*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
+        if (inst->read_regs[1] != -1) { // Opera sobre dois registradores
+            (*vrmt_entry)->source_operand_2 = register_rename_table[inst->read_regs[1]].correspondent_vectorial_reg;
+            (*vrmt_entry)->one_register = false;
+        } else { // Opera sobre um reg e um imediato
+            (*vrmt_entry)->source_operand_2 = -1; // Meio que força segfaults :p
+            (*vrmt_entry)->one_register = true;
+        }
     }
     if (inst->opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
         //for (int32_t num_part = 0; num_part < 1; ++num_part) //ONE_LOAD
@@ -372,10 +416,12 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
             // Clona a uop
             opcode_package_t new_inst = (*inst);
             int32_t idx = (forward) ? num_part + 1 : num_part;
-            new_inst.read_address += tl_entry->stride*idx;
-            if (!this->same_block(new_inst.read_address, last_read)) {
+
+            new_inst.reads_addr[0] += tl_entry->stride*idx;
+            if (!this->same_block(new_inst.reads_addr[0], last_read)) {
+                int32_t until_part = this->next_block_part (num_part, new_inst.reads_addr[0], tl_entry->stride);
                 // Preenche com dados de parte vetorial
-                fill_vectorial_part(&new_inst, true, vr_id, num_part);
+                fill_vectorial_part(&new_inst, true, vr_id, num_part, until_part);
                 new_inst.is_pre_vectorization = forward;
 
                 // Insere no pipeline
@@ -384,7 +430,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
                 // Marca para vetor esperar ela
                 state_VR->associated_not_decoded += 1;
             }
-            last_read = new_inst.read_address;
+            last_read = new_inst.reads_addr[0];
         }
 
     } else {
@@ -392,7 +438,7 @@ DV::DV_ERROR vector_map_table_t::vectorize (opcode_package_t * inst, vector_map_
         opcode_package_t new_inst = (*inst);
 
         // Preenche com dados de parte vetorial
-        fill_vectorial_part(&new_inst, false, vr_id, 0);
+        fill_vectorial_part(&new_inst, false, vr_id, 0, VECTORIZATION_SIZE);
         new_inst.is_pre_vectorization = forward;
 
         // Insere no pipeline
@@ -415,10 +461,11 @@ void vector_map_table_t::list_contents() {
         printf("#########\n");
         for (uint32_t j=0; j < this->entries.get_associativity(); ++j) {
             if (this->entries[i][j].pc != 0x0) {
-                printf("%lu: Offset: %d -- Source_1: %lu -- Source_2: %lu --> VR: %d\n",
+                printf("%lu: Offset: %d -- Source_1: %lu -- Source_2: %lu (Valid: %s) --> VR: %d\n",
                         this->entries[i][j].pc, this->entries[i][j].offset,
                         this->entries[i][j].source_operand_1,
                         this->entries[i][j].source_operand_2,
+                        (this->entries[i][j].one_register) ? "false" : "true",
                         this->entries[i][j].correspondent_VR);
             }
         }

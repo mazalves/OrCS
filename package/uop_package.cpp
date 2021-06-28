@@ -18,6 +18,7 @@ void uop_package_t::package_clean()
 
     this->is_vima = false;
 
+    this->end_vectorial_part = -1;
     this->is_vectorial_part = -1;
     this->VR_id = -1;
     this->is_validation = false;
@@ -27,6 +28,9 @@ void uop_package_t::package_clean()
     this->is_BB = false;
     this->BB_addr = 0x0;
     this->number_changed = false;
+
+    this->last_trasition = 0;
+    this->dependencies_removed = false;
     
 
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
@@ -102,6 +106,7 @@ void uop_package_t::opcode_to_uop(
     this->memory_address = memory_address;
     this->memory_size = memory_size;
 
+    this->end_vectorial_part = opcode.end_vectorial_part;
     this->is_vectorial_part = opcode.is_vectorial_part;
     this->VR_id = opcode.VR_id;    
     this->is_validation = opcode.is_validation; 
@@ -112,6 +117,9 @@ void uop_package_t::opcode_to_uop(
     this->is_BB = opcode.is_BB;
     this->BB_addr = opcode.BB_addr;            
     this->number_changed = opcode.number_changed;
+
+    this->last_trasition = opcode.last_trasition;
+    this->dependencies_removed = false;
                     
 }
 

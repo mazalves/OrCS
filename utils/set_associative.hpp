@@ -44,6 +44,7 @@ class set_associative_t {
         this->num_sets = totalElements / associativity;
         this->associativity = associativity;
         this->mask_shift = mask_shift;
+        assert((this->num_sets & (this->num_sets - 1)) == 0); // Power of 2
         
         // Define mask
         uint32_t mask_bits = ceil(log2((double)this->num_sets));

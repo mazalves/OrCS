@@ -28,6 +28,7 @@ class uop_package_t{
 
     bool is_vima;
 
+    int32_t end_vectorial_part;
     int is_vectorial_part;          // Identifica se é parte de uma instrução vetorial maior
     int32_t VR_id;                  // Contém o VR de uma instrução vetorial
                                     // (se for uma instrução vetorial ou sua validação)
@@ -39,7 +40,8 @@ class uop_package_t{
     uint64_t BB_addr;               // Endereço do BB caso tenha havido alteração
     bool number_changed;            // Indica que já passou pela função de vetorização e já teve
                                     // seu uop_number alterado
-
+    uint64_t last_trasition;
+    bool dependencies_removed;
 
     uint32_t latency;
     uint32_t throughput;

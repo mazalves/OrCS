@@ -46,8 +46,6 @@
 #include "pinplay.H"
 PINPLAY_ENGINE pinplay_engine;
 // ============================================================================
-
-
 #include "intrinsics_extension.cpp"
 
 #define KNOB_LOG_NAME  "log"
@@ -335,7 +333,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                         IARG_THREAD_ID, IARG_END);
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-            if (INS_hasKnownMemorySize(ins)) {
+            
                 // pin::ins => static trace
                 opcode_package_t pck = x86_to_static(ins);
 
@@ -352,6 +350,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 // is_instrumenteds loads using a predicated call, i.e.
                 // the call happens if the load will be actually executed
                 //-------------------------------------------------------------
+            if (INS_hasKnownMemorySize(ins)) {
                 if (INS_IsMemoryRead(ins)) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory,
                                     IARG_BOOL, true,
@@ -379,25 +378,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                                     IARG_THREAD_ID,
                                     IARG_END);
                 }
-
-            } else {
-                std::vector<opcode_package_t> *op =
-                                            vgather_vscatter_to_static(ins);
-                std::vector<opcode_package_t>::iterator it;
-
-                it = op->begin();
-                while (it != op->end()) {
-                    //---------------------------------------------------------
-                    // Write into the static trace
-                    //---------------------------------------------------------
-                    char opcode_str[TRACE_LINE_SIZE];
-                    opcodes::opcode_to_trace_string(*it, opcode_str);
-                    write_static_char(opcode_str);
-
-                    ++it;
-                }
-                delete(op);
-
+            }  else {
                 //-------------------------------------------------------------
                 // Memory accesses list
                 //-------------------------------------------------------------
@@ -408,6 +389,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                                 IARG_THREAD_ID,
                                 IARG_END);
             }
+            
         }
 
         // HMC Traces

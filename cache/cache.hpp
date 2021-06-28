@@ -15,6 +15,7 @@ class cache_t {
         uint64_t cache_writeback;
         uint64_t change_line;
 
+
         void copyLevels(line_t *line, uint32_t idxa, uint32_t idxb, uint32_t processor_id);
         void copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id);
 
@@ -58,6 +59,7 @@ class cache_t {
         int32_t mshr_size;
         int32_t count;
         int32_t max_reached;
+        bool is_inst_cache;
 
         uint64_t* cache_hit_per_type;
         uint64_t* cache_miss_per_type;
@@ -77,6 +79,13 @@ class cache_t {
         uint32_t write(memory_package_t* request);
         void printTagIdx(uint64_t address);
         line_t *installLine(memory_package_t* request, uint32_t latency, uint64_t &idx, uint64_t &line); //install line of cache |mem_controller -> caches|
+
+        void print_cache() {
+            for (uint32_t i=0; i < n_sets; ++i) {
+                printf("SET %u\n", i);
+                sets[i].print_lines();
+            }
+        }
 
         // Getters and setters
         INSTANTIATE_GET_SET_ADD(uint64_t,cache_hit)

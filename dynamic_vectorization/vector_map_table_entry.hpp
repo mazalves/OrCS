@@ -8,6 +8,7 @@ class vector_map_table_entry_t {
         uint64_t source_operand_2;
         int64_t value;
         uint64_t last_use;
+        bool one_register;
 
         vector_map_table_entry_t () {
             this->correspondent_VR = 0;
@@ -18,6 +19,7 @@ class vector_map_table_entry_t {
             this->source_operand_2 = 0;
             this->value = 0;
             this->last_use = 0;
+            this->one_register = false;
 
         }
 
