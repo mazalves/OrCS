@@ -341,13 +341,17 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     opcode->num_reads = strtoul(sub_string, NULL, 10);
     assert(opcode->num_reads <= MAX_MEM_OPERATIONS);
     reads_count[opcode->num_reads]++;
- 
+    if(opcode->num_reads > 2) {
+        printf("Leu gather\n");
+    }
 
     // Número de escritas
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->num_writes = strtoul(sub_string, NULL, 10);
     assert(opcode->num_writes <= MAX_MEM_OPERATIONS);
-
+    if(opcode->num_writes > 1) {
+        printf("Leu scatter\n");
+    }
 
     /*
     opcode->is_read = (sub_string[0] == '1');

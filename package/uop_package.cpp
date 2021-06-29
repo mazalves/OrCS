@@ -37,8 +37,10 @@ void uop_package_t::package_clean()
     memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
     this->uop_operation = INSTRUCTION_OPERATION_NOP;
-    this->memory_address = 0;
-    this->memory_size = 0;
+    memset(this->memory_address, 0, sizeof(uint64_t) * MAX_MEM_OPERATIONS);
+    memset(this->memory_size, 0, sizeof(uint32_t) * MAX_MEM_OPERATIONS);
+    this->num_mem_operations = 0;
+
     //controle
     this->opcode_number = 0;
     this->uop_number = 0;
@@ -46,6 +48,7 @@ void uop_package_t::package_clean()
     this->readyAt = orcs_engine.get_global_cycle();
     this->status =PACKAGE_STATE_FREE;
 }
+
 bool uop_package_t::operator==(const uop_package_t &package) {
     /// TRACE Variables
     if (strcmp(this->opcode_assembly, package.opcode_assembly) != 0) return FAIL;
@@ -57,8 +60,9 @@ bool uop_package_t::operator==(const uop_package_t &package) {
     if ( memcmp(this->write_regs, package.write_regs, sizeof(int32_t)*MAX_REGISTERS) != 0) return FAIL;
 
     if (this->uop_operation != package.uop_operation) return FAIL;
-    if (this->memory_address != package.memory_address) return FAIL;
-    if (this->memory_size != package.memory_size) return FAIL;
+    if ( memcmp(this->memory_address, package.memory_address, sizeof(uint64_t)*MAX_MEM_OPERATIONS) != 0) return FAIL;
+    if ( memcmp(this->memory_size, package.memory_size, sizeof(uint32_t)*MAX_MEM_OPERATIONS) != 0) return FAIL;
+    if (this->num_mem_operations != package.num_mem_operations) return FAIL;
 
     
     if (this->opcode_number != package.opcode_number) return FAIL;
@@ -79,8 +83,7 @@ bool uop_package_t::operator==(const uop_package_t &package) {
 }
 void uop_package_t::opcode_to_uop(
         uint64_t uop_number, 
-        instruction_operation_t uop_operation, 
-        uint64_t memory_address, uint32_t memory_size, 
+        instruction_operation_t uop_operation,
         uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,
         opcode_package_t opcode)
 {
@@ -103,8 +106,9 @@ void uop_package_t::opcode_to_uop(
     memcpy(this->write_regs, opcode.write_regs, sizeof(int32_t) * MAX_REGISTERS);
 
     this->uop_operation = uop_operation;
-    this->memory_address = memory_address;
-    this->memory_size = memory_size;
+    //this->memory_address = memory_address;
+    //this->memory_size = memory_size;
+    this->num_mem_operations = 0;
 
     this->end_vectorial_part = opcode.end_vectorial_part;
     this->is_vectorial_part = opcode.is_vectorial_part;
@@ -149,9 +153,10 @@ std::string uop_package_t::content_to_string() {
     content_string = content_string + " " + utils_t::uint64_to_string(this->opcode_address);
     content_string = content_string + " " + get_enum_instruction_operation_char(this->uop_operation);
 
-    content_string = content_string + " Address $" + utils_t::big_uint64_to_string(this->memory_address);
-    content_string = content_string + " Size:" + utils_t::uint32_to_string(this->memory_size);
-
+    for (uint32_t i = 0; i < num_mem_operations; ++i){
+        content_string = content_string + " Address[" + utils_t::uint32_to_string(i); + "]: $" + utils_t::big_uint64_to_string(this->memory_address[i]);
+        content_string = content_string + " Size[" + utils_t::uint32_to_string(i); + "]:" + utils_t::uint32_to_string(this->memory_size[i]);
+    }
 
     content_string = content_string + " | RRegs[";
     for (uint32_t i = 0; i < MAX_REGISTERS; i++) {

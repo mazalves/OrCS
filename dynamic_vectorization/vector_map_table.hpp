@@ -70,6 +70,8 @@ inline int32_t vector_map_table_t::next_block_part(int32_t current_part,
 inline DV::DV_ERROR vector_map_table_t::new_memory_operation (memory_order_buffer_line_t *mem_access) {
     //... // Preciso definir o endereço do destino para verificar também
     (void) mem_access;
+    #if UNIMPLEMENTED_ALERTS != 0
     printf("ALERT: vector_map_table_t::new_memory_operation - Não implementado\n");
+    #endif
     return DV::SUCCESS;
 }

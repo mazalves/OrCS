@@ -36,7 +36,10 @@ reorder_buffer_line_t::~reorder_buffer_line_t() {
 void reorder_buffer_line_t::package_clean() {
     this->uop.package_clean(); 
     this->stage = PROCESSOR_STAGE_DECODE;
-    this->mob_ptr = NULL;
+    this->mob_base = NULL;
+    this->pos_mob = POSITION_FAIL;
+    this->mob_limit = 0;
+    this->waiting_mem_request = 0;
     this->wait_reg_deps_number = 0; 
     this->wake_up_elements_counter = 0;
     this->sent=false;
@@ -61,8 +64,8 @@ std::string reorder_buffer_line_t::content_to_string() {
     content_string = content_string + " | WakeUp:" + utils_t::uint32_to_string(this->wake_up_elements_counter);
     content_string = content_string + " | ReadyAt: " + utils_t::uint64_to_string(this->uop.readyAt);
     content_string = content_string + " | Sent: " + utils_t::bool_to_string(this->sent);
-    if(this->mob_ptr != NULL){
-        content_string = content_string + this->mob_ptr->content_to_string();
+    if(this->mob_base != NULL){
+        content_string = content_string + this->mob_base[pos_mob].content_to_string();
     }
     return content_string;
 }

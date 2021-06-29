@@ -28,7 +28,11 @@ class reorder_buffer_line_t {
         uint32_t wait_reg_deps_number;                  /// Must wait BEFORE execution
         reorder_buffer_line_t* *reg_deps_ptr_array;     /// Elements to wake-up AFTER execution
         uint32_t wake_up_elements_counter;              /// Counter of elements to wakeup
-        memory_order_buffer_line_t* mob_ptr;            /// mob pointer to memory request 
+        memory_order_buffer_line_t* mob_base;            /// mob pointer to memory request 
+        int32_t pos_mob;
+        uint32_t mob_limit;
+        uint32_t waiting_mem_request; // Requisições à memória que devem confirmar antes do commit
+        
         bool sent;                                      /// Control flag to remove robs entry
         bool committed;
         // ====================================================================

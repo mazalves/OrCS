@@ -10,16 +10,19 @@
 
 
 void transactions_controller_t::allocate() {
+    printf("ALLOCATE transactions controller\n");
     // Get configurations
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_dyn_vec = cfg_root["DYNAMIC_VECTORIZATION"];
-
+    printf("GET PARAMETERS transactions controller\n");
     // Set configurations
     this->num_entries = cfg_dyn_vec["MAX_TRANSACTIONS"];
+    printf("SET num_entries transactions controller\n");
     this->vectorizer_request_latency = cfg_dyn_vec["VECTORIZER_REQUEST_LATENCY"];
-
+    printf("SET vectorizer_request_latency transactions controller\n");
     // Allocate entries
     this->entries = new transactional_operation_t[this->num_entries]();
+    printf("END ALLOCATE transactions controller\n");
 
 }
 

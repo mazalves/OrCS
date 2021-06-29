@@ -273,28 +273,31 @@ class processor_t {
 		// ====================================================================
 		// MOB READ RELATED
 		int32_t search_position_mob_read();
-		void remove_front_mob_read();
+		int32_t search_n_positions_mob_read(uint32_t n, uint32_t *mob_size);
+		void remove_front_mob_read(uint32_t n);
 		void remove_back_mob_read();
 		// ====================================================================
 		// MOB WRITE RELATED
 		int32_t search_position_mob_write();
+		int32_t search_n_positions_mob_write(uint32_t n, uint32_t *mob_size);
 		void remove_front_mob_write();
 		void remove_back_mob_write();
 		// ====================================================================
 		// MOB HIVE RELATED
 		void print_mob_hive();
-		int32_t search_position_mob_hive();
+		int32_t search_position_mob_hive(uint32_t *mob_size);
 		void remove_front_mob_hive();
 		// ====================================================================
 		// MOB HIVE RELATED
 		void print_mob_vima();
-		int32_t search_position_mob_vima();
+		int32_t search_position_mob_vima(uint32_t *mob_size);
 		void remove_front_mob_vima();
 		// ====================================================================
 		// MOB VECTORIAL RELATED
 		void print_mob_vectorial();
 		int32_t search_position_mob_vectorial();
-		void remove_front_mob_vectorial();
+		int32_t search_n_positions_mob_vectorial(uint32_t n, uint32_t *mob_size);
+		void remove_front_mob_vectorial(uint32_t n);
 		// ====================================================================
 		// Stage Methods
 		// ====================================================================
