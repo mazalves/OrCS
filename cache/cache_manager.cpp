@@ -551,9 +551,11 @@ void cache_manager_t::clock() {
                 if (requests[i]->status == PACKAGE_STATE_WAIT){
                     if (requests[i]->sent_to_ram) this->install (requests[i]);
                     this->finishRequest (requests[i], cache_indexes);
+                    --i;
                 }
                 else if (!requests[i]->sent_to_ram) this->process (requests[i], cache_indexes);
             }
+
         }
         delete[] cache_indexes;
     }
@@ -590,11 +592,28 @@ cache_status_t cache_manager_t::cache_search (memory_package_t* request, cache_t
                 if (request->memory_operation == MEMORY_OPERATION_WRITE) this->data_cache[0][cache_indexes[0]].write(request);
             break;
             case MEMORY_OPERATION_INST:
-                if (request->next_level != 0 && cache->level == L1) {
-                    for (int32_t i = INSTRUCTION_LEVELS - 1; i >= 0; i--) {
+                //printf("Hit %lu on cache level %u\n", request->memory_address, cache->level);
+    
+                if (request->next_level != 0 && cache->level < INSTRUCTION_LEVELS/*cache->level == L1*/) {
+                    for (int32_t i = INSTRUCTION_LEVELS - 2; i >= 0; i--) {
+                        //printf("Installing on level %d\n", i);
                         this->instruction_cache[i+1][cache_indexes[i+1]].returnLine(request, &this->instruction_cache[i][cache_indexes[i]]);
                     }
-                }    
+                } else if (request->next_level != 0) {
+                    //printf("Encontrou em uma cache de dados\n");
+                    // Between data caches
+                    for (uint32_t i = request->next_level - 1; i >= INSTRUCTION_LEVELS; i--) {
+                        this->data_cache[i+1][cache_indexes[i+1]].returnLine(request, &this->data_cache[i][cache_indexes[i]]);
+                    }
+                    // From D to I caches
+                    this->data_cache[INSTRUCTION_LEVELS][cache_indexes[INSTRUCTION_LEVELS]].returnLine(request, &this->instruction_cache[INSTRUCTION_LEVELS - 1][cache_indexes[INSTRUCTION_LEVELS - 1]]);
+
+                    // Between I caches
+                    for (int32_t i = INSTRUCTION_LEVELS - 2; i >= 0; i--) {
+                        this->instruction_cache[i+1][cache_indexes[i+1]].returnLine(request, &this->instruction_cache[i][cache_indexes[i]]);
+                    }
+                }
+
             break;
             default:
                 ERROR_ASSERT_PRINTF (true, "WRONG MEMORY OPERATION TYPE")
@@ -603,6 +622,8 @@ cache_status_t cache_manager_t::cache_search (memory_package_t* request, cache_t
         request->updatePackageWait(ttc);
         request->next_level++;
         cache->cache_hit_per_type[request->memory_operation]++;
+
+
         return HIT;
     }
 
