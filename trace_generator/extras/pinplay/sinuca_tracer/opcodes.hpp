@@ -72,6 +72,10 @@ namespace opcodes {
         reg_str.str(std::string());
 
         //register_string[0] = '\0';
+        reg_str << " " << op.num_reads;
+        reg_str << " " << op.num_writes;
+
+        /*
         if (op.is_read == true){
             reg_str << " 1";
         }else {
@@ -86,7 +90,7 @@ namespace opcodes {
             reg_str << " 1";
         else
             reg_str << " 0";
-
+        */
         reg_str << " " << op.branch_type;
         //sprintf(register_string, "%s %" PRId32 "", register_string, op.branch_type);
         if (op.is_indirect == true)

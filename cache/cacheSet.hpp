@@ -16,6 +16,12 @@ class cacheSet_t {
         ~cacheSet_t() {
             delete[] lines;
         }
+
+        void print_lines() {
+            for (uint32_t i = 0; i < n_lines; ++i) {
+                lines[i].print_line();
+            }
+        }
 };
 
 #endif // CACHESET_H

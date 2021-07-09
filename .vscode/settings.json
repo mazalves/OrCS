@@ -47,6 +47,13 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "functional": "cpp",
+        "numeric": "cpp",
+        "iterator": "cpp",
+        "random": "cpp",
+        "*.h++": "cpp",
+        "*.ph": "cpp",
+        "*.tlh": "cpp"
     }
 }

@@ -41,6 +41,9 @@ class vima_controller_t {
         uint64_t request_count;
         uint64_t total_wait;
 
+        // Speculative writes
+        transactions_controller_t *transactions_controller;
+
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_ASSOCIATIVITY)

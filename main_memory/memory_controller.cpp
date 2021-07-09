@@ -51,6 +51,8 @@ memory_controller_t::memory_controller_t(){
 
     this->channels = NULL;
     this->i = 0;
+
+    this->transactions_controller = NULL;
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
@@ -76,8 +78,15 @@ void memory_controller_t::allocate(){
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
 
-    set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
-
+    if ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] < 0) {
+        set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
+    } else if ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] == 0) {
+        set_latency_burst (0);
+    } else {
+        set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO / 
+                                 ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] + 0.0)));
+    }
+    printf("MEMORY_CONTROLLER_T::set_latency_burst = %lu\n", this->latency_burst);
     this->total_latency = new uint64_t [MEMORY_OPERATION_LAST]();
     this->total_operations = new uint64_t [MEMORY_OPERATION_LAST]();
     this->min_wait_operations = new uint64_t [MEMORY_OPERATION_LAST]();
@@ -118,6 +127,9 @@ void memory_controller_t::allocate(){
     }
     
     this->set_masks();
+
+    this->transactions_controller = new transactions_controller_t;
+    this->transactions_controller->allocate();
 }
 // ============================================================================
 void memory_controller_t::statistics(){
@@ -171,7 +183,8 @@ void memory_controller_t::clock(){
     if (working.size() == 0) return;
 
     for (i = 0; i < working.size(); i++){
-        if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY){
+        if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY
+           && (working[i]->status != PACKAGE_STATE_WAIT_TM || working[i]->readyAt <= orcs_engine.get_global_cycle())){
             if (this->channels[get_channel (working[i]->memory_address)].addRequest (working[i])) {
                 working[i]->ram_cycle = orcs_engine.get_global_cycle();
                 working[i]->updatePackageDRAMFetch (0);
@@ -247,6 +260,10 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
         if (request->is_hive) this->add_requests_hive();
         if (request->is_vima) this->add_requests_vima();
         request->sent_to_ram = true;
+
+        // Check for operations from other cores
+        transactions_controller->new_memory_access(request);
+        
         this->working.push_back (request);
         this->working.shrink_to_fit();
         #if DEBUG

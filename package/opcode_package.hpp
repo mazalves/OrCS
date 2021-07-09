@@ -1,5 +1,6 @@
 #ifndef OPCODE_PACKAGE_H
 #define OPCODE_PACKAGE_H
+#include <vector>
 // ============================================================================
 // ============================================================================
 class opcode_package_t : public memory_request_client_t {
@@ -7,6 +8,8 @@ class opcode_package_t : public memory_request_client_t {
         /// TRACE Variables
         char opcode_assembly[TRACE_LINE_SIZE];
         instruction_operation_t opcode_operation;
+
+        uint32_t instruction_id;
         uint64_t opcode_address;
         uint32_t opcode_size;
 
@@ -16,7 +19,15 @@ class opcode_package_t : public memory_request_client_t {
         uint32_t base_reg;
         uint32_t index_reg;
 
-        bool is_read;
+
+        uint64_t reads_addr[MAX_MEM_OPERATIONS];
+        uint32_t reads_size[MAX_MEM_OPERATIONS];
+        uint32_t num_reads;
+        uint64_t writes_addr[MAX_MEM_OPERATIONS];
+        uint32_t writes_size[MAX_MEM_OPERATIONS];
+        uint32_t num_writes;
+
+       /* bool is_read;
         uint64_t read_address;
         uint32_t read_size;
 
@@ -26,7 +37,7 @@ class opcode_package_t : public memory_request_client_t {
 
         bool is_write;
         uint64_t write_address;
-        uint32_t write_size;
+        uint32_t write_size;*/
 
         branch_t branch_type;
         bool is_indirect;
@@ -41,6 +52,23 @@ class opcode_package_t : public memory_request_client_t {
 
         bool is_vima;
 
+        // Vectorization
+        int32_t end_vectorial_part;     // Identifica até onde load carregou
+        int is_vectorial_part;          // Identifica se é parte de uma instrução vetorial maior
+        int32_t VR_id;                  // Contém o VR de uma instrução vetorial
+                                        // (se for uma instrução vetorial ou sua validação)
+        bool is_validation;             // Indica se é apenas uma validação
+        int32_t will_validate_offset;
+        int32_t will_free;              // Registrador vetorial que será liberado quando ela comitar (F).
+        int32_t will_free_offset;       // Indica o offset que será liberado
+        bool is_BB;                     // Indica se é um backward branch
+        uint64_t BB_addr;               // Endereço do backward branch
+        bool number_changed;            // Indica que já passou pela função de vetorização e já teve
+                                    // seu uop_number alterado
+        bool is_pre_vectorization;
+
+        uint64_t last_trasition;
+
         // ====================================================================
         /// Status Control
         // ====================================================================
@@ -51,6 +79,8 @@ class opcode_package_t : public memory_request_client_t {
         
         opcode_package_t();
         ~opcode_package_t();
+
+
         #ifndef __PIN__
         void package_clean();
         std::string content_to_string();

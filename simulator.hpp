@@ -30,6 +30,7 @@
 #include <map>
 #include <cassert>
 #include <libconfig.h++>
+#include <unordered_map>
 
 // ============================================================================
 /// Classes
@@ -64,7 +65,9 @@ class disambiguation_hashed_t;
 class uop_package_t;
 class reorder_buffer_line_t;
 class memory_order_buffer_line_t;
+class functional_unit_t;
 class processor_t;
+class instruction_set_t;
 
 //  =========================================//
 // Cache Classes
@@ -110,6 +113,8 @@ class hive_register_t;
 //  =========================================//
 class vima_controller_t;
 class vima_vector_t;
+class transactional_operation_t;
+class transactions_controller_t;
 //  =========================================//
 // DATA Types
 // ====================================
@@ -118,6 +123,19 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 /// Global SINUCA_ENGINE instantiation
 // ============================================================================
 extern orcs_engine_t orcs_engine;
+
+// ==========================================//
+// Dynamic vectorization
+// ==========================================//
+class VR_state_bits_t;
+class table_of_loads_t;
+class vector_map_table_t;
+class Vectorizer_t;
+class VR_entry_state_t;
+class table_of_loads_entry_t;
+class vector_map_table_entry_t;
+class register_rename_table_t;
+
 
 // ==============================================================================
 /// Definitions
@@ -150,6 +168,7 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 #include "./utils/circular_buffer.hpp"
 #include "./utils/utils.hpp"
+#include "./utils/set_associative.hpp"
 //  =========================================//
 // Core Includes
 //  =========================================//
@@ -164,6 +183,7 @@ extern orcs_engine_t orcs_engine;
 #include "./processor/reorder_buffer_line.hpp"
 #include "./processor/memory_order_buffer_line.hpp"
 #include "./processor/processor.hpp"
+#include "./processor/instruction_set.hpp"
 //  =========================================//
 // Branch Predictor includes
 //  =========================================//
@@ -197,6 +217,21 @@ extern orcs_engine_t orcs_engine;
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
 #include "./vima/vima_vector.hpp"
+#include "./vima/transactions_controller.hpp"
+#include "./vima/transactional_operation.hpp"
 //  =========================================//
+
+//  =========================================//
+// Dynamic vectorization includes
+//  =========================================//
+#include "./dynamic_vectorization/dv_defines.hpp"
+#include "./dynamic_vectorization/VR_entry_state.hpp"
+#include "./dynamic_vectorization/VR_state_bits.hpp"
+#include "./dynamic_vectorization/table_of_loads_entry.hpp"
+#include "./dynamic_vectorization/table_of_loads.hpp"
+#include "./dynamic_vectorization/vector_map_table_entry.hpp"
+#include "./dynamic_vectorization/vector_map_table.hpp"
+#include "./dynamic_vectorization/Vectorizer.hpp"
+#include "./dynamic_vectorization/register_rename_table.hpp"
 
 #endif  // _ORCS_ORCS_HPP_
