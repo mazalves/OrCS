@@ -631,9 +631,7 @@ cache_status_t cache_manager_t::cache_search (memory_package_t* request, cache_t
             break;
             case MEMORY_OPERATION_INST:
                 //printf("Hit %lu on cache level %u\n", request->memory_address, cache->level);
-                /*if (request->memory_address == 140074898488992 && cache->level == L1) {
-                    exit(1);
-                }*/
+    
                 if (request->next_level != 0 && cache->level < INSTRUCTION_LEVELS/*cache->level == L1*/) {
                     for (int32_t i = INSTRUCTION_LEVELS - 2; i >= 0; i--) {
                         //printf("Installing on level %d\n", i);
