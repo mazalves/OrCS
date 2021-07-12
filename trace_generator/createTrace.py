@@ -4,6 +4,7 @@ import os
 
 if len(sys.argv) != 3:
     print("Correct use: python3 {} <Command to be traced> <Resultant traces name>".format(sys.argv[0]))
+    print("If any .so file was not found, please compile sinuca_tracer executing a make inside extras/pinplay/sinuca_tracer folder")
     exit(1)
 
 # Obtaining arguments
