@@ -13,8 +13,8 @@ destination = sys.argv[2]
 
 cmd = '../../../pin -t ../bin/intel64/sinuca_tracer.so -trace x86 -output "{}" -- "{}"'.format(destination, command)
 tracerFolder = "cd extras/pinplay/sinuca_tracer"
-commandReturnFile = "mv {}.tid*.out.gz ../../../../../".format(destination)
-writeInfo = "cd ../../../../../ && pwd"
+commandReturnFile = "mv {}.tid*.out.gz ../../../".format(destination)
+writeInfo = "cd ../../../ && pwd"
 complete = tracerFolder + " && {} && {} && {}".format(cmd, commandReturnFile, writeInfo)
 print("Executing: {}".format(complete))
 os.system(complete)
