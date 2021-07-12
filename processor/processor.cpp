@@ -668,7 +668,6 @@ void processor_t::allocate()
 
 	this->wait_time = 0;
 
-	printConfiguration();
 }
 // =====================================================================
 bool processor_t::isBusy()
