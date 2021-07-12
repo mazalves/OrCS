@@ -667,6 +667,8 @@ void processor_t::allocate()
 	}
 
 	this->wait_time = 0;
+
+	printConfiguration();
 }
 // =====================================================================
 bool processor_t::isBusy()
@@ -1215,8 +1217,9 @@ void processor_t::decode()
 		uint32_t num_uops = 0;
 
 		if ((get_HAS_HIVE() && instr->is_hive) ||
-			(get_HAS_VIMA() && instr->is_vima))
+			(get_HAS_VIMA() && instr->is_vima)) {
 			num_uops += 1;
+		}
 		else
 		{
 			if (instr->num_reads <= 2) num_uops += instr->num_reads;
@@ -1233,8 +1236,9 @@ void processor_t::decode()
 
 			if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
 				instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
-				instr_op != INSTRUCTION_OPERATION_MEM_STORE)
+				instr_op != INSTRUCTION_OPERATION_MEM_STORE) {
 				num_uops += instr_set->uops_per_instruction[instr->instruction_id].size();
+			}
 		}
 
 		// Make sure there's enough space in decodeBuffer
@@ -1933,7 +1937,6 @@ void processor_t::rename()
 		this->decodeBuffer.front()->package_clean();
 		this->decodeBuffer.pop_front();
 		this->renameCounter++;
-
 
 		// =======================
 		// Setting controls to ROB.
@@ -3427,18 +3430,18 @@ void processor_t::printCache(FILE *output)
 	fprintf(output, "===============Instruction $============\n");
 	for (uint32_t i = 0; i < INSTRUCTION_CACHES; i++)
 	{
-		fprintf(output, "%u SIZE -> %u\n", INST_LEVEL[i], INST_SIZE[i]);
-		fprintf(output, "%u ASSOCIATIVITY -> %u\n", INST_LEVEL[i], INST_ASSOCIATIVITY[i]);
-		fprintf(output, "%u LATENCY -> %u\n", INST_LEVEL[i], INST_LATENCY[i]);
-		fprintf(output, "%u SETS -> %u\n\n", INST_LEVEL[i], INST_SETS[i]);
+		fprintf(output, "%u SIZE -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->size);
+		fprintf(output, "%u ASSOCIATIVITY -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->associativity);
+		fprintf(output, "%u LATENCY -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->latency);
+		fprintf(output, "%u SETS -> %u\n\n",  i, orcs_engine.cacheManager->instruction_cache[i]->n_sets);
 	}
 	fprintf(output, "==================Data $================\n");
 	for (uint32_t i = 0; i < DATA_CACHES; i++)
 	{
-		fprintf(output, "%u SIZE -> %u\n", DATA_LEVEL[i], DATA_SIZE[i]);
-		fprintf(output, "%u ASSOCIATIVITY -> %u\n", DATA_LEVEL[i], DATA_ASSOCIATIVITY[i]);
-		fprintf(output, "%u LATENCY -> %u\n", DATA_LEVEL[i], DATA_LATENCY[i]);
-		fprintf(output, "%u SETS -> %u\n\n", DATA_LEVEL[i], DATA_SETS[i]);
+		fprintf(output, "%u SIZE -> %u\n",i, orcs_engine.cacheManager->data_cache[i]->size);
+		fprintf(output, "%u ASSOCIATIVITY -> %u\n", i, orcs_engine.cacheManager->data_cache[i]->associativity);
+		fprintf(output, "%u LATENCY -> %u\n", i, orcs_engine.cacheManager->data_cache[i]->latency);
+		fprintf(output, "%u SETS -> %u\n\n", i, orcs_engine.cacheManager->data_cache[i]->n_sets);
 	}
 }
 
@@ -3446,6 +3449,7 @@ void processor_t::printCache(FILE *output)
 void processor_t::printConfiguration()
 {
 	FILE *output = fopen(orcs_engine.output_file_name, "a+");
+	if (output == NULL) output = stdout;
 	if (output != NULL)
 	{
 		fprintf(output, "===============Stages Width============\n");
