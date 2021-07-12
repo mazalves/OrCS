@@ -27,18 +27,6 @@ class opcode_package_t : public memory_request_client_t {
         uint32_t writes_size[MAX_MEM_OPERATIONS];
         uint32_t num_writes;
 
-       /* bool is_read;
-        uint64_t read_address;
-        uint32_t read_size;
-
-        bool is_read2;
-        uint64_t read2_address;
-        uint32_t read2_size;
-
-        bool is_write;
-        uint64_t write_address;
-        uint32_t write_size;*/
-
         branch_t branch_type;
         bool is_indirect;
 
@@ -51,23 +39,7 @@ class opcode_package_t : public memory_request_client_t {
         int32_t hive_write = -1;
 
         bool is_vima;
-
-        // Vectorization
-        int32_t end_vectorial_part;     // Identifica até onde load carregou
-        int is_vectorial_part;          // Identifica se é parte de uma instrução vetorial maior
-        int32_t VR_id;                  // Contém o VR de uma instrução vetorial
-                                        // (se for uma instrução vetorial ou sua validação)
-        bool is_validation;             // Indica se é apenas uma validação
-        int32_t will_validate_offset;
-        int32_t will_free;              // Registrador vetorial que será liberado quando ela comitar (F).
-        int32_t will_free_offset;       // Indica o offset que será liberado
-        bool is_BB;                     // Indica se é um backward branch
-        uint64_t BB_addr;               // Endereço do backward branch
-        bool number_changed;            // Indica que já passou pela função de vetorização e já teve
-                                    // seu uop_number alterado
-        bool is_pre_vectorization;
-
-        uint64_t last_trasition;
+   
 
         // ====================================================================
         /// Status Control

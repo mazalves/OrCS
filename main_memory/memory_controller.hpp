@@ -69,8 +69,6 @@ class memory_controller_t{
 
         memory_channel_t *channels;
         uint64_t i;
-        
-        transactions_controller_t *transactions_controller;
 
     public:
         // ==========================================================================

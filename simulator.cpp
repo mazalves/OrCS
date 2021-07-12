@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
     orcs_engine.memory_controller->statistics();    
     if (orcs_engine.processor->get_HAS_HIVE()) orcs_engine.hive_controller->statistics();
     if (orcs_engine.processor->get_HAS_VIMA()) orcs_engine.vima_controller->statistics();
-    orcs_engine.processor->vectorizer->statistics();
+
     // *****************************************************************************************
 
     ORCS_PRINTF("Deleting Trace Reader\n")

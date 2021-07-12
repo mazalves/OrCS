@@ -32,9 +32,4 @@ void memory_request_client_t::updatePackageFree (uint32_t stallTime){
     this->status = PACKAGE_STATE_FREE;
     this->readyAt = orcs_engine.get_global_cycle()+stallTime;
 }
-
-void memory_request_client_t::updatePackageWaitTM (uint32_t stallTime){
-    this->status = PACKAGE_STATE_WAIT_TM;
-    this->readyAt = orcs_engine.get_global_cycle()+stallTime;
-}
 #endif

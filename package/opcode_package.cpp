@@ -35,21 +35,6 @@ opcode_package_t::opcode_package_t() {
     this->is_hive = false;
     this->is_vima = false;
 
-    this->end_vectorial_part = -1;
-    this->is_vectorial_part = -1;
-    this->VR_id = -1;
-    this->is_validation = false;
-    this->will_validate_offset = -1;
-    this->will_free = -1;
-    this->will_free_offset = -1;
-    this->is_BB = false;
-    this->BB_addr = 0x0;
-    this->number_changed = false;
-    this->is_pre_vectorization = false;
-
-    this->last_trasition = 0;
-
-
     this->status = PACKAGE_STATE_FREE;
     #ifndef __PIN__
     this->readyAt = orcs_engine.get_global_cycle();
@@ -92,20 +77,6 @@ void opcode_package_t::package_clean() {
     this->readyAt = 0;
     this->status = PACKAGE_STATE_FREE;
     this->opcode_number = 0;
-
-    this->end_vectorial_part = -1;
-    this->is_vectorial_part = -1;
-    this->VR_id = -1;
-    this->is_validation = false;
-    this->will_validate_offset = -1;
-    this->will_free = -1;
-    this->will_free_offset = -1;
-    this->is_BB = false;
-    this->BB_addr = 0x0;
-    this->number_changed = false;
-    this->is_pre_vectorization = false;
-
-    this->last_trasition = 0;
 
 }
 

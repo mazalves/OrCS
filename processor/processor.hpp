@@ -61,9 +61,8 @@ class processor_t {
 	uint64_t registerWrite;
 	uint64_t stall_full_MOB_Read;
 	uint64_t stall_full_MOB_Write;
-	uint64_t stall_full_MOB_VET;
 	uint64_t stall_full_ROB;
-	uint64_t stall_full_ROB_VET;
+
 	//=============
 	//Statistics Dispatch
 	//=============
@@ -162,7 +161,6 @@ class processor_t {
 	uint32_t MOB_WRITE;
 	uint32_t MOB_HIVE;
 	uint32_t MOB_VIMA;
-	uint32_t MOB_VECTORIAL;
 	// =====================
 
 	// =====================
@@ -249,7 +247,7 @@ class processor_t {
 		uint32_t memory_write_executed;
 		uint32_t memory_hive_executed;
 		uint32_t memory_vima_executed;
-		uint32_t memory_vectorial_executed;
+
 
 		
 		// ====================================================================
@@ -293,11 +291,6 @@ class processor_t {
 		int32_t search_position_mob_vima(uint32_t *mob_size);
 		void remove_front_mob_vima();
 		// ====================================================================
-		// MOB VECTORIAL RELATED
-		void print_mob_vectorial();
-		int32_t search_position_mob_vectorial();
-		int32_t search_n_positions_mob_vectorial(uint32_t n, uint32_t *mob_size);
-		void remove_front_mob_vectorial(uint32_t n);
 		// ====================================================================
 		// Stage Methods
 		// ====================================================================
@@ -315,13 +308,8 @@ class processor_t {
 		void clean_mob_hive();
 		uint32_t mob_vima();
 		void clean_mob_vima();
-		uint32_t mob_vet_and_read();
-		uint32_t mob_vectorial();
-		void clean_mob_vectorial();
-		void set_registers_bits(opcode_package_t *inst, int32_t num_uops);
 		
 		void commit();
-		void commit_vectorial();
 
 		// ====================================================================
 		// Bool Functions @return 
@@ -335,10 +323,6 @@ class processor_t {
 		circular_buffer_t<uop_package_t> decodeBuffer;
 		circular_buffer_t<opcode_package_t> fetchBuffer;
 
-		int32_t vec_on_fetchBuffer;
-		uint32_t vec_on_decodeBuffer;
-		int32_t esc_on_decodeBuffer;
-		
 		// =======================
 		// Register Alias Table - RAT
 		// =======================
@@ -347,9 +331,6 @@ class processor_t {
 		// Reorder Buffer
 		// =======================
 		ROB_t reorderBuffer;
-
-		// Vectorial Reorder Buffer
-		ROB_t vectorialReorderBuffer;
 
 		// ======================
 		// Memory Order Buffer
@@ -396,16 +377,6 @@ class processor_t {
 		// Pointers to retain oldests memory operations
 		memory_order_buffer_line_t *oldest_vima_to_send;
 		// ======================
-		//VECTORIAL
-		// ======================
-		memory_order_buffer_line_t *memory_order_buffer_vectorial;
-		uint32_t memory_order_buffer_vectorial_start;
-        uint32_t memory_order_buffer_vectorial_end;
-        uint32_t memory_order_buffer_vectorial_used;
-		memory_order_buffer_line_t* get_next_op_vectorial();
-		// Pointers to retain oldests memory operations
-		memory_order_buffer_line_t *oldest_vectorial_to_send;
-		// ======================
 		// Parallel requests
 		uint32_t counter_mshr_read;
 		uint32_t counter_mshr_write;
@@ -413,7 +384,6 @@ class processor_t {
 		// ======================
 		//Reservation Station 
 		container_ptr_reorder_buffer_line_t unified_reservation_station;
-		container_ptr_reorder_buffer_line_t unified_vectorial_reservation_station;
 		
 		// ====================== 
 		// ======================
@@ -428,12 +398,9 @@ class processor_t {
         functional_unit_t fu_mem_hive;
         functional_unit_t fu_mem_vima;
 
-		// Validations
-		functional_unit_t fu_validation;
 
 		//container to accelerate  execution
 		container_ptr_reorder_buffer_line_t unified_functional_units;
-		container_ptr_reorder_buffer_line_t unified_vectorial_functional_units;
 
 
 		uint64_t last_oldest_uop_dispatch;
@@ -442,15 +409,6 @@ class processor_t {
         uint64_t* min_wait_operations;
         uint64_t* max_wait_operations;
         uint64_t wait_time;
-
-
-		// ======================
-		// Dynamic vectorization
-		// ======================
-		Vectorizer_t *vectorizer;
-		circular_buffer_t <opcode_package_t> inst_list;
-		bool pipeline_squashed;
-		uint64_t store_squashing;
 
 
 		INSTANTIATE_GET_SET(uint64_t,processor_id)
@@ -465,10 +423,9 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_DecodeBuffer)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_MOB_Read)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_MOB_Write)
-		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_MOB_VET)
+
 
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_ROB)
-		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_ROB_VET)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_empty_RS)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_disambiguation_read_false_positive)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_disambiguation_write_false_positive)
@@ -561,7 +518,6 @@ class processor_t {
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_WRITE)
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_HIVE)
 		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_VIMA)
-		INSTANTIATE_GET_SET_ADD(uint32_t,MOB_VECTORIAL)
 
 		// =====================
 

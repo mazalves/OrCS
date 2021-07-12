@@ -50,7 +50,6 @@ class memory_package_t {
         void updatePackageTransmit(uint32_t stallTime);
         void updatePackageDRAMFetch(uint32_t stallTime);
         void updatePackageDRAMReady(uint32_t stallTime);
-        void updatePackageWaitTM(uint32_t stallTime);
         void updateClients();
         void printPackage();
 };

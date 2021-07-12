@@ -17,20 +17,6 @@ void uop_package_t::package_clean()
     this->hive_write = -1;
 
     this->is_vima = false;
-
-    this->end_vectorial_part = -1;
-    this->is_vectorial_part = -1;
-    this->VR_id = -1;
-    this->is_validation = false;
-    this->will_validate_offset = -1;
-    this->will_free = -1;
-    this->will_free_offset = -1;
-    this->is_BB = false;
-    this->BB_addr = 0x0;
-    this->number_changed = false;
-
-    this->last_trasition = 0;
-    this->dependencies_removed = false;
     
 
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
@@ -69,15 +55,7 @@ bool uop_package_t::operator==(const uop_package_t &package) {
     if (this->uop_number != package.uop_number) return FAIL;
     if (this->readyAt != package.readyAt) return FAIL;
     if (this->status != package.status) return FAIL;
-
-    if (this->is_vectorial_part != package.is_vectorial_part) return FAIL;
-    if (this->VR_id != package.VR_id) return FAIL;
-    if (this->is_validation != package.is_validation) return FAIL;
-    if (this->will_free != package.will_free) return FAIL;
-    if (this->will_free_offset != package.will_free_offset) return FAIL;
-    if (this->is_BB != package.is_BB) return FAIL;
-    if (this->number_changed != package.number_changed) return FAIL;
-    
+   
 
     return OK;
 }
@@ -109,21 +87,6 @@ void uop_package_t::opcode_to_uop(
     //this->memory_address = memory_address;
     //this->memory_size = memory_size;
     this->num_mem_operations = 0;
-
-    this->end_vectorial_part = opcode.end_vectorial_part;
-    this->is_vectorial_part = opcode.is_vectorial_part;
-    this->VR_id = opcode.VR_id;    
-    this->is_validation = opcode.is_validation; 
-    this->will_validate_offset = opcode.will_validate_offset;       
-    this->will_free = opcode.will_free;          
-    this->will_free_offset = opcode.will_free_offset; 
-
-    this->is_BB = opcode.is_BB;
-    this->BB_addr = opcode.BB_addr;            
-    this->number_changed = opcode.number_changed;
-
-    this->last_trasition = opcode.last_trasition;
-    this->dependencies_removed = false;
                     
 }
 

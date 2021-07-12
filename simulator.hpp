@@ -113,8 +113,6 @@ class hive_register_t;
 //  =========================================//
 class vima_controller_t;
 class vima_vector_t;
-class transactional_operation_t;
-class transactions_controller_t;
 //  =========================================//
 // DATA Types
 // ====================================
@@ -124,17 +122,6 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 // ============================================================================
 extern orcs_engine_t orcs_engine;
 
-// ==========================================//
-// Dynamic vectorization
-// ==========================================//
-class VR_state_bits_t;
-class table_of_loads_t;
-class vector_map_table_t;
-class Vectorizer_t;
-class VR_entry_state_t;
-class table_of_loads_entry_t;
-class vector_map_table_entry_t;
-class register_rename_table_t;
 
 
 // ==============================================================================
@@ -217,21 +204,6 @@ class register_rename_table_t;
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
 #include "./vima/vima_vector.hpp"
-#include "./vima/transactions_controller.hpp"
-#include "./vima/transactional_operation.hpp"
 //  =========================================//
-
-//  =========================================//
-// Dynamic vectorization includes
-//  =========================================//
-#include "./dynamic_vectorization/dv_defines.hpp"
-#include "./dynamic_vectorization/VR_entry_state.hpp"
-#include "./dynamic_vectorization/VR_state_bits.hpp"
-#include "./dynamic_vectorization/table_of_loads_entry.hpp"
-#include "./dynamic_vectorization/table_of_loads.hpp"
-#include "./dynamic_vectorization/vector_map_table_entry.hpp"
-#include "./dynamic_vectorization/vector_map_table.hpp"
-#include "./dynamic_vectorization/Vectorizer.hpp"
-#include "./dynamic_vectorization/register_rename_table.hpp"
 
 #endif  // _ORCS_ORCS_HPP_

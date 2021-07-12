@@ -155,18 +155,6 @@ void memory_package_t::updatePackageDRAMReady (uint32_t stallTime){
     #endif
 }
 
-void memory_package_t::updatePackageWaitTM (uint32_t stallTime){
-    #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
-    #endif
-    this->status = PACKAGE_STATE_WAIT_TM;
-    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
-    this->latency += stallTime;
-    #if MEMORY_DEBUG
-        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
-    #endif
-}
-
 void memory_package_t::printPackage(){
     ORCS_PRINTF ("%lu Address: %lu | Operation: %s | Status: %s | Uop: %lu | ReadyAt: %lu\n", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status), uop_number, readyAt)
 }
