@@ -175,7 +175,7 @@ processor_t::processor_t()
 	this->DISPATCH_DEBUG = 0;
 	this->EXECUTE_DEBUG = 0;
 	this->HIVE_DEBUG = 0;
-	this->VIMA_DEBUGG = 0;
+	this->VIMA_DEBUG = 0;
 	this->COMMIT_DEBUG = 0;*/
 
 	this->WAIT_CYCLE = 0;
@@ -723,27 +723,6 @@ void processor_t::removeFrontROB(ROB_t *rob)
 // get position on MOB read.
 // MOB read is a circular buffer
 // ============================================================================
-int32_t processor_t::search_position_mob_read()
-{
-	int32_t position = POSITION_FAIL;
-	/// There is free space.
-	if (this->memory_order_buffer_read_used < MOB_READ)
-	{
-		position = this->memory_order_buffer_read_end;
-		this->memory_order_buffer_read_used++;
-		this->memory_order_buffer_read_end++;
-		if (this->memory_order_buffer_read_end >= MOB_READ)
-		{
-			this->memory_order_buffer_read_end = 0;
-		}
-	}
-	return position;
-}
-
-// ============================================================================
-// get position on MOB read.
-// MOB read is a circular buffer
-// ============================================================================
 int32_t processor_t::search_n_positions_mob_read(uint32_t n, uint32_t *mob_size)
 {
 	int32_t position = POSITION_FAIL;
@@ -907,27 +886,6 @@ void processor_t::remove_front_mob_vima()
 }
 
 
-
-// ============================================================================
-// get position on MOB write.
-// MOB read is a circular buffer
-// ============================================================================
-int32_t processor_t::search_position_mob_write()
-{
-	int32_t position = POSITION_FAIL;
-	/// There is free space.
-	if (this->memory_order_buffer_write_used < MOB_WRITE)
-	{
-		position = this->memory_order_buffer_write_end;
-		this->memory_order_buffer_write_used++;
-		this->memory_order_buffer_write_end++;
-		if (this->memory_order_buffer_write_end >= MOB_WRITE)
-		{
-			this->memory_order_buffer_write_end = 0;
-		}
-	}
-	return position;
-}
 
 int32_t processor_t::search_n_positions_mob_write(uint32_t n, uint32_t *mob_size)
 {
@@ -1372,7 +1330,9 @@ void processor_t::decode()
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA)
+				instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				instr_op == INSTRUCTION_OPERATION_VIMA_GATHER ||
+				instr_op == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
 				new_uop.package_clean();
 				new_uop.opcode_to_uop(this->uopCounter++,
@@ -1401,7 +1361,7 @@ void processor_t::decode()
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 				ORCS_PRINTF("%lu Processor decode(): VIMA instruction %lu decoded!\n",
 							orcs_engine.get_global_cycle(), this->fetchBuffer.front()->opcode_number)
 #endif
@@ -1891,13 +1851,15 @@ void processor_t::rename()
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)
+				uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER  ||
+				uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
 				if (this->memory_order_buffer_vima_used >= MOB_VIMA || reorderBuffer.robUsed >= ROB_SIZE)
 					break;
 				else
 				{
-					#if VIMA_DEBUGG
+					#if VIMA_DEBUG
 					ORCS_PRINTF("%lu Processor rename(): memory_order_buffer_vima used = %u.\n",
 								orcs_engine.get_global_cycle(),
 								this->memory_order_buffer_vima_used);
@@ -2084,11 +2046,13 @@ void processor_t::rename()
 				 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER))
 		{
 			pos_mob = rob_line->pos_mob;
 			rob_line->mob_base[pos_mob].is_hive = false;
@@ -2124,6 +2088,12 @@ void processor_t::rename()
 				break;
 			case INSTRUCTION_OPERATION_VIMA_FP_MLA:
 				rob_line->mob_base[pos_mob].memory_operation = MEMORY_OPERATION_VIMA_FP_MLA;
+				break;
+			case INSTRUCTION_OPERATION_VIMA_GATHER:
+				rob_line->mob_base[pos_mob].memory_operation = MEMORY_OPERATION_VIMA_GATHER;
+				break;
+			case INSTRUCTION_OPERATION_VIMA_SCATTER:
+				rob_line->mob_base[pos_mob].memory_operation = MEMORY_OPERATION_VIMA_SCATTER;
 				break;
 			default:
 				break;
@@ -2175,16 +2145,18 @@ void processor_t::rename()
 				 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
 				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA))
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
+				  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER))
 		{
 			rob_line->mob_base[rob_line->pos_mob].rob_ptr = rob_line;
 			//mob_line->rob_ptr = rob_line;
 
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 			ORCS_PRINTF("%lu Processor rename(): VIMA instruction %lu uop %lu renamed!\n",
 						orcs_engine.get_global_cycle(),
 						rob_line->uop.opcode_number,
@@ -2262,11 +2234,13 @@ void processor_t::dispatch()
 			if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA)
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
 				rob_line->wait_reg_deps_number = 0;
 			}
@@ -2378,7 +2352,7 @@ void processor_t::clean_mob_vima()
 			this->memory_order_buffer_vima[pos].readyAt <= orcs_engine.get_global_cycle() &&
 			this->memory_order_buffer_vima[pos].processed == false)
 		{
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 			ORCS_PRINTF("%lu Processor clean_mob_vima(): memory_vima_executed %u, processor %lu ", orcs_engine.get_global_cycle(), this->memory_vima_executed, this->processor_id)
 #endif
 			this->memory_order_buffer_vima[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
@@ -2390,7 +2364,7 @@ void processor_t::clean_mob_vima()
 			{
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vima[pos]);
 			}
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 			ORCS_PRINTF("VIMA instruction %lu %s, %u!\n", this->memory_order_buffer_vima[pos].uop_number, get_enum_processor_stage_char(this->memory_order_buffer_vima[pos].rob_ptr->stage), this->memory_order_buffer_vima[pos].readyAt)
 #endif
 		}
@@ -2573,6 +2547,8 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_VIMA_FP_DIV:
 			case INSTRUCTION_OPERATION_VIMA_INT_MLA:
 			case INSTRUCTION_OPERATION_VIMA_FP_MLA:
+			case INSTRUCTION_OPERATION_VIMA_GATHER:
+			case INSTRUCTION_OPERATION_VIMA_SCATTER:
 			{
 				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Read with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
 				this->memory_vima_executed++;
@@ -2584,7 +2560,7 @@ void processor_t::execute()
 				this->unified_functional_units.shrink_to_fit();
 				i--;
 
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 				ORCS_PRINTF("%lu Processor execute(): VIMA instruction %lu executed!\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number)
 #endif
 			}
@@ -2630,6 +2606,7 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_BARRIER:
 			case INSTRUCTION_OPERATION_HMC_ROA:
 			case INSTRUCTION_OPERATION_HMC_ROWA:
+			case INSTRUCTION_OPERATION_ZERO:
 			case INSTRUCTION_OPERATION_LAST:
 				ERROR_PRINTF("Invalid BARRIER | HMC ROA | HMC ROWA | ÇAST.\n");
 				break;
@@ -2971,6 +2948,7 @@ uint32_t processor_t::mob_vima()
 	}
 	return OK;
 }
+
 // ============================================================================
 memory_order_buffer_line_t *processor_t::get_next_op_store()
 {
@@ -3164,8 +3142,10 @@ void processor_t::commit()
 			case INSTRUCTION_OPERATION_VIMA_FP_DIV:
 			case INSTRUCTION_OPERATION_VIMA_INT_MLA:
 			case INSTRUCTION_OPERATION_VIMA_FP_MLA:
+			case INSTRUCTION_OPERATION_VIMA_GATHER:
+			case INSTRUCTION_OPERATION_VIMA_SCATTER:
 				this->add_stat_inst_vima_completed();
-#if VIMA_DEBUGG
+#if VIMA_DEBUG
 				ORCS_PRINTF("%lu Processor commit(): instruction VIMA %lu, %s committed, readyAt %lu.\n",
 							orcs_engine.get_global_cycle(),
 							rob_line->uop.uop_number,
@@ -3225,6 +3205,7 @@ void processor_t::commit()
 			case INSTRUCTION_OPERATION_BARRIER:
 			case INSTRUCTION_OPERATION_HMC_ROWA:
 			case INSTRUCTION_OPERATION_HMC_ROA:
+			case INSTRUCTION_OPERATION_ZERO:
 			case INSTRUCTION_OPERATION_LAST:
 				ERROR_PRINTF("Invalid instruction BARRIER | HMC ROA | HMC ROWA | LAST.\n");
 				break;
@@ -3346,6 +3327,23 @@ void processor_t::solve_registers_dependency(reorder_buffer_line_t *rob_line)
 		}
 	}
 }
+void processor_t::reset_statistics(){
+	this->fetchCounter = 0;
+	this->decodeCounter = 0;
+	this->renameCounter = 0;
+	this->commit_uop_counter = 0;
+
+	this->mem_req_wait_cycles = 0;
+	this->core_ram_request_wait_cycles = 0;
+	this->set_core_ram_requests (0);
+	this->set_stat_inst_load_completed (0);
+	this->set_stat_inst_store_completed (0);
+	this->set_stat_inst_hive_completed (0);
+	this->set_stat_inst_vima_completed (0);
+	for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++) this->total_operations[i] = 0;
+	this->disambiguator->reset_statistics();
+}
+// ============================================================================
 // ============================================================================
 void processor_t::statistics()
 {

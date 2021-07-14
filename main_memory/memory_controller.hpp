@@ -68,6 +68,7 @@ class memory_controller_t{
         uint32_t TIMING_WTR;
 
         memory_channel_t *channels;
+
         uint64_t i;
 
     public:
@@ -101,6 +102,7 @@ class memory_controller_t{
         ~memory_controller_t();
         void clock();
         void statistics();
+        void reset_statistics();
         void set_masks();
         uint64_t requestDRAM (memory_package_t* request);
         //statistiscs methods

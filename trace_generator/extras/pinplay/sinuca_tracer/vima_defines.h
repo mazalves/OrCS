@@ -34,15 +34,17 @@
 #include<vector>
 #include<string>
 
-#define VIMA_INS_COUNT 112
-#define VIMA_INT_ALU_COUNT 56
-#define VIMA_FP_ALU_COUNT 24
+#define VIMA_INS_COUNT 172
+#define VIMA_INT_ALU_COUNT 76
+#define VIMA_FP_ALU_COUNT 40
 #define VIMA_INT_MUL_COUNT 8
 #define VIMA_FP_MUL_COUNT 4
-#define VIMA_INT_DIV_COUNT 8
+#define VIMA_INT_DIV_COUNT 12
 #define VIMA_FP_DIV_COUNT 4
 #define VIMA_INT_MLA_COUNT 4
 #define VIMA_FP_MLA_COUNT 4
+#define VIMA_GATHER_COUNT 8
+#define VIMA_SCATTER_COUNT 12
 
 const char *vima_int_alu_init[] = { "_vim64_iadds",     "_vim2K_iadds",
                                     "_vim64_iaddu",     "_vim2K_iaddu",
@@ -71,7 +73,17 @@ const char *vima_int_alu_init[] = { "_vim64_iadds",     "_vim2K_iadds",
                                     "_vim64_fmovs",     "_vim2K_fmovs",
                                     "_vim32_dabss",     "_vim1K_dabss",
                                     "_vim32_dcpys",     "_vim1K_dcpys",
-                                    "_vim32_dmovs",     "_vim1K_dmovs"
+                                    "_vim32_dmovs",     "_vim1K_dmovs",
+                                    "_vim64_ilmku",     "_vim2K_ilmku",
+                                    "_vim64_ilmks",     "_vim2K_ilmks",
+                                    "_vim64_ismku",     "_vim2K_ismku",
+                                    "_vim64_ismks",     "_vim2K_ismks",
+                                    "_vim64_irmku",     "_vim2K_irmku",
+                                    "_vim64_irmks",     "_vim2K_irmks",
+                                    "_vim64_ipmtu",     "_vim2K_ipmtu",
+                                    "_vim64_ipmts",     "_vim2K_ipmts",
+                                    "_vim64_idptu",     "_vim2K_idptu",
+                                    "_vim64_idpts",     "_vim2K_idpts"
                                     };
 static const std::vector<string> vima_int_alu_names(vima_int_alu_init,
                                     vima_int_alu_init + VIMA_INT_ALU_COUNT);
@@ -88,7 +100,15 @@ const char *vima_fp_alu_init[] = {  "_vim64_fadds",     "_vim2K_fadds",
                                     "_vim32_dmaxs",     "_vim1K_dmaxs",
                                     "_vim32_dmins",     "_vim1K_dmins",
                                     "_vim32_dslts",     "_vim1K_dslts",
-                                    "_vim32_dcmqs",     "_vim1K_dcmqs"
+                                    "_vim32_dcmqs",     "_vim1K_dcmqs",
+                                    "_vim64_flmks",     "_vim2K_flmks",
+                                    "_vim32_dlmks",     "_vim1K_dlmks",
+                                    "_vim64_fsmks",     "_vim2K_fsmks",
+                                    "_vim32_dsmks",     "_vim1K_dsmks",
+                                    "_vim64_frmks",     "_vim2K_frmks",
+                                    "_vim32_drmks",     "_vim1K_drmks",
+                                    "_vim64_fpmts",     "_vim2K_fpmts",
+                                    "_vim32_dpmts",     "_vim1K_dpmts"
                                     };
 static const std::vector<string> vima_fp_alu_names(vima_fp_alu_init,
                                     vima_fp_alu_init + VIMA_FP_ALU_COUNT);
@@ -110,12 +130,14 @@ static const std::vector<string> vima_fp_mul_names(vima_fp_mul_init,
 const char *vima_int_div_init[] = { "_vim64_idivs",     "_vim2K_idivs",
                                     "_vim64_idivu",     "_vim2K_idivu",
                                     "_vim32_idivs",     "_vim1K_idivs",
-                                    "_vim32_idivu",     "_vim1K_idivu"
+                                    "_vim32_idivu",     "_vim1K_idivu",
+                                    "_vim64_imodu",     "_vim2K_imodu",
+                                    "_vim64_imods",     "_vim2K_imods"
                                     };
 static const std::vector<string> vima_int_div_names(vima_int_div_init,
                                     vima_int_div_init + VIMA_INT_DIV_COUNT);
 
-const char *vima_fp_div_init[] = { "_vim64_fdivs",     "_vim2K_fdivs",
+const char *vima_fp_div_init[] = {  "_vim64_fdivs",     "_vim2K_fdivs",
                                     "_vim32_ddivs",     "_vim1K_ddivs"
                                     };
 static const std::vector<string> vima_fp_div_names(vima_fp_div_init,
@@ -132,6 +154,24 @@ const char *vima_fp_mla_init[] = {  "_vim64_fcums",     "_vim2K_fcums",
                                     };
 static const std::vector<string> vima_fp_mla_names(vima_fp_mla_init,
                                     vima_fp_mla_init + VIMA_FP_MLA_COUNT);
+
+const char *vima_gather_init[] = {  "_vim64_igtru",     "_vim2K_igtru",
+                                    "_vim64_igtrs",     "_vim2K_igtrs",
+                                    "_vim64_fgtrs",     "_vim2K_fgtrs",
+                                    "_vim32_dgtrs",     "_vim1K_dgtrs"
+                                    };
+static const std::vector<string> vima_gather_names(vima_gather_init,
+                                    vima_gather_init + VIMA_GATHER_COUNT);
+
+const char *vima_scatter_init[] = {  "_vim64_isctu",    "_vim2K_isctu",
+                                    "_vim64_iscts",     "_vim2K_iscts",
+                                    "_vim64_fscts",     "_vim2K_fscts",
+                                    "_vim32_dscts",     "_vim1K_dscts",
+                                    "_vim64_iscou",     "_vim2K_iscou",
+                                    "_vim64_iscos",     "_vim2K_iscos"
+                                    };
+static const std::vector<string> vima_scatter_names(vima_scatter_init,
+                                    vima_scatter_init + VIMA_SCATTER_COUNT);
 
 
 const char *vima_init[] = { "_vim64_iadds",     "_vim2K_iadds",
@@ -189,7 +229,37 @@ const char *vima_init[] = { "_vim64_iadds",     "_vim2K_iadds",
                             "_vim32_ddivs",     "_vim1K_ddivs",
                             "_vim32_dmuls",     "_vim1K_dmuls",
                             "_vim32_dcums",     "_vim1K_dcums",
-                            "_vim32_dmovs",     "_vim1K_dmovs"
+                            "_vim32_dmovs",     "_vim1K_dmovs",
+                            "_vim64_ilmku",     "_vim2K_ilmku",
+                            "_vim64_ilmks",     "_vim2K_ilmks",
+                            "_vim64_flmks",     "_vim2K_flmks",
+                            "_vim32_dlmks",     "_vim1K_dlmks",
+                            "_vim64_ismku",     "_vim2K_ismku",
+                            "_vim64_ismks",     "_vim2K_ismks",
+                            "_vim64_fsmks",     "_vim2K_fsmks",
+                            "_vim32_dsmks",     "_vim1K_dsmks",
+                            "_vim64_irmku",     "_vim2K_irmku",
+                            "_vim64_irmks",     "_vim2K_irmks",
+                            "_vim64_frmks",     "_vim2K_frmks",
+                            "_vim32_drmks",     "_vim1K_drmks",
+                            "_vim64_ipmtu",     "_vim2K_ipmtu",
+                            "_vim64_ipmts",     "_vim2K_ipmts",
+                            "_vim64_fpmts",     "_vim2K_fpmts",
+                            "_vim32_dpmts",     "_vim1K_dpmts",
+                            "_vim64_imodu",     "_vim2K_imodu",
+                            "_vim64_imods",     "_vim2K_imods",
+                            "_vim64_igtru",     "_vim2K_igtru",
+                            "_vim64_igtrs",     "_vim2K_igtrs",
+                            "_vim64_fgtrs",     "_vim2K_fgtrs",
+                            "_vim32_dgtrs",     "_vim1K_dgtrs",
+                            "_vim64_isctu",     "_vim2K_isctu",
+                            "_vim64_iscts",     "_vim2K_iscts",
+                            "_vim64_fscts",     "_vim2K_fscts",
+                            "_vim32_dscts",     "_vim1K_dscts",
+                            "_vim64_idptu",     "_vim2K_idptu",
+                            "_vim64_idpts",     "_vim2K_idpts",
+                            "_vim64_iscou",     "_vim2K_iscou",
+                            "_vim64_iscos",     "_vim2K_iscos"
                             };
 static const std::vector<string> vima_inst_names(vima_init,
                                     vima_init + VIMA_INS_COUNT);
@@ -305,7 +375,67 @@ const char *vima_mnem_init[] = { "VIMA_IADDS_64VECTOR_32OPER",
                                 "VIMA_DMADS_32VECTOR_64OPER",
                                 "VIMA_DMADS_1KVECTOR_32OPER",
                                 "VIMA_DMOVS_32VECTOR_64OPER",
-                                "VIMA_DMOVS_1KVECTOR_32OPER"
+                                "VIMA_DMOVS_1KVECTOR_32OPER",
+                                "VIMA_ILMKU_64VECTOR_32OPER",
+                                "VIMA_ILMKU_2KVECTOR_32OPER",
+                                "VIMA_ILMKS_64VECTOR_32OPER",
+                                "VIMA_ILMKS_2KVECTOR_32OPER",
+                                "VIMA_FLMKS_64VECTOR_32OPER",
+                                "VIMA_FLMKS_2KVECTOR_32OPER",
+                                "VIMA_DLMKS_32VECTOR_32OPER",
+                                "VIMA_DLMKS_1KVECTOR_32OPER",
+                                "VIMA_ISMKU_64VECTOR_32OPER",
+                                "VIMA_ISMKU_2KVECTOR_32OPER",
+                                "VIMA_ISMKS_64VECTOR_32OPER",
+                                "VIMA_ISMKS_2KVECTOR_32OPER",
+                                "VIMA_FSMKS_64VECTOR_32OPER",
+                                "VIMA_FSMKS_2KVECTOR_32OPER",
+                                "VIMA_DSMKS_32VECTOR_32OPER",
+                                "VIMA_DSMKS_1KVECTOR_32OPER",
+                                "VIMA_IRMKU_64VECTOR_32OPER",
+                                "VIMA_IRMKU_2KVECTOR_32OPER",
+                                "VIMA_IRMKS_64VECTOR_32OPER",
+                                "VIMA_IRMKS_2KVECTOR_32OPER",
+                                "VIMA_FRMKS_64VECTOR_32OPER",
+                                "VIMA_FRMKS_2KVECTOR_32OPER",
+                                "VIMA_DRMKS_32VECTOR_32OPER",
+                                "VIMA_DRMKS_1KVECTOR_32OPER",
+                                "VIMA_IPMTU_64VECTOR_32OPER",
+                                "VIMA_IPMTU_2KVECTOR_32OPER",
+                                "VIMA_IPMTS_64VECTOR_32OPER",
+                                "VIMA_IPMTS_2KVECTOR_32OPER",
+                                "VIMA_FPMTS_64VECTOR_32OPER",
+                                "VIMA_FPMTS_2KVECTOR_32OPER",
+                                "VIMA_DPMTS_32VECTOR_32OPER",
+                                "VIMA_DPMTS_1KVECTOR_32OPER",
+                                "VIMA_IMODU_64VECTOR_32OPER",
+                                "VIMA_IMODU_2KVECTOR_32OPER",
+                                "VIMA_IMODS_64VECTOR_32OPER",
+                                "VIMA_IMODS_2KVECTOR_32OPER",
+                                "VIMA_IGTRU_64VECTOR_32OPER",
+                                "VIMA_IGTRU_2KVECTOR_32OPER",
+                                "VIMA_IGTRS_64VECTOR_32OPER",
+                                "VIMA_IGTRS_2KVECTOR_32OPER",
+                                "VIMA_FGTRS_64VECTOR_32OPER",
+                                "VIMA_FGTRS_2KVECTOR_32OPER",
+                                "VIMA_DGTRS_32VECTOR_32OPER",
+                                "VIMA_DGTRS_1KVECTOR_32OPER",
+                                "VIMA_ISCTU_64VECTOR_32OPER",
+                                "VIMA_ISCTU_2KVECTOR_32OPER",
+                                "VIMA_ISCTS_64VECTOR_32OPER",
+                                "VIMA_ISCTS_2KVECTOR_32OPER",
+                                "VIMA_FSCTS_64VECTOR_32OPER",
+                                "VIMA_FSCTS_2KVECTOR_32OPER",
+                                "VIMA_DSCTS_32VECTOR_32OPER",
+                                "VIMA_DSCTS_1KVECTOR_32OPER",
+                                "VIMA_IDPTU_64VECTOR_32OPER",
+                                "VIMA_IDPTU_2KVECTOR_32OPER",
+                                "VIMA_IDPTS_64VECTOR_32OPER",
+                                "VIMA_IDPTS_2KVECTOR_32OPER",
+                                "VIMA_ISCOU_64VECTOR_32OPER",
+                                "VIMA_ISCOU_2KVECTOR_32OPER",
+                                "VIMA_ISCOS_64VECTOR_32OPER",
+                                "VIMA_ISCOS_2KVECTOR_32OPER"
                                 };
 
 static const std::vector<string> vima_mnem_names(vima_mnem_init,
@@ -422,7 +552,67 @@ const char *vima_x86mnem_init[] = { "x86_IADDS_64VECTOR_32OPER",
                                     "x86_DMADS_32VECTOR_64OPER",
                                     "x86_DMADS_1KVECTOR_32OPER",
                                     "x86_DMOVS_32VECTOR_64OPER",
-                                    "x86_DMOVS_1KVECTOR_32OPER"
+                                    "x86_DMOVS_1KVECTOR_32OPER",
+                                    "x86_ILMKU_64VECTOR_32OPER",
+                                    "x86_ILMKU_2KVECTOR_32OPER",
+                                    "x86_ILMKS_64VECTOR_32OPER",
+                                    "x86_ILMKS_2KVECTOR_32OPER",
+                                    "x86_FLMKS_64VECTOR_32OPER",
+                                    "x86_FLMKS_2KVECTOR_32OPER",
+                                    "x86_DLMKS_32VECTOR_32OPER",
+                                    "x86_DLMKS_1KVECTOR_32OPER",
+                                    "x86_ISMKU_64VECTOR_32OPER",
+                                    "x86_ISMKU_2KVECTOR_32OPER",
+                                    "x86_ISMKS_64VECTOR_32OPER",
+                                    "x86_ISMKS_2KVECTOR_32OPER",
+                                    "x86_FSMKS_64VECTOR_32OPER",
+                                    "x86_FSMKS_2KVECTOR_32OPER",
+                                    "x86_DSMKS_32VECTOR_32OPER",
+                                    "x86_DSMKS_1KVECTOR_32OPER",
+                                    "x86_IRMKU_64VECTOR_32OPER",
+                                    "x86_IRMKU_2KVECTOR_32OPER",
+                                    "x86_IRMKS_64VECTOR_32OPER",
+                                    "x86_IRMKS_2KVECTOR_32OPER",
+                                    "x86_FRMKS_64VECTOR_32OPER",
+                                    "x86_FRMKS_2KVECTOR_32OPER",
+                                    "x86_DRMKS_32VECTOR_32OPER",
+                                    "x86_DRMKS_1KVECTOR_32OPER",
+                                    "x86_IPMTU_64VECTOR_32OPER",
+                                    "x86_IPMTU_2KVECTOR_32OPER",
+                                    "x86_IPMTS_64VECTOR_32OPER",
+                                    "x86_IPMTS_2KVECTOR_32OPER",
+                                    "x86_FPMTS_64VECTOR_32OPER",
+                                    "x86_FPMTS_2KVECTOR_32OPER",
+                                    "x86_DPMTS_32VECTOR_32OPER",
+                                    "x86_DPMTS_1KVECTOR_32OPER",
+                                    "x86_IMODU_64VECTOR_32OPER",
+                                    "x86_IMODU_2KVECTOR_32OPER",
+                                    "x86_IMODS_64VECTOR_32OPER",
+                                    "x86_IMODS_2KVECTOR_32OPER",
+                                    "x86_IGTRU_64VECTOR_32OPER",
+                                    "x86_IGTRU_2KVECTOR_32OPER",
+                                    "x86_IGTRS_64VECTOR_32OPER",
+                                    "x86_IGTRS_2KVECTOR_32OPER",
+                                    "x86_FGTRS_64VECTOR_32OPER",
+                                    "x86_FGTRS_2KVECTOR_32OPER",
+                                    "x86_DGTRS_32VECTOR_32OPER",
+                                    "x86_DGTRS_1KVECTOR_32OPER",
+                                    "x86_ISCTU_64VECTOR_32OPER",
+                                    "x86_ISCTU_2KVECTOR_32OPER",
+                                    "x86_ISCTS_64VECTOR_32OPER",
+                                    "x86_ISCTS_2KVECTOR_32OPER",
+                                    "x86_FSCTS_64VECTOR_32OPER",
+                                    "x86_FSCTS_2KVECTOR_32OPER",
+                                    "x86_DSCTS_32VECTOR_32OPER",
+                                    "x86_DSCTS_1KVECTOR_32OPER",
+                                    "x86_IDPTU_64VECTOR_32OPER",
+                                    "x86_IDPTU_2KVECTOR_32OPER",
+                                    "x86_IDPTS_64VECTOR_32OPER",
+                                    "x86_IDPTS_2KVECTOR_32OPER",
+                                    "x86_ISCOU_64VECTOR_32OPER",
+                                    "x86_ISCOU_2KVECTOR_32OPER",
+                                    "x86_ISCOS_64VECTOR_32OPER",
+                                    "x86_ISCOS_2KVECTOR_32OPER"
                                     };
 
 static const std::vector<string> vima_x86mnem_names(vima_x86mnem_init,

@@ -238,13 +238,15 @@ INT icheck_conditions(std::string rtn_name) {
 
 // ===========================================================================
 
-#define CMP_2PARAM_COUNT 24
+#define CMP_2PARAM_COUNT 32
 
 static const int cmp_2param_idx[CMP_2PARAM_COUNT] = { 8, 9, 14, 15, 16,
                                                     17, 24, 25, 56, 57,
                                                     58, 59, 68, 69, 74,
                                                     75, 84, 85, 92, 93,
-                                                    98, 99, 108, 109
+                                                    98, 99, 108, 109, 128, 
+                                                    129, 130, 131, 132, 
+                                                    133, 134, 135
                                                     };
 
 INT icheck_2parameters(std::string rtn_name) {
@@ -257,9 +259,10 @@ INT icheck_2parameters(std::string rtn_name) {
 }
 // ===========================================================================
 
-#define CMP_1PARAM_COUNT 8
+#define CMP_1PARAM_COUNT 12
 static const int cmp_1param_idx[CMP_1PARAM_COUNT] = { 60, 61, 62, 63,
-                                                    86, 87, 110, 111
+                                                    86, 87, 110, 111,
+                                                    164, 165, 166, 167
                                                     };
 
 INT icheck_1parameter(std::string rtn_name) {
@@ -299,13 +302,10 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                         IARG_END);
 
         if (icheck_1parameter(rtn_name) == 1) {
-            RTN_InsertCall(arch_rtn, IPOINT_BEFORE,
-                            (AFUNPTR)hmc_write_memory_1param,
-                            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-                            IARG_UINT32, archx_x86_data.instr_len,
-                            IARG_UINT32, count_trace,
-                            IARG_THREAD_ID,
-                            IARG_END);
+            RTN_InsertCall(arch_rtn, IPOINT_BEFORE, (AFUNPTR)hmc_write_memory_1param, 
+                            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                            IARG_UINT32, archx_x86_data.instr_len, 
+                            IARG_UINT32, count_trace, IARG_THREAD_ID, IARG_END);
         } else if (icheck_2parameters(rtn_name) == 1) {
             RTN_InsertCall(arch_rtn, IPOINT_BEFORE,
                             (AFUNPTR)hmc_write_memory_2param,
@@ -455,6 +455,20 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                                 vima_fp_mla_names[i].size(),
                                 vima_fp_mla_names[i].c_str()) == 0) {
                 NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MLA;
+            }
+        }
+        for (int i = 0; i < VIMA_GATHER_COUNT; i++) {
+            if (rtn_name.compare(4,
+                                vima_gather_names[i].size(),
+                                vima_gather_names[i].c_str()) == 0) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_GATHER;
+            }
+        }
+        for (int i = 0; i < VIMA_SCATTER_COUNT; i++) {
+            if (rtn_name.compare(4,
+                                vima_scatter_names[i].size(),
+                                vima_scatter_names[i].c_str()) == 0) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_SCATTER;
             }
         }
         //  revisar esses 2 laços. antes o default era pra ser

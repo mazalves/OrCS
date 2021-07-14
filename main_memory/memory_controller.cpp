@@ -171,6 +171,23 @@ void memory_controller_t::statistics(){
         utils_t::largestSeparator(output);
         if(close) fclose(output);
     }
+}// ============================================================================
+void memory_controller_t::reset_statistics(){
+    this->set_requests_made(0);
+    this->set_requests_prefetcher(0);
+    this->set_requests_llc(0);
+    this->set_requests_hive(0);
+    this->set_requests_vima(0);
+    for (i = 0; i < CHANNEL; i++){
+        this->channels[i].set_stat_row_buffer_hit(0);
+        this->channels[i].set_stat_row_buffer_miss(0);
+    }
+    for (i = 0; i < MEMORY_OPERATION_LAST; i++){
+        this->total_operations[i] = 0;
+        this->total_latency[i] = 0;
+        this->min_wait_operations[i] = 0;
+        this->max_wait_operations[i] = 0;
+    }
 }
 // ============================================================================
 void memory_controller_t::clock(){

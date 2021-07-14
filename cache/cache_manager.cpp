@@ -558,6 +558,8 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         case MEMORY_OPERATION_VIMA_INT_DIV:
         case MEMORY_OPERATION_VIMA_INT_MLA:
         case MEMORY_OPERATION_VIMA_FP_MLA:
+        case MEMORY_OPERATION_VIMA_GATHER:
+        case MEMORY_OPERATION_VIMA_SCATTER:
             #if MEMORY_DEBUG 
                 ORCS_PRINTF (" sent to VIMA Controller.\n")
             #endif
@@ -570,6 +572,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
 }
 
 void cache_manager_t::clock() {
+    // printf("clock executing\n");
     if (requests.size() > 0) {
         int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
         for (size_t i = 0; i < requests.size(); i++){
@@ -750,6 +753,32 @@ void cache_manager_t::statistics(uint32_t core_id) {
     if (PREFETCHER_ACTIVE){
         this->prefetcher->statistics();
     }
+
+    delete[] cache_indexes;
+}
+
+void cache_manager_t::reset_statistics (uint32_t core_id) {
+    int32_t *cache_indexes = new int32_t[POINTER_LEVELS]();
+    this->set_reads(0);
+    this->set_writes(0);
+    this->set_sent_ram(0);
+    this->set_sent_ram_cycles(0);
+    this->set_sent_hive(0);
+    this->set_sent_hive(0);
+    this->set_sent_hive_cycles(0);
+    this->set_sent_vima(0);
+    this->set_sent_vima(0);
+    this->set_sent_vima_cycles(0);
+    for (i = 0; i < MEMORY_OPERATION_LAST; i++){
+        this->total_operations[i] = 0;
+        this->total_latency[i] = 0;
+        this->min_wait_operations[i] = 0;
+        this->max_wait_operations[i] = 0;
+    }
+	this->generateIndexArray(core_id, cache_indexes);
+    for (uint32_t i = 0; i < INSTRUCTION_LEVELS; i++) this->instruction_cache[i][cache_indexes[i]].reset_statistics();
+    for (uint32_t i = 0; i < DATA_LEVELS; i++) this->data_cache[i][cache_indexes[i]].reset_statistics();
+    if (PREFETCHER_ACTIVE) this->prefetcher->reset_statistics();
 
     delete[] cache_indexes;
 }

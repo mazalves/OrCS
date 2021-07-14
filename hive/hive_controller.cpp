@@ -341,6 +341,17 @@ void hive_controller_t::statistics(){
     ORCS_PRINTF ("#========================================================================#\n")
 }
 
+void hive_controller_t::reset_statistics(){
+    for (int i = 0; i < MEMORY_OPERATION_LAST; i++){
+        this->instruction_count[i] = 0;;
+        this->total_latency_count[i] = 0;
+        this->min_latency_count[i] = 0;
+        this->max_latency_count[i] = 0;
+    }
+    this->op_count_latency = 0;
+    this->op_set_count = 0;
+}
+
 bool hive_controller_t::addRequest (memory_package_t* request){
     request->sent_to_ram = true;
     if (hive_instructions.size() < this->HIVE_BUFFER) {

@@ -18,7 +18,7 @@ void orcs_engine_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 	gettimeofday(&this->stat_timer_end, NULL);
 	// 
 	ERROR_ASSERT_PRINTF(utils_t::check_if_power_of_two(NUMBER_OF_PROCESSORS)==OK,"Error - # of processors must be power of 2 value")
-
+	this->NUMBER_OF_PROCESSORS = NUMBER_OF_PROCESSORS;
 	this->trace_reader = new trace_reader_t[NUMBER_OF_PROCESSORS]();
 	this->processor = new processor_t[NUMBER_OF_PROCESSORS]();
 	this->configuration = new configure_t();
@@ -27,7 +27,7 @@ void orcs_engine_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 	this->memory_controller = new memory_controller_t();
 	this->hive_controller = new hive_controller_t();
 	this->vima_controller = new vima_controller_t();
-    this->instruction_set = new instruction_set_t;
+    	this->instruction_set = new instruction_set_t;
 }
 
 bool orcs_engine_t::get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS) {
@@ -35,4 +35,15 @@ bool orcs_engine_t::get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS) {
 		if (this->processor[cpu].isBusy()) return OK;
 	}
 	return FAIL;
+}
+
+void orcs_engine_t::reset_statistics(){
+	for (uint32_t i = 0; i < NUMBER_OF_PROCESSORS; i++){
+		this->processor[i].reset_statistics();
+		this->branchPredictor[i].reset_statistics();
+		this->cacheManager->reset_statistics(i);
+	}
+	this->memory_controller->reset_statistics();
+	this->hive_controller->reset_statistics();
+	this->vima_controller->reset_statistics();
 }

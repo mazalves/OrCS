@@ -258,6 +258,7 @@ class processor_t {
 	    void allocate();
         void clock();
 		void statistics();
+		void reset_statistics();
 		void printConfiguration();
 		void printCache(FILE *output);
 		uint32_t get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL);
@@ -270,13 +271,11 @@ class processor_t {
 		void removeFrontROB(ROB_t *rob);
 		// ====================================================================
 		// MOB READ RELATED
-		int32_t search_position_mob_read();
 		int32_t search_n_positions_mob_read(uint32_t n, uint32_t *mob_size);
 		void remove_front_mob_read(uint32_t n);
 		void remove_back_mob_read();
 		// ====================================================================
 		// MOB WRITE RELATED
-		int32_t search_position_mob_write();
 		int32_t search_n_positions_mob_write(uint32_t n, uint32_t *mob_size);
 		void remove_front_mob_write();
 		void remove_back_mob_write();
@@ -288,6 +287,7 @@ class processor_t {
 		// ====================================================================
 		// MOB HIVE RELATED
 		void print_mob_vima();
+		int32_t search_n_positions_mob_vima(uint32_t n, uint32_t *mob_size);
 		int32_t search_position_mob_vima(uint32_t *mob_size);
 		void remove_front_mob_vima();
 		// ====================================================================

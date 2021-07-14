@@ -1,6 +1,7 @@
 // ============================================================================
 class orcs_engine_t {
 	private:
+        uint32_t NUMBER_OF_PROCESSORS;
 
 
     public:
@@ -66,4 +67,5 @@ class orcs_engine_t {
         uint64_t get_global_cycle() {
             return this->global_cycle;
         };
+        void reset_statistics();
 };

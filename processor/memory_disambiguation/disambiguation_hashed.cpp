@@ -189,3 +189,9 @@ void disambiguation_hashed_t::statistics() {
     }
     if(close) fclose(output);
 }
+
+void disambiguation_hashed_t::reset_statistics() {
+	this->set_stat_disambiguation_read_false_positive(0);
+    this->set_stat_disambiguation_write_false_positive(0);
+    this->set_stat_address_to_address(0);
+}

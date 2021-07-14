@@ -415,3 +415,21 @@ void cache_t::statistics() {
 	}
 	if(close) fclose(output);
 }
+
+void cache_t::reset_statistics() {
+	this->set_cache_access(0);
+	this->set_cache_hit(0);
+	this->set_cache_miss(0);
+	this->set_cache_eviction(0);
+	for (int32_t i = 0; i < MEMORY_OPERATION_LAST; i++){
+		this->cache_count_per_type[i] = 0;
+		this->cache_hit_per_type[i] = 0;
+		this->cache_miss_per_type[i] = 0;
+		this->total_per_type[i] = 0;
+		this->min_per_type[i] = 0;
+		this->max_per_type[i] = 0;
+	}
+
+	this->set_cache_writeback(0);
+	this->set_max_reached(0);
+}

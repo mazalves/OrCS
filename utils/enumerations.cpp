@@ -50,6 +50,10 @@ const char* get_enum_instruction_operation_char(instruction_operation_t type) {
         case INSTRUCTION_OPERATION_VIMA_INT_MUL: return "VIMA_INT_MUL"; break;
         case INSTRUCTION_OPERATION_VIMA_INT_MLA: return "VIMA_INT_MLA"; break;
         case INSTRUCTION_OPERATION_VIMA_FP_MLA:  return "VIMA_FP_MLA "; break;
+        case INSTRUCTION_OPERATION_VIMA_GATHER:  return "VIMA_GATHER" ; break;
+	    case INSTRUCTION_OPERATION_VIMA_SCATTER: return "VIMA_SCATTER"; break;
+
+        case INSTRUCTION_OPERATION_ZERO:         return "ZERO        "; break;
         case INSTRUCTION_OPERATION_LAST:         return "LAST        "; break;
         
     }
@@ -96,6 +100,8 @@ const char *get_enum_memory_operation_char(memory_operation_t type) {
         case MEMORY_OPERATION_VIMA_FP_MUL:  return "VIMA_FP_MUL "; break;
         case MEMORY_OPERATION_VIMA_INT_MLA: return "VIMA_INT_MLA"; break;
         case MEMORY_OPERATION_VIMA_FP_MLA:  return "VIMA_FP_MLA "; break;
+        case MEMORY_OPERATION_VIMA_GATHER:  return "VIMA_GATHER "; break;
+        case MEMORY_OPERATION_VIMA_SCATTER: return "VIMA_SCATTER"; break;
         case MEMORY_OPERATION_LAST:         return "LAST        "; break;
     }
     ERROR_PRINTF("Wrong MEMORY_OPERATION\n");
