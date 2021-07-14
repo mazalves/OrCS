@@ -476,6 +476,25 @@ VOID handleParallelControlEvent(bool is_start, THREADID threadid) {
 }
 
 //==============================================================================
+// Control the Number of Parallel Regions to trace
+//==============================================================================
+VOID handleOrCSTracingEvent(bool is_start, THREADID threadid) {
+    TRACE_GENERATOR_DEBUG_PRINTF("handleParallelControlEvent()\n");
+
+    PIN_GetLock(&lock, threadid);
+    if (is_start) {
+        /// New PARALLEL START
+        TRACE_GENERATOR_DEBUG_PRINTF("\t Parallel START tracing\n");
+        is_instrumented = true;
+    } else {
+        /// New PARALLEL END
+        TRACE_GENERATOR_DEBUG_PRINTF("\t Parallel STOP tracing\n");
+        is_instrumented = false;
+    }
+    PIN_ReleaseLock(&lock);
+}
+
+//==============================================================================
 // Pin Point Events
 //==============================================================================
 // ~ VOID handleControlEvent(CONTROLLER::EVENT_TYPE ev, VOID *, CONTEXT * ctxt,
