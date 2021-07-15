@@ -134,6 +134,8 @@ KNOB<int32_t> KnobParallelEnd(KNOB_MODE_WRITEONCE, "pintool",
     "parallel_end", "-1", "parallel end counter to enable the tracer.");
 KNOB<int64_t> KnobNumberInst(KNOB_MODE_WRITEONCE, "pintool",
     "number_max_inst", "-1", "maximum number of instructions to be traced.");
+KNOB<int64_t> KnobOrCSTracing(KNOB_MODE_WRITEONCE, "pintool",
+    "orcs_tracing", "-1", "there will be stopping and starting.");
 
 //==============================================================================
 // Sinuca
@@ -504,7 +506,7 @@ VOID handleControlEvent(CONTROLLER::EVENT_TYPE ev, VOID *val, CONTEXT * ctxt,
     TRACE_GENERATOR_DEBUG_PRINTF("handleControlEvent()\n");
 
     /// If (parallel instrumentation) => return
-    if (KnobParallelStart.Value() >= 0 || KnobParallelEnd.Value() >= 0)
+    if (KnobParallelStart.Value() >= 0 || KnobParallelEnd.Value() >= 0 || KnobOrCSTracing.Value() >= 0)
         return;
 
     PIN_GetLock(&lock, threadid);
@@ -632,6 +634,14 @@ VOID ImageLoad(IMG img, VOID *) {
         /// Note that RTN_InsertCall() with IPOINT_BEFORE
         /// does not have this problem.
 
+    std::vector<const char*> ORCS_tracing_control_start;
+        /// No Wait
+        ORCS_tracing_control_start.push_back(("_Z18ORCS_tracing_startv"));
+
+    std::vector<const char*> ORCS_tracing_control_stop;
+        /// No Wait
+        ORCS_tracing_control_stop.push_back(("_Z17ORCS_tracing_stopv"));
+
     bool found_GOMP;
     std::string rtn_name;
 
@@ -720,6 +730,34 @@ VOID ImageLoad(IMG img, VOID *) {
 // ~
                 // ~ RTN_Close(rtn);
             // ~ }
+
+            for (uint32_t i = 0; i < ORCS_tracing_control_start.size(); i++){
+                if (strcmp(rtn_name.c_str(), ORCS_tracing_control_start[i]) == 0){
+                    RTN_Open (rtn);
+
+                    RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                    AFUNPTR(handleOrCSTracingEvent),
+                                    IARG_BOOL, true,
+                                    IARG_THREAD_ID,
+                                    IARG_END);
+                    RTN_Close (rtn);
+                    break;
+                }
+            }
+
+            for (uint32_t i = 0; i < ORCS_tracing_control_stop.size(); i++){
+                if (strcmp(rtn_name.c_str(), ORCS_tracing_control_stop[i]) == 0){
+                    RTN_Open (rtn);
+
+                    RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                    AFUNPTR(handleOrCSTracingEvent),
+                                    IARG_BOOL, false,
+                                    IARG_THREAD_ID,
+                                    IARG_END);
+                    RTN_Close (rtn);
+                    break;
+                }
+            }
 
             if (rtn_name.compare(0, 4, "GOMP") != 0) {
                 continue;

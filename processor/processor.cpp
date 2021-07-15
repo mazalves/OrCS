@@ -175,7 +175,7 @@ processor_t::processor_t()
 	this->DISPATCH_DEBUG = 0;
 	this->EXECUTE_DEBUG = 0;
 	this->HIVE_DEBUG = 0;
-	this->VIMA_DEBUG = 0;
+	this->VIMA_DEBUGG = 0;
 	this->COMMIT_DEBUG = 0;*/
 
 	this->WAIT_CYCLE = 0;
@@ -1361,7 +1361,7 @@ void processor_t::decode()
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 				ORCS_PRINTF("%lu Processor decode(): VIMA instruction %lu decoded!\n",
 							orcs_engine.get_global_cycle(), this->fetchBuffer.front()->opcode_number)
 #endif
@@ -1859,7 +1859,7 @@ void processor_t::rename()
 					break;
 				else
 				{
-					#if VIMA_DEBUG
+					#if VIMA_DEBUGG
 					ORCS_PRINTF("%lu Processor rename(): memory_order_buffer_vima used = %u.\n",
 								orcs_engine.get_global_cycle(),
 								this->memory_order_buffer_vima_used);
@@ -2156,7 +2156,7 @@ void processor_t::rename()
 			rob_line->mob_base[rob_line->pos_mob].rob_ptr = rob_line;
 			//mob_line->rob_ptr = rob_line;
 
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 			ORCS_PRINTF("%lu Processor rename(): VIMA instruction %lu uop %lu renamed!\n",
 						orcs_engine.get_global_cycle(),
 						rob_line->uop.opcode_number,
@@ -2352,7 +2352,7 @@ void processor_t::clean_mob_vima()
 			this->memory_order_buffer_vima[pos].readyAt <= orcs_engine.get_global_cycle() &&
 			this->memory_order_buffer_vima[pos].processed == false)
 		{
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 			ORCS_PRINTF("%lu Processor clean_mob_vima(): memory_vima_executed %u, processor %lu ", orcs_engine.get_global_cycle(), this->memory_vima_executed, this->processor_id)
 #endif
 			this->memory_order_buffer_vima[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
@@ -2364,7 +2364,7 @@ void processor_t::clean_mob_vima()
 			{
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vima[pos]);
 			}
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 			ORCS_PRINTF("VIMA instruction %lu %s, %u!\n", this->memory_order_buffer_vima[pos].uop_number, get_enum_processor_stage_char(this->memory_order_buffer_vima[pos].rob_ptr->stage), this->memory_order_buffer_vima[pos].readyAt)
 #endif
 		}
@@ -2560,7 +2560,7 @@ void processor_t::execute()
 				this->unified_functional_units.shrink_to_fit();
 				i--;
 
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 				ORCS_PRINTF("%lu Processor execute(): VIMA instruction %lu executed!\n", orcs_engine.get_global_cycle(), rob_line->uop.uop_number)
 #endif
 			}
@@ -3145,7 +3145,7 @@ void processor_t::commit()
 			case INSTRUCTION_OPERATION_VIMA_GATHER:
 			case INSTRUCTION_OPERATION_VIMA_SCATTER:
 				this->add_stat_inst_vima_completed();
-#if VIMA_DEBUG
+#if VIMA_DEBUGG
 				ORCS_PRINTF("%lu Processor commit(): instruction VIMA %lu, %s committed, readyAt %lu.\n",
 							orcs_engine.get_global_cycle(),
 							rob_line->uop.uop_number,

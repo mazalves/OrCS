@@ -269,7 +269,7 @@ INT icheck_1parameter(std::string rtn_name) {
     for (int i = 0; i < CMP_1PARAM_COUNT; i++) {
         if (rtn_name.compare(4, vima_inst_names[cmp_1param_idx[i]].size(),
                              vima_inst_names[cmp_1param_idx[i]].c_str()) == 0)
-            return 1;
+                                 return 1;
     }
     return 0;
 }
