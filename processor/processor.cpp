@@ -1264,11 +1264,11 @@ void processor_t::decode()
 				new_uop.is_hive = true;
 				new_uop.is_vima = false;
 				new_uop.hive_read1 = instr->hive_read1;
-				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : -1;
+				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : 0;
 				new_uop.hive_read2 = instr->hive_read2;
-				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : -1;
+				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : 0;
 				new_uop.hive_write = instr->hive_write;
-				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : -1;
+				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : 0;
 
 				new_uop.updatePackageWait(DECODE_LATENCY);
 				new_uop.born_cycle = orcs_engine.get_global_cycle();
@@ -1297,11 +1297,11 @@ void processor_t::decode()
 				new_uop.is_hive = true;
 				new_uop.is_vima = false;
 				new_uop.hive_read1 = instr->hive_read1;
-				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : -1;
+				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : 0;
 				new_uop.hive_read2 = instr->hive_read2;
-				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : -1;
+				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : 0;
 				new_uop.hive_write = instr->hive_write;
-				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : -1;
+				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : 0;
 
 				new_uop.updatePackageWait(DECODE_LATENCY);
 				new_uop.born_cycle = orcs_engine.get_global_cycle();
@@ -1348,9 +1348,9 @@ void processor_t::decode()
 				new_uop.hive_write = -1;
 
 				new_uop.is_vima = true;
-				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : -1;
-				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : -1;
-				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : -1;
+				new_uop.read_address = (instr->num_reads > 0) ? instr->reads_addr[0] : 0;
+				new_uop.read2_address = (instr->num_reads > 1) ? instr->reads_addr[1] : 0;
+				new_uop.write_address = (instr->num_writes > 0) ? instr->writes_addr[0] : 0;
 
 				new_uop.updatePackageWait(DECODE_LATENCY);
 				new_uop.born_cycle = orcs_engine.get_global_cycle();
