@@ -40,6 +40,7 @@ vima_controller_t::vima_controller_t(){
     this->VIMA_UNBALANCED = 0;
     this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
 
+    this->transactions_controller = NULL;
 }
 
 vima_controller_t::~vima_controller_t(){
@@ -407,6 +408,8 @@ void vima_controller_t::allocate(){
     set_cache_accesses(0);
     set_cache_hits(0);
     set_cache_misses(0);
+
+    this->transactions_controller = new transactions_controller_t;
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){

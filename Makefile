@@ -61,7 +61,10 @@ SRC_MEMORY = $(FD_MEMORY)/memory_channel.cpp\
 SRC_HIVE = $(FD_HIVE)/hive_controller.cpp
 
 SRC_VIMA = $(FD_VIMA)/vima_controller.cpp\
-			$(FD_VIMA)/vima_vector.cpp
+			$(FD_VIMA)/vima_vector.cpp\
+			$(FD_VIMA)/transactions_controller.cpp\
+			$(FD_VIMA)/transactional_operation.cpp
+
 
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 

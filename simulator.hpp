@@ -113,6 +113,8 @@ class hive_register_t;
 //  =========================================//
 class vima_controller_t;
 class vima_vector_t;
+class transactional_operation_t;
+class transactions_controller_t;
 //  =========================================//
 // DATA Types
 // ====================================
@@ -204,6 +206,8 @@ extern orcs_engine_t orcs_engine;
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
 #include "./vima/vima_vector.hpp"
+#include "./vima/transactions_controller.hpp"
+#include "./vima/transactional_operation.hpp"
 //  =========================================//
 
 #endif  // _ORCS_ORCS_HPP_

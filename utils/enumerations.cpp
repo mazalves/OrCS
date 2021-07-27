@@ -120,6 +120,7 @@ const char *get_enum_package_state_char(package_state_t type) {
         case PACKAGE_STATE_VIMA:    return "VIMA"; break;
         case PACKAGE_STATE_DRAM_FETCH:  return "DRAM_FETCH"; break;
         case PACKAGE_STATE_DRAM_READY:  return "DRAM_READY"; break;
+        case PACKAGE_STATE_WAIT_TM: return "WAIT_TM"; break;
     }
     ERROR_PRINTF("Wrong PACKAGE_STATE\n");
     return "FAIL";
