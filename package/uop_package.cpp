@@ -33,6 +33,15 @@ void uop_package_t::package_clean()
     this->born_cycle = 0;
     this->readyAt = orcs_engine.get_global_cycle();
     this->status =PACKAGE_STATE_FREE;
+
+    this->uop_id = 0;
+    this->waiting = false;
+    this->reexecution = false;
+    this->validation_number = 0;
+    this->structural_id = 4;
+    this->sent_to_new_renamed_uop = false;
+
+    this->tv_pointer = NULL;
 }
 
 bool uop_package_t::operator==(const uop_package_t &package) {
@@ -63,7 +72,7 @@ void uop_package_t::opcode_to_uop(
         uint64_t uop_number, 
         instruction_operation_t uop_operation,
         uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,
-        opcode_package_t opcode)
+        opcode_package_t opcode, uint8_t uop_id)
 {
     // ERROR_ASSERT_PRINTF(this->state == PACKAGE_STATE_FREE,
     //                     "Trying to decode to uop in a non-free location\n");
@@ -87,6 +96,13 @@ void uop_package_t::opcode_to_uop(
     //this->memory_address = memory_address;
     //this->memory_size = memory_size;
     this->num_mem_operations = 0;
+
+    this->uop_id = uop_id;
+    this->waiting = false;
+    this->reexecution = false;
+    this->sent_to_new_renamed_uop = false;
+
+    this->tv_pointer = NULL;
                     
 }
 
@@ -152,6 +168,8 @@ std::string uop_package_t::content_to_string2() {
 
     content_string = content_string + " Status Opcode "+ get_enum_package_state_char(this->status);
     content_string = content_string + " Ready At" + utils_t::uint64_to_string(this->readyAt);
+    content_string = content_string + " Waiting:" + std::string((this->waiting) ? "True" : "False");
+
 
     return content_string;
 }

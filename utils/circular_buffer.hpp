@@ -56,6 +56,8 @@ class circular_buffer_t {
         inline uint32_t get_capacity();
         inline bool is_full();
         inline bool is_empty();
+        inline bool has_n_empties(uint32_t n);
+
 
         inline CB_TYPE* front();
         inline CB_TYPE* back();
@@ -130,6 +132,12 @@ inline bool circular_buffer_t<CB_TYPE>::is_full() {
 template <class CB_TYPE>
 inline bool circular_buffer_t<CB_TYPE>::is_empty() {
     return (this->size == 0);
+}
+
+// ============================================================================
+template <class CB_TYPE>
+inline bool circular_buffer_t<CB_TYPE>::has_n_empties(uint32_t n) {
+    return ((this->capacity - this->size) >= n);
 }
 
 // ============================================================================

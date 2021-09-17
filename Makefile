@@ -20,6 +20,7 @@ FD_PREFETCHER = prefetcher
 FD_MEMORY = main_memory
 FD_HIVE = hive
 FD_VIMA = vima
+FD_VECTORIZER = Vectorizer
 FD_EMC = emc
 FD_CONFIG = config
 FD_DISAMBIGUATION = memory_disambiguation
@@ -65,6 +66,16 @@ SRC_VIMA = $(FD_VIMA)/vima_controller.cpp\
 			$(FD_VIMA)/transactions_controller.cpp\
 			$(FD_VIMA)/transactional_operation.cpp
 
+SRC_VECTORIZER = 	$(FD_VECTORIZER)/vectorizer.cpp\
+				 	$(FD_VECTORIZER)/table_of_loads.cpp\
+					$(FD_VECTORIZER)/table_of_operations.cpp\
+					$(FD_VECTORIZER)/table_of_stores.cpp\
+					$(FD_VECTORIZER)/table_of_vectorizations.cpp\
+					$(FD_VECTORIZER)/registers_tracker.cpp\
+					$(FD_VECTORIZER)/table_of_ignored.cpp\
+					$(FD_VECTORIZER)/table_of_pre_vectorization.cpp
+
+
 
 SRC_CONFIG = $(FD_CONFIG)/config.cpp
 
@@ -78,6 +89,7 @@ SRC_CORE =  simulator.cpp orcs_engine.cpp\
 			$(SRC_CACHE)\
 			$(SRC_HIVE)\
 			$(SRC_VIMA)\
+			$(SRC_VECTORIZER)\
 			$(SRC_DIRECTORY)\
 			$(SRC_PREFETCHER)\
 			$(SRC_CONFIG)\
@@ -106,7 +118,7 @@ clean:
 	@echo
 
 debug:
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose 2> log.valgrind  ./orcs -c configuration_files/skylakeProposta.cfg -t '../Traces/vecSumScalar' > ../Logs/vecSumScalar.vet.log
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose 2> log.valgrind  ./orcs -c configuration_files/skylakeServerVectorizer.cfg -t ../Traces/Trace/vecSumKernel > saida
 
 orcs_vet: clean all
 	mv orcs orcs_vet

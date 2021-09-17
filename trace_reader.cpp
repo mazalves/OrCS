@@ -254,9 +254,9 @@ void trace_reader_t::generate_binary_dict() {
 
 // =====================================================================
 /// Convert Static Trace line into Instruction
-/// Field #:  01 |   02   |   03  |  04   |   05  |  06  |  07    |  08   |  09  |  10   |  11  |  12   |  13   |  14   |  15      |  16        | 17
-/// Type:    Asm | Opcode | Inst. | Inst. | #Read | Read | #Write | Write | Base | Index | Is   | Is    | Is    | Cond. | Is       | Is         | Is
-///          Cmd | Number | Addr. | Size  | Regs  | Regs | Regs   | Regs  | Reg. | Reg.  | Read | Read2 | Write | Type  | Indirect | Predicated | Pfetch
+/// Field #:  01 |   02   |   03  |  04   |   05  |  06  |  07    |  08   |  09  |  10   |  11  |  12    |  14   |  15      |  16        | 17   | 18     | 19    | 20
+/// Type:    Asm | Opcode | Inst. | Inst. | #Read | Read | #Write | Write | Base | Index | Num  | Num    | Cond. | Is       | Is         | Is   | Hive   | Hive  | Hive
+///          Cmd | Number | Addr. | Size  | Regs  | Regs | Regs   | Regs  | Reg. | Reg.  | Reads| Writes | Type  | Indirect | Predicated | Hive | Read 1 | Read 2| Write
 ///
 /// Static File Example:
 ///

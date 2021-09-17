@@ -28,6 +28,8 @@ class memory_order_buffer_line_t : public memory_request_client_t {
         uint32_t processor_id;                              // id of processor make request 
         uint64_t cycle_sent_to_DRAM;
         //==========================================================================================
+        table_of_vectorizations_entry_t *tv_pointer;
+        //==========================================================================================
         //Control variables
         bool processed; 
         bool sent; //*

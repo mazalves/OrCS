@@ -160,10 +160,13 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
         snprintf(report,sizeof(report),"Instructions Fetched/Instructions Total: %lu of %lu\n",fetched_opcodes,total_opcodes);
         final_report+=report;
 
-        // Get total uops decoded, uops completed
-        uint64_t uops_decoded = orcs_engine.processor[cpu].renameCounter;
+        // Get total uops renamed, uops completed
+        uint64_t uops_renamed = orcs_engine.processor[cpu].renameCounter[0];
+        for (uint8_t i = 1; i < 4; ++i) {
+            uops_renamed += orcs_engine.processor[cpu].renameCounter[i];
+        }
         uint64_t uop_completed = orcs_engine.processor[cpu].commit_uop_counter;
-        snprintf(report,sizeof(report),"Uops Completed/Uops decoded: %lu of %lu\n",uop_completed,uops_decoded);
+        snprintf(report,sizeof(report),"Uops Completed/Uops renamed: %lu of %lu\n",uop_completed,uops_renamed);
         final_report+=report;
 
         ////////

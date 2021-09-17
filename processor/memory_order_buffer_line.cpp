@@ -40,6 +40,7 @@ void memory_order_buffer_line_t::package_clean() {
         this->core_generate_miss=false;
         this->processor_id = 0;
         this->cycle_sent_to_DRAM = orcs_engine.get_global_cycle();
+        this->tv_pointer = NULL;
 }
 
 // ============================================================================

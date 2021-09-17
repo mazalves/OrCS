@@ -13,7 +13,7 @@ void transactions_controller_t::allocate() {
     printf("ALLOCATE transactions controller\n");
     // Get configurations
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
-    libconfig::Setting &cfg_dyn_vec = cfg_root["DYNAMIC_VECTORIZATION"];
+    libconfig::Setting &cfg_dyn_vec = cfg_root["VECTORIZER"];
     printf("GET PARAMETERS transactions controller\n");
     // Set configurations
     this->num_entries = cfg_dyn_vec["MAX_TRANSACTIONS"];

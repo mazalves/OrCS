@@ -20,7 +20,7 @@
 
 #define DEBUG 0
 #define PROCESSOR_DEBUG 0
-#define FETCH_DEBUG 0
+#define FETCH_DEBUG 1
 #define DECODE_DEBUG 0
 #define RENAME_DEBUG 0
 #define DISPATCH_DEBUG 0

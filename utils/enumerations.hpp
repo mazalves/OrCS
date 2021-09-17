@@ -137,6 +137,7 @@ enum processor_stage_t {
     PROCESSOR_STAGE_RENAME,
     PROCESSOR_STAGE_DISPATCH,
     PROCESSOR_STAGE_EXECUTION,
+    PROCESSOR_STAGE_WAITING_DYN,
     PROCESSOR_STAGE_COMMIT
 };
 const char *get_enum_processor_stage_char(processor_stage_t type);
