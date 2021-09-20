@@ -496,6 +496,7 @@ void processor_t::allocate()
 	this->renameCounter[1] = 0;
 	this->renameCounter[2] = 0;
 	this->renameCounter[3] = 0;
+	this->mob_read_stall = false;
 	
 	this->uopCounter = 1;
 	this->commit_uop_counter = 0;
@@ -1766,6 +1767,7 @@ void processor_t::rename()
 		bool next_reexec_inst = false;
 		circular_buffer_t<uop_package_t> *inst_buffer;
 		bool ignore = false;
+		this->mob_read_stall = false;
 
 		// Tenta pegar instrução gerada pelo vetorizador
 		if (this->vectorizer->vectorizations_to_execute.get_size() > 0) {
@@ -1791,6 +1793,11 @@ void processor_t::rename()
 			this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
 			this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()))
 		{
+			if (this->decodeBuffer.is_empty()) {
+				printf("%lu Decode buffer empty\n", orcs_engine.get_global_cycle());
+			} else {
+				printf("%lu Not ready for decode: Status %s  Ready At: %lu\n", orcs_engine.get_global_cycle(), get_enum_package_state_char(this->decodeBuffer.front()->status), this->decodeBuffer.front()->readyAt);
+			}
 			break;
 		}
 		//printf("Rename %s; DecodeBuffer == %lu == %lu == RenameCounter\n", (next_dyn_inst) ? "Dynamic VIMA" : (next_reexec_inst) ? "Reexecution" : , this->decodeBuffer.front()->uop_number, this->renameCounter[0]);
@@ -1821,6 +1828,11 @@ void processor_t::rename()
 
 			if (this->memory_order_buffer_read_used >= MOB_READ || reorderBuffer.robUsed >= ROB_SIZE)
 			{
+				if (this->memory_order_buffer_read_used >= MOB_READ) {
+					mob_read_stall = true;
+					this->add_stall_full_MOB_Read();
+				}
+				printf("Stall mob read\n");
 				break;
 			}
 
@@ -1830,7 +1842,9 @@ void processor_t::rename()
 
 			if (pos_mob == POSITION_FAIL)
 			{
+				mob_read_stall = true;
 				this->add_stall_full_MOB_Read();
+				printf("Stall mob read\n");
 				break;
 			}
 
@@ -1845,6 +1859,10 @@ void processor_t::rename()
 		{
 			if (this->memory_order_buffer_write_used >= MOB_READ || reorderBuffer.robUsed >= ROB_SIZE)
 			{
+				if (this->memory_order_buffer_write_used >= MOB_READ) {
+					this->add_stall_full_MOB_Write();					
+				}
+				printf("Stall mob read\n");
 				break;
 			}
 			// Retorna a primeira posição de um conjunto de n livres, ou POSITION_FAIL
@@ -1852,6 +1870,7 @@ void processor_t::rename()
 			if (pos_mob == POSITION_FAIL)
 			{
 				this->add_stall_full_MOB_Write();
+				printf("Stall mob write\n");
 				break;
 			}
 
@@ -2723,6 +2742,8 @@ void processor_t::execute()
 						if (!rob_line->uop.tv_pointer->verify_stride(&rob_line->uop)) {
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						}
+						this->vectorizer->new_AGU_calculation(&rob_line->uop);
+						
 						rob_line->stage = PROCESSOR_STAGE_WAITING_DYN;
 						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 						break;
@@ -2755,6 +2776,8 @@ void processor_t::execute()
 						if (!rob_line->uop.tv_pointer->verify_stride(&rob_line->uop)) {
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						}
+						this->vectorizer->new_AGU_calculation(&rob_line->uop);
+
 						rob_line->stage = PROCESSOR_STAGE_WAITING_DYN;
 						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 						break;
@@ -3232,7 +3255,7 @@ void processor_t::commit()
 	int32_t pos_buffer;
 	/// Commit the packages
 	ROB_t *rob = &this->reorderBuffer;
-	printf("Commit com ROB size == %u\n", rob->robUsed);
+
 	if (rob->robUsed == 0)
 	{
 		return;
@@ -3464,6 +3487,8 @@ void processor_t::commit()
 							printf("Precisei destravar pelo fim das instruções, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						}
+					// Se o adicionou confirmações necessárias a mais do que devia
+					// os loads e stores em waiting já foram processados mas ainda falta :p
 					if ((rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
 					(rob_line->uop.tv_pointer->need_confirmation != 0) &&
 					(this->unified_reservation_station.size() == 0) &&
@@ -3472,11 +3497,28 @@ void processor_t::commit()
 						printf("Caso de trava impossível!\n");
 						exit(1);
 					}
-				}
-			} else {
-				printf("Travado no estágio: %s Waiting: %s\n", get_enum_processor_stage_char(rob_line->stage), rob_line->uop.waiting ? "true" : "false");
-			}
 
+					// -> Se o MOB estiver cheio e a próxima instrução do rename for um load convencional 
+					// cancelamos a vetorização, visto que o mob não vai esvaziar sem commits
+					// e o load não consegue entrar no ROB sem uma entrada no MOB.
+					if ((this->memory_order_buffer_read_used >= MOB_READ) &&
+						(this->mob_read_stall)) {
+							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
+							printf("Precisei destravar por mob cheio, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
+
+						}
+				}
+			}
+			else {
+				printf("Outra instrução no estagio: %s Type: %s Addr: %lu Status: %s Ready At: %lu\n", get_enum_processor_stage_char(rob_line->stage),
+						get_enum_instruction_operation_char(rob_line->uop.uop_operation), rob_line->uop.opcode_address,
+						get_enum_package_state_char(rob_line->uop.status), rob_line->uop.readyAt);
+				orcs_engine.vima_controller->print_vima_instructions();
+				orcs_engine.cacheManager->print_requests();
+				/*if (orcs_engine.get_global_cycle() > 251480) {
+					exit(1);
+				}*/
+			}
 			
 			if (rob->robUsed > 0 && rob_line->stage == PROCESSOR_STAGE_WAITING_DYN) {
 				if (last_try_pc == rob_line->uop.opcode_address && last_try_op == rob_line->uop.uop_id) {
@@ -3638,6 +3680,7 @@ void processor_t::statistics()
 		fprintf(output, "Dependencies created:          %lu\n", dependencies_created);
 		fprintf(output, "Calls for dependencies creation:          %lu\n", calls_for_dependencies_creation);
 
+		this->vectorizer->statistics(output);
 
 		utils_t::largestSeparator(output);
 		for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++)

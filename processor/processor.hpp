@@ -62,7 +62,7 @@ class processor_t {
 	uint64_t stall_full_MOB_Read;
 	uint64_t stall_full_MOB_Write;
 	uint64_t stall_full_ROB;
-
+	bool mob_read_stall;
 	//=============
 	//Statistics Dispatch
 	//=============

@@ -446,12 +446,12 @@ void registers_tracker_t::register_overwritten(uop_package_t *uop, table_of_vect
         //printf("From write Regs[i] = %d\n", uop->write_regs[i]);
         //printf("From entry: %p[%d]/%p[%d]\n", (void *)&this->entries[uop->write_regs[i]], uop->write_regs[i], (void *)&this->entries[this->num_entries], this->num_entries);
         if(entry->tv_pointer) {
-            printf("[%d] Sobrescrita para o %p pela uop %lu (%s)\n", uop->write_regs[i], (void *) entry->tv_pointer, uop->opcode_address, uop->opcode_assembly);
+            //printf("[%d] Sobrescrita para o %p pela uop %lu (%s)\n", uop->write_regs[i], (void *) entry->tv_pointer, uop->opcode_address, uop->opcode_assembly);
             this->tv->register_overwritten(entry->tv_pointer);
         }
 
         // Novo valor
-        printf("[%d] Definindo como %p pela uop: %lu (%s)\n", uop->write_regs[i], (void *) tv_entry, uop->opcode_address, uop->opcode_assembly);
+        //printf("[%d] Definindo como %p pela uop: %lu (%s)\n", uop->write_regs[i], (void *) tv_entry, uop->opcode_address, uop->opcode_assembly);
 
         entry->set_rename_pointers(tv_entry);
     }
@@ -490,8 +490,9 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
         switch(tv_pointer->state) {
             case 0:
                 if ((load_entry[0]->get_pc() == uop->opcode_address) && (load_entry[0]->get_uop_id() == uop->uop_id)) {
-                    printf("Definindo primeiro load: %lu\n", uop->memory_address[0]);
                     tv_pointer->addr_mem_load[0] = uop->memory_address[0];
+                    tv_pointer->after_last_byte_mem_load[0] = uop->memory_address[0] + tv_pointer->load_stride[0] * tv_pointer->num_elements;
+                    printf("Definindo primeiro load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[0]);
                     tv_pointer->set_state(1);
 
                     // ++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -509,8 +510,9 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
             case 1:
                 assert (load_entry[1] != NULL);
                 if ((load_entry[1]->get_pc() == uop->opcode_address) && (load_entry[1]->get_uop_id() == uop->uop_id)) {
-                    printf("Definindo segundo load: %lu\n", uop->memory_address[0]);
                     tv_pointer->addr_mem_load[1] = uop->memory_address[0];
+                    tv_pointer->after_last_byte_mem_load[1] = uop->memory_address[0] + tv_pointer->load_stride[1] * tv_pointer->num_elements;
+                    printf("Definindo segundo load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[1]);
                     tv_pointer->set_state(2);
                 }
                 break;
@@ -594,14 +596,16 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
 
         switch(tpv_tv_pointer->state) {
             case 1:
-                printf("Definindo store em mov: %lu\n", uop->memory_address[0]);
                 assert (tpv_tv_pointer->ts_entry->is_mov);
                 tpv_tv_pointer->addr_mem_store = uop->memory_address[0];
+                tv_pointer->after_last_byte_mem_store = uop->memory_address[0] + tv_pointer->store_stride * tv_pointer->num_elements;
+                printf("Definindo store em mov: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
                 tpv_tv_pointer->set_state(3);
                 break;
             case 2:
-                printf("Definindo store em operação: %lu\n", uop->memory_address[0]);
                 tpv_tv_pointer->addr_mem_store = uop->memory_address[0];
+                tv_pointer->after_last_byte_mem_store = uop->memory_address[0] + tv_pointer->store_stride * tv_pointer->num_elements;
+                printf("Definindo store em operação: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
                 tpv_tv_pointer->set_state(3);
                 break;
         }

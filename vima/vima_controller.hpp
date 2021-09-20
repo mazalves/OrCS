@@ -60,8 +60,9 @@ class vima_controller_t {
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_misses)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_accesses)
         INSTANTIATE_GET_SET_ADD (uint64_t, cache_writebacks)
-        
+        public:
         void print_vima_instructions();
+        private:
         void check_cache (int index);
         vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);

@@ -6,6 +6,7 @@ class table_of_vectorizations_t {
         table_of_vectorizations_entry_t *entries;
         uint32_t num_entries;
         uint32_t max_entries;
+        uint32_t vectorization_size;
 
         // Demais tabelas
         table_of_loads_t *tl;
@@ -22,6 +23,9 @@ class table_of_vectorizations_t {
         functional_unit_t *mem_operation_fu;
 
         
+        // Statistics
+        uint64_t vectorizations, invalidations;
+
 public:
     vectorizer_t *vectorizer;
 
@@ -67,5 +71,14 @@ private:
         // Também limpa as entradas nas outras tabelas, as invalidando
         void unbind (table_of_vectorizations_entry_t *entry);
 
+
+        // Cada load executado pode invalidar uma vetorização, caso carregue dados do seu destino
+        // Cada store executado pode invalidar uma vetorização, caso carregue dados do sua origem
+        // Isso pode acontecer entre duas vetorizações (instrução em waiting) ou uma instrução comum e uma vetorização
+        // Isso porque não sabemos se devemos fornecer os dados novos ou antigos da linha
+        void new_AGU_calculation (uop_package_t *uop);
+
+
+        void statistics(FILE *);
 };
 

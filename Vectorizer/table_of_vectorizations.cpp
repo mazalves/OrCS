@@ -17,6 +17,8 @@ void table_of_vectorizations_t::allocate (libconfig::Setting &vectorizer_configs
         this->num_entries = 0;
         this->max_entries = size;
 
+        this->vectorization_size = vectorizer_configs["VEC_SIZE"];
+
         // *************************
         // Link para demais tabelas
         // *************************
@@ -34,8 +36,15 @@ void table_of_vectorizations_t::allocate (libconfig::Setting &vectorizer_configs
         this->mem_operation_latency = latency_mem_operation;
         this->mem_operation_wait_next = latency_mem_wait;
         this->mem_operation_fu = mem_op_fu;
+
+        // **********
+        // Statistics
+        // **********
+        this->vectorizations = 0;
+        this->invalidations  = 0;
        
 }
+// #############################################################################################################################
 
 table_of_vectorizations_entry_t *table_of_vectorizations_t::allocate_entry() {
     // **********************************************************
@@ -83,8 +92,7 @@ instruction_operation_t table_of_vectorizations_t::define_vima_operation(table_o
     }
     return INSTRUCTION_OPERATION_VIMA_FP_ALU;
 }
-
-
+// #############################################################################################################################
 
 table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (table_of_stores_entry_t *ts_entry) {
         printf(" >> New vectorization -- Addr lista: %p\n", (void *) &this->tl->tv->vectorizer->vectorizations_to_execute);
@@ -99,6 +107,11 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
 
         if (!entry->free)
             this->start_invalidation(entry);
+
+        // **********
+        // Statistics
+        // **********
+        this->vectorizations++;
 
         // ****************
         // Preenche entrada
@@ -124,7 +137,7 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
         printf("[1] stride: %d\n", tl_entries[1]->stride);
         printf("[ts] stride: %d\n", ts_entry->stride);
         printf("Ciclo global: %lu\n", orcs_engine.get_global_cycle());
-        entry->fill_entry(ts_entry, 0, false, 4, 
+        entry->fill_entry(ts_entry, 0, false, this->vectorization_size, 
                             tl_entries[0]->stride, 
                             (tl_entries[1]) ? tl_entries[1]->stride : 0, 
                             ts_entry->stride, 
@@ -147,6 +160,7 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
 
         return entry;
 }
+// #############################################################################################################################
 
 bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *ts_entry) {
     // **********************************************************    
@@ -192,6 +206,7 @@ bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *
 
     return true;
 }
+// #############################################################################################################################
 
 void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entry_t *tv_entry) {
     printf("INVALIDATION ENTRY %u\n", this->entry_to_id(tv_entry));
@@ -230,8 +245,7 @@ void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entr
 
 
 }
-
-
+// #############################################################################################################################
 
 // Deve invalidar a vetorização da própria tabela e reexecutar operações
 void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_entry) {
@@ -243,6 +257,11 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
         return;
     }
 
+    // **********
+    // Statistics
+    // **********
+    this->invalidations++;
+    
     // *****************************************
     // Libera instruções para descarte no commit
     // *****************************************
@@ -304,6 +323,7 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
     }
 
 }
+// #############################################################################################################################
 
 // Return id from entry
 uint32_t table_of_vectorizations_t::entry_to_id(table_of_vectorizations_entry_t *entry) {
@@ -311,6 +331,7 @@ uint32_t table_of_vectorizations_t::entry_to_id(table_of_vectorizations_entry_t 
     assert(&this->entries[id] == entry);
     return id;
 }
+// #############################################################################################################################
 
 void table_of_vectorizations_t::register_overwritten (table_of_vectorizations_entry_t *entry) {
     // Não faz sentido liberar algo já sobrescrito :p
@@ -348,7 +369,7 @@ void table_of_vectorizations_t::register_overwritten (table_of_vectorizations_en
     
     }
 }
-
+// #############################################################################################################################
 
 void table_of_vectorizations_t::generate_VIMA_instruction(table_of_vectorizations_entry_t *entry) {
         
@@ -409,6 +430,7 @@ void table_of_vectorizations_t::verify_stride(uop_package_t *uop) {
         this->start_invalidation(uop->tv_pointer);
     }
 }
+// #############################################################################################################################
 
 // Apenas remove as entradas correpondentes nas tabelas de treinamento
 // Isso é útil caso já tenha convertido todas as instruções em waiting
@@ -434,4 +456,53 @@ void table_of_vectorizations_t::unbind (table_of_vectorizations_entry_t *tv_entr
         this->ts->invalidate(tv_entry->ts_entry);
     }
     tv_entry->ts_entry = NULL;
+}
+// #############################################################################################################################
+
+// Cada load executado pode invalidar uma vetorização, caso carregue dados do seu destino
+// Cada store executado pode invalidar uma vetorização, caso carregue dados do sua origem
+// Isso pode acontecer entre duas vetorizações (instrução em waiting) ou uma instrução comum e uma vetorização
+// Isso porque não sabemos se devemos fornecer os dados novos ou antigos da linha
+// TODO -> Corrigir considerando o tamanho do dado carregado
+void table_of_vectorizations_t::new_AGU_calculation (uop_package_t *uop) {
+    table_of_vectorizations_entry_t *entry = NULL;
+    switch(uop->opcode_operation) {
+        case INSTRUCTION_OPERATION_MEM_LOAD:
+            for (uint32_t i=0; i < this->max_entries; ++i) {
+                entry = &this->entries[i];
+                if (utils_t::intersect(uop->memory_address[0], uop->memory_size[0], entry->addr_mem_store, (entry->after_last_byte_mem_store - entry->addr_mem_store))) {
+                    printf("Leitura em endereço de escrita da vetorização %p (Leitura: %lu; Escritas: [%lu -- %lu)\n",
+                            (void *) entry, uop->memory_address[0], entry->addr_mem_store, entry->after_last_byte_mem_store);
+                    this->start_invalidation(entry);
+                    }
+            }
+            break;
+        case INSTRUCTION_OPERATION_MEM_STORE:
+            for (uint32_t i=0; i < this->max_entries; ++i) {
+                entry = &this->entries[i];
+                if (utils_t::intersect(uop->memory_address[0], uop->memory_size[0], entry->addr_mem_load[0], (entry->after_last_byte_mem_load[0] - entry->addr_mem_load[0]))) {
+                        printf("Escrita em endereço de leitura da vetorização %p (Escrita: %lu; Leituras: [%lu -- %lu)\n",
+                                (void *) entry, uop->memory_address[0], entry->addr_mem_load[0], entry->after_last_byte_mem_load[0]);
+                        this->start_invalidation(entry);
+                    } else if (utils_t::intersect(uop->memory_address[0], uop->memory_size[0], entry->addr_mem_load[1], (entry->after_last_byte_mem_load[1] - entry->addr_mem_load[1]))) {
+                        printf("Escrita em endereço de leitura da vetorização %p (Escrita: %lu; Leituras: [%lu -- %lu)\n",
+                                (void *) entry, uop->memory_address[0], entry->addr_mem_load[1], entry->after_last_byte_mem_load[1]);
+                        this->start_invalidation(entry);
+                    }
+            }
+            break;
+
+        default:
+            printf("table_of_vectorizations_t::calculated_mem_access >> Instrução inesperada! (%lu[%u])\n", uop->opcode_address, uop->uop_id);
+            exit(1);
+    }
+}
+
+void table_of_vectorizations_t::statistics(FILE *output) {
+
+    fprintf(output, "Table of vectorizations (TL)\n");
+    fprintf(output, "  Vectorizations: %lu\n", this->vectorizations);
+    fprintf(output, "  Invalidations:  %lu\n", this->invalidations);
+    fprintf(output, "  Vectorization size: %u\n", this->vectorization_size);
+
 }

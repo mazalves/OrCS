@@ -144,3 +144,22 @@ void vectorizer_t::flush_vectorization(table_of_vectorizations_entry_t *tv_entry
     this->tv->start_invalidation(tv_entry);
 
 }
+// #############################################################################################################################
+
+// Toda uop de load/store que é calculada no estágio de execute chama essa
+        // função para invalidar conflitos com vetorizações
+void vectorizer_t::new_AGU_calculation(uop_package_t *uop) {
+    this->tv->new_AGU_calculation(uop);
+}
+
+void vectorizer_t::statistics(FILE *output) {
+		utils_t::largestSeparator(output);
+		fprintf(output, "Vectorizer\n");
+        utils_t::largestSeparator(output);
+        
+        this->tv->statistics(output);
+
+		utils_t::largestSeparator(output);
+
+    
+}

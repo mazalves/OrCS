@@ -33,5 +33,11 @@ class vectorizer_t {
         // Coloca instruções correspondentes às ignoradas no 'instructions_to_reexecute'
         // Marca a entrada na tv para descartar as instruções ignoradas durante o commit.
         void flush_vectorization(table_of_vectorizations_entry_t *tv_entry);
+
+        // Toda uop de load/store que é calculada no estágio de execute chama essa
+        // função para invalidar conflitos com vetorizações
+        void new_AGU_calculation(uop_package_t *uop);
         
+
+        void statistics(FILE *output);
 };
