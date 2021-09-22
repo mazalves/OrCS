@@ -9,7 +9,7 @@ class vectorizer_t {
         bool enabled;
         
     public:
-            registers_tracker_t       *rt;
+        registers_tracker_t       *rt;
         // Vetorizações esperando o Rename
         circular_buffer_t<uop_package_t> vectorizations_to_execute;
         table_of_ignored_t *ti;  // Instruções que não devem ser executadas
@@ -19,6 +19,16 @@ class vectorizer_t {
                                                                     // suas instruções ignoradas do ROB devem ser reexecutadas,
                                                                     // Então as presentes no ROB são ignoradas e novas correspondentes
                                                                     // são adicionadas a esse buffer para entrar no pipeline pelo rename.
+
+        // **********
+        // Statistics
+        // **********
+        uint64_t *statistics_counters;
+        uint64_t *invalidation_point; /* Número de instruções invalidadas com a pŕoxima validação em cada posição */
+        uint32_t invalidation_point_size;
+        uint64_t *ready_point; /* Número de instruções que completam a execução na VIMA em cada ponto de next_validation */
+                               // Ex: Se a VIMA completa quando next_validation == 3, a posição 3 é incrementada.
+    
     public:
 
         void allocate(functional_unit_t *mem_op_fu, libconfig::Setting &cfg_root);
@@ -40,4 +50,6 @@ class vectorizer_t {
         
 
         void statistics(FILE *output);
+
+        void increment_counter(vectorizer_statistic_t counter, uint64_t value);
 };

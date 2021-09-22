@@ -227,4 +227,70 @@ enum branch_prediction_method_t {
     BRANCH_PREDICTION_METHOD_PIECEWISE
 };
 // ============================================================================
+enum vectorizer_statistic_t {
+    /* Types of pre-vectorization */
+    VECTORIZER_PRE_VECTORIZED_MOV = 0,
+    VECTORIZER_PRE_VECTORIZED_OPERATION,
+    VECTORIZER_NO_VACANCIES_TV,
+
+    /* Pre-vectorization steps */
+    VECTORIZER_LOAD_1_DEFINED,
+    VECTORIZER_LOAD_2_DEFINED,
+    VECTORIZER_STORE_DEFINED_MOV,
+    VECTORIZER_STORE_DEFINED_OP,
+    
+    /* Invalidation sources */
+    VECTORIZER_INVALIDATION_TL,
+    VECTORIZER_INVALIDATION_TO,
+    VECTORIZER_INVALIDATION_TS,
+    VECTORIZER_INVALIDATION_TV,
+
+    /* Quem pediu para invalidar tudo */
+    VECTORIZER_TL_STARTED_INVALIDATION,
+    VECTORIZER_TO_STARTED_INVALIDATION,
+    VECTORIZER_TS_STARTED_INVALIDATION,
+    VECTORIZER_TV_STARTED_INVALIDATION,
+    VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION,
+    VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION,
+    
+    /* Quem invalidou o treinamento */
+    VECTORIZER_TL_INVALIDATED_TRAINING,
+    VECTORIZER_TO_INVALIDATED_TRAINING,
+    VECTORIZER_TS_INVALIDATED_TRAINING,
+    VECTORIZER_NEW_VECTORIZATION_INVALIDATED_TRAINING,
+
+    /* Invalidações por conflito de escritas e leituras */
+    VECTORIZER_AGU_WRITE_OVER_READ_1,
+    VECTORIZER_AGU_WRITE_OVER_READ_2,
+    VECTORIZER_AGU_READ_OVER_WRITE,
+
+    /* Invalidações por dependências */
+    VECTORIZER_DEPENDENCY_INVALIDATION,
+
+    /* Falta de entradas */
+    VECTORIZER_TL_NOT_ENOUGH_ENTRIES,
+    VECTORIZER_TO_NOT_ENOUGH_ENTRIES,
+    VECTORIZER_TS_NOT_ENOUGH_ENTRIES,
+    VECTORIZER_TV_NOT_ENOUGH_ENTRIES,    
+    VECTORIZER_TI_NOT_ENOUGH_ENTRIES,
+
+    /* Ignored */
+    VECTORIZER_ASSIGNED_TO_IGNORED_INST,
+    VECTORIZER_TOTAL_IGNORED_INST,
+
+    /* Invalidações para destravar o pipeline */
+    VECTORIZER_UNLOCK_ROB_FULL,
+    VECTORIZER_UNLOCK_PROGRAM_ENDED,
+    VECTORIZER_UNLOCK_MOB_FULL_WITH_LOAD_STALL,
+
+    /* Vetorizações completadas com sucesso */
+    VECTORIZER_SUCCESSFULLY_COMPLETED_VECTORIZATION,
+    VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION,
+
+    /* Last/size */
+    VECTORIZER_STATISTIC_LAST
+};
+const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type);
+// ============================================================================
+
 #endif

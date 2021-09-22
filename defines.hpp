@@ -20,7 +20,7 @@
 
 #define DEBUG 0
 #define PROCESSOR_DEBUG 0
-#define FETCH_DEBUG 1
+#define FETCH_DEBUG 0
 #define DECODE_DEBUG 0
 #define RENAME_DEBUG 0
 #define DISPATCH_DEBUG 0
@@ -30,7 +30,6 @@
 #define HIVE_DEBUG 0
 #define VIMA_DEBUG 0
 #define DV_DEBUG 0
-#define VECTORIZE_AFTER 1
 #define UNIMPLEMENTED_ALERTS 0
 
 // ========================

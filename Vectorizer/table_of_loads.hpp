@@ -10,12 +10,14 @@ class table_of_loads_t {
 
         table_of_operations_t *to;
         table_of_stores_t *ts;
+
+       vectorizer_t                 *vectorizer;
     public:
         table_of_vectorizations_t *tv;
         
     public:
         // Deve ser chamado antes de qualquer execução
-        void allocate (libconfig::Setting &vectorizer_configs, table_of_operations_t *to, table_of_stores_t *ts, table_of_vectorizations_t *tv);
+        void allocate (libconfig::Setting &vectorizer_configs, table_of_operations_t *to, table_of_stores_t *ts, table_of_vectorizations_t *tv, vectorizer_t *vectorizer);
 
         // Recebe um load e gerencia sua alocação e verificações de stride
         table_of_loads_entry_t* new_ld (uop_package_t *uop);

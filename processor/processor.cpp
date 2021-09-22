@@ -1793,11 +1793,11 @@ void processor_t::rename()
 			this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
 			this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()))
 		{
-			if (this->decodeBuffer.is_empty()) {
+			/*if (this->decodeBuffer.is_empty()) {
 				printf("%lu Decode buffer empty\n", orcs_engine.get_global_cycle());
 			} else {
 				printf("%lu Not ready for decode: Status %s  Ready At: %lu\n", orcs_engine.get_global_cycle(), get_enum_package_state_char(this->decodeBuffer.front()->status), this->decodeBuffer.front()->readyAt);
-			}
+			}*/
 			break;
 		}
 		//printf("Rename %s; DecodeBuffer == %lu == %lu == RenameCounter\n", (next_dyn_inst) ? "Dynamic VIMA" : (next_reexec_inst) ? "Reexecution" : , this->decodeBuffer.front()->uop_number, this->renameCounter[0]);
@@ -1832,7 +1832,7 @@ void processor_t::rename()
 					mob_read_stall = true;
 					this->add_stall_full_MOB_Read();
 				}
-				printf("Stall mob read\n");
+
 				break;
 			}
 
@@ -1844,7 +1844,7 @@ void processor_t::rename()
 			{
 				mob_read_stall = true;
 				this->add_stall_full_MOB_Read();
-				printf("Stall mob read\n");
+
 				break;
 			}
 
@@ -1862,7 +1862,7 @@ void processor_t::rename()
 				if (this->memory_order_buffer_write_used >= MOB_READ) {
 					this->add_stall_full_MOB_Write();					
 				}
-				printf("Stall mob read\n");
+
 				break;
 			}
 			// Retorna a primeira posição de um conjunto de n livres, ou POSITION_FAIL
@@ -1870,7 +1870,7 @@ void processor_t::rename()
 			if (pos_mob == POSITION_FAIL)
 			{
 				this->add_stall_full_MOB_Write();
-				printf("Stall mob write\n");
+
 				break;
 			}
 
@@ -1983,7 +1983,7 @@ void processor_t::rename()
 				this->decodeBuffer.front()->tv_pointer = this->vectorizer->ti->get_tv_entry(this->decodeBuffer.front()->opcode_address, this->decodeBuffer.front()->uop_id, &this->decodeBuffer.front()->structural_id);
 			}
 			assert (this->decodeBuffer.front()->tv_pointer);
-			printf("Uop: %lu (structural id: %u)\n", this->decodeBuffer.front()->opcode_address, this->decodeBuffer.front()->structural_id);
+			//printf("Uop: %lu (structural id: %u)\n", this->decodeBuffer.front()->opcode_address, this->decodeBuffer.front()->structural_id);
 			this->decodeBuffer.front()->tv_pointer->new_waiting(this->decodeBuffer.front(), this->decodeBuffer.front()->structural_id);
 			this->decodeBuffer.front()->validation_number = this->decodeBuffer.front()->tv_pointer->next_validation;
 
@@ -1992,12 +1992,13 @@ void processor_t::rename()
 																 // Então reduzimos em 1 para ser a dele mesmo
 			}
 
-			printf("Ignorando instrução %lu\n", this->decodeBuffer.front()->opcode_address);
+            this->vectorizer->statistics_counters[VECTORIZER_TOTAL_IGNORED_INST]++;
+			//printf("Ignorando instrução %lu\n", this->decodeBuffer.front()->opcode_address);
 		}
 
-		if (!next_dyn_inst && !next_reexec_inst) {
+		/*if (!next_dyn_inst && !next_reexec_inst) {
 			printf("Instrução a ser renomeada %lu [Waiting: %s Validation: %u]\n", this->decodeBuffer.front()->opcode_address, ignore ? "true" : "false", this->decodeBuffer.front()->validation_number);
-		}
+		}*/
 
 		// ===============================================
 		// Inserting on ROB
@@ -2517,7 +2518,8 @@ void processor_t::clean_mob_vima()
 			}
 			if (this->memory_order_buffer_vima[pos].tv_pointer) {
 				this->memory_order_buffer_vima[pos].tv_pointer->ready = true;
-				printf("Executou e marcou\n");
+				this->vectorizer->ready_point[this->memory_order_buffer_vima[pos].tv_pointer->next_validation]++;
+				//printf("Executou e marcou\n");
 			}
 
 #if VIMA_DEBUGG
@@ -2726,8 +2728,7 @@ void processor_t::execute()
 
 				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL || rob_line->uop.waiting, "Read with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
 				switch(rob_line->uop.waiting) {
-					case false:
-						printf("NOT waiting\n");				
+					case false:			
 						this->memory_read_executed++;
 
 						for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
@@ -2738,8 +2739,9 @@ void processor_t::execute()
 						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 						break;
 					case true:
-						printf("LOAD Waiting\n");
+						//printf("LOAD Waiting\n");
 						if (!rob_line->uop.tv_pointer->verify_stride(&rob_line->uop)) {
+							this->vectorizer->statistics_counters[VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION]++;
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						}
 						this->vectorizer->new_AGU_calculation(&rob_line->uop);
@@ -2760,8 +2762,7 @@ void processor_t::execute()
 			{
 				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL || rob_line->uop.waiting, "Write with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
 				switch(rob_line->uop.waiting) {
-					case false:
-						printf("NOT waiting\n");				
+					case false:				
 						this->memory_write_executed++;
 
 						for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
@@ -2772,8 +2773,9 @@ void processor_t::execute()
 						rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 						break;
 					case true:
-						printf("STORE Waiting\n");
+						//printf("STORE Waiting\n");
 						if (!rob_line->uop.tv_pointer->verify_stride(&rob_line->uop)) {
+							this->vectorizer->statistics_counters[VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION]++;							
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						}
 						this->vectorizer->new_AGU_calculation(&rob_line->uop);
@@ -3233,8 +3235,6 @@ uint32_t processor_t::mob_write()
 	return OK;
 }
 // ============================================================================
-uint64_t last_try_pc = 0;
-uint64_t last_try_op = 0;
 void processor_t::commit()
 {
 #if COMMIT_DEBUG
@@ -3468,15 +3468,17 @@ void processor_t::commit()
 		{
 			// Verifica se precisa destravar o pipeline:
 			if (rob->robUsed > 0 && rob_line->stage == PROCESSOR_STAGE_WAITING_DYN) {
-				rob_line->uop.tv_pointer->why_ready_for_commit();
+				//rob_line->uop.tv_pointer->why_ready_for_commit();
+
 				// Se não estiver pronto para o commit e o pipeline estiver cheio (ROB),
 				// precisa destravar, pois mais nada entra pelo rename
 				// (Mas precisa esperar para ver se o processamento de load/store vai destravar)
 				if ((rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
 					(rob_line->uop.tv_pointer->need_confirmation == 0) &&
 					(rob->robUsed == ROB_SIZE)) {
-						printf("Precisei destravar, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
+						//printf("Precisei destravar, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
 						this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
+						this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_ROB_FULL]++;
 				} else {
 					// Se não vai ter mais instruções para completar a vetorização (fim do programa)
 					if ((this->traceIsOver) && 
@@ -3484,8 +3486,9 @@ void processor_t::commit()
 						(this->decodeBuffer.size == 0) &&
 						(rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
 						(rob_line->uop.tv_pointer->need_confirmation == 0)) {
-							printf("Precisei destravar pelo fim das instruções, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
+							//printf("Precisei destravar pelo fim das instruções, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
+							this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_PROGRAM_ENDED]++;
 						}
 					// Se o adicionou confirmações necessárias a mais do que devia
 					// os loads e stores em waiting já foram processados mas ainda falta :p
@@ -3504,42 +3507,22 @@ void processor_t::commit()
 					if ((this->memory_order_buffer_read_used >= MOB_READ) &&
 						(this->mob_read_stall)) {
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
-							printf("Precisei destravar por mob cheio, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
-
+							//printf("Precisei destravar por mob cheio, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
+							this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_MOB_FULL_WITH_LOAD_STALL]++;
 						}
 				}
 			}
-			else {
+			/*else {
 				printf("Outra instrução no estagio: %s Type: %s Addr: %lu Status: %s Ready At: %lu\n", get_enum_processor_stage_char(rob_line->stage),
 						get_enum_instruction_operation_char(rob_line->uop.uop_operation), rob_line->uop.opcode_address,
 						get_enum_package_state_char(rob_line->uop.status), rob_line->uop.readyAt);
 				orcs_engine.vima_controller->print_vima_instructions();
 				orcs_engine.cacheManager->print_requests();
-				/*if (orcs_engine.get_global_cycle() > 251480) {
-					exit(1);
-				}*/
-			}
+				//if (orcs_engine.get_global_cycle() > 251480) {
+				//	exit(1);
+				//}
+			}*/
 			
-			if (rob->robUsed > 0 && rob_line->stage == PROCESSOR_STAGE_WAITING_DYN) {
-				if (last_try_pc == rob_line->uop.opcode_address && last_try_op == rob_line->uop.uop_id) {
-					printf("[%lu] Tentando comitar instrução %lu (%u) no estágio: %s ", orcs_engine.get_global_cycle(), rob_line->uop.opcode_address, rob_line->uop.uop_id, get_enum_processor_stage_char(rob_line->stage));
-					printf("Ready at: %lu Is_VIMA: %s\n", rob_line->uop.readyAt, rob_line->uop.is_vima ? "true" : "false");
-					printf(" > TV pointer (%p) is_ready_for_commit() == %s\n", (void *) rob_line->uop.tv_pointer, rob_line->uop.tv_pointer->is_ready_for_commit() ? "true" : "false");
-					
-					if (rob_line->uop.tv_pointer) rob_line->uop.tv_pointer->why_ready_for_commit();
-				} else {
-					printf("Variando!!! [%lu] (%u) != [%lu] (%lu)\n", rob_line->uop.opcode_address, rob_line->uop.uop_id, last_try_pc, last_try_op);
-					printf("[%lu] Tentando comitar instrução %lu (%u) no estágio: %s\n", orcs_engine.get_global_cycle(), rob_line->uop.opcode_address, rob_line->uop.uop_id, get_enum_processor_stage_char(rob_line->stage));
-					//printf("Ready at: %lu Is_VIMA: %s\n", rob_line->uop.readyAt, rob_line->uop.is_vima ? "true" : "false");
-					//if (rob_line->uop.tv_pointer) printf("\n  > TV pointer is_ready_for_commit() == %s\n", rob_line->uop.tv_pointer->is_ready_for_commit() ? "true" : "false");
-					
-					//rob_line->uop.tv_pointer->why_ready_for_commit();
-				}
-
-				last_try_pc = rob_line->uop.opcode_address;
-				last_try_op = rob_line->uop.uop_id;
-				
-			}
 			i = 0;
 #if DEBUG
 			if (rob->robUsed)

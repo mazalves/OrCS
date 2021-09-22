@@ -22,9 +22,6 @@ class table_of_vectorizations_t {
         uint32_t mem_operation_wait_next;
         functional_unit_t *mem_operation_fu;
 
-        
-        // Statistics
-        uint64_t vectorizations, invalidations;
 
 public:
     vectorizer_t *vectorizer;

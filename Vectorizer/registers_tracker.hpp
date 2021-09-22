@@ -38,16 +38,15 @@ class registers_tracker_t {
         void committed_ld (uop_package_t *uop);
         void committed_op (uop_package_t *uop);
         void committed_st (uop_package_t *uop);
-        void committed_other (uop_package_t *uop);
 
         // *****************************************
         // No rename para pré-vetorização e rastreio
         // *****************************************
+        void check_read_registers(uop_package_t *uop, table_of_vectorizations_entry_t *tv_entry);
         void register_overwritten(uop_package_t *uop, table_of_vectorizations_entry_t *tv_entry);
         void renamed_ld (uop_package_t *uop);
         void renamed_op (uop_package_t *uop);
         void renamed_st (uop_package_t *uop);
-        void renamed_other (uop_package_t *uop);
 
 
 };

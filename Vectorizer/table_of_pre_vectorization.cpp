@@ -1,6 +1,6 @@
 #include "./../simulator.hpp"
 
-void table_of_pre_vectorization_t::allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts) {
+void table_of_pre_vectorization_t::allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts, vectorizer_t *vectorizer) {
     this->max_entries = vectorizer_configs["TPV_SIZE"];
     this->entries = new table_of_pre_vectorization_entry_t[this->max_entries];
     this->occupied_entries = 0;
@@ -8,11 +8,12 @@ void table_of_pre_vectorization_t::allocate(libconfig::Setting &vectorizer_confi
     this->tl = tl;
     this->to = to;
     this->ts = ts;
+
+    this->vectorizer = vectorizer;
 }
 
 bool table_of_pre_vectorization_t::insert (uint64_t addr, uint8_t uop_id, table_of_vectorizations_entry_t *tv_entry) {
-    if (this->occupied_entries >= this->max_entries)
-        return false;
+    assert (this->occupied_entries < this->max_entries);
     
     for (uint32_t i=0; i < this->max_entries; ++i) {
         if (this->entries[i].is_free()) {
@@ -58,6 +59,11 @@ table_of_vectorizations_entry_t* table_of_pre_vectorization_t::get_tv_entry (uin
 void table_of_pre_vectorization_t::remove_vectorization (table_of_vectorizations_entry_t *entry) {
     table_of_loads_entry_t *tl_entries[2];
     table_of_operations_entry_t *to_entry;
+
+    if (entry->ts_entry == NULL) {
+        assert (entry->discard_results);
+        return;
+    }
 
     if (entry->ts_entry->is_mov) {
         tl_entries[0] = this->tl->get_id(entry->ts_entry->tl_to_entry);

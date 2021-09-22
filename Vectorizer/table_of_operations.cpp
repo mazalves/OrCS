@@ -1,7 +1,7 @@
 #include "./../simulator.hpp"
 
 // Deve ser chamado antes de qualquer execução
-void table_of_operations_t::allocate (libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_stores_t *ts, table_of_vectorizations_t *tv) { 
+void table_of_operations_t::allocate (libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_stores_t *ts, table_of_vectorizations_t *tv, vectorizer_t *vectorizer) { 
        uint32_t size = vectorizer_configs["TO_SIZE"];
         assert (size > 0);
 
@@ -12,6 +12,8 @@ void table_of_operations_t::allocate (libconfig::Setting &vectorizer_configs, ta
         this->tl = tl;
         this->ts = ts;
         this->tv = tv;
+
+        this->vectorizer = vectorizer;
     
 }
         
@@ -42,8 +44,11 @@ void table_of_operations_t::start_invalidation (table_of_operations_entry_t *ent
         // tipo com o laço tendo acabado dentro do ROB mesmo :p)
         // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if (entry->tv_entry->state < 4) {
-            printf("Operation invalidation\n");
+            //printf("Operation invalidation\n");
             this->tv->start_invalidation(entry->tv_entry);
+            this->vectorizer->statistics_counters[VECTORIZER_TO_STARTED_INVALIDATION]++;
+            this->vectorizer->statistics_counters[VECTORIZER_TO_INVALIDATED_TRAINING]++;
+
         }
     } else  {
          // Invalida TL
@@ -58,6 +63,8 @@ void table_of_operations_t::start_invalidation (table_of_operations_entry_t *ent
 
         // Se invalida
         this->invalidate(entry);
+        this->vectorizer->statistics_counters[VECTORIZER_TO_STARTED_INVALIDATION]++;
+
     }
 
 }
@@ -70,6 +77,8 @@ void table_of_operations_t::invalidate(table_of_operations_entry_t *entry){
     // Limpa a entrada
     // ***************
     entry->clean();
+    this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TO]++;
+
 }
 
 // Busca na tabela de operações
@@ -153,11 +162,12 @@ uint32_t table_of_operations_t::new_entry_id (uop_package_t *uop, bool *valid) {
         }
     }
 
-    // *********************************
-    // Indica que uma entrada foi obtida
-    // *********************************
+    // *************************************
+    // Indica que uma entrada não foi obtida
+    // *************************************
     if (choice == NULL) {
         *valid = false;
+        this->vectorizer->statistics_counters[VECTORIZER_TO_NOT_ENOUGH_ENTRIES]++;
         return 0;
     } else if (choice->free == false) {
         this->start_invalidation(choice);
@@ -169,7 +179,7 @@ uint32_t table_of_operations_t::new_entry_id (uop_package_t *uop, bool *valid) {
     choice->fill_entry(uop->opcode_address, uop->uop_id, uop->opcode_assembly,
                       NULL, NULL, NULL, NULL, orcs_engine.get_global_cycle());
 
-    printf("[ TO ] Alocando entrada %u\n", choice_id);
+    //printf("[ TO ] Alocando entrada %u\n", choice_id);
     *valid = true;
 
     assert (&this->entries[choice_id] == choice);

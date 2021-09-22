@@ -1,6 +1,6 @@
 #include "./../simulator.hpp"
 
-void table_of_ignored_t::allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts) {
+void table_of_ignored_t::allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts, vectorizer_t *vectorizer) {
     this->max_entries = vectorizer_configs["TI_SIZE"];
     this->entries = new table_of_ignored_entry_t[this->max_entries];
     this->occupied_entries = 0;
@@ -8,12 +8,13 @@ void table_of_ignored_t::allocate(libconfig::Setting &vectorizer_configs, table_
     this->tl = tl;
     this->to = to;
     this->ts = ts;
+
+    this->vectorizer = vectorizer;
 }
 
 bool table_of_ignored_t::insert (uint64_t addr, uint8_t uop_id, table_of_vectorizations_entry_t *tv_entry, uint8_t structural_id) {
-    if (this->occupied_entries >= this->max_entries)
-        return false;
-    printf(" [ TI ] Inserindo %lu (%u)\n", addr, uop_id);
+    assert (this->occupied_entries < this->max_entries);
+
     for (uint32_t i=0; i < this->max_entries; ++i) {
         if (this->entries[i].is_free()) {
             this->entries[i].set(addr, uop_id, tv_entry, structural_id);
@@ -71,7 +72,7 @@ bool table_of_ignored_t::insert_vectorization (table_of_vectorizations_entry_t *
             to_entry      = NULL;
 
             if (!this->insert(tl_entries[0]->get_pc(), tl_entries[0]->get_uop_id(), entry, 0)) return false;
-            
+            this->vectorizer->statistics_counters[VECTORIZER_ASSIGNED_TO_IGNORED_INST] += 2;
         } else {
             to_entry      = this->to->get_id(entry->ts_entry->tl_to_entry);
             tl_entries[0] = to_entry->tl_entries[0];
@@ -80,6 +81,8 @@ bool table_of_ignored_t::insert_vectorization (table_of_vectorizations_entry_t *
             if (!this->insert(to_entry->get_pc(), to_entry->get_uop_id(), entry, 2)) return false;
             if (!this->insert(tl_entries[0]->get_pc(), tl_entries[0]->get_uop_id(), entry, 0)) return false;
             if (!this->insert(tl_entries[1]->get_pc(), tl_entries[1]->get_uop_id(), entry, 1)) return false;
+            this->vectorizer->statistics_counters[VECTORIZER_ASSIGNED_TO_IGNORED_INST] += 4;
+
         }
 
         if (!this->insert(entry->ts_entry->get_pc(), entry->ts_entry->get_uop_id(), entry, 3)) return false;
@@ -93,21 +96,20 @@ void table_of_ignored_t::remove_vectorization (table_of_vectorizations_entry_t *
 
         if (entry->ts_entry == NULL) {
             assert (entry->discard_results);
-            printf("[ TI ] Tentando remover entradas já limpas %p!\n", (void*)entry);
             return;
         }
         if (entry->ts_entry->is_mov) {
             tl_entries[0] = this->tl->get_id(entry->ts_entry->tl_to_entry);
             tl_entries[1] = NULL;
             to_entry      = NULL;
-
+            printf("%p\n", (void *) tl_entries[0]);
             this->remove(tl_entries[0]->get_pc(), tl_entries[0]->get_uop_id());
 
         } else {
             to_entry      = this->to->get_id(entry->ts_entry->tl_to_entry);
             tl_entries[0] = to_entry->tl_entries[0];
             tl_entries[1] = to_entry->tl_entries[1];
-
+            printf("%p\n", (void *) tl_entries[0]);
             this->remove(to_entry->get_pc(), to_entry->get_uop_id());
             this->remove(tl_entries[0]->get_pc(), tl_entries[0]->get_uop_id());
             this->remove(tl_entries[1]->get_pc(), tl_entries[1]->get_uop_id());

@@ -78,7 +78,7 @@ void registers_tracker_t::committed_ld (uop_package_t *uop) {
 
 void registers_tracker_t::committed_op (uop_package_t *uop) {
     bool active_debug = false;
-    if (uop->opcode_address == 94318318040704) active_debug = true;
+    //if (uop->opcode_address == 94318318040704) active_debug = true;
     if (active_debug) printf("Op: %lu\n", uop->opcode_address);
 
 
@@ -212,8 +212,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
         entry->tl_pointer = NULL;
         entry->to_pointer = to_pointer;
         entry->ts_pointer = NULL;
-        if (to_pointer != NULL)
-            printf("Registrador %d recebendo entrada na TO %u\n", uop->write_regs[i], this->to->entry_to_id(to_pointer));
+    
         if (active_debug) printf(" --> Vinculado a %d\n", uop->write_regs[i]);
         assert (entry->to_pointer == NULL || entry->to_pointer->free == false);
     }
@@ -224,7 +223,6 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
     bool active_debug = false;
     //if (uop->opcode_address == 94318318040707) active_debug = true;
     if (active_debug) printf("Op: %lu (STORE)\n", uop->opcode_address);
-    printf("Entradas já alocadas na TO: %lu\n", this->to->allocated_entries);
 
     bool vectorizable_origin = true;
 
@@ -311,10 +309,6 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
             }
         }
         // // Se for um store (deveria ser impossível :p)
-        if (entry->ts_pointer != NULL) {
-            printf("Escrita em store para ts_pointer: %p (%lu)\n", (void *)entry->ts_pointer,
-            ((uint64_t)entry->ts_pointer - (uint64_t)this->ts->get_id(0)) / sizeof(table_of_loads_entry_t));
-        }
         assert (entry->ts_pointer == NULL);
 
 
@@ -323,7 +317,6 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
             vectorizable_origin = false;
             if (active_debug) printf(">> Nem veio de um load/op válido\n");
         }
-        printf("Pointers: TL == %p, TO == %p, TS == %p\n", (void *) entry->tl_pointer, (void *) entry->to_pointer, (void *) entry->ts_pointer);
     }
 
 
@@ -351,7 +344,6 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
                     ts_pointer->tl_to_entry = tl->entry_to_id(entry->tl_pointer);
                     if (active_debug) printf(" >> Ligando store a load pelo reg %d (tl_entry: %d)\n", source_reg, this->tl->entry_to_id(entry->tl_pointer));
                     /* Vetoriza */
-                    printf(" >> Vetorizando cadeia de mov\n");
                     this->ts->vectorize(ts_pointer);
 
                 } else if (entry->to_pointer) {
@@ -362,7 +354,6 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
                     ts_pointer->tl_to_entry = to->entry_to_id(entry->to_pointer);
                     if (active_debug) printf(" >> Ligando store a operação pelo reg %d (to_entry: %d)\n", source_reg, this->to->entry_to_id(entry->to_pointer));
                     /* Vetoriza */
-                    printf(" >> Vetorizando cadeia de operação\n");
                     this->ts->vectorize(ts_pointer);
                 }
             }
@@ -397,45 +388,27 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
 }
 // #######################################################################################################
 
-void registers_tracker_t::committed_other (uop_package_t *uop) {
-
-
-    // Registradores de leitura
-    for (int32_t i=0; (i < MAX_REGISTERS) && (uop->read_regs[i] != POSITION_FAIL); ++i) {
-        registers_tracker_entry_t *entry = &this->entries[uop->read_regs[i]];
-        if (entry->tl_pointer) {
-
-            this->tl->start_invalidation(entry->tl_pointer);
-            entry->tl_pointer = NULL;
-        }
-        if (entry->to_pointer) {
-            this->to->start_invalidation(entry->to_pointer);
-            entry->to_pointer = NULL;
-        }
-        
-        assert (entry->ts_pointer == NULL);
-        if (entry->ts_pointer) {
-            this->ts->start_invalidation(entry->ts_pointer);
-            entry->ts_pointer = NULL;
-        }
-    }
-    // Registradores de escrita
-    for (int32_t i=0; (i < MAX_REGISTERS) && (uop->write_regs[i] != POSITION_FAIL); ++i) {
-        
-        registers_tracker_entry_t *entry = &this->entries[uop->write_regs[i]];
-        //printf("Wrote in register %d\n", i);
-        //printf("From write Regs[i] = %d\n", uop->write_regs[i]);
-        //printf("From entry: %p[%d]/%p[%d]\n", (void *)&this->entries[uop->write_regs[i]], uop->write_regs[i], (void *)&this->entries[this->num_entries], this->num_entries);
-        entry->tl_pointer = NULL;
-        entry->to_pointer = NULL;
-        entry->ts_pointer = NULL;
-    }
-}
-
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Rename
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Verifica se está lendo de alguma vetorização que não é sua própria
+// Se estiver deve invalidar a ambas as vetorizações
+void registers_tracker_t::check_read_registers(uop_package_t *uop, table_of_vectorizations_entry_t *tv_entry) {
+    
+    for (int32_t i=0; (i < MAX_REGISTERS) && (uop->read_regs[i] != POSITION_FAIL); ++i) {
+        registers_tracker_entry_t *entry = &this->entries[uop->read_regs[i]];
+        
+        if ((entry->tv_pointer) && (entry->tv_pointer != tv_entry)) {
+            this->tv->start_invalidation(entry->tv_pointer);
+            if (tv_entry) {
+                this->tv->start_invalidation(tv_entry);
+            }
+        }
+    }
+}
+
+
 void registers_tracker_t::register_overwritten(uop_package_t *uop, table_of_vectorizations_entry_t *tv_entry) {
     // Anota caso sobrescreva algum registrador (Completar validação final)
     uint8_t num_regs = 0;
@@ -461,7 +434,7 @@ void registers_tracker_t::register_overwritten(uop_package_t *uop, table_of_vect
 
 
 void registers_tracker_t::renamed_ld (uop_package_t *uop) {
-    printf("Load %lu\n", uop->opcode_address);
+    //printf("Load %lu\n", uop->opcode_address);
 
     // Tracking
     table_of_vectorizations_entry_t *tv_pointer = NULL;
@@ -486,20 +459,25 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
             load_entry[1] = to_pointer->tl_entries[1];
         }
 
-        printf("Preenchendo tv com loads\n");
+        //printf("Preenchendo tv com loads\n");
         switch(tv_pointer->state) {
             case 0:
                 if ((load_entry[0]->get_pc() == uop->opcode_address) && (load_entry[0]->get_uop_id() == uop->uop_id)) {
                     tv_pointer->addr_mem_load[0] = uop->memory_address[0];
                     tv_pointer->after_last_byte_mem_load[0] = uop->memory_address[0] + tv_pointer->load_stride[0] * tv_pointer->num_elements;
-                    printf("Definindo primeiro load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[0]);
+                    
+                    //printf("Definindo primeiro load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[0]);
+                    this->vectorizer->statistics_counters[VECTORIZER_LOAD_1_DEFINED]++;
+
                     tv_pointer->set_state(1);
 
                     // ++++++++++++++++++++++++++++++++++++++++++++++++ 
                     // Insere na lista de ignoradas
                     // ++++++++++++++++++++++++++++++++++++++++++++++++
                     if (this->vectorizer->ti->has_n_vacancies((tv_pointer->ts_entry->is_mov) ? 2 : 4) == false) {
-                        printf("Sem vagas na lista de ignoradas...\n");
+                        //printf("Sem vagas na lista de ignoradas...\n");
+                        this->vectorizer->statistics_counters[VECTORIZER_TI_NOT_ENOUGH_ENTRIES]++;
+                        
                         tv_pointer->set_state(0);            
                         break;
                     }
@@ -512,7 +490,10 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
                 if ((load_entry[1]->get_pc() == uop->opcode_address) && (load_entry[1]->get_uop_id() == uop->uop_id)) {
                     tv_pointer->addr_mem_load[1] = uop->memory_address[0];
                     tv_pointer->after_last_byte_mem_load[1] = uop->memory_address[0] + tv_pointer->load_stride[1] * tv_pointer->num_elements;
-                    printf("Definindo segundo load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[1]);
+                    
+                    //printf("Definindo segundo load: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_load[1]);
+                    this->vectorizer->statistics_counters[VECTORIZER_LOAD_2_DEFINED]++;
+                    
                     tv_pointer->set_state(2);
                 }
                 break;
@@ -527,30 +508,33 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
     }
 
     // Tracking com a entrada correspondente
+    this->check_read_registers(uop, tv_pointer);
     this->register_overwritten(uop, tv_pointer);
 
 }
 
 void registers_tracker_t::renamed_op (uop_package_t *uop) {
-    printf("Operation %lu\n", uop->opcode_address);
+    //printf("Operation %lu\n", uop->opcode_address);
 
     // Tracking
     table_of_vectorizations_entry_t *tv_pointer = NULL;
     uint8_t structural_id = 0;
     tv_pointer = this->ti->get_tv_entry(uop->opcode_address, uop->uop_id, &structural_id);
+    this->check_read_registers(uop, tv_pointer);
     this->register_overwritten(uop, tv_pointer);
 
 
 }
 
 void registers_tracker_t::renamed_st (uop_package_t *uop) {
-    printf("Store %lu\n", uop->opcode_address);
+    //printf("Store %lu\n", uop->opcode_address);
     // Tracking
     table_of_vectorizations_entry_t *tv_pointer = NULL;
     uint8_t structural_id = 0;
     tv_pointer = this->ti->get_tv_entry(uop->opcode_address, uop->uop_id, &structural_id);
 
     /* Como o store define a pŕoxima vetorização, precisa sobrescrever os registradores antes */
+    this->check_read_registers(uop, tv_pointer);
     this->register_overwritten(uop, tv_pointer);
 
     if (tv_pointer) {
@@ -599,13 +583,20 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
                 assert (tpv_tv_pointer->ts_entry->is_mov);
                 tpv_tv_pointer->addr_mem_store = uop->memory_address[0];
                 tv_pointer->after_last_byte_mem_store = uop->memory_address[0] + tv_pointer->store_stride * tv_pointer->num_elements;
-                printf("Definindo store em mov: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
+                
+                //printf("Definindo store em mov: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
+                this->vectorizer->statistics_counters[VECTORIZER_STORE_DEFINED_MOV]++;
+                
                 tpv_tv_pointer->set_state(3);
                 break;
             case 2:
                 tpv_tv_pointer->addr_mem_store = uop->memory_address[0];
                 tv_pointer->after_last_byte_mem_store = uop->memory_address[0] + tv_pointer->store_stride * tv_pointer->num_elements;
-                printf("Definindo store em operação: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
+                
+                //printf("Definindo store em operação: %lu <--> %lu\n", uop->memory_address[0], tv_pointer->after_last_byte_mem_store);
+                this->vectorizer->statistics_counters[VECTORIZER_STORE_DEFINED_OP]++;
+                
+                
                 tpv_tv_pointer->set_state(3);
                 break;
         }
@@ -648,14 +639,4 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
                 break;
         }
     }
-}
-
-void registers_tracker_t::renamed_other (uop_package_t *uop) {
-    // Tracking
-    table_of_vectorizations_entry_t *tv_pointer = NULL;
-    uint8_t structural_id = 0;
-    tv_pointer = this->ti->get_tv_entry(uop->opcode_address, uop->uop_id, &structural_id);
-    this->register_overwritten(uop, tv_pointer);
-
-
 }

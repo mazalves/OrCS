@@ -218,7 +218,7 @@ inline void table_of_vectorizations_entry_t::clean() {
 
     this->lru = 0;
     this->free = true;
-    printf("Cleaning TV %p\n", (void *)this);
+    //printf("Cleaning TV %p\n", (void *)this);
 }
 
 inline void table_of_vectorizations_entry_t::fill_entry(table_of_stores_entry_t *ts_entry,
@@ -258,25 +258,26 @@ inline void table_of_vectorizations_entry_t::fill_entry(table_of_stores_entry_t 
 // (Verificar se são utilizados por alguém antes de sobrescritos :p)
 inline void table_of_vectorizations_entry_t::register_replace() {
     this->update_lru(orcs_engine.get_global_cycle());
-        printf("Remaining registers: %u -> %u\n", this->remaining_registers, this->remaining_registers - 1);
+        //printf("Remaining registers: %u -> %u\n", this->remaining_registers, this->remaining_registers - 1);
         
         assert (this->remaining_registers > 0); 
         --this->remaining_registers;
 
         if (this->remaining_registers == 0 && this->next_validation >= this->num_elements && this->need_confirmation == 0 && this->discard_results == false) {
             this->ready_for_commit = true;
-            printf("register_replace => READY FOR COMMIT %p!!!\n", (void *)this);
-            for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
+            //printf("register_replace => READY FOR COMMIT %p!!!\n", (void *)this);
+            /*for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
                 registers_tracker_entry_t *entry = orcs_engine.processor->get_tv_register_id(i);
                 if (entry->tv_pointer == this) {
                     printf("ERRO! SOBROU UMA ENTRADA!\n");
                     exit(1);
                 }
-            }
+            }*/
         }
         else if (this->discard_results == true && this->inst_inside_ROB == 0 && this->remaining_registers == 0) {
             // Pode apagar
-            printf("register_replace => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
+            //printf("register_replace => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
+            orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION, 1);            
             this->clean();
         }
 }
@@ -284,7 +285,7 @@ inline void table_of_vectorizations_entry_t::register_replace() {
 inline void table_of_vectorizations_entry_t::register_add (uint8_t num_registers) {
     this->update_lru(orcs_engine.get_global_cycle());
     
-    printf("Incrementing remaining registers: %u -> %u\n", this->remaining_registers, this->remaining_registers + num_registers);
+    //printf("Incrementing remaining registers: %u -> %u\n", this->remaining_registers, this->remaining_registers + num_registers);
     this->remaining_registers += num_registers;
 }
 
@@ -293,7 +294,7 @@ inline void table_of_vectorizations_entry_t::increment_validation () {
     if (this->next_validation < this->num_elements) {
         this->next_validation += 1;
     }
-    printf("Validação incrementada para %d\n", this->next_validation);
+    //printf("Validação incrementada para %d\n", this->next_validation);
 }
 
 inline bool table_of_vectorizations_entry_t::has_ended () {
@@ -332,18 +333,22 @@ inline void table_of_vectorizations_entry_t::new_commit (uop_package_t *uop) {
         --this->inst_inside_ROB;
         if (this->inst_inside_ROB == 0 && this->remaining_registers == 0) {
             // Pode apagar
-            printf("new_commit => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
+            //printf("new_commit => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
+            orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION, 1);
             this->clean();
         }
     } else {
+        /* Pra liberar o commit já deve ter verificado os registradores ,então só commita */
         if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
             ++(this->committed_elements);
-            printf("%p -> %d committed elements\n", (void *)this, this->committed_elements);
+            //printf("%p -> %d committed elements\n", (void *)this, this->committed_elements);
             assert (this->committed_elements <= this->num_elements);
             if (this->committed_elements == this->num_elements) {
                 // Pode apagar
+                orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_COMPLETED_VECTORIZATION, 1);
                 this->clean();
-                printf("Último commit, apagando a entrada na TV (%p)\n",(void *)this);
+
+                //printf("Último commit, apagando a entrada na TV (%p)\n",(void *)this);
             }
         }
     }
@@ -364,7 +369,7 @@ inline void table_of_vectorizations_entry_t::new_waiting (uop_package_t *uop, ui
 
     // Faz esperar confirmação do stride
     if (structural_id != 2) {
-        printf("Confirmações necessárias incrementadas: %u -> %u\n", this->need_confirmation, this->need_confirmation + 1);
+        //printf("Confirmações necessárias incrementadas: %u -> %u\n", this->need_confirmation, this->need_confirmation + 1);
         this->need_confirmation++;
     }
 
@@ -385,17 +390,17 @@ inline bool table_of_vectorizations_entry_t::verify_stride(uop_package_t *uop) {
     {
     case 0:
         stride = mem_addr - (this->addr_mem_load[0]);
-        printf ("Endereço acessado pelo primeiro load: %lu (load base: %lu)\n", mem_addr, (this->addr_mem_load[0]));
+        //printf ("Endereço acessado pelo primeiro load: %lu (load base: %lu)\n", mem_addr, (this->addr_mem_load[0]));
         if (stride != this->load_stride[0]*uop->validation_number) {
-            printf("Stride do primeiro load (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->load_stride[0]*uop->validation_number, this->load_stride[0],uop->validation_number);
+            //printf("Stride do primeiro load (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->load_stride[0]*uop->validation_number, this->load_stride[0],uop->validation_number);
             return false;
         }
         break;
     case 1:
         stride = mem_addr - (this->addr_mem_load[1]);
-        printf ("Endereço acessado pelo segundo load: %lu (load base: %lu)\n", mem_addr, (this->addr_mem_load[1]));
+        //printf ("Endereço acessado pelo segundo load: %lu (load base: %lu)\n", mem_addr, (this->addr_mem_load[1]));
         if (stride != this->load_stride[1]*uop->validation_number) {
-            printf("Stride do segundo load (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->load_stride[1]*uop->validation_number, this->load_stride[1],uop->validation_number);
+            //printf("Stride do segundo load (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->load_stride[1]*uop->validation_number, this->load_stride[1],uop->validation_number);
             return false;
         }
         break;
@@ -403,9 +408,9 @@ inline bool table_of_vectorizations_entry_t::verify_stride(uop_package_t *uop) {
 
     case 3:
         stride = mem_addr - (this->addr_mem_store);
-        printf ("Endereço acessado pelo store: %lu (store base: %lu)\n", mem_addr, (this->addr_mem_store));
+        //printf ("Endereço acessado pelo store: %lu (store base: %lu)\n", mem_addr, (this->addr_mem_store));
         if (stride != this->store_stride*uop->validation_number) {
-            printf("Stride do store (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->store_stride*uop->validation_number, this->store_stride,uop->validation_number);
+            //printf("Stride do store (Addr %lu) incompatível para a validação %u! %lu != %lu [%ld * %u]\n", uop->opcode_address, uop->validation_number, stride, this->store_stride*uop->validation_number, this->store_stride,uop->validation_number);
             return false;
         }
         break;
@@ -420,16 +425,16 @@ inline bool table_of_vectorizations_entry_t::verify_stride(uop_package_t *uop) {
 
     if (this->remaining_registers == 0 && this->next_validation >= this->num_elements && this->need_confirmation == 0) {
         this->ready_for_commit = true;
-        printf("verify_stride => READY FOR COMMIT %p!!!\n", (void *)this);
-        for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
+        //printf("verify_stride => READY FOR COMMIT %p!!!\n", (void *)this);
+        /*for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
                 registers_tracker_entry_t *entry = orcs_engine.processor->get_tv_register_id(i);
                 if (entry->tv_pointer == this) {
                     printf("ERRO! SOBROU UMA ENTRADA!\n");
                     exit(1);
                 }
-            }
+            }*/
     }
 
-    printf("Stride do %s confirmado! (%u => %u)\n", (uop->structural_id == 0) ? "primeiro load" : (uop->structural_id == 1) ? "segundo load" : (uop->structural_id == 3) ? "store" : "outro", this->need_confirmation+1, this->need_confirmation);
+    //printf("Stride do %s confirmado! (%u => %u)\n", (uop->structural_id == 0) ? "primeiro load" : (uop->structural_id == 1) ? "segundo load" : (uop->structural_id == 3) ? "store" : "outro", this->need_confirmation+1, this->need_confirmation);
     return true;
 }

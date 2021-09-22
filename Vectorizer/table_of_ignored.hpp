@@ -9,6 +9,8 @@ class table_of_ignored_t {
         table_of_operations_t     *to;
         table_of_stores_t         *ts;
 
+        vectorizer_t                 *vectorizer;
+
     public:
         table_of_ignored_t() {
             this->entries = NULL;
@@ -16,7 +18,7 @@ class table_of_ignored_t {
             this->occupied_entries = 0;
         }
 
-        void allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts);
+        void allocate(libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_stores_t *ts, vectorizer_t *vectorizer);
 
         bool insert (uint64_t addr, uint8_t uop_id, table_of_vectorizations_entry_t *tv_entry, uint8_t structural_id);
 

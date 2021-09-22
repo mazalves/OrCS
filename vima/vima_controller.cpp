@@ -414,7 +414,7 @@ void vima_controller_t::allocate(){
 
 bool vima_controller_t::addRequest (memory_package_t* request){
     if (vima_buffer.size() < this->VIMA_BUFFER) {
-        ORCS_PRINTF ("%lu requests inside the VIMA controller\n", vima_buffer.size())
+        //ORCS_PRINTF ("%lu requests inside the VIMA controller\n", vima_buffer.size())
         request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
         vima_buffer.push_back (request);

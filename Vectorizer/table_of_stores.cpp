@@ -1,7 +1,7 @@
 #include "./../simulator.hpp"
 
  // Deve ser chamado antes de qualquer execução
-void table_of_stores_t::allocate (libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_vectorizations_t *tv)  { 
+void table_of_stores_t::allocate (libconfig::Setting &vectorizer_configs, table_of_loads_t *tl, table_of_operations_t *to, table_of_vectorizations_t *tv, vectorizer_t *vectorizer)  { 
         uint32_t size = vectorizer_configs["TS_SIZE"];
         assert (size > 0);
 
@@ -16,11 +16,21 @@ void table_of_stores_t::allocate (libconfig::Setting &vectorizer_configs, table_
         this->to = to;
         this->tv = tv;
 
+        this->vectorizer = vectorizer;
+
  }
 
 void table_of_stores_t::new_st (uop_package_t *uop) {
     bool active_debug = false;
     //if (uop->opcode_address == 94318318040707) active_debug = true;
+    //if (uop->opcode_address == 94689717204740) active_debug = true;
+    //if (uop->opcode_address == 94689717204719) active_debug = true;
+    //if (uop->opcode_address == 94689717204713) active_debug = true;
+    //if (uop->opcode_address == 94689717204708) active_debug = true;
+    //if (uop->opcode_address == 94689717204703) active_debug = true;
+
+    //if (active_debug) printf("Op: %lu (STORE)[Mem_addr: %lu -- Size: %u]\n", uop->opcode_address, uop->memory_address[0], uop->memory_size[0]);
+    //active_debug = false;
     // ********************************
     // Não tenta vetorizar scatters
     // ********************************
@@ -132,6 +142,7 @@ table_of_stores_entry_t* table_of_stores_t::add_ts (uop_package_t *uop) {
     // Indica que uma entrada foi obtida
     // *********************************
     if (choice == NULL) {
+        this->vectorizer->statistics_counters[VECTORIZER_TS_NOT_ENOUGH_ENTRIES]++;
         return NULL;
     } else if (choice->free == false) {
         this->start_invalidation(choice);
@@ -167,8 +178,11 @@ void table_of_stores_t::start_invalidation (table_of_stores_entry_t *entry) {
         // tipo com o laço tendo acabado dentro do ROB mesmo :p)
         // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if (entry->tv_entry->state < 4) {
-            printf("Store invalidation\n");
+            //printf("Store invalidation\n");
             this->tv->start_invalidation(entry->tv_entry);
+            this->vectorizer->statistics_counters[VECTORIZER_TS_STARTED_INVALIDATION]++;
+            this->vectorizer->statistics_counters[VECTORIZER_TS_INVALIDATED_TRAINING]++;
+
         }
     } else  {
         if (entry->linked_tl_to) {
@@ -188,6 +202,8 @@ void table_of_stores_t::start_invalidation (table_of_stores_entry_t *entry) {
 
         // Se invalida
         this->invalidate(entry);
+        this->vectorizer->statistics_counters[VECTORIZER_TS_STARTED_INVALIDATION]++;
+
     }
 
 
@@ -200,6 +216,8 @@ void table_of_stores_t::invalidate(table_of_stores_entry_t *entry) {
     // Limpa a entrada
     // ***************
     entry->clean();
+    this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TS]++;
+
 }
 
 // Busca na tabela de operações

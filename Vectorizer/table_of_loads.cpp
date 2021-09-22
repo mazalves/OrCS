@@ -1,7 +1,7 @@
 #include "./../simulator.hpp"
 
 // Deve ser chamado antes de qualquer execução
-    void table_of_loads_t::allocate (libconfig::Setting &vectorizer_configs, table_of_operations_t *to, table_of_stores_t *ts, table_of_vectorizations_t *tv) {
+    void table_of_loads_t::allocate (libconfig::Setting &vectorizer_configs, table_of_operations_t *to, table_of_stores_t *ts, table_of_vectorizations_t *tv, vectorizer_t *vectorizer) {
         uint32_t size = vectorizer_configs["TL_SIZE"];
         assert (size > 0);
 
@@ -16,6 +16,8 @@
         this->to = to;
         this->ts = ts;
         this->tv = tv;
+    
+        this->vectorizer = vectorizer;
     }
 
 
@@ -23,8 +25,11 @@ table_of_loads_entry_t* table_of_loads_t::new_ld (uop_package_t *uop) {
     bool active_debug = false;
     //if (uop->opcode_address == 94318318040695) active_debug = true;
     //if (uop->opcode_address == 94318318040700) active_debug = true;
-    if (active_debug) printf("Op: %lu (LOAD)\n", uop->opcode_address);
+    //if (uop->opcode_address == 94689717204725) active_debug = true;
+    //if (uop->opcode_address == 94689717204731) active_debug = true;
 
+    //if (active_debug) printf("Op: %lu (LOAD)[Mem_addr: %lu -- Size: %u]\n", uop->opcode_address, uop->memory_address[0], uop->memory_size[0]);
+    //active_debug = false;
 
     // ********************************
     // Não tenta vetorizar gathers
@@ -154,6 +159,7 @@ table_of_loads_entry_t* table_of_loads_t::add_tl (uop_package_t *uop) {
     // Indica que uma entrada foi obtida
     // *********************************
     if (choice == NULL) {
+        this->vectorizer->statistics_counters[VECTORIZER_TL_NOT_ENOUGH_ENTRIES]++;
         return NULL;
     } else if (choice->free) {
         this->num_entries++;
@@ -205,8 +211,11 @@ void table_of_loads_t::start_invalidation (table_of_loads_entry_t *entry) {
         // tipo com o laço tendo acabado dentro do ROB mesmo :p)
         // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if (entry->tv_entry->state < 4) {
-            printf("Load invalidation\n");
+            //printf("Load invalidation\n");
             this->tv->start_invalidation(entry->tv_entry);
+            this->vectorizer->statistics_counters[VECTORIZER_TL_STARTED_INVALIDATION]++;
+            this->vectorizer->statistics_counters[VECTORIZER_TL_INVALIDATED_TRAINING]++;
+
         }
     } else  {
         if (entry->linked_to_ts) {
@@ -230,6 +239,8 @@ void table_of_loads_t::start_invalidation (table_of_loads_entry_t *entry) {
 
         // Se invalida
         this->invalidate(entry);
+        this->vectorizer->statistics_counters[VECTORIZER_TL_STARTED_INVALIDATION]++;
+
     }
 
 }
@@ -243,6 +254,7 @@ void table_of_loads_t::invalidate(table_of_loads_entry_t *entry){
     // Limpa a entrada
     // ***************
     entry->clean();
+    this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TL]++;
 
 }
 

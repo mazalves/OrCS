@@ -230,6 +230,7 @@ extern orcs_engine_t orcs_engine;
 #include "./vima/transactional_operation.hpp"
 //  =========================================//
 // // Vectorizer INCLUDES
+#include "./Vectorizer/vectorizer.hpp"
 #include "./Vectorizer/table_of_pre_vectorization.hpp"
 #include "./Vectorizer/table_of_pre_vectorization_entry.hpp"
 #include "./Vectorizer/table_of_ignored.hpp"
@@ -244,7 +245,7 @@ extern orcs_engine_t orcs_engine;
 #include "./Vectorizer/table_of_stores_entry.hpp"
 #include "./Vectorizer/table_of_vectorizations.hpp"
 #include "./Vectorizer/table_of_vectorizations_entry.hpp"
-#include "./Vectorizer/vectorizer.hpp"
+
 //  =========================================//
 
 #endif  // _ORCS_ORCS_HPP_

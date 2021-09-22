@@ -194,3 +194,62 @@ const char *get_enum_memory_controller_command_char(memory_controller_command_t 
     }
     return "FAIL";
 }
+
+
+const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type) {
+        switch (type) {
+        case VECTORIZER_PRE_VECTORIZED_MOV:                     return "PRE_VECTORIZED_MOV                      "; break;
+        case VECTORIZER_PRE_VECTORIZED_OPERATION:               return "PRE_VECTORIZED_OPERATION                "; break;
+        case VECTORIZER_NO_VACANCIES_TV:                        return "NO_VACANCIES_TV                         "; break;
+
+        case VECTORIZER_LOAD_1_DEFINED:                         return "LOAD_1_DEFINED                          "; break;
+        case VECTORIZER_LOAD_2_DEFINED:                         return "LOAD_2_DEFINED                          "; break;
+        case VECTORIZER_STORE_DEFINED_MOV:                      return "STORE_DEFINED_MOV                       "; break;
+        case VECTORIZER_STORE_DEFINED_OP:                       return "STORE_DEFINED_OP                        "; break;
+
+        case VECTORIZER_INVALIDATION_TL:                        return "INVALIDATION_TL                         "; break;
+        case VECTORIZER_INVALIDATION_TO:                        return "INVALIDATION_TO                         "; break;
+        case VECTORIZER_INVALIDATION_TS:                        return "INVALIDATION_TS                         "; break;
+        case VECTORIZER_INVALIDATION_TV:                        return "INVALIDATION_TV                         "; break;
+
+        case VECTORIZER_TL_STARTED_INVALIDATION:                return "TL_STARTED_INVALIDATION                 "; break;
+        case VECTORIZER_TO_STARTED_INVALIDATION:                return "TO_STARTED_INVALIDATION                 "; break;
+        case VECTORIZER_TS_STARTED_INVALIDATION:                return "TS_STARTED_INVALIDATION                 "; break;
+        case VECTORIZER_TV_STARTED_INVALIDATION:                return "TV_STARTED_INVALIDATION                 "; break;
+
+        case VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION:       return "LOAD_STRIDE_STARTED_INVALIDATION        "; break;
+        case VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION:      return "STORE_STRIDE_STARTED_INVALIDATION       "; break;
+
+        case VECTORIZER_TL_INVALIDATED_TRAINING:                return "TL_INVALIDATED_TRAINING                 "; break;
+        case VECTORIZER_TO_INVALIDATED_TRAINING:                return "TO_INVALIDATED_TRAINING                 "; break;
+        case VECTORIZER_TS_INVALIDATED_TRAINING:                return "TS_INVALIDATED_TRAINING                 "; break;
+        case VECTORIZER_NEW_VECTORIZATION_INVALIDATED_TRAINING: return "NEW_VECTORIZATION_INVALIDATED_TRAINING  "; break;
+
+        case VECTORIZER_AGU_WRITE_OVER_READ_1:                  return "AGU_WRITE_OVER_READ_1                   "; break;
+        case VECTORIZER_AGU_WRITE_OVER_READ_2:                  return "AGU_WRITE_OVER_READ_2                   "; break;
+        case VECTORIZER_AGU_READ_OVER_WRITE:                    return "AGU_READ_OVER_WRITE                     "; break;
+
+        case VECTORIZER_DEPENDENCY_INVALIDATION:                return "DEPENDENCY_INVALIDATION                 "; break;
+
+        case VECTORIZER_TL_NOT_ENOUGH_ENTRIES:                  return "TL_NOT_ENOUGH_ENTRIES                   "; break;
+        case VECTORIZER_TO_NOT_ENOUGH_ENTRIES:                  return "TO_NOT_ENOUGH_ENTRIES                   "; break;
+        case VECTORIZER_TS_NOT_ENOUGH_ENTRIES:                  return "TS_NOT_ENOUGH_ENTRIES                   "; break;
+        case VECTORIZER_TV_NOT_ENOUGH_ENTRIES:                  return "TV_NOT_ENOUGH_ENTRIES                   "; break;
+        case VECTORIZER_TI_NOT_ENOUGH_ENTRIES:                  return "TI_NOT_ENOUGH_ENTRIES                   "; break;
+
+        case VECTORIZER_ASSIGNED_TO_IGNORED_INST:               return "ASSIGNED_TO_IGNORED_INST                "; break;
+        case VECTORIZER_TOTAL_IGNORED_INST:                     return "TOTAL_IGNORED_INST                      "; break;
+
+        case VECTORIZER_UNLOCK_ROB_FULL:                        return "UNLOCK_ROB_FULL                         "; break;
+        case VECTORIZER_UNLOCK_PROGRAM_ENDED:                   return "UNLOCK_PROGRAM_ENDED                    "; break;
+        case VECTORIZER_UNLOCK_MOB_FULL_WITH_LOAD_STALL:        return "UNLOCK_MOB_FULL_WITH_LOAD_STALL         "; break;
+
+        case VECTORIZER_SUCCESSFULLY_COMPLETED_VECTORIZATION:   return "SUCCESSFULLY_COMPLETED_VECTORIZATION    "; break;
+        case VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION:   return "SUCCESSFULLY_DISCARDED_VECTORIZATION    "; break;
+
+        case VECTORIZER_STATISTIC_LAST:                         return "LAST"; break;
+
+    }
+    ERROR_PRINTF("Wrong VECTORIZER STATISTIC\n");
+    return "FAIL";
+}
