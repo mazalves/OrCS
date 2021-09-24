@@ -1210,11 +1210,12 @@ void processor_t::decode()
 
 			num_uops += (instr_op == INSTRUCTION_OPERATION_BRANCH);
 
-			if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
+			// REDO
+			/*if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
 				instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
-				instr_op != INSTRUCTION_OPERATION_MEM_STORE) {
+				instr_op != INSTRUCTION_OPERATION_MEM_STORE) {*/
 				num_uops += instr_set->uops_per_instruction[instr->instruction_id].size();
-			}
+			/*}*/
 		}
 
 		// Make sure there's enough space in decodeBuffer
@@ -1223,6 +1224,8 @@ void processor_t::decode()
 			this->add_stall_full_DecodeBuffer();
 			break;
 		}
+
+		
 
 
 		ERROR_ASSERT_PRINTF(this->decodeCounter == instr->opcode_number,
@@ -1393,6 +1396,12 @@ void processor_t::decode()
 			}
 		}
 
+		// ===================
+		// Get operation uops:
+		// ===================
+		uint32_t instr_id = instr->instruction_id;
+		std::vector<uint32_t> &uops = instr_set->uops_per_instruction[instr_id];
+
 		// =====================
 		// Decode Reads
 		// =====================
@@ -1408,7 +1417,8 @@ void processor_t::decode()
 			new_uop.add_memory_operation(instr->reads_addr[r], instr->reads_size[r]);
 			++uops_created;
 			// If op is not load, clear registers
-			if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
+			if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_writes > 0))
+			 //(instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 			{
 				// ===== Read Regs =============================================
 				/// Clear RRegs
@@ -1434,6 +1444,7 @@ void processor_t::decode()
 			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
+
 			#if DECODE_DEBUG
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 			#endif
@@ -1456,7 +1467,7 @@ void processor_t::decode()
 
 			++uops_created;
 			// If op is not load, clear registers
-			if (instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
+			if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_writes > 0)) //(instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 			{
 				// ===== Read Regs =============================================
 				/// Clear RRegs
@@ -1492,12 +1503,12 @@ void processor_t::decode()
 		// =====================
 		// Decode ALU Operation
 		// =====================
-		if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
+
+		// REDO
+		/*if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
 			instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
 			instr_op != INSTRUCTION_OPERATION_MEM_STORE)
-		{
-			uint32_t instr_id = instr->instruction_id;
-			std::vector<uint32_t> &uops = instr_set->uops_per_instruction[instr_id];
+		{*/
 			// Iterate over uops from instruction
 			for (uint32_t uop_idx : uops)
 			{
@@ -1511,27 +1522,49 @@ void processor_t::decode()
 									  *instr, uops_created);
 
 				new_uop.add_memory_operation(0, 0);
+
+				// REDO
+				if (instr_op == INSTRUCTION_OPERATION_BRANCH ||
+					instr_op == INSTRUCTION_OPERATION_MEM_LOAD ||
+					instr_op == INSTRUCTION_OPERATION_MEM_STORE) {
+					new_uop.uop_operation = INSTRUCTION_OPERATION_OTHER;
+				}
+
 				++uops_created;
 				if (instr->num_reads > 0)
 				{
 					// ===== Read Regs =============================================
 					//registers /258 aux onde pos[i] = fail
-					bool inserted_258 = false;
+					/// Clear RRegs
+					// Just the reads consume base and index regs
 					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
 					{
-						if (new_uop.read_regs[i] == POSITION_FAIL)
+						new_uop.read_regs[i] = POSITION_FAIL;
+					}
+
+					bool inserted_258 = false;
+					int32_t pos = 0;
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						if (instr->read_regs[i] == POSITION_FAIL)
 						{
-							new_uop.read_regs[i] = 258;
+							new_uop.read_regs[pos] = 258;
 							inserted_258 = true;
 							break;
 						}
+
+						if ((instr->read_regs[i] != (int32_t) instr->base_reg) &&
+							(instr->read_regs[i] != (int32_t) instr->index_reg)) {
+								new_uop.read_regs[pos++] = instr->read_regs[i];
+							}
+						
 					}
 					ERROR_ASSERT_PRINTF(inserted_258,
 										"Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
 										MAX_REGISTERS);
 				}
 
-				if (instr->num_writes > 0)
+				if ((instr->num_writes > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH))
 				{
 					// ===== Write Regs =============================================
 					//registers /258 aux onde pos[i] = fail
@@ -1550,9 +1583,10 @@ void processor_t::decode()
 										MAX_REGISTERS);
 				}
 
+
 				new_uop.updatePackageWait(DECODE_LATENCY);
 				new_uop.born_cycle = orcs_engine.get_global_cycle();
-				this->total_operations[new_uop.opcode_operation]++;
+				this->total_operations[new_uop.uop_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 				#if DECODE_DEBUG
@@ -1561,7 +1595,7 @@ void processor_t::decode()
 				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
 									"Erro, Tentando decodificar mais uops que o maximo permitido");
 			}
-		}
+		/*}*/
 		// =====================
 		//Decode Branch
 		// =====================
@@ -1576,7 +1610,7 @@ void processor_t::decode()
 			new_uop.add_memory_operation(0, 0);
 			++uops_created;
 
-			if (instr->num_reads > 0)
+			if ((instr->num_reads > 0) || (uops.size() > 0))
 			{
 				// ===== Read Regs =============================================
 				/// Insert Reg258 into RReg
@@ -1619,6 +1653,7 @@ void processor_t::decode()
 			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
+
 #if DECODE_DEBUG
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
@@ -1646,18 +1681,19 @@ void processor_t::decode()
 
 				++uops_created;
 				//
-				if (instr_op != INSTRUCTION_OPERATION_MEM_STORE)
+				if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_reads > 0))
 				{
+					// Is just dependent from the last uop from opcode
 					bool inserted_258 = false;
 					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
 					{
-						if (new_uop.read_regs[i] == POSITION_FAIL)
-						{
-							new_uop.read_regs[i] = 258;
-							inserted_258 = true;
-							break;
-						}
+						new_uop.read_regs[i] = POSITION_FAIL;
 					}
+					/// Insert 258 into WRegs
+					new_uop.read_regs[0] = 258;
+					inserted_258 = true;
+
+
 
 					ERROR_ASSERT_PRINTF(inserted_258,
 										"Could not insert register_258, all MAX_REGISTERS(%d) used.", MAX_REGISTERS)
@@ -1674,6 +1710,7 @@ void processor_t::decode()
 				new_uop.born_cycle = orcs_engine.get_global_cycle();
 				this->total_operations[new_uop.opcode_operation]++;
 				statusInsert = this->decodeBuffer.push_back(new_uop);
+
 
 #if DECODE_DEBUG
 					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
@@ -3453,13 +3490,13 @@ void processor_t::commit()
 			}
 
 			this->wait_time = orcs_engine.get_global_cycle() - rob_line->uop.born_cycle;
-			this->total_latency[rob_line->uop.opcode_operation] += this->wait_time;
+			this->total_latency[rob_line->uop.uop_operation] += this->wait_time;
 
-			if (this->wait_time > this->max_wait_operations[rob_line->uop.opcode_operation])
-				this->max_wait_operations[rob_line->uop.opcode_operation] = this->wait_time;
+			if (this->wait_time > this->max_wait_operations[rob_line->uop.uop_operation])
+				this->max_wait_operations[rob_line->uop.uop_operation] = this->wait_time;
 
-			if (this->wait_time < this->min_wait_operations[rob_line->uop.opcode_operation])
-				this->min_wait_operations[rob_line->uop.opcode_operation] = this->wait_time;
+			if (this->wait_time < this->min_wait_operations[rob_line->uop.uop_operation])
+				this->min_wait_operations[rob_line->uop.uop_operation] = this->wait_time;
 
 			this->removeFrontROB(rob);
 		}
@@ -3477,6 +3514,7 @@ void processor_t::commit()
 					(rob_line->uop.tv_pointer->need_confirmation == 0) &&
 					(rob->robUsed == ROB_SIZE)) {
 						//printf("Precisei destravar, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
+						//printf("Remaining registers: %u\n", rob_line->uop.tv_pointer->remaining_registers);
 						this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_ROB_FULL]++;
 				} else {

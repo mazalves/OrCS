@@ -211,6 +211,7 @@ const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type) {
         case VECTORIZER_INVALIDATION_TO:                        return "INVALIDATION_TO                         "; break;
         case VECTORIZER_INVALIDATION_TS:                        return "INVALIDATION_TS                         "; break;
         case VECTORIZER_INVALIDATION_TV:                        return "INVALIDATION_TV                         "; break;
+        case VECTORIZER_INVALIDATION_AFTER_ALL_IN_ROB:          return "INVALIDATION_AFTER_ALL_IN_ROB           "; break;
 
         case VECTORIZER_TL_STARTED_INVALIDATION:                return "TL_STARTED_INVALIDATION                 "; break;
         case VECTORIZER_TO_STARTED_INVALIDATION:                return "TO_STARTED_INVALIDATION                 "; break;

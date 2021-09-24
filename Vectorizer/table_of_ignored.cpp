@@ -65,7 +65,8 @@ table_of_vectorizations_entry_t * table_of_ignored_t::get_tv_entry (uint64_t add
 bool table_of_ignored_t::insert_vectorization (table_of_vectorizations_entry_t *entry) {
         table_of_loads_entry_t *tl_entries[2];
         table_of_operations_entry_t *to_entry;
-
+        printf("TV_entry: %p\n", (void *)entry);
+        printf("TS_entry: %p\n", (void *)entry->ts_entry);
         if (entry->ts_entry->is_mov) {
             tl_entries[0] = this->tl->get_id(entry->ts_entry->tl_to_entry);
             tl_entries[1] = NULL;

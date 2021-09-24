@@ -244,6 +244,8 @@ enum vectorizer_statistic_t {
     VECTORIZER_INVALIDATION_TO,
     VECTORIZER_INVALIDATION_TS,
     VECTORIZER_INVALIDATION_TV,
+    VECTORIZER_INVALIDATION_AFTER_ALL_IN_ROB, // Faltaram substituições de regs para comitar e o rob encheu
+                                              // Poderia invalidar a pŕoxima vetorização e travar para garantir :p
 
     /* Quem pediu para invalidar tudo */
     VECTORIZER_TL_STARTED_INVALIDATION,

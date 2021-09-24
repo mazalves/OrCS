@@ -22,14 +22,14 @@ void table_of_stores_t::allocate (libconfig::Setting &vectorizer_configs, table_
 
 void table_of_stores_t::new_st (uop_package_t *uop) {
     bool active_debug = false;
-    //if (uop->opcode_address == 94318318040707) active_debug = true;
+    if (uop->opcode_address == 94318318040707) active_debug = true;
     //if (uop->opcode_address == 94689717204740) active_debug = true;
     //if (uop->opcode_address == 94689717204719) active_debug = true;
     //if (uop->opcode_address == 94689717204713) active_debug = true;
     //if (uop->opcode_address == 94689717204708) active_debug = true;
     //if (uop->opcode_address == 94689717204703) active_debug = true;
 
-    //if (active_debug) printf("Op: %lu (STORE)[Mem_addr: %lu -- Size: %u]\n", uop->opcode_address, uop->memory_address[0], uop->memory_size[0]);
+    if (active_debug) printf("Op: %lu (STORE)[Mem_addr: %lu -- Size: %u]\n", uop->opcode_address, uop->memory_address[0], uop->memory_size[0]);
     //active_debug = false;
     // ********************************
     // Não tenta vetorizar scatters
@@ -151,7 +151,7 @@ table_of_stores_entry_t* table_of_stores_t::add_ts (uop_package_t *uop) {
     // ******************
     // Preenche a entrada
     // ******************
-    choice->fill_entry(uop->opcode_address, uop->uop_id, uop->memory_address[0], 0, 0, 
+    choice->fill_entry(uop->opcode_address, uop->uop_id, uop->memory_address[0], uop->memory_size[0], 0, 0, 
                                         false, NULL, 0, false, orcs_engine.get_global_cycle(), false);
     
 

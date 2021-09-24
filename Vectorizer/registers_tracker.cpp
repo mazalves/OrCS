@@ -26,8 +26,14 @@ void registers_tracker_t::allocate (table_of_loads_t *tl,
 
 void registers_tracker_t::committed_ld (uop_package_t *uop) {
     bool active_debug = false;
-    //if (uop->opcode_address == 94318318040695) active_debug = true;
-    //if (uop->opcode_address == 94318318040700) active_debug = true;
+
+    if ((uop->opcode_address == 94759722448677) ||
+        (uop->opcode_address == 94759722448682) ||
+        (uop->opcode_address == 94759722448688)) {
+            active_debug = true;
+        }
+    if (uop->opcode_address == 94318318040695) active_debug = true;
+    if (uop->opcode_address == 94318318040700) active_debug = true;
     if (active_debug) printf("RT Op: %lu (LOAD)\n", uop->opcode_address);
 
 
@@ -70,15 +76,26 @@ void registers_tracker_t::committed_ld (uop_package_t *uop) {
         entry->tl_pointer = tl_pointer;
         entry->to_pointer = NULL;
         entry->ts_pointer = NULL;
+        if (active_debug) printf(" --> Vinculado a %d\n", uop->write_regs[i]);
+
         //printf("LD escrevendo em reg %d\n", uop->write_regs[i]);
     }
+
+    /*if (active_debug)
+        this->tl->print();*/
 
 }
 // #######################################################################################################
 
 void registers_tracker_t::committed_op (uop_package_t *uop) {
     bool active_debug = false;
-    //if (uop->opcode_address == 94318318040704) active_debug = true;
+    if (uop->opcode_address == 94318318040704) active_debug = true;
+
+        if ((uop->opcode_address == 94759722448677) ||
+        (uop->opcode_address == 94759722448682) ||
+        (uop->opcode_address == 94759722448688)) {
+            active_debug = true;
+        }
     if (active_debug) printf("Op: %lu\n", uop->opcode_address);
 
 
@@ -95,6 +112,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
     // Registradores de leitura
     // ************************
     for (int32_t i=0; (i < MAX_REGISTERS) && (uop->read_regs[i] != POSITION_FAIL); ++i) {
+
         registers_tracker_entry_t *entry = &this->entries[uop->read_regs[i]];
         //if (active_debug) printf (" [%d]", uop->read_regs[i]);
 
@@ -103,7 +121,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
         // *************************************************
         // // Origem: Load
         if (entry->tl_pointer == NULL) {
-            if (active_debug) printf(">> Load não vetorizável\n");
+            if (active_debug) printf("[%d] >> Load não vetorizável\n", uop->read_regs[i]);
             vectorizable_origins = false;
         } else {
             // ++++++++++++++++++++++++
@@ -115,13 +133,13 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
 
                     this->tl->start_invalidation(entry->tl_pointer);
                     entry->tl_pointer = NULL;
-                    if (active_debug) printf(">> Load ligado a outro\n");
+                    if (active_debug) printf("[%d] >> Load ligado a outro\n", uop->read_regs[i]);
 
                 }
             } else {
                 if (entry->tl_pointer->linked_to_ts == false) {
                     vectorizable_origins = false;
-                    if (active_debug) printf(">> Op ligada a outros loads\n");
+                    if (active_debug) printf("[%d] >> Op ligada a outros loads\n", uop->read_regs[i]);
 
                 } else if ((entry->tl_pointer->is_mov == true)      ||
                     (entry->tl_pointer->to_ts_entry != to_entry)) {
@@ -129,7 +147,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
 
                     this->tl->start_invalidation(entry->tl_pointer);
                     entry->tl_pointer = NULL;
-                    if (active_debug) printf(">> Load ligado a store\n");
+                    if (active_debug) printf("[%d] >> Load ligado a store\n", uop->read_regs[i]);
 
                 }
             }
@@ -138,7 +156,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
             // +++++++++++++++++++++++++++++++
             if (entry->tl_pointer->vectorizable == false) {
                 vectorizable_origins = false;
-                if (active_debug) printf(">> Load não confirmado como vetorizável\n");
+                if (active_debug) printf("[%d] >> Load não confirmado como vetorizável\n", uop->read_regs[i]);
 
             }
         }
@@ -221,7 +239,13 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
 
 void registers_tracker_t::committed_st (uop_package_t *uop) {
     bool active_debug = false;
-    //if (uop->opcode_address == 94318318040707) active_debug = true;
+    if (uop->opcode_address == 94318318040707) active_debug = true;
+
+        if ((uop->opcode_address == 94759722448677) ||
+        (uop->opcode_address == 94759722448682) ||
+        (uop->opcode_address == 94759722448688)) {
+            active_debug = true;
+        }
     if (active_debug) printf("Op: %lu (STORE)\n", uop->opcode_address);
 
     bool vectorizable_origin = true;
@@ -385,6 +409,9 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
         this->ts->start_invalidation(ts_pointer);
     }
 
+    if (active_debug) 
+        this->ts->print();
+
 }
 // #######################################################################################################
 
@@ -470,7 +497,7 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
                     this->vectorizer->statistics_counters[VECTORIZER_LOAD_1_DEFINED]++;
 
                     tv_pointer->set_state(1);
-
+                    //printf("Estado definido para 1\n");
                     // ++++++++++++++++++++++++++++++++++++++++++++++++ 
                     // Insere na lista de ignoradas
                     // ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -481,8 +508,10 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
                         tv_pointer->set_state(0);            
                         break;
                     }
+                    //printf("Encontrou vagas e vai inserir na ti...\n");
 
                     this->ti->insert_vectorization(tv_pointer);
+                    //printf("FIm da definição\n");
                 }
                 break;
             case 1:
@@ -552,13 +581,14 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
             // +++++++++++++++++++++++++++++++++++++++++++++++
 
             bool status = this->tv->new_pre_vectorization(tv_pointer->ts_entry);
+
             if (status) {
-                printf("%p substituido por %p na tabela de ignorados!\n", (void *)tv_pointer, (void *)tv_pointer->ts_entry->tv_entry);
+                //printf("%p substituido por %p na tabela de ignorados!\n", (void *)tv_pointer, (void *)tv_pointer->ts_entry->tv_entry);
                 /* Remove ponteiro antigo das waiting */ // O novo vai entrar no primeiro load
                 this->ti->remove_vectorization(tv_pointer);
                 tv_pointer->ts_entry = NULL;
             } else {
-                printf("Não conseguiu substituto para %p na tabela de ignorados!\n", (void *)tv_pointer);
+                //printf("Não conseguiu substituto para %p na tabela de ignorados!\n", (void *)tv_pointer);
                 this->tv->unbind(tv_pointer);
                 this->ti->remove_vectorization(tv_pointer);
             }
@@ -607,6 +637,7 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
             // ******************************************
             // Launch VIMA instruction and start ignoring
             // ******************************************
+                //printf("Vai lançar instrução VIMA\n");
                 // ++++++++++++++++++++++++++++++++++++++++++++++++        
                 // Verifica se pode adicionar a instrução ao buffer
                 // ++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -615,18 +646,19 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
                     return;
                 }
 
-
+                //printf("Gerando instrução VIMA\n");
                 // ++++++++++++++++++++++++++++++++++++++++++++++++ 
                 // Insere no pipeline
                 // ++++++++++++++++++++++++++++++++++++++++++++++++ 
                 this->tv->generate_VIMA_instruction(tpv_tv_pointer);
 
-
+                //printf("Removendo vetorização\n");
                 // ++++++++++++++++++++++++++++++++++++++++++++++++
                 // Remove da lista de pré-vetorizações
                 // ++++++++++++++++++++++++++++++++++++++++++++++++
                 this->tpv->remove_vectorization(tpv_tv_pointer);
 
+                //printf("Definindo estado para 4\n");
                 // ++++++++++++++++++++++++++++++++++++++++++++++++
                 // Evita fazer o processo novamente
                 // ++++++++++++++++++++++++++++++++++++++++++++++++

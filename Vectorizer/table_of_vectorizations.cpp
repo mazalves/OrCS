@@ -90,7 +90,7 @@ instruction_operation_t table_of_vectorizations_t::define_vima_operation(table_o
 // #############################################################################################################################
 
 table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (table_of_stores_entry_t *ts_entry) {
-        //printf(" >> New vectorization -- Addr lista: %p\n", (void *) &this->tl->tv->vectorizer->vectorizations_to_execute);
+        printf(" >> New vectorization -- Addr lista: %p\n", (void *) &this->tl->tv->vectorizer->vectorizations_to_execute);
 
 
         // ****************************
@@ -132,11 +132,35 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
         //printf("[1] stride: %d\n", tl_entries[1]->stride);
         //printf("[ts] stride: %d\n", ts_entry->stride);
         //printf("Ciclo global: %lu\n", orcs_engine.get_global_cycle());
-        entry->fill_entry(ts_entry, 0, false, this->vectorization_size, 
-                            tl_entries[0]->stride, 
-                            (tl_entries[1]) ? tl_entries[1]->stride : 0, 
-                            ts_entry->stride, 
-                            orcs_engine.get_global_cycle());
+
+        switch(ts_entry->access_size) {
+            case 4:
+                entry->fill_entry(ts_entry, 0, false, this->vectorization_size, 
+                        tl_entries[0]->stride, 
+                        (tl_entries[1]) ? tl_entries[1]->stride : 0, 
+                        ts_entry->stride, 
+                        orcs_engine.get_global_cycle());
+                break;
+            case 8:
+                entry->fill_entry(ts_entry, 0, false, this->vectorization_size / 2, 
+                        tl_entries[0]->stride,
+                        (tl_entries[1]) ? tl_entries[1]->stride : 0, 
+                        ts_entry->stride, 
+                        orcs_engine.get_global_cycle());
+                break;
+            case 32:
+                entry->fill_entry(ts_entry, 0, false, this->vectorization_size / 8, 
+                        tl_entries[0]->stride,
+                        (tl_entries[1]) ? tl_entries[1]->stride : 0, 
+                        ts_entry->stride, 
+                        orcs_engine.get_global_cycle());
+                break;
+            default:
+                printf("ALERT: Falta definir tamanho de vetorização para loads de %u bytes!\n", ts_entry->access_size);
+                return NULL;
+                
+        }
+            
 
         // **********************************
         // Vincula entrada com outras tabelas
@@ -153,6 +177,12 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
 
         ts_entry->tv_entry = entry;
 
+        printf("Free: %s -- ts_entry: %p -- Discard_results: %s\n",
+                    this->get_id(0)->free ? "true" : "false",
+                    (void *) this->get_id(0)->ts_entry,
+                    this->get_id(0)->discard_results ? "true" : "false");
+
+        printf("Retorno normal\n");
         return entry;
 }
 // #############################################################################################################################
@@ -211,6 +241,12 @@ bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *
 
 void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entry_t *tv_entry) {
     printf("INVALIDATION ENTRY %u -> Discarded: %s TS_POINTER: %p\n", this->entry_to_id(tv_entry), tv_entry->discard_results ? "true" : "false", (void *)tv_entry->ts_entry);
+    // Se TS_POINTER == NULL e Discarded == false, teve que invalidar alguma que já tinha entrado no pipeline
+    // provavelmente pelo rob cheio sem que todos os regs fossem substituídos
+    if (tv_entry->ts_entry == NULL && tv_entry->discard_results == false) {
+        this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_AFTER_ALL_IN_ROB]++;
+    }
+
     // Executa escalarmente e libera as instruções em espera
     this->invalidate(tv_entry);
 
@@ -259,6 +295,14 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
     // Já está liberado
     // ****************
     if (tv_entry->discard_results) {
+        return;
+    }
+
+    // Foi substituído e depois invalidado
+    if (tv_entry->ts_entry == NULL) {
+        tv_entry->discard_results = true;
+        this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TV]++;
+        this->vectorizer->invalidation_point[tv_entry->next_validation]++;
         return;
     }
 
@@ -470,10 +514,9 @@ void table_of_vectorizations_t::unbind (table_of_vectorizations_entry_t *tv_entr
 // Cada store executado pode invalidar uma vetorização, caso carregue dados do sua origem
 // Isso pode acontecer entre duas vetorizações (instrução em waiting) ou uma instrução comum e uma vetorização
 // Isso porque não sabemos se devemos fornecer os dados novos ou antigos da linha
-// TODO -> Corrigir considerando o tamanho do dado carregado
 void table_of_vectorizations_t::new_AGU_calculation (uop_package_t *uop) {
     table_of_vectorizations_entry_t *entry = NULL;
-    switch(uop->opcode_operation) {
+    switch(uop->uop_operation) {
         case INSTRUCTION_OPERATION_MEM_LOAD:
             for (uint32_t i=0; i < this->max_entries; ++i) {
                 entry = &this->entries[i];

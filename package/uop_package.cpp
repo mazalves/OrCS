@@ -22,6 +22,7 @@ void uop_package_t::package_clean()
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
     memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
 
+
     this->uop_operation = INSTRUCTION_OPERATION_NOP;
     memset(this->memory_address, 0, sizeof(uint64_t) * MAX_MEM_OPERATIONS);
     memset(this->memory_size, 0, sizeof(uint32_t) * MAX_MEM_OPERATIONS);

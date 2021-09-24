@@ -13,6 +13,7 @@ class uop_package_t{
     int32_t read_regs[MAX_REGISTERS];
     int32_t write_regs[MAX_REGISTERS];
 
+
     instruction_operation_t uop_operation;
     uint64_t memory_address[MAX_MEM_OPERATIONS];
     uint32_t memory_size[MAX_MEM_OPERATIONS];

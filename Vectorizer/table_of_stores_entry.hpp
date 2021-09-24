@@ -5,6 +5,7 @@ class table_of_stores_entry_t {
 
     public:
         uint64_t last_address;
+        uint32_t access_size;
         int32_t stride;
         uint8_t confidence_counter;
         bool is_mov;
@@ -31,6 +32,7 @@ class table_of_stores_entry_t {
             this->uop_id = 0;
 
             this->last_address = 0;
+            this->access_size = 0;
             this->stride = 0;
             this->confidence_counter = 0;
             this->is_mov = false;
@@ -50,6 +52,7 @@ class table_of_stores_entry_t {
             this->uop_id = 0;
 
             this->last_address = 0;
+            this->access_size = 0;
             this->stride = 0;
             this->confidence_counter = 0;
             this->is_mov = false;
@@ -87,6 +90,7 @@ class table_of_stores_entry_t {
 
         inline void fill_entry( uint64_t pc, uint8_t uop_id,
                                 uint64_t last_address,
+                                uint32_t access_size,
                                 int32_t stride,
                                 uint8_t confidence_counter,
                                 bool is_mov,
@@ -98,6 +102,7 @@ class table_of_stores_entry_t {
             this->pc = pc;
             this->uop_id = uop_id;
             this->last_address = last_address;
+            this->access_size = access_size;
             this->stride = stride;
             this->confidence_counter = confidence_counter;
             this->is_mov = is_mov;
@@ -124,11 +129,11 @@ class table_of_stores_entry_t {
         }
 
         inline void check_vectorizable(uop_package_t *uop) {
-            //printf(" STORE Vectorizable => Confidence %d/%d; mem_size: %u/4 || 8; 0 < stride <= mem_size: 0 < %d <= %u\n",
+            //printf(" STORE Vectorizable => Confidence %d/%d; mem_size: %u/4 || 8 || 32; 0 < stride <= mem_size: 0 < %d <= %u\n",
             //            this->confidence_counter, this->st_confidence,
             //            uop->memory_size[0], this->stride, (int32_t)uop->memory_size[0]);
             if ((this->confidence_counter == this->st_confidence) &&
-                (uop->memory_size[0] == 4 || uop->memory_size[0] == 8) && //32 ou 64 bits
+                (uop->memory_size[0] == 4 || uop->memory_size[0] == 8 || uop->memory_size[0] == 32) && //32 ou 64 bits ou vetor
                 (this->stride > 0) &&
                 (this->stride <= (int32_t)uop->memory_size[0]) // Contíguo
                 ) {

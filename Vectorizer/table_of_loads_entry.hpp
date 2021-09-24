@@ -88,14 +88,14 @@ class table_of_loads_entry_t {
 
 
         inline void check_vectorizable(uop_package_t *uop) {
-            if ((uop->opcode_address == 94252804425461) ||
-                (uop->opcode_address == 94252804425467)) {
-            printf(" LOAD Vectorizable => Confidence %d/%d; mem_size: %u/4 || 8; 0 < stride <= mem_size: 0 < %d <= %u\n",
+            if ((uop->opcode_address == 94759722448677) ||
+                (uop->opcode_address == 94759722448682)) {
+            printf(" LOAD Vectorizable => Confidence %d/%d; mem_size: %u/4 || 8 || 32; 0 < stride <= mem_size: 0 < %d <= %u\n",
                         this->confidence_counter, this->ld_confidence,
                         uop->memory_size[0], this->stride, (int32_t)uop->memory_size[0]);
                 }
             if ((this->confidence_counter == this->ld_confidence) &&
-                (uop->memory_size[0] == 4 || uop->memory_size[0] == 8) && //32 ou 64 bits
+                (uop->memory_size[0] == 4 || uop->memory_size[0] == 8 || uop->memory_size[0] == 32) && //32 ou 64 bits ou vetor
                 (this->stride > 0) &&
                 (this->stride <= (int32_t)uop->memory_size[0]) // Contíguos
                 ) {
