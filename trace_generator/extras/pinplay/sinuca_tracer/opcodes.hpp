@@ -29,7 +29,16 @@ namespace opcodes {
         //register_string[0] = '\0';
         reg_count = 0;
         for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-            if (op.read_regs[i] > 0) {
+            if (op.read_regs[i] > 0 && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_ALU
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_DIV
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_MLA
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_MUL
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_ALU
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_DIV
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_MLA
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_MUL
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_GATHER
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_SCATTER) {
                 reg_count++;
                 reg_str << " " << op.read_regs[i];
                 //sprintf(register_string, "%s %" PRId32 "", register_string, op.read_regs[i]);
@@ -47,7 +56,16 @@ namespace opcodes {
         //register_string[0] = '\0';
         reg_count = 0;
         for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
-            if (op.write_regs[i] > 0) {
+            if (op.write_regs[i] > 0 && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_ALU
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_DIV
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_MLA
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_FP_MUL
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_ALU
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_DIV
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_MLA
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_INT_MUL
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_GATHER
+                                    && op.opcode_operation != INSTRUCTION_OPERATION_VIMA_SCATTER) {
                 reg_count++;
                 reg_str << " " << op.write_regs[i];
                 //sprintf(register_string, "%s %" PRId32 "", register_string, op.write_regs[i]);
