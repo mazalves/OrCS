@@ -327,7 +327,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                         IARG_THREAD_ID, IARG_END);
 
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-            if (INS_hasKnownMemorySize(ins)) {
+            
                 // pin::ins => static trace
                 opcode_package_t pck = x86_to_static(ins);
                 // pin::ins => static trace
@@ -343,6 +343,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                 // is_instrumenteds loads using a predicated call, i.e.
                 // the call happens if the load will be actually executed
                 //-------------------------------------------------------------
+            if (INS_hasKnownMemorySize(ins)) {
                 if (INS_IsMemoryRead(ins)) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)write_memory,
                                     IARG_BOOL, true,
@@ -370,25 +371,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                                     IARG_THREAD_ID,
                                     IARG_END);
                 }
-
-            } else {
-                std::vector<opcode_package_t> *op =
-                                            vgather_vscatter_to_static(ins);
-                std::vector<opcode_package_t>::iterator it;
-
-                it = op->begin();
-                while (it != op->end()) {
-                    //---------------------------------------------------------
-                    // Write into the static trace
-                    //---------------------------------------------------------
-                    char opcode_str[TRACE_LINE_SIZE];
-                    opcodes::opcode_to_trace_string(*it, opcode_str);
-                    write_static_char(opcode_str);
-
-                    ++it;
-                }
-                delete(op);
-
+            }  else {
                 //-------------------------------------------------------------
                 // Memory accesses list
                 //-------------------------------------------------------------
@@ -399,6 +382,7 @@ VOID trace_instruction(TRACE trace, VOID *v) {
                                 IARG_THREAD_ID,
                                 IARG_END);
             }
+            
         }
 
         // HMC Traces
@@ -586,7 +570,7 @@ VOID DynamicOMP_char(char *sync_str, THREADID threadid, bool is_spawn) {
 // This routine is executed for each image.
 VOID ImageLoad(IMG img, VOID *) {
     // HMC data initialization - HMC Traces
-    data_instr hmc_x86_data[20], vim_x86_data[172], mps_x86_data[28];
+    data_instr hmc_x86_data[HMC_INS_COUNT], vim_x86_data[VIMA_INS_COUNT], mps_x86_data[MPS_INS_COUNT];
     initialize_intrinsics(hmc_x86_data, vim_x86_data, mps_x86_data);
 
     TRACE_GENERATOR_DEBUG_PRINTF("ImageLoad()\n");
@@ -751,6 +735,43 @@ VOID ImageLoad(IMG img, VOID *) {
             for (uint32_t i = 0; i < ORCS_tracing_control_start.size(); i++){
                 if (strcmp(rtn_name.c_str(), ORCS_tracing_control_start[i]) == 0){
                     RTN_Open (rtn);
+
+                    RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                    AFUNPTR(handleOrCSTracingEvent),
+                                    IARG_BOOL, true,
+                                    IARG_THREAD_ID,
+                                    IARG_END);
+                    RTN_Close (rtn);
+                    break;
+                }
+            }
+
+            for (uint32_t i = 0; i < ORCS_tracing_control_stop.size(); i++){
+                if (strcmp(rtn_name.c_str(), ORCS_tracing_control_stop[i]) == 0){
+                    RTN_Open (rtn);
+
+                    RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                    AFUNPTR(handleOrCSTracingEvent),
+                                    IARG_BOOL, false,
+                                    IARG_THREAD_ID,
+                                    IARG_END);
+                    RTN_Close (rtn);
+                    break;
+                }
+            }
+
+            if (rtn_name.compare(0, 4, "GOMP") != 0) {
+                continue;
+            }
+            // ~ printf("%s\n", rtn_name.c_str());
+
+            /// Barrier only on Master, insert on all the traces (PARALLEL_END)
+            for (uint32_t i = 0;
+                    i < OMP_barrier_master_end.size() && !found_GOMP; i++) {
+                /// FOUND a Parallel END
+                if (strcmp(rtn_name.c_str(), OMP_barrier_master_end[i]) == 0) {
+                    RTN_Open(rtn);
+
 
                     RTN_InsertCall(rtn, IPOINT_BEFORE,
                                     AFUNPTR(handleOrCSTracingEvent),

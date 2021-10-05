@@ -14,13 +14,14 @@ class uop_package_t{
     int32_t write_regs[MAX_REGISTERS];
 
     instruction_operation_t uop_operation;
-    uint64_t memory_address;
-    uint32_t memory_size;
+    uint64_t memory_address[MAX_MEM_OPERATIONS];
+    uint32_t memory_size[MAX_MEM_OPERATIONS];
+    uint32_t num_mem_operations;
 
     uint64_t read_address;
     uint64_t read2_address;
     uint64_t write_address;
-    
+
     bool is_hive;
     int32_t hive_read1;
     int32_t hive_read2;
@@ -28,7 +29,19 @@ class uop_package_t{
 
     bool is_vima;
 
-    void opcode_to_uop(uint64_t uop_number, instruction_operation_t uop_operation, uint64_t memory_address, uint32_t memory_size, opcode_package_t opcode);
+    uint32_t latency;
+    uint32_t throughput;
+    functional_unit_t *functional_unit;
+
+
+    void opcode_to_uop(uint64_t uop_number, 
+            instruction_operation_t uop_operation, 
+            uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,
+            opcode_package_t opcode);
+
+    inline void add_memory_operation(uint64_t memory_address, uint32_t memory_size);
+
+
     bool operator==(const uop_package_t &package);
     void package_clean();
     void updatePackageUntrated(uint32_t stallTime);
@@ -44,3 +57,12 @@ class uop_package_t{
     uint64_t readyAt;
     package_state_t status;
 };
+
+inline void uop_package_t::add_memory_operation(uint64_t memory_address, uint32_t memory_size) {
+    assert(num_mem_operations < MAX_MEM_OPERATIONS);
+    this->memory_address[num_mem_operations] = memory_address;
+    this->memory_size[num_mem_operations] = memory_size;
+    ++num_mem_operations;
+
+    return;
+}

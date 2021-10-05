@@ -51,6 +51,7 @@ memory_controller_t::memory_controller_t(){
 
     this->channels = NULL;
     this->i = 0;
+
 }
 // ============================================================================
 memory_controller_t::~memory_controller_t(){
@@ -76,8 +77,15 @@ void memory_controller_t::allocate(){
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
 
-    set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
-
+    if ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] < 0) {
+        set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
+    } else if ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] == 0) {
+        set_latency_burst (0);
+    } else {
+        set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO / 
+                                 ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] + 0.0)));
+    }
+    printf("MEMORY_CONTROLLER_T::set_latency_burst = %lu\n", this->latency_burst);
     this->total_latency = new uint64_t [MEMORY_OPERATION_LAST]();
     this->total_operations = new uint64_t [MEMORY_OPERATION_LAST]();
     this->min_wait_operations = new uint64_t [MEMORY_OPERATION_LAST]();
@@ -264,6 +272,7 @@ uint64_t memory_controller_t::requestDRAM (memory_package_t* request){
         if (request->is_hive) this->add_requests_hive();
         if (request->is_vima) this->add_requests_vima();
         request->sent_to_ram = true;
+        
         this->working.push_back (request);
         this->working.shrink_to_fit();
         #if DEBUG

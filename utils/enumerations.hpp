@@ -204,7 +204,8 @@ const char *get_enum_memory_controller_command_char(memory_controller_command_t 
 // ============================================================================
 enum request_priority_t {
     REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST,
-    REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE
+    REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE,
+    REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST
 };
 const char *get_enum_request_priority_char(request_priority_t type);
 // ============================================================================

@@ -18,6 +18,7 @@ cache_t::cache_t() {
     this->cache_write = 0;
     this->cache_writeback = 0;
     this->change_line = 0;
+	this->is_inst_cache = false;
 
 	this->LINE_SIZE = 0;
     this->PREFETCHER_ACTIVE = 0;
@@ -156,6 +157,7 @@ uint32_t cache_t::read(uint64_t address, uint32_t &ttc){
 						this->sets[idx].lines[i].prefetched =0;
 					}
 				}
+
 				this->sets[idx].lines[i].lru = orcs_engine.get_global_cycle();
 				ttc += this->latency;
 				// if (this->id == DATA) {
@@ -195,6 +197,7 @@ inline uint32_t cache_t::searchLru(cacheSet_t *set) {
 	for (uint32_t i = 1; i < set->n_lines; i++)	{
 		index = (set->lines[index].lru <= set->lines[i].lru)? index : i;
 	}
+
 	return index;
 }
 
@@ -295,6 +298,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64
 			this->add_cache_writeback();
 		}
 	}
+
 	this->sets[idx].lines[line].tag = tag;
 	this->sets[idx].lines[line].lru = orcs_engine.get_global_cycle() + latency;
 	this->sets[idx].lines[line].valid = 1;
@@ -307,7 +311,7 @@ line_t* cache_t::installLine(memory_package_t* request, uint32_t latency, uint64
 
 // Selects a cache line to install an address and points this memory address with the other cache pointers
 void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
-	// printf("returnLine %lu in processor %u\n", request->memory_address, request->processor_id);
+	//printf("returnLine %lu in processor %u\n", request->memory_address, request->processor_id);
 	uint64_t tag, idx, idx_padding, line_padding;
     this->tagIdxSetCalculation(request->memory_address, &idx, &tag);
 	int32_t line = POSITION_FAIL;
@@ -322,6 +326,7 @@ void cache_t::returnLine(memory_package_t* request, cache_t *cache) {
     ERROR_ASSERT_PRINTF(line != POSITION_FAIL, "Error, line não encontrada para retorno")
 	if (this->level > 0) {
 		line_t *line_return = NULL;
+
 		line_return = cache->installLine(request, this->latency, idx_padding, line_padding);
 
 		this->sets[idx].lines[line].line_ptr_caches[request->processor_id][cache->level] = line_return;

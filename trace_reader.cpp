@@ -1,11 +1,12 @@
 #include "simulator.hpp"
+std::map<int, uint32_t> reads_count;
 
 // =====================================================================
 trace_reader_t::trace_reader_t() {
     this->line_static = NULL;
     this->line_dynamic = NULL;
     this->line_memory = NULL;
-    //Trace Files 
+    //Trace Files
     this->gzStaticTraceFile = NULL;
     this->gzDynamicTraceFile = NULL;
     this->gzMemoryTraceFile = NULL;
@@ -21,7 +22,7 @@ trace_reader_t::trace_reader_t() {
     this->binary_dict = NULL; /// Complete dictionary of BBLs and instructions
 
     this->fetch_instructions=0;
-        //get total opcodes 
+        //get total opcodes
     this->trace_opcode_max=0;
 
 }
@@ -33,11 +34,16 @@ trace_reader_t::~trace_reader_t() {
         gzclose(gzStaticTraceFile);
         gzclose(gzDynamicTraceFile);
         gzclose(gzMemoryTraceFile);
+        printf("Instructions by reads:\n");
+        for (auto i : reads_count) {
+            std::cout << i.first << " reads -- " << i.second << " instructions" << std::endl;
+        }
+
             /// De-Allocate memory to prevent memory leak
         utils_t::template_delete_array<char>(line_static);
         utils_t::template_delete_matrix<char>(line_dynamic, TRACE_LINE_SIZE);
         utils_t::template_delete_matrix<char>(line_memory, TRACE_LINE_SIZE);
-        
+
         for (uint32_t bbl = 1; bbl < this->binary_total_bbls; bbl++) delete[] binary_dict[bbl];
         delete[] binary_dict;
         delete[] binary_bbl_size;
@@ -48,7 +54,7 @@ void trace_reader_t::allocate(char *trace_file) {
     if(orcs_engine.use_pin) {
         return;
     }
-        
+
     char file_name[TRACE_LINE_SIZE];
 
     // =================================================================
@@ -85,8 +91,8 @@ void trace_reader_t::allocate(char *trace_file) {
     this->currect_bbl = 0;
     this->currect_opcode = 0;
 
- 
-    
+
+
 	/// Obtain the number of BBLs
 	this->get_total_bbls();
 
@@ -117,7 +123,7 @@ void trace_reader_t::allocate(char *trace_file) {
     this->line_static = utils_t::template_allocate_array<char>(TRACE_LINE_SIZE);
     this->line_dynamic = utils_t::template_allocate_matrix<char>(1, TRACE_LINE_SIZE);
     this->line_memory = utils_t::template_allocate_matrix<char>(1, TRACE_LINE_SIZE);
-    // ====================================================================  
+    // ====================================================================
     ///total number of opcodes
     this->trace_opcode_max=0;
     this->trace_opcode_max=this->get_trace_size();
@@ -125,7 +131,7 @@ void trace_reader_t::allocate(char *trace_file) {
     ///translation Address
     //this->address_translation =  this->get_processor_id() << 56;
     this->address_translation =  0;
-    // ====================================================================  
+    // ====================================================================
 
 }
 /// Get the total number of opcodes
@@ -207,7 +213,7 @@ void trace_reader_t::define_binary_bbl_size() {
             binary_bbl_size[bbl]++;
         }
     }
-}  
+}
 
 // =====================================================================
 void trace_reader_t::generate_binary_dict() {
@@ -265,20 +271,32 @@ void trace_reader_t::generate_binary_dict() {
 /// @2
 /// CALL_NEAR 9 4345036 5 2 35 15 2 35 15 15 0 1 0 0 1 0 0 0
 ///
+
 bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t *opcode) {
     char *sub_string = NULL;
     char *tmp_ptr = NULL;
     uint32_t sub_fields, count, i;
     count = 0;
 
-    for (i = 0; input_string[i] != '\0'; i++) {
+    /* for (i = 0; input_string[i] != '\0'; i++) {
         count += (input_string[i] == ' ');
-    }
+    }*/
 
-    ERROR_ASSERT_PRINTF(count >= 13, "Error converting Text to Instruction (Wrong  number of fields %d), input_string = %s\n", count, input_string)
+    //ERROR_ASSERT_PRINTF(count >= 13, "Error converting Text to Instruction (Wrong  number of fields %d), input_string = %s\n", count, input_string)
 
     sub_string = strtok_r(input_string, " ", &tmp_ptr);
     strcpy(opcode->opcode_assembly, sub_string);
+
+    // Set instruction_id retrieved from instructions_set's map
+    auto &inst_id = orcs_engine.instruction_set->instructions_id;
+    std::string op_asm = std::string(opcode->opcode_assembly);
+
+    if (inst_id.find(op_asm) != inst_id.end()) {
+        opcode->instruction_id = inst_id[op_asm];
+    } else {
+        // Last inst_id has 0 uops, used when instruction is not represented
+        opcode->instruction_id = inst_id.size() - 1;
+    }
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->opcode_operation = instruction_operation_t(strtoul(sub_string, NULL, 10));
@@ -318,8 +336,24 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->index_reg = strtoull(sub_string, NULL, 10);
 
-
+    // Número de leituras
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->num_reads = strtoul(sub_string, NULL, 10);
+    assert(opcode->num_reads <= MAX_MEM_OPERATIONS);
+    reads_count[opcode->num_reads]++;
+    if(opcode->num_reads > 2) {
+        printf("Leu gather\n");
+    }
+
+    // Número de escritas
+    sub_string = strtok_r(NULL, " ", &tmp_ptr);
+    opcode->num_writes = strtoul(sub_string, NULL, 10);
+    assert(opcode->num_writes <= MAX_MEM_OPERATIONS);
+    if(opcode->num_writes > 1) {
+        printf("Leu scatter\n");
+    }
+
+    /*
     opcode->is_read = (sub_string[0] == '1');
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
@@ -327,6 +361,7 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->is_write = (sub_string[0] == '1');
+    */
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->branch_type = branch_t(strtoull(sub_string, NULL, 10));
@@ -346,13 +381,13 @@ bool trace_reader_t::trace_string_to_opcode(char *input_string, opcode_package_t
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->hive_read1 = atoi(&sub_string[0]);
-    
+
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->hive_read2 = atoi(&sub_string[0]);
-    
+
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     opcode->hive_write = atoi(&sub_string[0]);
-    
+
     return OK;
 }
 
@@ -446,7 +481,7 @@ bool trace_reader_t::trace_next_memory(uint64_t *mem_address, uint32_t *mem_size
             }
             ERROR_ASSERT_PRINTF(count == 3, "Error converting Text to Memory (Wrong  number of fields %d)\n", count)
             DEBUG_PRINTF("Memory trace line: %s\n", file_line);
-            
+
             sub_string = strtok_r(file_line, " ", &tmp_ptr);
             *mem_is_read = strcmp(sub_string, "R") == 0;
 
@@ -484,9 +519,24 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     sub_string = strtok_r(next_instruction, " ", &tmp_ptr);
     strcpy(m->opcode_assembly, sub_string);
 
+    // Set instruction_id retrieved from instructions_set's map
+    auto &inst_id = orcs_engine.instruction_set->instructions_id;
+    std::string op_asm = std::string(m->opcode_assembly);
+
+    if (inst_id.find(op_asm) != inst_id.end()) {
+        m->instruction_id = inst_id[op_asm];
+    } else {
+        // Last inst_id has 0 uops, used when instruction is not represented
+        m->instruction_id = inst_id.size() - 1;
+    }
+
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_operation = static_cast<instruction_operation_t> (std::strtoul(sub_string, NULL, 10));
-    
+    if (m->opcode_operation == -1) {
+        printf("OPCODE -1: %s", next_instruction);
+        exit(1);
+    }
+
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->opcode_address = std::strtoull(sub_string, NULL, 10);
 
@@ -506,7 +556,9 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->index_reg = std::strtoul(sub_string, NULL, 10);
-
+    printf("CORRIGIR IMPLEMENTAÇÂO DE LEITURAS E ESCRITAS\n");
+    exit(1);
+    /*
     /// Read 1
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->is_read = (sub_string[0] == '1');
@@ -535,7 +587,8 @@ bool trace_reader_t::pin_next(opcode_package_t *m) {
     m->write_address = std::strtoull(sub_string, NULL, 10);
 
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
-    m->write_size = std::strtoul(sub_string, NULL, 10);
+    m->write_size = std::strtoul(sub_string, NULL, 10);*/
+
     /// Branches
     sub_string = strtok_r(NULL, " ", &tmp_ptr);
     m->branch_type = static_cast<branch_t> (strtoull(sub_string, NULL, 10));
@@ -604,26 +657,20 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     /// If it is LOAD/STORE -> Fetch new MEMORY inside the memory file
     // =========================================================================
     bool mem_is_read;
-    if (m->is_read) {
-        trace_next_memory(&m->read_address, &m->read_size, &mem_is_read);
-        m->read_address |= this->address_translation;
+    for (uint32_t r=0; r < m->num_reads; ++r) {
+        trace_next_memory(&m->reads_addr[r], &m->reads_size[r], &mem_is_read);
+        m->reads_addr[r] |= this->address_translation;
         //ORCS_PRINTF ("read1: %lu | ", m->read_address)
         ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read from memory trace\n");
     }
 
-    if (m->is_read2) {
-        trace_next_memory(&m->read2_address, &m->read2_size, &mem_is_read);
-        m->read2_address |= this->address_translation;
-        //ORCS_PRINTF ("read2: %lu | ", m->read2_address) 
-        ERROR_ASSERT_PRINTF(mem_is_read == true, "Expecting a read2 from memory trace\n");
-    }
-
-    if (m->is_write) {
-        trace_next_memory(&m->write_address, &m->write_size, &mem_is_read);
-        m->write_address |= this->address_translation; 
+    for (uint32_t w=0; w < m->num_writes; ++w) {
+        trace_next_memory(&m->writes_addr[w], &m->writes_size[w], &mem_is_read);
+        m->writes_addr[w] |= this->address_translation;
         //ORCS_PRINTF ("write: %lu | ", m->write_address)
         ERROR_ASSERT_PRINTF(mem_is_read == false, "Expecting a write from memory trace\n");
     }
+
 
     //if (m->is_read || m->is_read2 || m->is_write) ORCS_PRINTF (" operation = %s \n", get_enum_instruction_operation_char (m->opcode_operation))
 
@@ -635,17 +682,21 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
 void trace_reader_t::statistics() {
     bool close = false;
 	FILE *output = stdout;
-	if(orcs_engine.output_file_name != NULL){
+
+	if (orcs_engine.output_file_name != NULL) {
 		output = fopen(orcs_engine.output_file_name,"a+");
 		close=true;
 	}
-	if (output != NULL){
-			utils_t::largestSeparator(output);
-            fprintf(output,"trace_reader_t\n");
-            fprintf(output,"fetch_instructions: %lu\n", this->fetch_instructions);
-            utils_t::largestSeparator(output);
-        }
-        if(close) fclose(output);
+
+	if (output != NULL) {
+        utils_t::largestSeparator(output);
+        fprintf(output,"trace_reader_t\n");
+        fprintf(output,"fetch_instructions: %lu\n", this->fetch_instructions);
+        utils_t::largestSeparator(output);
+    }
+
+    if (close)
+        fclose(output);
 }
 
 

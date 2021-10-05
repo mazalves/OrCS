@@ -27,6 +27,7 @@ void orcs_engine_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
 	this->memory_controller = new memory_controller_t();
 	this->hive_controller = new hive_controller_t();
 	this->vima_controller = new vima_controller_t();
+    	this->instruction_set = new instruction_set_t;
 }
 
 bool orcs_engine_t::get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS) {

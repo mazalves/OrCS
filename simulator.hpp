@@ -30,6 +30,7 @@
 #include <map>
 #include <cassert>
 #include <libconfig.h++>
+#include <unordered_map>
 
 // ============================================================================
 /// Classes
@@ -64,7 +65,9 @@ class disambiguation_hashed_t;
 class uop_package_t;
 class reorder_buffer_line_t;
 class memory_order_buffer_line_t;
+class functional_unit_t;
 class processor_t;
+class instruction_set_t;
 
 //  =========================================//
 // Cache Classes
@@ -119,6 +122,8 @@ typedef std::vector <reorder_buffer_line_t*> container_ptr_reorder_buffer_line_t
 // ============================================================================
 extern orcs_engine_t orcs_engine;
 
+
+
 // ==============================================================================
 /// Definitions
 // ==============================================================================
@@ -150,6 +155,7 @@ extern orcs_engine_t orcs_engine;
 //  =========================================//
 #include "./utils/circular_buffer.hpp"
 #include "./utils/utils.hpp"
+#include "./utils/set_associative.hpp"
 //  =========================================//
 // Core Includes
 //  =========================================//
@@ -164,6 +170,7 @@ extern orcs_engine_t orcs_engine;
 #include "./processor/reorder_buffer_line.hpp"
 #include "./processor/memory_order_buffer_line.hpp"
 #include "./processor/processor.hpp"
+#include "./processor/instruction_set.hpp"
 //  =========================================//
 // Branch Predictor includes
 //  =========================================//

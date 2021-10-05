@@ -28,6 +28,7 @@ class memory_package_t {
         uint64_t vima_read1;
         uint64_t vima_read2;
         uint64_t vima_write;
+        int32_t is_vectorial_part;
 
         bool row_buffer;
         cacheId_t type;

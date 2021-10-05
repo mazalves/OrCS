@@ -132,14 +132,20 @@ void print(opcode_package_t *op) {
 
     streamOut << op->base_reg << " " << op->index_reg               << " ";
 
-    streamOut << ((op->is_read)          ? '1' : '0')           << " ";
-    streamOut << op->read_address   << " " << op->read_size         << " ";
+    streamOut << op->num_reads << " ";
+    //streamOut << ((op->is_read)          ? '1' : '0')           << " ";
+    for (uint32_t r=0; r < op->num_reads; ++r)
+        streamOut << op->reads_addr[r] << " " << op->reads_size[r] << " ";
+    //streamOut << op->read_address   << " " << op->read_size         << " ";
 
-    streamOut << ((op->is_read2)         ? '1' : '0')           << " ";
-    streamOut << op->read2_address  << " " << op->read2_size        << " ";
+    //streamOut << ((op->is_read2)         ? '1' : '0')           << " ";
+    //streamOut << op->read2_address  << " " << op->read2_size        << " ";
 
-    streamOut << ((op->is_write)         ? '1' : '0')           << " ";
-    streamOut << op->write_address  << " " << op->write_size        << " ";
+    streamOut << op->num_writes << " ";
+    //streamOut << ((op->is_write)         ? '1' : '0')           << " ";
+    for (uint32_t w=0; w < op->num_writes; ++w)
+        streamOut << op->writes_addr[w] << " " << op->writes_size[w] << " ";
+    //streamOut << op->write_address  << " " << op->write_size        << " ";
                             
     streamOut << static_cast<int64_t> (op->branch_type)         << " "; 
     streamOut << ((op->is_indirect)      ? '1' : '0')           << " ";
@@ -165,32 +171,12 @@ void bbl_executed(uint32_t bbl) {
         //--------------------------------------------------------------------------
         // Fill its memory access
         //--------------------------------------------------------------------------
-        if(op->is_read) {
+        for (uint32_t i=0; i < op->num_reads; ++i) {
             MemoryAccess mem = memory_accesses.front();
             memory_accesses.pop_front();
 
-            op->read_address = mem.addr;
-            op->read_size = mem.size;
-
-            //--------------------------------------------------------------------------
-            // Validations
-            //--------------------------------------------------------------------------
-            if(mem.is_read == false) {
-                std::cerr << "bbl_executed: WRITE found when READ expected!" << std::endl;
-                exit(1);
-            }
-            if(mem.bbl != bbl) {
-                std::cerr << "bbl_executed: Memory access from bbl " << mem.bbl << 
-                            " found when bbl " << bbl << " expected!" << std::endl;
-                exit(1);
-            }
-        }
-        if(op->is_read2) {
-            MemoryAccess mem = memory_accesses.front();
-            memory_accesses.pop_front();
-
-            op->read2_address = mem.addr;
-            op->read2_size = mem.size;
+            op->reads_addr[i] = mem.addr;
+            op->reads_size[i] = mem.size;
 
             //--------------------------------------------------------------------------
             // Validations
@@ -206,13 +192,15 @@ void bbl_executed(uint32_t bbl) {
             }
         }
 
-        if(op->is_write) {
+        
+
+        for (uint32_t i=0; i < op->num_writes; ++i) {
             MemoryAccess mem = memory_accesses.front();
             memory_accesses.pop_front();
 
-            op->write_address = mem.addr;
-            op->write_size = mem.size;
-
+            op->writes_addr[i] = mem.addr;
+            op->writes_size[i] = mem.size;
+            
             //--------------------------------------------------------------------------
             // Validations
             //--------------------------------------------------------------------------
@@ -226,6 +214,8 @@ void bbl_executed(uint32_t bbl) {
                 exit(1);
             }
         }
+
+
 
         //--------------------------------------------------------------------------
         // Send instruction to OrCS
@@ -301,14 +291,15 @@ VOID tracer(TRACE trace, VOID *v) {
             //--------------------------------------------------------------------------
             // New BBL instruction
             //--------------------------------------------------------------------------
-            if(INS_hasKnownMemorySize(ins)) {
+            
                 
-                opcode_package_t op = x86_to_static(ins);
-                program.insert(current_bbl, op);
+            opcode_package_t op = x86_to_static(ins);
+            program.insert(current_bbl, op);
 
-                //--------------------------------------------------------------------------
-                // Memory accesses executed
-                //--------------------------------------------------------------------------
+            //--------------------------------------------------------------------------
+            // Memory accesses executed
+            //--------------------------------------------------------------------------
+            if(INS_hasKnownMemorySize(ins)) {
                 if (INS_IsMemoryRead(ins)) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, true, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_UINT64, current_bbl, IARG_END);
                 }
@@ -319,17 +310,6 @@ VOID tracer(TRACE trace, VOID *v) {
                     INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)touch_memory, IARG_BOOL, false, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_UINT64, current_bbl, IARG_END);
                 }
             } else {
-
-                std::vector<opcode_package_t> *op = vgather_vscatter_to_static(ins);
-                std::vector<opcode_package_t>::iterator it;
-
-                it = op->begin();
-                while(it != op->end()) {
-                    program.insert(current_bbl, *it);
-                    ++it;
-                }
-                delete(op);
-                
 
                 //--------------------------------------------------------------------------
                 // Memory accesses list

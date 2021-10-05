@@ -61,7 +61,9 @@ class circular_buffer_t {
         inline CB_TYPE* back();
 
         int32_t push_back(const CB_TYPE& new_element);
+        int32_t push_front(const CB_TYPE& new_element);
         void pop_front();
+        void pop_back();
         void pop_push();
         void print_all();
 };
@@ -151,6 +153,29 @@ int32_t circular_buffer_t<CB_TYPE>::push_back(const CB_TYPE& new_element) {
 }
 
 // ============================================================================
+/// Insert into the oldest position
+template <class CB_TYPE>
+int32_t circular_buffer_t<CB_TYPE>::push_front(const CB_TYPE& new_element) {
+    ERROR_ASSERT_PRINTF(this->data != NULL, "Trying to access beyond the circular buffer size.\n")
+
+    int32_t virtual_position = POSITION_FAIL;
+
+    if (!is_full()) {
+        if(this->beg_index == 0) {
+            this->beg_index = this->capacity - 1;
+        } else {
+            this->beg_index--;
+        }
+        
+        this->size++;
+        this->data[beg_index] = new_element;
+        virtual_position = 0;
+    }
+
+    return virtual_position;
+}
+
+// ============================================================================
 /// Obtain the oldest package inside the circular buffer
 /// Same as cb[0], but this is faster
 template <class CB_TYPE>
@@ -193,6 +218,36 @@ void circular_buffer_t<CB_TYPE>::pop_front() {
             this->beg_index = 0;
     }
 }
+
+template <>
+inline void circular_buffer_t<int32_t>::pop_front() {
+    if (this->size > 0) {
+        this->size--;
+        this->data[beg_index] = -1;
+
+        this->beg_index++;
+        if (this->beg_index >= this->capacity)
+            this->beg_index = 0;
+    }
+}
+// ============================================================================
+/// Remove the oldest element
+template <class CB_TYPE>
+void circular_buffer_t<CB_TYPE>::pop_back() {
+    if (this->size > 0) {
+        this->size--;
+        this->data[end_index].package_clean();
+
+        if (this->end_index == 0) {
+            this->end_index = this->capacity - 1;
+
+        } else {
+            this->end_index--;
+        }
+
+    }
+}
+
 
 // ============================================================================
 /// Remove the oldest element and insert it into the newest position

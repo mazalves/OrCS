@@ -55,7 +55,9 @@ class line_t {
         }
 
         void print_line(){
-            ORCS_PRINTF ("tag: %lu, dirty: %u, lru: %lu, prefetched: %u, valid: %u, ready_at: %lu\n", tag, dirty, lru, prefetched, valid, ready_at)
+            ORCS_PRINTF ("tag: %lu, dirty: %u, prefetched: %u, valid: %u\n", tag, dirty, prefetched, valid)
+            
+            //ORCS_PRINTF ("tag: %lu, dirty: %u, lru: %lu, prefetched: %u, valid: %u, ready_at: %lu\n", tag, dirty, lru, prefetched, valid, ready_at)
         }
 
         INSTANTIATE_GET_SET_ADD(uint32_t, POINTER_LEVELS)

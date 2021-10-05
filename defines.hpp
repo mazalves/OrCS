@@ -29,6 +29,9 @@
 #define MEMORY_DEBUG 0
 #define HIVE_DEBUG 0
 #define VIMA_DEBUG 0
+#define DV_DEBUG 0
+#define VECTORIZE_AFTER 1
+#define UNIMPLEMENTED_ALERTS 0
 
 // ========================
 // Defines Simulators Caracteristics
@@ -37,6 +40,7 @@
 #define MAX_REGISTERS 32         /// opcode_package_t uop_package_t  (Max number of register (read or write) for one opcode/uop)
 #define MAX_ASSEMBLY_SIZE 256    /// In general 20 is enough
 #define MAX_REGISTER_NUMBER 256
+#define MAX_MEM_OPERATIONS 16
 // ========================
 
 #endif // DEFINES_H

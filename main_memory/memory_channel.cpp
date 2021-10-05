@@ -83,7 +83,10 @@ void memory_channel_t::allocate() {
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
     } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "FIRST_COME_FIRST_SERVE")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE;
+    } else if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_NORMAL_HITS_FIRST")){
+        this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST;
     }
+    
 
     if (!strcmp (cfg_memory_ctrl["WRITE_PRIORITY"], "DRAIN_WHEN_FULL")){
         this->WRITE_PRIORITY = WRITE_PRIORITY_DRAIN_WHEN_FULL;
@@ -220,6 +223,9 @@ memory_package_t* memory_channel_t::findNext (uint32_t bank){
 }
 
 memory_package_t* memory_channel_t::findNextRead (uint32_t bank){
+    int32_t selected_not_vectorial = -1;
+    int32_t selected_hit = -1;
+
     if (bank_read_requests[bank].empty()) return NULL;
     switch (this->REQUEST_PRIORITY){
         case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
@@ -234,11 +240,34 @@ memory_package_t* memory_channel_t::findNextRead (uint32_t bank){
             }
             break;
         }
+        case REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST:{
+            for (i = 0; i < bank_read_requests[bank].size(); i++){
+                // Não é parte vetorial e deu hit
+                if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->memory_address) &&
+                    bank_read_requests[bank][i]->is_vectorial_part == -1){
+                    return bank_read_requests[bank][i];
+                // Não é parte vetorial
+                } else if(bank_read_requests[bank][i]->is_vectorial_part == -1) {
+                    if (selected_not_vectorial == -1) {selected_not_vectorial = i;}
+                // Deu hit
+                } else if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->memory_address)) {
+                    if (selected_hit == -1) {selected_hit = i;}
+                }
+            }
+            if (selected_not_vectorial != -1) 
+                return bank_read_requests[bank][selected_not_vectorial];
+            if (selected_hit != -1)
+                return bank_read_requests[bank][selected_hit];
+            break;
+        }
     }
     return bank_read_requests[bank].front();
 }
 
 memory_package_t* memory_channel_t::findNextWrite (uint32_t bank){
+    int32_t selected_not_vectorial = -1;
+    int32_t selected_hit = -1;
+    
     if (bank_write_requests[bank].empty()) return NULL;
     switch (this->REQUEST_PRIORITY){
         case REQUEST_PRIORITY_FIRST_COME_FIRST_SERVE:{
@@ -251,6 +280,26 @@ memory_package_t* memory_channel_t::findNextWrite (uint32_t bank){
                     return bank_write_requests[bank][i];
                 }
             }
+            break;
+        }
+        case REQUEST_PRIORITY_ROW_BUFFER_NORMAL_HITS_FIRST:{
+            for (i = 0; i < bank_write_requests[bank].size(); i++){
+                // Não é parte vetorial e deu hit
+                if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->memory_address) &&
+                    bank_write_requests[bank][i]->is_vectorial_part == -1){
+                    return bank_write_requests[bank][i];
+                // Não é parte vetorial
+                } else if(bank_write_requests[bank][i]->is_vectorial_part == -1) {
+                    if (selected_not_vectorial == -1) {selected_not_vectorial = i;}
+                // Deu hit
+                } else if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->memory_address)) {
+                    if (selected_hit == -1) {selected_hit = i;}
+                }
+            }
+            if (selected_not_vectorial != -1) 
+                return bank_write_requests[bank][selected_not_vectorial];
+            if (selected_hit != -1)
+                return bank_write_requests[bank][selected_hit];
             break;
         }
     }
@@ -274,7 +323,7 @@ void memory_channel_t::clock(){
                     if (get_minimum_latency(bank, MEMORY_CONTROLLER_COMMAND_ROW_ACCESS) > orcs_engine.get_global_cycle()) break;
                     if (!current_entry->row_buffer) {
                         #if MEMORY_DEBUG
-                            ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
+                            ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS (1)!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
                         #endif
                         this->add_stat_row_buffer_miss();
                         current_entry->row_buffer = true;
@@ -343,7 +392,7 @@ void memory_channel_t::clock(){
         this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] > orcs_engine.get_global_cycle()) return;
         //if (current_entry->is_vima) ORCS_PRINTF ("%lu Request! address: %lu | row: %u | bank: %u | channel: %lu | column: %lu\n", orcs_engine.get_global_cycle(), current_entry->memory_address, row, bank, get_channel (current_entry->memory_address), get_column (current_entry->memory_address))
         #if MEMORY_DEBUG 
-            ORCS_PRINTF ("[DRAM] %lu %lu %s fetching from DRAM!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
+            ORCS_PRINTF ("[DRAM] %lu %lu %s fetching from DRAM! (Minimum latency: %lu)\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation), max(this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ], this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE]))
         #endif
 
         switch (current_entry->memory_operation){
@@ -394,7 +443,7 @@ void memory_channel_t::clock(){
                     this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
                     this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_PRECHARGE] = latency_ready_cycle;
                     #if MEMORY_DEBUG 
-                        ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS!\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation))
+                        ORCS_PRINTF ("[DRAM] %lu %lu %s row buffer MISS! (Latency min: %lu)\n", orcs_engine.get_global_cycle(), current_entry->memory_address, get_enum_memory_operation_char (current_entry->memory_operation), latency_ready_cycle)
                     #endif
                     this->add_stat_row_buffer_miss();
                 } else {

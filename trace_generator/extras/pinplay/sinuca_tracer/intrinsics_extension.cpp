@@ -608,7 +608,18 @@ INT icheck_conditions(std::string rtn_name) {
     return 0;
 };
 
-// =====================================================================
+// ===========================================================================
+
+#define CMP_2PARAM_COUNT 32
+
+static const int cmp_2param_idx[CMP_2PARAM_COUNT] = { 8, 9, 14, 15, 16,
+                                                    17, 24, 25, 56, 57,
+                                                    58, 59, 68, 69, 74,
+                                                    75, 84, 85, 92, 93,
+                                                    98, 99, 108, 109, 128, 
+                                                    129, 130, 131, 132, 
+                                                    133, 134, 135
+                                                    };
 
 INT icheck_2parameters(std::string rtn_name) {
     if ((rtn_name.compare(4, cmp_name28.size(), cmp_name28.c_str()) == 0) || //abs int
@@ -652,21 +663,19 @@ INT icheck_2parameters(std::string rtn_name) {
     }
     return 0;
 }
+// ===========================================================================
+
+#define CMP_1PARAM_COUNT 12
+static const int cmp_1param_idx[CMP_1PARAM_COUNT] = { 60, 61, 62, 63,
+                                                    86, 87, 110, 111,
+                                                    164, 165, 166, 167
+                                                    };
 
 INT icheck_1parameter(std::string rtn_name) {
-    if ((rtn_name.compare(4, cmp_name80.size(), cmp_name80.c_str()) == 0) || //move immediate int
-        (rtn_name.compare(4, cmp_name81.size(), cmp_name81.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name82.size(), cmp_name82.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name83.size(), cmp_name83.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name106.size(), cmp_name106.c_str()) == 0) || //move immediate float
-        (rtn_name.compare(4, cmp_name107.size(), cmp_name107.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name130.size(), cmp_name130.c_str()) == 0) || //move immediate double
-        (rtn_name.compare(4, cmp_name131.size(), cmp_name131.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name212.size(), cmp_name212.c_str()) == 0) || //dot product
-        (rtn_name.compare(4, cmp_name213.size(), cmp_name213.c_str()) == 0) ||
-        (rtn_name.compare(4, cmp_name214.size(), cmp_name214.c_str()) == 0) || 
-        (rtn_name.compare(4, cmp_name215.size(), cmp_name215.c_str()) == 0)) {
-            return 1;
+    for (int i = 0; i < CMP_1PARAM_COUNT; i++) {
+        if (rtn_name.compare(4, vima_inst_names[cmp_1param_idx[i]].size(),
+                             vima_inst_names[cmp_1param_idx[i]].c_str()) == 0)
+                                 return 1;
     }
     return 0;
 }
@@ -945,15 +954,28 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
                  (rtn_name.compare(4, cmp_name129.size(), cmp_name129.c_str()) == 0)) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_FP_MLA;
         }
-        else if ((rtn_name.compare(4, cmp_name196.size(), cmp_name196.c_str()) == 0) || //gather
-            (rtn_name.compare(4, cmp_name197.size(), cmp_name197.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name198.size(), cmp_name198.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name199.size(), cmp_name199.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name200.size(), cmp_name200.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name201.size(), cmp_name201.c_str()) == 0) ||            
-            (rtn_name.compare(4, cmp_name202.size(), cmp_name202.c_str()) == 0) ||
-            (rtn_name.compare(4, cmp_name203.size(), cmp_name203.c_str()) == 0)){
-            NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_GATHER;
+        for (int i = 0; i < VIMA_GATHER_COUNT; i++) {
+            if (rtn_name.compare(4,
+                                vima_gather_names[i].size(),
+                                vima_gather_names[i].c_str()) == 0) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_GATHER;
+            }
+        }
+        for (int i = 0; i < VIMA_SCATTER_COUNT; i++) {
+            if (rtn_name.compare(4,
+                                vima_scatter_names[i].size(),
+                                vima_scatter_names[i].c_str()) == 0) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_VIMA_SCATTER;
+            }
+        }
+        //  revisar esses 2 laços. antes o default era pra ser
+        //  HMC_ROWA em um else.
+        for (int i = 0; i < HMC_INS_COUNT; i++) {
+            if (rtn_name.compare(4,
+                                hmc_inst_names[i].size(),
+                                hmc_inst_names[i].c_str()) == 0) {
+                NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
+            }
         }
         else if ((rtn_name.compare(4, cmp_name204.size(), cmp_name204.c_str()) == 0) || //scatter
             (rtn_name.compare(4, cmp_name205.size(), cmp_name205.c_str()) == 0) ||            
@@ -985,14 +1007,19 @@ VOID arch_x86_trace_instruction(RTN arch_rtn, data_instr archx_x86_data) {
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_HMC_ROWA;
         }
 
-        if ((icheck_2parameters(rtn_name) == 1) || icheck_1parameter(rtn_name) == 1) {
-            NewInstruction.is_read = 1;
+        if (icheck_2parameters(rtn_name) == 1
+        || icheck_1parameter(rtn_name)) {
+            NewInstruction.num_reads = 1;
+            NewInstruction.num_writes = 1;
+            /*NewInstruction.is_read = 1;
             NewInstruction.is_read2 = 0;
-            NewInstruction.is_write = 1;
+            NewInstruction.is_write = 1;*/
         } else {
-            NewInstruction.is_read2 = 1;
+            NewInstruction.num_reads = 2;
+            NewInstruction.num_writes = 1;
+            /*NewInstruction.is_read2 = 1;
             NewInstruction.is_read = 1;
-            NewInstruction.is_write = 1;
+            NewInstruction.is_write = 1;*/
         }
 
         NewInstruction.is_indirect = 0;

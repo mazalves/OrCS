@@ -39,6 +39,7 @@ vima_controller_t::vima_controller_t(){
     this->VIMA_CACHE_SIZE = 0;
     this->VIMA_UNBALANCED = 0;
     this->CORE_TO_BUS_CLOCK_RATIO = 0.0;
+
 }
 
 vima_controller_t::~vima_controller_t(){

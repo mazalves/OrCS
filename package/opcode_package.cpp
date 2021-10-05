@@ -5,6 +5,7 @@
 #endif
 
 #include <string>
+
 // =====================================================================
 opcode_package_t::opcode_package_t() {
 
@@ -18,21 +19,12 @@ opcode_package_t::opcode_package_t() {
 		read_regs[i] = 0;
 		write_regs[i] = 0;
 	}
-	
+
     this->base_reg = 0;
     this->index_reg = 0;
 
-    this->is_read = false;
-    this->read_address = 0;
-    this->read_size = 0;
-
-    this->is_read2 = false;
-    this->read2_address = 0;
-    this->read2_size = 0;
-
-    this->is_write = false;
-    this->write_address = 0;
-    this->write_size = 0;
+    this->num_reads = 0;
+    this->num_writes = 0;
 
     this->branch_type = BRANCH_UNCOND;
     this->is_indirect = false;
@@ -48,12 +40,13 @@ opcode_package_t::opcode_package_t() {
     this->readyAt = orcs_engine.get_global_cycle();
     #else
     this->readyAt = 0;
-    #endif  
+    #endif
 }
 
 opcode_package_t::~opcode_package_t() {
-    
+
 }
+
 #ifndef __PIN__
 // =============================================================================
 void opcode_package_t::package_clean() {
@@ -69,17 +62,9 @@ void opcode_package_t::package_clean() {
     this->base_reg = 0;
     this->index_reg = 0;
 
-    this->is_read = false;
-    this->read_address = 0;
-    this->read_size = 0;
+    this->num_reads = 0;
+    this->num_writes = 0;
 
-    this->is_read2 = false;
-    this->read2_address = 0;
-    this->read2_size = 0;
-
-    this->is_write = false;
-    this->write_address = 0;
-    this->write_size = 0;
     this->is_predicated = false;
     this->is_prefetch = false;
 
@@ -87,11 +72,12 @@ void opcode_package_t::package_clean() {
     this->hive_read1 = 0;
     this->hive_read2 = 0;
     this->hive_write = 0;
-    
+
     //====Control
     this->readyAt = 0;
     this->status = PACKAGE_STATE_FREE;
     this->opcode_number = 0;
+
 }
 
 /// Convert Instruction variables into String
@@ -101,15 +87,17 @@ std::string opcode_package_t::content_to_string() {
     content_string = content_string + " " + get_enum_instruction_operation_char(this->opcode_operation);
     content_string = content_string + " $" + utils_t::big_uint64_to_string(this->opcode_address);
     content_string = content_string + " Size:" + utils_t::uint32_to_string(this->opcode_size);
+    content_string = content_string + " | ";
+    for (uint32_t i=0; i < this->num_reads; ++i) {
+        content_string = content_string + " R $" + utils_t::big_uint64_to_string(this->reads_addr[i]) 
+                                                 + " (" + utils_t::big_uint64_to_string(this->reads_size[i])  + ") ";
+    }
 
-    content_string = content_string + " | R1 $" + utils_t::big_uint64_to_string(this->read_address);
-    content_string = content_string + " Size:" + utils_t::uint32_to_string(this->read_size);
-
-    content_string = content_string + " | R2 $" + utils_t::big_uint64_to_string(this->read2_address);
-    content_string = content_string + " Size:" + utils_t::uint32_to_string(this->read2_size);
-
-    content_string = content_string + " | W $" + utils_t::big_uint64_to_string(this->write_address);
-    content_string = content_string + " Size:" + utils_t::uint32_to_string(this->write_size);
+    content_string = content_string + " | ";
+    for (uint32_t i=0; i < this->num_writes; ++i) {
+        content_string = content_string + " W $" + utils_t::big_uint64_to_string(this->writes_addr[i]) 
+                                                 + " (" + utils_t::big_uint64_to_string(this->writes_size[i])  + ") ";
+    }
 
 
     content_string = content_string + " | RRegs[";
@@ -129,9 +117,11 @@ std::string opcode_package_t::content_to_string() {
 
     return content_string;
 }
+
 std::string opcode_package_t::content_to_string2() {
     std::string content_string;
     content_string = "";
+    content_string = content_string + " " + this->opcode_assembly;
     content_string = content_string + " " + get_enum_instruction_operation_char(this->opcode_operation);
     content_string = content_string + " $" + utils_t::big_uint64_to_string(this->opcode_address);
     content_string = content_string + " Size:" + utils_t::uint32_to_string(this->opcode_size);
