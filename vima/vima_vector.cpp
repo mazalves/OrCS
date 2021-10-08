@@ -106,12 +106,12 @@ void vima_vector_t::writeback (bool random) {
                     sub_ready++;
             }
         }
-    if (sub_ready >= no_sub_requests) {
-        #if VIMA_DEBUG 
-            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
-        #endif
-        this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
-        status = PACKAGE_STATE_WAIT;
+        if (sub_ready >= no_sub_requests) {
+            #if VIMA_DEBUG 
+                ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
+            #endif
+            this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
+            status = PACKAGE_STATE_WAIT;
         }
     } else status = PACKAGE_STATE_WAIT;
     //setar todas as instruções para STORE

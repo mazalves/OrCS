@@ -26,8 +26,11 @@ memory_package_t::memory_package_t() {
 
     this->is_vima = false;
     this->vima_read1 = 0;
+    this->vima_read1_vec = NULL;
     this->vima_read2 = 0;
+    this->vima_read2_vec = NULL;
     this->vima_write = 0;
+    this->vima_write_vec = NULL;
 
     this->is_vectorial_part = -1;
 
