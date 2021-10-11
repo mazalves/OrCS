@@ -25,6 +25,7 @@ class vima_controller_t {
         uint32_t vima_buffer_end;
         uint32_t vima_buffer_count;
         uint16_t* store_hash;
+        uint32_t bits_shift;
 
         bool read1_d, read2_d, write_d;
 

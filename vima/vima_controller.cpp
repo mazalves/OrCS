@@ -113,7 +113,7 @@ void vima_controller_t::instruction_ready (size_t index){
 
     if (vima_buffer[index]->vima_write != 0) {
         //this->write_to_cache (index);
-        store_hash[(vima_buffer[index]->vima_write >> 13) % 1024] = 0;
+        store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
     }
 
     //ORCS_PRINTF ("%lu VIMA request from processor %u READY\n", vima_buffer.size(), vima_buffer[index]->processor_id)
@@ -193,7 +193,7 @@ void vima_controller_t::check_completion (int index){
 
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
 
-    if (store_hash[(vima_buffer[index]->vima_write >> 13) % 1024] == 0){
+    if (store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] == 0){
         cache_status_t result = MISS;
         vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
         if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
@@ -231,6 +231,7 @@ void vima_controller_t::clock(){
     uint32_t index = 0;
     for (uint32_t i = 0; i < vima_buffer_count; i++){
         index = (vima_buffer_start + i) % VIMA_BUFFER;
+
         switch (vima_buffer[index]->status){
             case PACKAGE_STATE_WAIT:
                 #if VIMA_DEBUG
@@ -243,7 +244,7 @@ void vima_controller_t::clock(){
                 this->instruction_ready (index);
                 break;
             case PACKAGE_STATE_TRANSMIT:
-                this->check_completion (vima_buffer_start);
+                if (index == vima_buffer_start) this->check_completion (vima_buffer_start);
                 break;
             case PACKAGE_STATE_VIMA:
                 read1_d = false;
@@ -251,7 +252,7 @@ void vima_controller_t::clock(){
                 write_d = false;
 
                 if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) {
-                    if (store_hash[(vima_buffer[index]->vima_read1 >> 13) % 1024] == 0) {
+                    if (store_hash[(vima_buffer[index]->vima_read1 >> index_bits_shift) % 1024] == 0) {
                         cache_status_t result = MISS;
                         this->add_cache_accesses();
                         this->add_cache_reads();
@@ -272,7 +273,7 @@ void vima_controller_t::clock(){
                     }
                 }
                 if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
-                    if (store_hash[(vima_buffer[index]->vima_read2 >> 13) % 1024] == 0) {
+                    if (store_hash[(vima_buffer[index]->vima_read2 >> index_bits_shift) % 1024] == 0) {
                         cache_status_t result = MISS;
                         this->add_cache_accesses();
                         this->add_cache_reads();
@@ -291,7 +292,7 @@ void vima_controller_t::clock(){
                     }
                 }
                 if (vima_buffer[index]->vima_write != 0 && vima_buffer[index]->vima_write_vec == NULL) {
-                    if (store_hash[(vima_buffer[index]->vima_write >> 13) % 1024] == 0) {
+                    if (store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] == 0) {
                         cache_status_t result = MISS;
                         this->add_cache_accesses();
                         this->add_cache_writes();
@@ -299,7 +300,7 @@ void vima_controller_t::clock(){
                         if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
                         if (result == MISS) this->add_cache_misses();
                             
-                        store_hash[(vima_buffer[index]->vima_write >> 13) % 1024] = 1;
+                        store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
                     }
                 }
                 
@@ -417,7 +418,7 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         vima_buffer[vima_buffer_end] = request;
         vima_buffer_end = (vima_buffer_end + 1) % VIMA_BUFFER;
         vima_buffer_count++;
-        ORCS_PRINTF ("%lu IN VIMA Controller -> vima_buffer_start = %u, vima_buffer_end = %u, vima_buffer_count = %u.\n", orcs_engine.get_global_cycle(), vima_buffer_start, vima_buffer_end, vima_buffer_count)
+        //ORCS_PRINTF ("%lu IN VIMA Controller -> vima_buffer_start = %u, vima_buffer_end = %u, vima_buffer_count = %u.\n", orcs_engine.get_global_cycle(), vima_buffer_start, vima_buffer_end, vima_buffer_count)
         return true;
     } else {
         request->sent_to_ram = false;
