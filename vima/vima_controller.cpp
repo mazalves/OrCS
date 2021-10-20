@@ -199,18 +199,26 @@ void vima_controller_t::check_completion (int index){
         }
     }
 
-    cache_status_t result = HIT;
-    vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
-    if (vima_buffer[index]->vima_write_vec == NULL) return;
-        
-    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
-    if (result == MISS) {
-        this->add_cache_misses();
-        if (vima_buffer[index]->vima_write_vec->dirty){
-            this->add_cache_writebacks();
-            vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_TRANSMIT;
-        } else vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_WAIT;
-    } else this->add_cache_hits();
+    if (vima_buffer[index]->vima_write_vec == NULL){
+        cache_status_t result = HIT;
+        vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
+        if (vima_buffer[index]->vima_write_vec == NULL) return;
+            
+        if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
+        if (result == MISS) {
+            this->add_cache_misses();
+            if (vima_buffer[index]->vima_write_vec->dirty){
+                this->add_cache_writebacks();
+                vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_TRANSMIT;
+            } else vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_WAIT;
+        } else this->add_cache_hits();
+    }
+
+    if (vima_buffer[index]->vima_write_vec->dirty){
+        this->add_cache_writebacks();
+        vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_TRANSMIT;
+    } else vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_WAIT;
+
     vima_buffer[index]->vima_write_vec->set_next_address (vima_buffer[index]->vima_write);
     vima_buffer[index]->vima_write_vec->set_tag (get_tag (vima_buffer[index]->vima_write));
     vima_buffer[index]->vima_write_vec->set_lru (orcs_engine.get_global_cycle());
@@ -277,7 +285,7 @@ void vima_controller_t::clock(){
                                 this->add_cache_writebacks();
                                 vima_buffer[index]->vima_read1_vec->status = PACKAGE_STATE_TRANSMIT;
                             } else vima_buffer[index]->vima_read1_vec->status = PACKAGE_STATE_WAIT;
-                        }
+                        } else this->add_cache_hits();
                         vima_buffer[index]->vima_read1_vec->set_next_address (vima_buffer[index]->vima_read1);
                         vima_buffer[index]->vima_read1_vec->set_tag (get_tag (vima_buffer[index]->vima_read1));
                     }
@@ -298,13 +306,22 @@ void vima_controller_t::clock(){
                                 this->add_cache_writebacks();
                                 vima_buffer[index]->vima_read2_vec->status = PACKAGE_STATE_TRANSMIT;
                             } else vima_buffer[index]->vima_read2_vec->status = PACKAGE_STATE_WAIT;
-                        }
+                        } else this->add_cache_hits();
                         vima_buffer[index]->vima_read2_vec->set_next_address (vima_buffer[index]->vima_read2);
                         vima_buffer[index]->vima_read2_vec->set_tag (get_tag (vima_buffer[index]->vima_read2));
                     }
                 }
                 if (vima_buffer[index]->vima_write != 0 && vima_buffer[index]->vima_write_vec == NULL) {
                     if (store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] == 0) {
+                        if (vima_buffer[index]->vima_write != vima_buffer[index]->vima_read1 && vima_buffer[index]->vima_write != vima_buffer[index]->vima_read2){
+                            cache_status_t result = MISS;
+                            vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
+                            if (vima_buffer[index]->vima_write_vec == NULL) return;
+                            vima_buffer[index]->vima_write_vec->taken = true;
+                            if (result == MISS) this->add_cache_misses();
+                            else this->add_cache_hits();
+                        }
+
                         this->add_cache_accesses();
                         this->add_cache_writes();
                         store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
