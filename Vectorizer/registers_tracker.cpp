@@ -27,13 +27,13 @@ void registers_tracker_t::allocate (table_of_loads_t *tl,
 void registers_tracker_t::committed_ld (uop_package_t *uop) {
     bool active_debug = false;
 
-    if ((uop->opcode_address == 94759722448677) ||
+    /*if ((uop->opcode_address == 94759722448677) ||
         (uop->opcode_address == 94759722448682) ||
         (uop->opcode_address == 94759722448688)) {
             active_debug = true;
         }
     if (uop->opcode_address == 94318318040695) active_debug = true;
-    if (uop->opcode_address == 94318318040700) active_debug = true;
+    if (uop->opcode_address == 94318318040700) active_debug = true;*/
     if (active_debug) printf("RT Op: %lu (LOAD)\n", uop->opcode_address);
 
 
@@ -44,11 +44,11 @@ void registers_tracker_t::committed_ld (uop_package_t *uop) {
         // Faz invalidações
         // ****************
         // // Origem: Load
-        if (entry->tl_pointer != NULL) {
+        if (this->tl->valid_pointer(entry->tl_pointer, entry->pointer_timestamp)) {
             this->tl->start_invalidation(entry->tl_pointer);
         }
         // // Origem: Operação
-        if (entry->to_pointer != NULL) {
+        if (this->to->valid_pointer(entry->to_pointer, entry->pointer_timestamp)) {
             this->to->start_invalidation(entry->to_pointer);
         }
         // // Origem: Escrita (não escreve em regs)
@@ -74,6 +74,7 @@ void registers_tracker_t::committed_ld (uop_package_t *uop) {
         // Atualiza ponteiros
         // ******************
         entry->tl_pointer = tl_pointer;
+        entry->pointer_timestamp = (tl_pointer) ? tl_pointer->timestamp : 0;
         entry->to_pointer = NULL;
         entry->ts_pointer = NULL;
         if (active_debug) printf(" --> Vinculado a %d\n", uop->write_regs[i]);
@@ -89,13 +90,13 @@ void registers_tracker_t::committed_ld (uop_package_t *uop) {
 
 void registers_tracker_t::committed_op (uop_package_t *uop) {
     bool active_debug = false;
-    if (uop->opcode_address == 94318318040704) active_debug = true;
+    /*if (uop->opcode_address == 94318318040704) active_debug = true;
 
         if ((uop->opcode_address == 94759722448677) ||
         (uop->opcode_address == 94759722448682) ||
         (uop->opcode_address == 94759722448688)) {
             active_debug = true;
-        }
+        }*/
     if (active_debug) printf("Op: %lu\n", uop->opcode_address);
 
 
@@ -120,9 +121,10 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
         // Faz invalidações && verifica origens vetorizáveis
         // *************************************************
         // // Origem: Load
-        if (entry->tl_pointer == NULL) {
+        if (this->tl->valid_pointer(entry->tl_pointer, entry->pointer_timestamp) == false) {
             if (active_debug) printf("[%d] >> Load não vetorizável\n", uop->read_regs[i]);
             vectorizable_origins = false;
+            entry->tl_pointer = NULL;
         } else {
             // ++++++++++++++++++++++++
             // Não possui entrada na TO
@@ -154,7 +156,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
             // +++++++++++++++++++++++++++++++
             // O load não foi confirmado ainda
             // +++++++++++++++++++++++++++++++
-            if (entry->tl_pointer->vectorizable == false) {
+            if ((entry->tl_pointer) && (entry->tl_pointer->vectorizable == false)) {
                 vectorizable_origins = false;
                 if (active_debug) printf("[%d] >> Load não confirmado como vetorizável\n", uop->read_regs[i]);
 
@@ -163,7 +165,11 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
         // // Origem: Operação
         if (entry->to_pointer != NULL) {
             vectorizable_origins = false;
-            this->to->start_invalidation(entry->to_pointer);
+
+            if (this->to->valid_pointer(entry->to_pointer, entry->pointer_timestamp)) {
+                this->to->start_invalidation(entry->to_pointer);
+            }
+
             entry->to_pointer = NULL;
             if (active_debug) printf(">> Origem: operação\n");
 
@@ -193,7 +199,7 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
             to_pointer = to->get_id(to_entry);
         }
         if (valid_to_entry == true) {
-            for (int32_t i=0; (i < MAX_REGISTERS) && (uop->read_regs[i] != POSITION_FAIL); ++i) {
+            for (int32_t i=0; (i < MAX_REGISTERS) && (uop->read_regs[i] != POSITION_FAIL); ++i) { /* A verificação de validade foi feita para definir vectorizable_origins */
                 registers_tracker_entry_t *entry = &this->entries[uop->read_regs[i]];
                 entry->tl_pointer->linked_to_ts = true;
                 entry->tl_pointer->is_mov = false;
@@ -229,9 +235,10 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
         // ******************
         entry->tl_pointer = NULL;
         entry->to_pointer = to_pointer;
+        entry->pointer_timestamp = (to_pointer) ? to_pointer->timestamp : 0;
         entry->ts_pointer = NULL;
     
-        if (active_debug) printf(" --> Vinculado a %d\n", uop->write_regs[i]);
+        if (active_debug) printf(" --> Vinculado a %d (T: %lu)\n", uop->write_regs[i], entry->pointer_timestamp);
         assert (entry->to_pointer == NULL || entry->to_pointer->free == false);
     }
 }
@@ -239,13 +246,13 @@ void registers_tracker_t::committed_op (uop_package_t *uop) {
 
 void registers_tracker_t::committed_st (uop_package_t *uop) {
     bool active_debug = false;
-    if (uop->opcode_address == 94318318040707) active_debug = true;
+    //if (uop->opcode_address == 94318318040707) active_debug = true;
 
-        if ((uop->opcode_address == 94759722448677) ||
+       /* if ((uop->opcode_address == 94759722448677) ||
         (uop->opcode_address == 94759722448682) ||
         (uop->opcode_address == 94759722448688)) {
             active_debug = true;
-        }
+        }*/
     if (active_debug) printf("Op: %lu (STORE)\n", uop->opcode_address);
 
     bool vectorizable_origin = true;
@@ -261,11 +268,13 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
     bool valid_ts_entry = false;
     uint32_t ts_entry = ts->find_id(uop, &valid_ts_entry);
     table_of_stores_entry_t *ts_pointer = (valid_ts_entry) ? ts->get_id(ts_entry) : NULL;
+
     // Registrador de leitura (apenas o último é a origem dos dados, o restante são endereços)
     int32_t source_reg = -1;
     for (source_reg=0; (source_reg < MAX_REGISTERS) && (uop->read_regs[source_reg] != POSITION_FAIL); ++source_reg);
     if (source_reg < MAX_REGISTERS) source_reg = uop->read_regs[source_reg-1]; 
     else source_reg = -1;
+
     if (source_reg != -1) {
         registers_tracker_entry_t *entry = &this->entries[source_reg];
         if (active_debug) printf (" [%d] ", source_reg);
@@ -273,7 +282,7 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
         // Verifica se a operação anterior está linkada a essa
         // ***************************************************
         // // Se for um load
-        if (entry->tl_pointer != NULL) {
+        if (this->tl->valid_pointer(entry->tl_pointer, entry->pointer_timestamp)) {
             
             if (valid_ts_entry) {
                 if (entry->tl_pointer->linked_to_ts == false) {
@@ -303,9 +312,11 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
                     if (active_debug) printf(">> Load ligado a outro store/operação\n");
                 }
             }
+        } else {
+            entry->tl_pointer = NULL;
         }
         // // Se for uma operação
-        if (entry->to_pointer != NULL) {
+        if (this->to->valid_pointer(entry->to_pointer, entry->pointer_timestamp)) {
              if (valid_ts_entry) {
                  /* Se operação está vinculada a outro store */
                 if (entry->to_pointer->ts_entry != NULL && entry->to_pointer->ts_entry != ts_pointer) {
@@ -331,6 +342,8 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
                     if (active_debug) printf(">> Operação ligada a outro store\n");
                 }
             }
+        } else {
+            entry->to_pointer = NULL;
         }
         // // Se for um store (deveria ser impossível :p)
         assert (entry->ts_pointer == NULL);
@@ -347,7 +360,7 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
     // ++++++++++++++++++++++++++++++++
     // Faz a vetorização a partir da TS 
     // ++++++++++++++++++++++++++++++++
-    if (vectorizable_origin) {
+    if (vectorizable_origin) { /* Verificação de ponteiros veio na definição de vectorizable_origin */
         //this->ts->print();
 
         /* Aponta gerador das leituras para a TS */
@@ -388,8 +401,8 @@ void registers_tracker_t::committed_st (uop_package_t *uop) {
 
         if (valid_ts_entry && ts_pointer->linked_tl_to) {
             if (active_debug) printf(" >> Invalidando cadeia a partir de store (%lu)\n", uop->opcode_address);
-            this->ts->start_invalidation(ts_pointer);
-            valid_ts_entry = false;
+            this->ts->start_invalidation(ts_pointer); /* Não verifica consistência porque se quebrar invalida em cascata */
+            valid_ts_entry = false;                   /* Por exemplo por uma entrada na TL substituida que estava na cascata */
             ts_entry = 0;
             ts_pointer = NULL;
         }
@@ -446,12 +459,12 @@ void registers_tracker_t::register_overwritten(uop_package_t *uop, table_of_vect
         //printf("From write Regs[i] = %d\n", uop->write_regs[i]);
         //printf("From entry: %p[%d]/%p[%d]\n", (void *)&this->entries[uop->write_regs[i]], uop->write_regs[i], (void *)&this->entries[this->num_entries], this->num_entries);
         if(entry->tv_pointer) {
-            //printf("[%d] Sobrescrita para o %p pela uop %lu (%s)\n", uop->write_regs[i], (void *) entry->tv_pointer, uop->opcode_address, uop->opcode_assembly);
+            //printf(" - [%d] Sobrescrita para o %p pela uop %lu (%s)\n", uop->write_regs[i], (void *) entry->tv_pointer, uop->opcode_address, uop->opcode_assembly);
             this->tv->register_overwritten(entry->tv_pointer);
         }
 
         // Novo valor
-        //printf("[%d] Definindo como %p pela uop: %lu (%s)\n", uop->write_regs[i], (void *) tv_entry, uop->opcode_address, uop->opcode_assembly);
+        //printf(" + [%d] Definindo como %p pela uop: %lu (%s)\n", uop->write_regs[i], (void *) tv_entry, uop->opcode_address, uop->opcode_assembly);
 
         entry->set_rename_pointers(tv_entry);
     }
@@ -481,7 +494,6 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
             load_entry[1] = NULL;
         } else {
             table_of_operations_entry_t *to_pointer = this->to->get_id(tv_pointer->ts_entry->tl_to_entry);
-            // Invalida TL
             load_entry[0] = to_pointer->tl_entries[0];
             load_entry[1] = to_pointer->tl_entries[1];
         }
@@ -511,6 +523,13 @@ void registers_tracker_t::renamed_ld (uop_package_t *uop) {
                     //printf("Encontrou vagas e vai inserir na ti...\n");
 
                     this->ti->insert_vectorization(tv_pointer);
+
+                    // +++++++++++++++++++++++++++++++++++
+                    // Começa a marcar instruções externas
+                    // +++++++++++++++++++++++++++++++++++
+                    assert (this->vectorizer->current_vectorization == NULL);
+                    this->vectorizer->current_vectorization = tv_pointer;
+                    this->tv->invalidate_other_pre_vectorizations (tv_pointer);
                     //printf("FIm da definição\n");
                 }
                 break;
@@ -562,7 +581,8 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
     uint8_t structural_id = 0;
     tv_pointer = this->ti->get_tv_entry(uop->opcode_address, uop->uop_id, &structural_id);
 
-    /* Como o store define a pŕoxima vetorização, precisa sobrescrever os registradores antes */
+
+    /* Como o store define a próxima vetorização, precisa sobrescrever os registradores antes */
     this->check_read_registers(uop, tv_pointer);
     this->register_overwritten(uop, tv_pointer);
 
@@ -574,6 +594,11 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
         assert (tv_pointer->state < 5);
         tv_pointer->increment_validation();
         if (tv_pointer->has_ended()) {
+            // +++++++++++++++++++++++++++++++++++
+            // Para de marcar instruções externas
+            // +++++++++++++++++++++++++++++++++++
+            this->vectorizer->current_vectorization = NULL;
+
             // +++++++++++++++++++++++++++++++++++++++++++++++
             // Todas as instruções da vetorização entraram no
             // pipeline. Assim realiza a vetorização da
@@ -584,9 +609,15 @@ void registers_tracker_t::renamed_st (uop_package_t *uop) {
 
             if (status) {
                 //printf("%p substituido por %p na tabela de ignorados!\n", (void *)tv_pointer, (void *)tv_pointer->ts_entry->tv_entry);
+                
+                /* Vincula o anterior e o próximo */
+                tv_pointer->next = tv_pointer->ts_entry->tv_entry;
+                tv_pointer->ts_entry->tv_entry->prev = tv_pointer;
+                
                 /* Remove ponteiro antigo das waiting */ // O novo vai entrar no primeiro load
                 this->ti->remove_vectorization(tv_pointer);
                 tv_pointer->ts_entry = NULL;
+                
             } else {
                 //printf("Não conseguiu substituto para %p na tabela de ignorados!\n", (void *)tv_pointer);
                 this->tv->unbind(tv_pointer);

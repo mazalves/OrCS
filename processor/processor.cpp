@@ -1840,6 +1840,7 @@ void processor_t::rename()
 		//printf("Rename %s; DecodeBuffer == %lu == %lu == RenameCounter\n", (next_dyn_inst) ? "Dynamic VIMA" : (next_reexec_inst) ? "Reexecution" : , this->decodeBuffer.front()->uop_number, this->renameCounter[0]);
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter[0] + this->renameCounter[2], "Erro, renomeio incorreto\n");
 		if (inst_buffer->front()->sent_to_new_renamed_uop == false) {
+			//printf("Next_reexec_inst: %s Next_dyn_inst: %s\n", next_reexec_inst ? "true" : "false", next_dyn_inst ? "true" : "false");
 			this->vectorizer->new_renamed_uop(inst_buffer->front());
 			inst_buffer->front()->sent_to_new_renamed_uop = true;
 		}
@@ -2030,7 +2031,7 @@ void processor_t::rename()
 			}
 
             this->vectorizer->statistics_counters[VECTORIZER_TOTAL_IGNORED_INST]++;
-			//printf("Ignorando instrução %lu\n", this->decodeBuffer.front()->opcode_address);
+			//printf("Ignorando instrução %lu  tv_pointer: %p\n", this->decodeBuffer.front()->opcode_address, (void *)this->decodeBuffer.front()->tv_pointer);
 		}
 
 		/*if (!next_dyn_inst && !next_reexec_inst) {
@@ -2051,6 +2052,8 @@ void processor_t::rename()
 		else if (ignore) this->renameCounter[2]++;
 		else if (next_reexec_inst) this->renameCounter[3]++;
 		else this->renameCounter[0]++;
+
+		if (next_reexec_inst) this->vectorizer->statistics_counters[VECTORIZER_REEXECUTED_INST]++;
 
 
 		// =======================
@@ -2092,6 +2095,11 @@ void processor_t::rename()
 			this->update_registers(rob_line);
 		}
 
+		if (!ignore && !next_reexec_inst && !next_dyn_inst) {
+			this->vectorizer->others_inside (rob_line); // Contabiliza instruções entre uma vetorização
+											// Assim sabemos quantas precisam completar para 
+											// não arriscar uma invalidação durante o commit
+		}
 
 
 #if RENAME_DEBUG
@@ -2518,6 +2526,10 @@ void processor_t::clean_mob_hive()
 			this->memory_order_buffer_hive[pos].processed = true;
 			this->memory_hive_executed--;
 			this->solve_registers_dependency(this->memory_order_buffer_hive[pos].rob_ptr);
+
+			// Marca como completa para a vetorização correpondente (se for outra no meio de waitings)
+			this->vectorizer->others_inside_completed(this->memory_order_buffer_hive[pos].rob_ptr);
+
 			if (DISAMBIGUATION_ENABLED)
 			{
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_hive[pos]);
@@ -2549,12 +2561,16 @@ void processor_t::clean_mob_vima()
 			this->memory_order_buffer_vima[pos].processed = true;
 			this->memory_vima_executed--;
 			this->solve_registers_dependency(this->memory_order_buffer_vima[pos].rob_ptr);
+
+			// Marca como completa para a vetorização correpondente (se for outra no meio de waitings)
+			this->vectorizer->others_inside_completed(this->memory_order_buffer_vima[pos].rob_ptr);
+
 			if (DISAMBIGUATION_ENABLED)
 			{
 				this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_vima[pos]);
 			}
 			if (this->memory_order_buffer_vima[pos].tv_pointer) {
-				this->memory_order_buffer_vima[pos].tv_pointer->ready = true;
+				this->memory_order_buffer_vima[pos].tv_pointer->set_ready();
 				this->vectorizer->ready_point[this->memory_order_buffer_vima[pos].tv_pointer->next_validation]++;
 				//printf("Executou e marcou\n");
 			}
@@ -2612,6 +2628,9 @@ void processor_t::clean_mob_read()
 				this->memory_order_buffer_read[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 				this->memory_order_buffer_read[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 				this->solve_registers_dependency(this->memory_order_buffer_read[pos].rob_ptr);
+
+				// Marca como completa para a vetorização correpondente (se for outra no meio de waitings)
+				this->vectorizer->others_inside_completed(this->memory_order_buffer_read[pos].rob_ptr);
 			}
 
 			this->memory_order_buffer_read[pos].processed = true;
@@ -2700,6 +2719,11 @@ void processor_t::execute()
 				rob_line->uop.updatePackageReady(EXECUTE_LATENCY + COMMIT_LATENCY);
 				this->solve_registers_dependency(rob_line);
 				uop_total_executed++;
+
+				// Marca como completa para a vetorização correpondente (se for outra no meio de waitings)
+				this->vectorizer->others_inside_completed(rob_line);
+
+
 				/// Remove from the Functional Units
 				this->unified_functional_units.erase(this->unified_functional_units.begin() + i);
 				this->unified_functional_units.shrink_to_fit();
@@ -3247,6 +3271,9 @@ uint32_t processor_t::mob_write()
 				this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 				this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 				this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
+
+				// Marca como completa para a vetorização correpondente (se for outra no meio de waitings)
+				this->vectorizer->others_inside_completed(this->oldest_write_to_send->rob_ptr);
 			}
 
 
@@ -3313,6 +3340,19 @@ void processor_t::commit()
 		{
 			// Verifica possibilidade de vetorização
 			this->vectorizer->new_committed_uop(&(rob_line->uop));
+
+			// Contabilizações
+			if (rob_line->uop.tv_pointer) {
+				if (rob_line->uop.waiting) {
+					if (rob_line->uop.tv_pointer->discard_results) {
+						this->vectorizer->statistics_counters[VECTORIZER_IGNORED_AND_DISCARDED]++;
+					} else {
+						this->vectorizer->statistics_counters[VECTORIZER_IGNORED_AND_COMMITTED]++;
+					}
+				}
+			}
+            
+			
 
 			// Se foi vetorizada, marca que comitou e remove dependências
 			if (rob_line->uop.waiting) {
@@ -3504,17 +3544,21 @@ void processor_t::commit()
 		else
 		{
 			// Verifica se precisa destravar o pipeline:
-			if (rob->robUsed > 0 && rob_line->stage == PROCESSOR_STAGE_WAITING_DYN) {
+			if (rob->robUsed > 0 && rob_line->stage == PROCESSOR_STAGE_WAITING_DYN &&
+				rob_line->uop.tv_pointer->others_inside_vectorization == 0 &&
+				rob_line->uop.tv_pointer->time_last_other_completed <= orcs_engine.get_global_cycle()) {
 				//rob_line->uop.tv_pointer->why_ready_for_commit();
 
 				// Se não estiver pronto para o commit e o pipeline estiver cheio (ROB),
 				// precisa destravar, pois mais nada entra pelo rename
-				// (Mas precisa esperar para ver se o processamento de load/store vai destravar)
+				// (Mas precisa esperar para ver se o processamento de load/store ou o resultado da VIMA vai destravar)
 				if ((rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
 					(rob_line->uop.tv_pointer->need_confirmation == 0) &&
+					(rob_line->uop.tv_pointer->ready == true) &&
 					(rob->robUsed == ROB_SIZE)) {
 						//printf("Precisei destravar, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
 						//printf("Remaining registers: %u\n", rob_line->uop.tv_pointer->remaining_registers);
+						//rob_line->uop.tv_pointer->why_ready_for_commit();
 						this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 						this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_ROB_FULL]++;
 				} else {
@@ -3523,7 +3567,8 @@ void processor_t::commit()
 						(this->fetchBuffer.size == 0) &&
 						(this->decodeBuffer.size == 0) &&
 						(rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
-						(rob_line->uop.tv_pointer->need_confirmation == 0)) {
+						(rob_line->uop.tv_pointer->need_confirmation == 0) &&
+						(rob_line->uop.tv_pointer->ready == true)) {
 							//printf("Precisei destravar pelo fim das instruções, desfiz a vetorização %p\n", (void *)rob_line->uop.tv_pointer);
 							this->vectorizer->flush_vectorization(rob_line->uop.tv_pointer);
 							this->vectorizer->statistics_counters[VECTORIZER_UNLOCK_PROGRAM_ENDED]++;
@@ -3531,10 +3576,10 @@ void processor_t::commit()
 					// Se o adicionou confirmações necessárias a mais do que devia
 					// os loads e stores em waiting já foram processados mas ainda falta :p
 					if ((rob_line->uop.tv_pointer->is_ready_for_commit() == false) &&
-					(rob_line->uop.tv_pointer->need_confirmation != 0) &&
-					(this->unified_reservation_station.size() == 0) &&
-					(this->unified_functional_units.size() == 0) &&
-					(rob->robUsed == ROB_SIZE)) {
+						(rob_line->uop.tv_pointer->need_confirmation != 0) &&
+						(this->unified_reservation_station.size() == 0) &&
+						(this->unified_functional_units.size() == 0) &&
+						(rob->robUsed == ROB_SIZE)) {
 						printf("Caso de trava impossível!\n");
 						exit(1);
 					}

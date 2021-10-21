@@ -44,6 +44,10 @@ class uop_package_t{
 
     bool sent_to_new_renamed_uop; // Controle para enviar apenas uma vez mesmo com buffers cheios
 
+    table_of_vectorizations_entry_t *vectorization_linked; // Caso seja uma instrução externa a uma vetorização linka aqui
+    uint8_t vectorization_linked_id;                       // , marca seu id aqui
+
+    
     void opcode_to_uop(uint64_t uop_number, 
             instruction_operation_t uop_operation, 
             uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,

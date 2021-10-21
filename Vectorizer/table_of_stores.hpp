@@ -33,6 +33,12 @@ class table_of_stores_t {
         // Invalida vetorização ou links caso existam
         void invalidate(table_of_stores_entry_t *entry);
 
+        // Verifica se vínculo ainda é válido ou foi substituído no meio do caminho :p
+        inline bool valid_pointer (table_of_stores_entry_t *pointer, uint64_t timestamp);
+
+        // Impede novas vetorizações do mesmo tipo
+        void lock(table_of_stores_entry_t *entry);
+
         // Busca na tabela de operações
         table_of_stores_entry_t* find (uop_package_t *uop);
 
@@ -56,3 +62,14 @@ class table_of_stores_t {
             this->to = NULL;
         }
 };
+
+inline bool table_of_stores_t::valid_pointer (table_of_stores_entry_t *pointer, uint64_t timestamp) {
+    if (!pointer) {
+        return false;
+    }
+    if (pointer->timestamp == timestamp) {
+        return true;
+    }
+
+    return false;
+}

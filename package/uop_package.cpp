@@ -42,6 +42,9 @@ void uop_package_t::package_clean()
     this->structural_id = 4;
     this->sent_to_new_renamed_uop = false;
 
+    this->vectorization_linked = NULL;
+    this->vectorization_linked_id = 0;
+
     this->tv_pointer = NULL;
 }
 
@@ -102,6 +105,9 @@ void uop_package_t::opcode_to_uop(
     this->waiting = false;
     this->reexecution = false;
     this->sent_to_new_renamed_uop = false;
+
+    this->vectorization_linked = NULL;
+    this->vectorization_linked_id = 0;
 
     this->tv_pointer = NULL;
                     

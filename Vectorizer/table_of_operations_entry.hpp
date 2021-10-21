@@ -11,6 +11,7 @@ class table_of_operations_entry_t {
         table_of_stores_entry_t *ts_entry;
         table_of_vectorizations_entry_t *tv_entry;
 
+        uint64_t timestamp;
         uint64_t lru;
         bool free;
 
@@ -24,6 +25,7 @@ class table_of_operations_entry_t {
             ts_entry = NULL;
             tv_entry = NULL;
 
+            this->timestamp = 0;
             lru = 0;
             free = true;
         }
@@ -38,6 +40,7 @@ class table_of_operations_entry_t {
             this->ts_entry = NULL;
             this->tv_entry = NULL;
 
+            this->timestamp = 0;
             this->lru = 0;
             this->free = true;
         }
@@ -66,6 +69,7 @@ class table_of_operations_entry_t {
             this->tl_entries[1] = tl_entries_2;
             this->ts_entry = ts_entry;
             this->tv_entry = tv_entry;
+            this->timestamp = orcs_engine.get_global_cycle(); //id único da entrada
             this->lru = lru;
             this->free = false;
         }
@@ -81,9 +85,16 @@ class table_of_operations_entry_t {
 
 
         void print () {
-            printf("  %d %lu Operation %s tl[0]: %p tl[1]: %p ts: %p tv: %p lru: %lu\n",
+            printf("  %d %lu Operation %s tl[0]: %p tl[1]: %p ts: %p tv: %p Timestamp: %lu lru: %lu F: %s\n",
             this->uop_id,
             this->pc,
-            this->operation, (void *)this->tl_entries[0], (void *)this->tl_entries[1], (void *)this->ts_entry, (void *)this->tv_entry, this->lru);
+            this->operation, 
+            (void *)this->tl_entries[0], 
+            (void *)this->tl_entries[1], 
+            (void *)this->ts_entry, 
+            (void *)this->tv_entry,
+            this->timestamp,
+            this->lru,
+            this->free ? "true" : "false");
         }
 };

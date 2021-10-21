@@ -28,6 +28,9 @@ class table_of_operations_t {
         // Invalida vetorização ou links caso existam
         void invalidate(table_of_operations_entry_t *entry);
 
+        // Verifica se vínculo ainda é válido ou foi substituído no meio do caminho :p
+        inline bool valid_pointer (table_of_operations_entry_t *pointer, uint64_t timestamp);
+
         // Busca na tabela de operações
         table_of_operations_entry_t* find (uop_package_t *uop);
 
@@ -56,3 +59,14 @@ class table_of_operations_t {
 
         void check_for_nulls();
 };
+
+inline bool table_of_operations_t::valid_pointer (table_of_operations_entry_t *pointer, uint64_t timestamp) {
+    if (!pointer) {
+        return false;
+    }
+    if (pointer->timestamp == timestamp) {
+        return true;
+    }
+
+    return false;
+}

@@ -29,6 +29,11 @@ class vectorizer_t {
         uint64_t *ready_point; /* Número de instruções que completam a execução na VIMA em cada ponto de next_validation */
                                // Ex: Se a VIMA completa quando next_validation == 3, a posição 3 é incrementada.
     
+        // **********************************************
+        // Vetorização ativa para contabilizar instruções
+        // **********************************************
+        table_of_vectorizations_entry_t *current_vectorization;
+
     public:
 
         void allocate(functional_unit_t *mem_op_fu, libconfig::Setting &cfg_root);
@@ -52,4 +57,9 @@ class vectorizer_t {
         void statistics(FILE *output);
 
         void increment_counter(vectorizer_statistic_t counter, uint64_t value);
+
+        // Utilizadas para contabilizar a ocorrência de outras instruções no meio de uma vetorização
+        // e sua completação
+        void others_inside (reorder_buffer_line_t *rob_line);
+        void others_inside_completed (reorder_buffer_line_t *rob_line);
 };

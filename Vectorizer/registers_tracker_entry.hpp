@@ -7,6 +7,8 @@ class registers_tracker_entry_t {
         table_of_loads_entry_t *tl_pointer; // Aponta para a entrada na TL da instrução que o gerou
         table_of_operations_entry_t *to_pointer; // Aponta para a entrada na TO da instrução que o gerou
         table_of_stores_entry_t *ts_pointer; // Aponta para a entrada na TS da instrução que o gerou
+        uint64_t pointer_timestamp; // Meio que um id da entrada na tl, to ou ts
+                                    // Serve para indicar se a entrada ainda é a mesma de quando vinculou
 
         // ######################################################################
         // Rename

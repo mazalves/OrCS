@@ -37,6 +37,9 @@ class table_of_loads_t {
         // Invalida vetorização ou links caso existam
         void invalidate(table_of_loads_entry_t *entry);
 
+        // Verifica se vínculo ainda é válido ou foi substituído no meio do caminho :p
+        inline bool valid_pointer (table_of_loads_entry_t *pointer, uint64_t timestamp);
+
         // Imprime tabela
         void print();
 
@@ -52,3 +55,14 @@ class table_of_loads_t {
             this->ts = NULL;
         }
 };
+
+inline bool table_of_loads_t::valid_pointer (table_of_loads_entry_t *pointer, uint64_t timestamp) {
+    if (!pointer) {
+        return false;
+    }
+    if (pointer->timestamp == timestamp) {
+        return true;
+    }
+
+    return false;
+}

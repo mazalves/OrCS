@@ -83,3 +83,13 @@ void table_of_pre_vectorization_t::remove_vectorization (table_of_vectorizations
     this->remove(entry->ts_entry->get_pc(), entry->ts_entry->get_uop_id());
 
 }
+// ############################################################################################################
+
+void table_of_pre_vectorization_t::print() {
+    utils_t::largeSeparator(stdout);
+    printf("Table of pre-vectorizations\n");
+    utils_t::largeSeparator(stdout);
+    for (uint32_t i=0; i < this->max_entries; ++i) {
+        this->entries[i].print();
+    }
+}

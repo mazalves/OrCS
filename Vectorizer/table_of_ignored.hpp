@@ -42,6 +42,6 @@ class table_of_ignored_t {
         void remove_vectorization (table_of_vectorizations_entry_t *entry);
 
 
-
+        void print();
 
 };

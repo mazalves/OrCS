@@ -11,6 +11,7 @@ class table_of_pre_vectorization_entry_t {
         inline bool is_free();
         inline void set (uint64_t addr, uint8_t uop_id, table_of_vectorizations_entry_t *tv_entry);
         inline void clean ();
+        inline void print ();
         inline table_of_vectorizations_entry_t* get_tv();
 
         table_of_pre_vectorization_entry_t () {
@@ -46,7 +47,12 @@ class table_of_pre_vectorization_entry_t {
         this->tv_entry = NULL;
     }
 
-    inline table_of_vectorizations_entry_t* table_of_pre_vectorization_entry_t::get_tv() {
+    inline table_of_vectorizations_entry_t* table_of_pre_vectorization_entry_t::get_tv () {
         return this->tv_entry;
     }
 
+
+    inline void table_of_pre_vectorization_entry_t::print () {
+        printf("PC: %lu  uop_id: %u  tv_entry: %p  free: %s\n",
+                this->pc, this->uop_id, (void *)this->tv_entry, this->free ? "true" : "false");
+    }

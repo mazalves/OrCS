@@ -22,7 +22,7 @@ void table_of_stores_t::allocate (libconfig::Setting &vectorizer_configs, table_
 
 void table_of_stores_t::new_st (uop_package_t *uop) {
     bool active_debug = false;
-    if (uop->opcode_address == 94318318040707) active_debug = true;
+    //if (uop->opcode_address == 94318318040707) active_debug = true;
     //if (uop->opcode_address == 94689717204740) active_debug = true;
     //if (uop->opcode_address == 94689717204719) active_debug = true;
     //if (uop->opcode_address == 94689717204713) active_debug = true;
@@ -217,6 +217,17 @@ void table_of_stores_t::invalidate(table_of_stores_entry_t *entry) {
     // ***************
     entry->clean();
     this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TS]++;
+
+}
+
+void table_of_stores_t::lock(table_of_stores_entry_t *entry) {
+    if (!entry) return;
+
+    // ***************
+    // Limpa a entrada
+    // ***************
+    entry->lock();
+    this->vectorizer->statistics_counters[VECTORIZER_LOCK_TS]++;
 
 }
 

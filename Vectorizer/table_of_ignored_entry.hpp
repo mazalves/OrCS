@@ -6,11 +6,14 @@ class table_of_ignored_entry_t {
         table_of_vectorizations_entry_t *tv_pointer;
         uint8_t structural_id; // 0 -> ld 1; 1 -> ld 2; 2 -> op; 3 -> st
                                // Indentificação para máscara na tl_entry (caso invalide sabe o que reexecutar)
+
+        bool training; // Substituir por TPV //TODO
     public:
         inline bool is_equal (uint64_t addr, uint8_t uop_id);
         inline bool is_free();
         inline void set (uint64_t addr, uint8_t uop_id, table_of_vectorizations_entry_t *tv_entry, uint8_t structural_id);
         inline void clean ();
+        inline void print ();
         inline table_of_vectorizations_entry_t* get_tv_entry (uint8_t *structural_id);
 
 
@@ -53,4 +56,10 @@ class table_of_ignored_entry_t {
     inline table_of_vectorizations_entry_t *table_of_ignored_entry_t::get_tv_entry (uint8_t *structural_id) {
         *structural_id = this->structural_id;
         return this->tv_pointer;
+    }
+
+
+    inline void table_of_ignored_entry_t::print () {
+        printf("PC: %lu  uop_id: %u  structural_id: %u  tv_entry: %p  free: %s\n",
+                this->pc, this->uop_id, this->structural_id, (void *)this->tv_pointer, this->free ? "true" : "false");
     }

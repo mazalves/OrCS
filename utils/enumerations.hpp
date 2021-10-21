@@ -240,6 +240,7 @@ enum vectorizer_statistic_t {
     VECTORIZER_STORE_DEFINED_OP,
     
     /* Invalidation sources */
+    VECTORIZER_LOCK_TS, // Para impedir a revetorização de algo invalidado
     VECTORIZER_INVALIDATION_TL,
     VECTORIZER_INVALIDATION_TO,
     VECTORIZER_INVALIDATION_TS,
@@ -254,12 +255,15 @@ enum vectorizer_statistic_t {
     VECTORIZER_TV_STARTED_INVALIDATION,
     VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION,
     VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION,
+    VECTORIZER_VECTORIZATION_STARTED_INVALIDATION,
+
     
     /* Quem invalidou o treinamento */
     VECTORIZER_TL_INVALIDATED_TRAINING,
     VECTORIZER_TO_INVALIDATED_TRAINING,
     VECTORIZER_TS_INVALIDATED_TRAINING,
     VECTORIZER_NEW_VECTORIZATION_INVALIDATED_TRAINING,
+    VECTORIZER_VECTORIZATION_INVALIDATED_TRAINING,
 
     /* Invalidações por conflito de escritas e leituras */
     VECTORIZER_AGU_WRITE_OVER_READ_1,
@@ -268,6 +272,9 @@ enum vectorizer_statistic_t {
 
     /* Invalidações por dependências */
     VECTORIZER_DEPENDENCY_INVALIDATION,
+
+    /* Invalidação de próximo */
+    VECTORIZER_CASCADE_INVALIDATION, 
 
     /* Falta de entradas */
     VECTORIZER_TL_NOT_ENOUGH_ENTRIES,
@@ -279,6 +286,11 @@ enum vectorizer_statistic_t {
     /* Ignored */
     VECTORIZER_ASSIGNED_TO_IGNORED_INST,
     VECTORIZER_TOTAL_IGNORED_INST,
+    VECTORIZER_IGNORED_AND_COMMITTED,
+    VECTORIZER_IGNORED_AND_DISCARDED,
+
+    /* Reexecutadas */
+    VECTORIZER_REEXECUTED_INST,
 
     /* Invalidações para destravar o pipeline */
     VECTORIZER_UNLOCK_ROB_FULL,

@@ -41,17 +41,41 @@ class table_of_vectorizations_entry_t {
         int32_t inst_inside_ROB; /* Número de instruções ignoradas no ROB */
                                  /* Usado para caso os resultados sejam descartados, saber quando essa entrada pode ser liberada */
 
-        bool inst_inside_ROB_bitmask[3]; // Máscara indicando as últimas instruções adicionadas ao ROB
+        uint8_t next_inside_ROB;           // Contador indicando as últimas instruções adicionadas ao ROB
                                          // Resetada quando o store é adicionado
                                          // 0 -> Load 1
                                          // 1 -> Load 2
                                          // 2 -> Op
+                                         // 3 -> store
+                                         // Também é utilizada para verificar se foram adicionadas na ordem certa
+
         /* Cópias das instruções utilizadas para a vetorização */
         uop_package_t uops[4];
+
+        uint16_t others_inside_vectorization; // Para que o commit comece, todas as demais instruções que
+                                              // estão no ROB entre as em waiting devem ser completadas sem
+                                              // exceções. Assim, cada instrução que não entra em waiting
+                                              // enquanto coletamos as instruções em waiting incrementa este contador
+                                              // Conforme são completadas, as instruções decrementam esse valor.
+                                              // Caso esta entrada na tv seja invalidada, uma verificação do valor de
+                                              // vectorization_id indica que o decremento não se refere mais àquela vetorização.
+        uint64_t time_last_other_completed;     // Instante de readAt no qual a última outra instrução ficou pronta para 
+                                                // o commit
+        
+        uint8_t vectorization_id;   // Identifica unicamente uma vetorização e é incrementado a cada vetorização realizada.
+                                    // Devido ao tamanho do ROB, é impossível que duas vetorizações obtenham o mesmo id.
 
         uint64_t lru;
         bool free;
 
+        /* Vetorização da próxima parte, caso tenha terminado */
+        table_of_vectorizations_entry_t *next;
+
+        /* Vetorização anterior, caso tenha substituido alguma */
+        table_of_vectorizations_entry_t *prev;
+
+        // Vectorizer
+        table_of_vectorizations_t *tv;
 
         table_of_vectorizations_entry_t () {
             this->ts_entry = NULL;
@@ -82,19 +106,21 @@ class table_of_vectorizations_entry_t {
 
             this->discard_results = false;
             this->inst_inside_ROB = 0;
-            this->inst_inside_ROB_bitmask[0] = false;
-            this->inst_inside_ROB_bitmask[1] = false;
-            this->inst_inside_ROB_bitmask[2] = false;
+            this->next_inside_ROB = 0;
 
-
+            this->time_last_other_completed = 0;
+            this->others_inside_vectorization = 0;
+            this->vectorization_id = 0;
             this->lru = 0;
             this->free = true;
+
+            this->tv = NULL;
         }
 
         inline void update_lru(uint64_t lru);
 
 
-        inline void allocate();
+        inline void allocate(table_of_vectorizations_t *tv);
 
         inline void clean();
 
@@ -105,7 +131,8 @@ class table_of_vectorizations_entry_t {
                               int64_t load_stride_1,
                               int64_t load_stride_2,
                               int64_t store_stride,
-                              uint64_t lru);
+                              uint64_t lru,
+                              uint8_t id);
 
         // Basicamente confere se todos os registradores das iterações foram substituídos sem problemas
         // (Verificar se são utilizados por alguém antes de sobrescritos :p)
@@ -133,7 +160,14 @@ class table_of_vectorizations_entry_t {
 
         inline bool verify_stride(uop_package_t *uop);
 
+        inline void set_ready (); // Quando vima executar e retornar
 
+        inline void print ();
+
+        inline void new_other_inside_renamed (uop_package_t *uop);
+        inline void new_other_inside_completed (uop_package_t *uop);
+
+        inline void verify_completion();
 
 };
 
@@ -143,7 +177,7 @@ inline void table_of_vectorizations_entry_t::update_lru(uint64_t lru) {
 }
 
 
-inline void table_of_vectorizations_entry_t::allocate() {
+inline void table_of_vectorizations_entry_t::allocate(table_of_vectorizations_t *tv) {
     this->ts_entry = NULL;
     this->next_validation = 0;
     this->remaining_registers = 0;
@@ -170,13 +204,18 @@ inline void table_of_vectorizations_entry_t::allocate() {
 
     this->discard_results = false;
     this->inst_inside_ROB = 0;
-    this->inst_inside_ROB_bitmask[0] = false;
-    this->inst_inside_ROB_bitmask[1] = false;
-    this->inst_inside_ROB_bitmask[2] = false;
+    this->next_inside_ROB = 0;
 
-
+    this->time_last_other_completed = 0;
+    this->others_inside_vectorization = 0;
+    this->vectorization_id = 0;
     this->lru = 0;
     this->free = true;
+
+    this->next = NULL;
+    this->prev = NULL;
+
+    this->tv = tv;
 }
 
 inline void table_of_vectorizations_entry_t::clean() {
@@ -211,14 +250,26 @@ inline void table_of_vectorizations_entry_t::clean() {
 
     this->discard_results = false;
     this->inst_inside_ROB = 0;
-    this->inst_inside_ROB_bitmask[0] = false;
-    this->inst_inside_ROB_bitmask[1] = false;
-    this->inst_inside_ROB_bitmask[2] = false;
+    this->next_inside_ROB = 0;
 
-
+    this->time_last_other_completed = 0;
+    this->others_inside_vectorization = 0;
+    this->vectorization_id = 0;
     this->lru = 0;
     this->free = true;
     //printf("Cleaning TV %p\n", (void *)this);
+
+    /* Unlink from next */
+    if (this->next) {
+        this->next->prev = NULL;
+    }
+
+    if (this->prev) {
+        this->prev->next = NULL;
+    }
+
+    this->next = NULL;
+    this->prev = NULL;
 }
 
 inline void table_of_vectorizations_entry_t::fill_entry(table_of_stores_entry_t *ts_entry,
@@ -228,7 +279,8 @@ inline void table_of_vectorizations_entry_t::fill_entry(table_of_stores_entry_t 
                         int64_t load_stride_1,
                         int64_t load_stride_2,
                         int64_t store_stride,
-                        uint64_t lru) {
+                        uint64_t lru,
+                        uint8_t id) {
     this->ts_entry = ts_entry;
     this->next_validation = next_validation;
     this->remaining_registers = 0;
@@ -244,11 +296,12 @@ inline void table_of_vectorizations_entry_t::fill_entry(table_of_stores_entry_t 
     this->committed_elements = 0;
     this->discard_results = false;
     this->inst_inside_ROB = 0;
-    this->inst_inside_ROB_bitmask[0] = false;
-    this->inst_inside_ROB_bitmask[1] = false;
-    this->inst_inside_ROB_bitmask[2] = false;
+    this->next_inside_ROB = 0;
 
 
+    this->time_last_other_completed = 0;
+    this->others_inside_vectorization = 0;
+    this->vectorization_id = id;
     this->lru = lru;
     this->free = false;
 
@@ -262,8 +315,15 @@ inline void table_of_vectorizations_entry_t::register_replace() {
         
         assert (this->remaining_registers > 0); 
         --this->remaining_registers;
+        //printf(" * Restam %u substituições!\n", this->remaining_registers);
 
-        if (this->remaining_registers == 0 && this->next_validation >= this->num_elements && this->need_confirmation == 0 && this->discard_results == false) {
+        if (this->remaining_registers == 0 && 
+            this->next_validation >= this->num_elements && 
+            this->need_confirmation == 0 && 
+            this->discard_results == false && 
+            this->ready && 
+            this->others_inside_vectorization == 0 &&
+            this->time_last_other_completed <= orcs_engine.get_global_cycle()) {
             this->ready_for_commit = true;
             //printf("register_replace => READY FOR COMMIT %p!!!\n", (void *)this);
             /*for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
@@ -274,7 +334,7 @@ inline void table_of_vectorizations_entry_t::register_replace() {
                 }
             }*/
         }
-        else if (this->discard_results == true && this->inst_inside_ROB == 0 && this->remaining_registers == 0) {
+        else if (this->discard_results == true && this->inst_inside_ROB == 0 && this->remaining_registers == 0 && this->ready) {
             // Pode apagar
             //printf("register_replace => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
             orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION, 1);            
@@ -305,6 +365,9 @@ inline bool table_of_vectorizations_entry_t::has_ended () {
 }
 
 inline bool table_of_vectorizations_entry_t::is_able_to_commit() {
+    if (!(ready_for_commit || this->discard_results)) {
+        this->verify_completion();
+    }
     return (ready_for_commit || this->discard_results);
 }
 
@@ -313,7 +376,7 @@ inline bool table_of_vectorizations_entry_t::is_ready_for_commit() {
 }
 
 inline void table_of_vectorizations_entry_t::why_ready_for_commit() {
-    printf("[%p] Validação: %d/%d, Remaining regs: %d Confirmations remaining: %u\n", (void *) this, this->next_validation, this->num_elements, this->remaining_registers, this->need_confirmation);
+    printf("[%p] Validação: %d/%d, Remaining regs: %d Confirmations remaining: %u Ready: %s Others incompleted: %u\n", (void *) this, this->next_validation, this->num_elements, this->remaining_registers, this->need_confirmation, this->ready ? "true" : "false", this->others_inside_vectorization);
 
     assert (this->num_elements > 0);
 }
@@ -331,14 +394,14 @@ inline void table_of_vectorizations_entry_t::new_commit (uop_package_t *uop) {
     if (this->discard_results) {
         assert (uop->waiting);
         --this->inst_inside_ROB;
-        if (this->inst_inside_ROB == 0 && this->remaining_registers == 0) {
+        if (this->inst_inside_ROB == 0 && this->remaining_registers == 0 && this->ready) {
             // Pode apagar
             //printf("new_commit => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
             orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION, 1);
             this->clean();
         }
     } else {
-        /* Pra liberar o commit já deve ter verificado os registradores ,então só commita */
+        /* Pra liberar o commit já deve ter verificado os registradores e estar pronta, então só commita */
         if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
             ++(this->committed_elements);
             //printf("%p -> %d committed elements\n", (void *)this, this->committed_elements);
@@ -357,17 +420,28 @@ inline void table_of_vectorizations_entry_t::new_commit (uop_package_t *uop) {
 inline void table_of_vectorizations_entry_t::new_waiting (uop_package_t *uop, uint8_t structural_id) {
     ++this->inst_inside_ROB;
     assert (structural_id < 4);
-    // Store
-    if (structural_id == 3) {
-        this->inst_inside_ROB_bitmask[0] = false;
-        this->inst_inside_ROB_bitmask[1] = false;
-        this->inst_inside_ROB_bitmask[2] = false;
-    } else {
-        // Loads ou op
-        this->inst_inside_ROB_bitmask[structural_id] = true;
+
+    // Se não era o que esperava, invalida (isso acaba impedindo saltos para instruções internas :p)
+    if (structural_id != this->next_inside_ROB) {
+        this->tv->start_invalidation(this);
+        return;
     }
 
-    // Faz esperar confirmação do stride
+    // Próximo
+    // // Se for mov faz pular para o 3
+    if (structural_id == 0 && this->ts_entry->is_mov) {
+        this->next_inside_ROB += 2;
+    }
+
+    this->next_inside_ROB++;
+
+    // // Se tiver sido um store vai para o 0
+    if (this->next_inside_ROB > 3) {
+        this->next_inside_ROB = 0;
+    }
+
+
+    // Faz esperar confirmação do stride (0, 1 e 3)
     if (structural_id != 2) {
         //printf("Confirmações necessárias incrementadas: %u -> %u\n", this->need_confirmation, this->need_confirmation + 1);
         this->need_confirmation++;
@@ -423,7 +497,13 @@ inline bool table_of_vectorizations_entry_t::verify_stride(uop_package_t *uop) {
     }
     this->need_confirmation--;
 
-    if (this->remaining_registers == 0 && this->next_validation >= this->num_elements && this->need_confirmation == 0) {
+    if (this->remaining_registers == 0 && 
+        this->next_validation >= this->num_elements && 
+        this->need_confirmation == 0 &&
+        this->ready &&
+        this->others_inside_vectorization == 0 &&
+        this->time_last_other_completed <= orcs_engine.get_global_cycle()) {
+        
         this->ready_for_commit = true;
         //printf("verify_stride => READY FOR COMMIT %p!!!\n", (void *)this);
         /*for (uint32_t i=0; i < MAX_REGISTERS; ++i) {
@@ -437,4 +517,78 @@ inline bool table_of_vectorizations_entry_t::verify_stride(uop_package_t *uop) {
 
     //printf("Stride do %s confirmado! (%u => %u)\n", (uop->structural_id == 0) ? "primeiro load" : (uop->structural_id == 1) ? "segundo load" : (uop->structural_id == 3) ? "store" : "outro", this->need_confirmation+1, this->need_confirmation);
     return true;
+}
+
+inline void table_of_vectorizations_entry_t::set_ready () {
+    this->ready = true;
+
+
+    // ***********************
+    // Tenta liberar a entrada
+    // ************************
+    if (this->remaining_registers == 0 && 
+        this->next_validation >= this->num_elements && 
+        this->need_confirmation == 0 && 
+        this->discard_results == false && 
+        this->ready &&
+        this->others_inside_vectorization == 0 &&
+        this->time_last_other_completed <= orcs_engine.get_global_cycle()) {
+
+        this->ready_for_commit = true;
+    }
+    else if (this->discard_results == true && this->inst_inside_ROB == 0 && this->remaining_registers == 0 && this->ready) {
+        // Pode apagar
+        //printf("set_ready => Todas as instruções esperando foram descartadas e os registradores substituídos! Apagando a entrada na TV (%p)\n",(void *)this);
+        orcs_engine.processor->vectorizer->increment_counter(VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION, 1);            
+        this->clean();
+    }
+}
+
+inline void table_of_vectorizations_entry_t::print () {
+    printf("  ts_entry: %p  next_validation: %d  remaining_registers: %u  state: %d  ready: %s  need_confirmation: %u  ready_for_commit: %s discard_results: %s\n",
+            (void *)this->ts_entry,  this->next_validation,  this->remaining_registers, this->state,  this->ready ? "true" : "false",  this->need_confirmation,  this->ready_for_commit ? "true" : "false", this->discard_results ? "true" : "false");
+}
+
+inline void table_of_vectorizations_entry_t::new_other_inside_renamed (uop_package_t *uop) {
+    this->others_inside_vectorization++;
+    uop->vectorization_linked_id = this->vectorization_id;
+    uop->vectorization_linked = this;
+}
+
+inline void table_of_vectorizations_entry_t::new_other_inside_completed (uop_package_t *uop) {
+    if (this->vectorization_id == uop->vectorization_linked_id) {
+        assert (this->others_inside_vectorization);
+        this->others_inside_vectorization--;
+        if (this->time_last_other_completed < uop->readyAt) {
+            this->time_last_other_completed = uop->readyAt;
+        }
+
+        if (this->remaining_registers == 0 && 
+            this->next_validation >= this->num_elements && 
+            this->need_confirmation == 0 && 
+            this->discard_results == false && 
+            this->ready &&
+            this->others_inside_vectorization == 0 &&
+            this->time_last_other_completed <= orcs_engine.get_global_cycle()) {
+
+            this->ready_for_commit = true;
+        }
+    }
+}
+
+// #####################################################################
+// O commit precisa verificar se conseguiu os requisitos para completar,
+// já que pode precisar esperar o tempo de outras terminarem
+// #####################################################################
+inline void table_of_vectorizations_entry_t::verify_completion() {
+    if (this->remaining_registers == 0 && 
+            this->next_validation >= this->num_elements && 
+            this->need_confirmation == 0 && 
+            this->discard_results == false && 
+            this->ready &&
+            this->others_inside_vectorization == 0 &&
+            this->time_last_other_completed <= orcs_engine.get_global_cycle()) {
+
+            this->ready_for_commit = true;
+        }
 }

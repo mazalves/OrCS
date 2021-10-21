@@ -207,6 +207,7 @@ const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type) {
         case VECTORIZER_STORE_DEFINED_MOV:                      return "STORE_DEFINED_MOV                       "; break;
         case VECTORIZER_STORE_DEFINED_OP:                       return "STORE_DEFINED_OP                        "; break;
 
+        case VECTORIZER_LOCK_TS:                                return "LOCK_TS                                 "; break;
         case VECTORIZER_INVALIDATION_TL:                        return "INVALIDATION_TL                         "; break;
         case VECTORIZER_INVALIDATION_TO:                        return "INVALIDATION_TO                         "; break;
         case VECTORIZER_INVALIDATION_TS:                        return "INVALIDATION_TS                         "; break;
@@ -220,17 +221,21 @@ const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type) {
 
         case VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION:       return "LOAD_STRIDE_STARTED_INVALIDATION        "; break;
         case VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION:      return "STORE_STRIDE_STARTED_INVALIDATION       "; break;
+        case VECTORIZER_VECTORIZATION_STARTED_INVALIDATION:     return "VECTORIZATION_STARTED_INVALIDATION      "; break;
 
         case VECTORIZER_TL_INVALIDATED_TRAINING:                return "TL_INVALIDATED_TRAINING                 "; break;
         case VECTORIZER_TO_INVALIDATED_TRAINING:                return "TO_INVALIDATED_TRAINING                 "; break;
         case VECTORIZER_TS_INVALIDATED_TRAINING:                return "TS_INVALIDATED_TRAINING                 "; break;
         case VECTORIZER_NEW_VECTORIZATION_INVALIDATED_TRAINING: return "NEW_VECTORIZATION_INVALIDATED_TRAINING  "; break;
+        case VECTORIZER_VECTORIZATION_INVALIDATED_TRAINING:     return "VECTORIZATION_INVALIDATED_TRAINING      "; break;
 
         case VECTORIZER_AGU_WRITE_OVER_READ_1:                  return "AGU_WRITE_OVER_READ_1                   "; break;
         case VECTORIZER_AGU_WRITE_OVER_READ_2:                  return "AGU_WRITE_OVER_READ_2                   "; break;
         case VECTORIZER_AGU_READ_OVER_WRITE:                    return "AGU_READ_OVER_WRITE                     "; break;
 
         case VECTORIZER_DEPENDENCY_INVALIDATION:                return "DEPENDENCY_INVALIDATION                 "; break;
+
+        case VECTORIZER_CASCADE_INVALIDATION:                   return "CASCADE_INVALIDATION                    "; break;
 
         case VECTORIZER_TL_NOT_ENOUGH_ENTRIES:                  return "TL_NOT_ENOUGH_ENTRIES                   "; break;
         case VECTORIZER_TO_NOT_ENOUGH_ENTRIES:                  return "TO_NOT_ENOUGH_ENTRIES                   "; break;
@@ -240,6 +245,10 @@ const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type) {
 
         case VECTORIZER_ASSIGNED_TO_IGNORED_INST:               return "ASSIGNED_TO_IGNORED_INST                "; break;
         case VECTORIZER_TOTAL_IGNORED_INST:                     return "TOTAL_IGNORED_INST                      "; break;
+        case VECTORIZER_IGNORED_AND_COMMITTED:                  return "IGNORED_AND_COMMITTED                   "; break;
+        case VECTORIZER_IGNORED_AND_DISCARDED:                  return "IGNORED_AND_DISCARDED                   "; break;
+
+        case VECTORIZER_REEXECUTED_INST:                        return "TOTAL_REEXECUTED_INST                   "; break;
 
         case VECTORIZER_UNLOCK_ROB_FULL:                        return "UNLOCK_ROB_FULL                         "; break;
         case VECTORIZER_UNLOCK_PROGRAM_ENDED:                   return "UNLOCK_PROGRAM_ENDED                    "; break;

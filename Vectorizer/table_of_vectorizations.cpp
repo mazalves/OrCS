@@ -11,7 +11,7 @@ void table_of_vectorizations_t::allocate (libconfig::Setting &vectorizer_configs
 
         this->entries = new table_of_vectorizations_entry_t[size];
         for (uint32_t i=0; i<size; ++i) {
-            this->entries[i].allocate();
+            this->entries[i].allocate(this);
         }
 
         this->num_entries = 0;
@@ -37,6 +37,10 @@ void table_of_vectorizations_t::allocate (libconfig::Setting &vectorizer_configs
         this->mem_operation_wait_next = latency_mem_wait;
         this->mem_operation_fu = mem_op_fu;
 
+        // ****************************
+        // Identificador de vetorização
+        // ****************************
+        this->current_id = 0;
       
 }
 // #############################################################################################################################
@@ -77,12 +81,17 @@ table_of_vectorizations_entry_t* table_of_vectorizations_t::get_id(uint32_t id) 
             return &this->entries[id];
 }
 
-// TODO
+// TODO -> Definir mais especificamente
 instruction_operation_t table_of_vectorizations_t::define_vima_operation(table_of_stores_entry_t *ts_entry) {
+    // Dados retirados de:
+    // instrinsics_extension.cpp:408 (verificar em vima_defines.h a qual lista pertence)
     switch(ts_entry->is_mov) {
         case true:
+            return INSTRUCTION_OPERATION_VIMA_INT_ALU; //_vim64_icpyu
             break;
         case false:
+            // Só definido pra soma ainda
+            return INSTRUCTION_OPERATION_VIMA_INT_ALU; // _vim64_iadds
             break;
     }
     return INSTRUCTION_OPERATION_VIMA_FP_ALU;
@@ -90,8 +99,7 @@ instruction_operation_t table_of_vectorizations_t::define_vima_operation(table_o
 // #############################################################################################################################
 
 table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (table_of_stores_entry_t *ts_entry) {
-        printf(" >> New vectorization -- Addr lista: %p\n", (void *) &this->tl->tv->vectorizer->vectorizations_to_execute);
-
+        //printf(" >> New vectorization\n");
 
         // ****************************
         // Aloca uma nova entrada na TV
@@ -139,26 +147,31 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
                         tl_entries[0]->stride, 
                         (tl_entries[1]) ? tl_entries[1]->stride : 0, 
                         ts_entry->stride, 
-                        orcs_engine.get_global_cycle());
+                        orcs_engine.get_global_cycle(), current_id);
                 break;
             case 8:
                 entry->fill_entry(ts_entry, 0, false, this->vectorization_size / 2, 
                         tl_entries[0]->stride,
                         (tl_entries[1]) ? tl_entries[1]->stride : 0, 
                         ts_entry->stride, 
-                        orcs_engine.get_global_cycle());
+                        orcs_engine.get_global_cycle(), current_id);
                 break;
             case 32:
                 entry->fill_entry(ts_entry, 0, false, this->vectorization_size / 8, 
                         tl_entries[0]->stride,
                         (tl_entries[1]) ? tl_entries[1]->stride : 0, 
                         ts_entry->stride, 
-                        orcs_engine.get_global_cycle());
+                        orcs_engine.get_global_cycle(), current_id);
                 break;
             default:
                 printf("ALERT: Falta definir tamanho de vetorização para loads de %u bytes!\n", ts_entry->access_size);
                 return NULL;
                 
+        }
+        if (current_id != 254) {
+            current_id++;
+        } else {
+            current_id = 0;
         }
             
 
@@ -177,17 +190,27 @@ table_of_vectorizations_entry_t *table_of_vectorizations_t::new_vectorization (t
 
         ts_entry->tv_entry = entry;
 
-        printf("Free: %s -- ts_entry: %p -- Discard_results: %s\n",
+        /*printf("Free: %s -- ts_entry: %p -- Discard_results: %s\n",
                     this->get_id(0)->free ? "true" : "false",
                     (void *) this->get_id(0)->ts_entry,
                     this->get_id(0)->discard_results ? "true" : "false");
 
-        printf("Retorno normal\n");
+        printf("Retorno normal\n");*/
         return entry;
 }
 // #############################################################################################################################
 
 bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *ts_entry) {
+
+    // ******************************************************************************************************************
+    // Só aloca apenas se não tiver outra vetorizada ao mesmo tempo (até pq, além dos conflitos o rob não comportaria :p)
+    // Várias podem entrar em pré-vetorização, mas no momento em que uma receber o primeiro load, apaga as outras e
+    // impede novas. (Registers_tracker: this->tv->invalidate_other_vectorizations (tv_pointer);)
+    // ******************************************************************************************************************    
+    if (this->vectorizer->current_vectorization != NULL) {
+        return false;
+    }
+
     // **********************************************************    
     // Aloca entrada na TV
     // **********************************************************
@@ -230,6 +253,7 @@ bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *
     //// Store
     this->tpv->insert(ts_entry->get_pc(), ts_entry->get_uop_id(), tv_entry);
 
+
     // *************************
     // Ajusta máquina de estados
     // *************************
@@ -240,8 +264,8 @@ bool table_of_vectorizations_t::new_pre_vectorization (table_of_stores_entry_t *
 // #############################################################################################################################
 
 void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entry_t *tv_entry) {
-    printf("INVALIDATION ENTRY %u -> Discarded: %s TS_POINTER: %p\n", this->entry_to_id(tv_entry), tv_entry->discard_results ? "true" : "false", (void *)tv_entry->ts_entry);
-    // Se TS_POINTER == NULL e Discarded == false, teve que invalidar alguma que já tinha entrado no pipeline
+    //printf("INVALIDATION ENTRY %u -> Discarded: %s TS_POINTER: %p\n", this->entry_to_id(tv_entry), tv_entry->discard_results ? "true" : "false", (void *)tv_entry->ts_entry);
+    // Se TS_POINTER == NULL e Discarded == false, teve que invalidar alguma que já tinha entrado no pipeline (todas as necessárias em waiting)
     // provavelmente pelo rob cheio sem que todos os regs fossem substituídos
     if (tv_entry->ts_entry == NULL && tv_entry->discard_results == false) {
         this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_AFTER_ALL_IN_ROB]++;
@@ -249,6 +273,13 @@ void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entr
 
     // Executa escalarmente e libera as instruções em espera
     this->invalidate(tv_entry);
+
+    // Invalida próximas se houver
+    if (tv_entry->next) {
+        this->vectorizer->statistics_counters[VECTORIZER_CASCADE_INVALIDATION]++;
+        this->start_invalidation(tv_entry->next);
+    }
+
 
     // Para de ignorar as instruções vinculadas
     this->ti->remove_vectorization(tv_entry);
@@ -275,14 +306,20 @@ void table_of_vectorizations_t::start_invalidation (table_of_vectorizations_entr
             }
     
             // Invalida TS
-            this->ts->invalidate(tv_entry->ts_entry);
+            //this->ts->invalidate(tv_entry->ts_entry);
+
+            // Lock TS entry to do not revectorize
+            this->ts->lock(tv_entry->ts_entry);
         }
+
+
+
         // Tudo limpo, desvincula
         tv_entry->ts_entry = NULL;
     }
 
     // Limpa a própria entrada
-    /* É limpa quando todos comitarem */
+    /* É limpa quando todos comitarem e a operação da VIMA tiver retornado */
 
 
 }
@@ -298,14 +335,13 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
         return;
     }
 
-    // Foi substituído e depois invalidado
-    if (tv_entry->ts_entry == NULL) {
-        tv_entry->discard_results = true;
-        this->vectorizer->statistics_counters[VECTORIZER_INVALIDATION_TV]++;
-        this->vectorizer->invalidation_point[tv_entry->next_validation]++;
-        return;
-    }
 
+    // ************************************************
+    // Desvincula de ser a vetorização ativa, caso seja
+    // ************************************************
+    if (this->vectorizer->current_vectorization == tv_entry) {
+        this->vectorizer->current_vectorization = NULL;
+    }
 
     // **********
     // Statistics
@@ -322,7 +358,7 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
     // Insere instruções no pipeline
     // *****************************
     int32_t size = tv_entry->next_validation;
-    if (tv_entry->ts_entry->is_mov) {
+    if (tv_entry->uops[2].opcode_operation == INSTRUCTION_OPERATION_NOP) { /* If does not contain op is mov */
         for (int32_t i = 0; i < size; ++i) {
             // Ajusta endereços
             tv_entry->uops[0].memory_address[0] = tv_entry->addr_mem_load[0] + (tv_entry->load_stride[0] * i);
@@ -335,7 +371,7 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
         }
 
         //// Resto
-        if (tv_entry->inst_inside_ROB_bitmask[0]) {
+        if (tv_entry->next_inside_ROB > 0) {
             // Ajusta endereço
             tv_entry->uops[0].memory_address[0] = tv_entry->addr_mem_load[0] + (tv_entry->load_stride[0] * size);
 
@@ -359,18 +395,26 @@ void table_of_vectorizations_t::invalidate(table_of_vectorizations_entry_t *tv_e
         }
 
         //// Resto
-        if (tv_entry->inst_inside_ROB_bitmask[0]) { // Load 1
+        if (tv_entry->next_inside_ROB > 0) { // Load 1
             tv_entry->uops[0].memory_address[0] = tv_entry->addr_mem_load[0] + (tv_entry->load_stride[0] * (size));
             this->vectorizer->instructions_to_reexecute.push_back(tv_entry->uops[0]);
         }
-        if (tv_entry->inst_inside_ROB_bitmask[1]) { // Load 2
+        if (tv_entry->next_inside_ROB > 1) { // Load 2
             tv_entry->uops[1].memory_address[0] = tv_entry->addr_mem_load[1] + (tv_entry->load_stride[1] * (size));
             this->vectorizer->instructions_to_reexecute.push_back(tv_entry->uops[1]);
         }
-        if (tv_entry->inst_inside_ROB_bitmask[2]) { // Op
+        if (tv_entry->next_inside_ROB > 2) { // Op
             this->vectorizer->instructions_to_reexecute.push_back(tv_entry->uops[2]);
         }
 
+    }
+
+    /* Desvincula de uma vetorização anterior */
+    if (tv_entry->prev) {
+        tv_entry->prev->next = NULL;
+    }
+    if (tv_entry->next) {
+        tv_entry->next->prev = NULL;
     }
 
 }
@@ -390,10 +434,12 @@ void table_of_vectorizations_t::register_overwritten (table_of_vectorizations_en
     
     entry->register_replace();
 
-    if (entry->is_ready_for_commit()) {
+    // Essa limpeza é feita só se invalidar ou se não puder alocar o próximo
+    /*if (entry->is_ready_for_commit()) {
 
         table_of_loads_entry_t *tl_entries[2];
         table_of_operations_entry_t *to_entry;
+
 
         if (entry->ts_entry->is_mov) {
             tl_entries[0] = this->tl->get_id(entry->ts_entry->tl_to_entry);
@@ -418,7 +464,7 @@ void table_of_vectorizations_t::register_overwritten (table_of_vectorizations_en
         entry->ts_entry->clean();
         //printf("Tudo pronto para o commit! Todos os registradores sobrescritos\n");
     
-    }
+    }*/
 }
 // #############################################################################################################################
 
@@ -506,7 +552,22 @@ void table_of_vectorizations_t::unbind (table_of_vectorizations_entry_t *tv_entr
         // Invalida TS
         this->ts->invalidate(tv_entry->ts_entry);
     }
+
     tv_entry->ts_entry = NULL;
+}
+// #############################################################################################################################
+
+// Quando uma vetorização ocorre e seu primeiro load é ignorado, essa função
+// é chamada para invalidar todas as demais pré-vetorizações concorrentes
+void table_of_vectorizations_t::invalidate_other_pre_vectorizations(table_of_vectorizations_entry_t *tv_entry) {
+    for (uint32_t i=0; i < this->max_entries; ++i) {
+        table_of_vectorizations_entry_t *entry = &this->entries[i];
+        if ((entry->free == false) && (entry->state < 4) && (entry != tv_entry)) {
+                    this->start_invalidation(entry);
+                    this->vectorizer->statistics_counters[VECTORIZER_VECTORIZATION_STARTED_INVALIDATION]++;
+                    this->vectorizer->statistics_counters[VECTORIZER_VECTORIZATION_INVALIDATED_TRAINING]++;
+        }
+    }
 }
 // #############################################################################################################################
 
@@ -558,4 +619,19 @@ void table_of_vectorizations_t::statistics(FILE *output) {
     fprintf(output, "Table of vectorizations (TL)\n");
     fprintf(output, "  Vectorization size: %u\n", this->vectorization_size);
 
+    // ***********************************************
+    // Confere se liberou todas as vetorizações ao fim
+    // Ou se faz sentido não ter liberado :p
+    // ***********************************************
+    this->print();
+
+}
+
+void table_of_vectorizations_t::print() {
+    utils_t::largeSeparator(stdout);
+    printf("Table of vectorizations\n");
+    utils_t::largeSeparator(stdout);
+    for (uint32_t i=0; i < this->max_entries; ++i) {
+        this->entries[i].print();
+    }
 }

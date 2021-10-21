@@ -48,6 +48,11 @@ void vectorizer_t::allocate(functional_unit_t *mem_op_fu, libconfig::Setting &cf
 
     this->instructions_to_reexecute.allocate((uint32_t)cfg_dyn_vec["MAX_VECTORIZATIONS_WAITING_LIST"] * 4); // Cada vetorização pode gerar até 4 instruções ao ser invalidada
 
+    // *****************
+    // Vetorização atual
+    // *****************
+    this->current_vectorization = NULL;
+
     // **********
     // Statistics
     // **********
@@ -70,6 +75,8 @@ void vectorizer_t::allocate(functional_unit_t *mem_op_fu, libconfig::Setting &cf
         this->ready_point[i] = 0;
     }
     
+
+
     // **********
     // Debug info
     // **********
@@ -212,4 +219,28 @@ void vectorizer_t::statistics(FILE *output) {
 
 void vectorizer_t::increment_counter(vectorizer_statistic_t counter, uint64_t value) {
     this->statistics_counters[counter] += value;
+}
+
+
+/* Caso uma vetorização esteja em andamento e uma instrução externa seja executada,
+devemos garantir que ela termine antes da vetorização comitar, dessa forma
+evitando uma exceção durante o commit. 
+Assim, essa função vincula a instrução externa à vetorização em validação,
+para que a vetorização a espere para o commit. */
+void vectorizer_t::others_inside (reorder_buffer_line_t *rob_line) {
+    if (this->current_vectorization) {
+        rob_line->uop.vectorization_linked = this->current_vectorization;
+        rob_line->uop.vectorization_linked_id = this->current_vectorization->vectorization_id;
+        this->current_vectorization->new_other_inside_renamed(&rob_line->uop);
+    }
+}
+
+/* Caso uma vetorização esteja em andamento e uma instrução externa seja executada,
+devemos garantir que ela termine antes da vetorização comitar, dessa forma
+evitando uma exceção durante o commit. 
+Assim, essa função marca para a vetorização vinculada que a instrução está pronta */
+void vectorizer_t::others_inside_completed (reorder_buffer_line_t *rob_line) {
+    if (rob_line->uop.vectorization_linked) {
+        rob_line->uop.vectorization_linked->new_other_inside_completed(&rob_line->uop);
+    }
 }

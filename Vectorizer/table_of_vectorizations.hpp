@@ -22,6 +22,11 @@ class table_of_vectorizations_t {
         uint32_t mem_operation_wait_next;
         functional_unit_t *mem_operation_fu;
 
+        // Próximo id de vetorização
+        uint8_t current_id;
+        uint8_t active_vectorizations; // Apenas uma vetorização pode ficar ativa por vez
+                                       // então controla isso contabilizano o número atual de ativas
+
 
 public:
     vectorizer_t *vectorizer;
@@ -68,6 +73,10 @@ private:
         // Também limpa as entradas nas outras tabelas, as invalidando
         void unbind (table_of_vectorizations_entry_t *entry);
 
+        // Quando uma vetorização ocorre e seu primeiro load é ignorado, essa função
+        // é chamada para invalidar todas as demais pré-vetorizações concorrentes
+        void invalidate_other_pre_vectorizations(table_of_vectorizations_entry_t *tv_entry);
+
 
         // Cada load executado pode invalidar uma vetorização, caso carregue dados do seu destino
         // Cada store executado pode invalidar uma vetorização, caso carregue dados do sua origem
@@ -75,7 +84,8 @@ private:
         // Isso porque não sabemos se devemos fornecer os dados novos ou antigos da linha
         void new_AGU_calculation (uop_package_t *uop);
 
-
         void statistics(FILE *);
+
+        void print();
 };
 
