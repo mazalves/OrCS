@@ -1174,7 +1174,16 @@ void processor_t::decode()
 		uint32_t num_uops = 0;
 
 		if ((get_HAS_HIVE() && instr->is_hive) ||
-			(get_HAS_VIMA() && instr->is_vima)) {
+			(get_HAS_VIMA() && (instr_op == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_GATHER ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_SCATTER))) {
 			num_uops += 1;
 		}
 		else
