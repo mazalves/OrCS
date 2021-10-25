@@ -245,8 +245,6 @@ void vima_controller_t::process_instruction (uint32_t index){
             break;
         case PACKAGE_STATE_VIMA:
             if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) {
-                this->add_cache_accesses();
-                this->add_cache_reads();
                 if (store_hash[(vima_buffer[index]->vima_read1 >> index_bits_shift) % 1024] == 0) {
                     cache_status_t result = MISS;
                     vima_buffer[index]->vima_read1_vec = search_cache (vima_buffer[index]->vima_read1, &result);
@@ -272,11 +270,11 @@ void vima_controller_t::process_instruction (uint32_t index){
                     } else this->add_cache_hits();
                     vima_buffer[index]->vima_read1_vec->set_next_address (vima_buffer[index]->vima_read1);
                     vima_buffer[index]->vima_read1_vec->set_tag (get_tag (vima_buffer[index]->vima_read1));
+                    this->add_cache_accesses();
+                    this->add_cache_reads();
                 }
             }
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
-                this->add_cache_accesses();
-                this->add_cache_reads();
                 if (store_hash[(vima_buffer[index]->vima_read2 >> index_bits_shift) % 1024] == 0) {
                     cache_status_t result = MISS;
                     vima_buffer[index]->vima_read2_vec = search_cache (vima_buffer[index]->vima_read2, &result);
@@ -292,11 +290,11 @@ void vima_controller_t::process_instruction (uint32_t index){
                     } else this->add_cache_hits();
                     vima_buffer[index]->vima_read2_vec->set_next_address (vima_buffer[index]->vima_read2);
                     vima_buffer[index]->vima_read2_vec->set_tag (get_tag (vima_buffer[index]->vima_read2));
+                    this->add_cache_accesses();
+                    this->add_cache_reads();
                 }
             }
             if (vima_buffer[index]->vima_write != 0) {
-                this->add_cache_writes();
-                this->add_cache_accesses();
                 if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read1){
                     vima_buffer[index]->vima_write_vec = vima_buffer[index]->vima_read1_vec;
                 } else if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read2){
@@ -313,6 +311,8 @@ void vima_controller_t::process_instruction (uint32_t index){
                         else this->add_cache_hits();                        
                     }
                 } else this->add_cache_hits();
+                this->add_cache_writes();
+                this->add_cache_accesses();
 
                 store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
             }
@@ -328,19 +328,14 @@ void vima_controller_t::process_instruction (uint32_t index){
 }
 
 void vima_controller_t::clock(){
-    uint32_t free_count = this->get_lines();
     for (uint32_t i = 0; i < sets; i++){
         for (size_t j = 0; j < VIMA_CACHE_ASSOCIATIVITY; j++) {
             this->cache[i][j].clock();
-            if (this->cache[i][j].taken) free_count--;
         }
     }
     
     if (vima_buffer_count == 0) return;
-    if (free_count < 3) this->process_instruction (vima_buffer_start);
-    else {
-        for (uint32_t i = 0; i < vima_buffer_count; i++) this->process_instruction ((vima_buffer_start + i) % VIMA_BUFFER);
-    }
+    for (uint32_t i = 0; i < vima_buffer_count; i++) this->process_instruction ((vima_buffer_start + i) % VIMA_BUFFER);
 }
 
 void vima_controller_t::allocate(){
