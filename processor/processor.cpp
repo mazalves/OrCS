@@ -2915,6 +2915,26 @@ uint32_t processor_t::mob_vima()
 
 	if (this->oldest_vima_to_send != NULL && !this->oldest_vima_to_send->sent)
 	{
+		if (orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_FP_ALU
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_FP_DIV
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_FP_MLA
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_FP_MUL
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_INT_ALU
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_INT_DIV
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_INT_MLA
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_INT_MUL
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_GATHER
+			&& orcs_engine.cacheManager->last_op != MEMORY_OPERATION_VIMA_SCATTER){
+				int32_t pos_buffer;
+				ROB_t *rob = &this->reorderBuffer;
+
+				if (rob->robUsed == 0) return OK;
+
+				pos_buffer = rob->robStart;
+				reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos_buffer];
+				
+				if (this->oldest_vima_to_send->rob_ptr != rob_line) return OK;
+		}
 
 		if (!orcs_engine.cacheManager->available(this->processor_id, MEMORY_OPERATION_READ))
 			return OK;

@@ -33,6 +33,8 @@ cache_manager_t::cache_manager_t() {
     
     this->NUMBER_OF_PROCESSORS = 0;
     this->MAX_PARALLEL_REQUESTS_CORE = 0;
+    
+    this->last_op = MEMORY_OPERATION_LAST;
 
     data_cache = NULL;
     instruction_cache = NULL;
@@ -476,6 +478,8 @@ bool cache_manager_t::searchData(memory_package_t *request) {
     if (!isIn (request)) {
         requests.push_back (request);
         requests.shrink_to_fit();
+
+        this->last_op = request->memory_operation;
 
         #if MEMORY_DEBUG
             ORCS_PRINTF ("is new from uop: %lu\n", request->uop_number);

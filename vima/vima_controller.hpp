@@ -27,8 +27,6 @@ class vima_controller_t {
         uint16_t* store_hash;
         uint32_t bits_shift;
 
-        bool read1_d, read2_d, write_d;
-
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;
 
@@ -67,6 +65,7 @@ class vima_controller_t {
         void print_vima_instructions();
         vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);
+        void process_instruction (uint32_t index);
         
         // Get channel to access DATA
         inline uint64_t get_index(uint64_t addr) {
