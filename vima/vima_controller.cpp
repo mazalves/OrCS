@@ -328,17 +328,18 @@ void vima_controller_t::process_instruction (uint32_t index){
 }
 
 void vima_controller_t::clock(){
+    uint32_t free_count = this->get_lines();
     for (uint32_t i = 0; i < sets; i++){
         for (size_t j = 0; j < VIMA_CACHE_ASSOCIATIVITY; j++) {
             this->cache[i][j].clock();
+            if (this->cache[i][j].taken) free_count--;
         }
     }
     
     if (vima_buffer_count == 0) return;
-    uint32_t index = 0;
-    for (uint32_t i = 0; i < vima_buffer_count; i++){
-        index = (vima_buffer_start + i) % VIMA_BUFFER;
-        this->process_instruction (index);
+    if (free_count < 3) this->process_instruction (vima_buffer_start);
+    else {
+        for (uint32_t i = 0; i < vima_buffer_count; i++) this->process_instruction ((vima_buffer_start + i) % VIMA_BUFFER);
     }
 }
 
