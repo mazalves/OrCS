@@ -13,12 +13,6 @@ class vima_controller_t {
         uint32_t* vima_op_latencies;
         uint64_t current_cache_access_latency;
         vima_vector_t** cache;
-        vima_vector_t* read1;
-        vima_vector_t* read1_unbalanced;
-        vima_vector_t* read2;
-        vima_vector_t* read2_unbalanced;
-        vima_vector_t* write;
-        vima_vector_t* write_unbalanced;
         memory_package_t** vima_buffer;
         
         uint32_t vima_buffer_start;
