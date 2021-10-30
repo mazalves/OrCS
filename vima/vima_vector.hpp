@@ -13,14 +13,14 @@ class vima_vector_t {
         uint32_t VIMA_VECTOR_SIZE;
         
     public:
+        memory_package_t* assoc;
         package_state_t status;
         uint64_t tag;
         uint64_t lru;
         bool gather;
         bool scatter;
         bool dirty;
-        bool taken;
-
+        
         uint64_t fetch_start;
         uint64_t fetch_count;
         uint64_t fetch_latency_total;

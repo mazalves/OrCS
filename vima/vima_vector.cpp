@@ -8,6 +8,7 @@ vima_vector_t::vima_vector_t(){
     this->next_address = 0;
     this->sub_req_offset = 0;
     this->sub_requests = NULL;
+    this->assoc = NULL;
 
     this->LINE_SIZE = 0;
     this->VIMA_VECTOR_SIZE = 0;
@@ -31,9 +32,7 @@ void vima_vector_t::fetch (bool random) {
     //fetch
     if (this->next_address != 0){
         this->address = this->next_address;
-        //this->next_address = 0;
         if (sub_ready == no_sub_requests){
-            //this->set_no_sub_requests (requests);
             #if VIMA_DEBUG 
                 ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
             #endif
@@ -121,7 +120,14 @@ void vima_vector_t::writeback (bool random) {
 }
 
 void vima_vector_t::clock() {
-    //if (address == 0 && next_address != 0) address = next_address;
+    if (this->assoc != NULL){
+        if (this->assoc->status == PACKAGE_STATE_READY){
+            this->assoc = NULL;
+            #if VIMA_DEBUG 
+                ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] is now free.\n", orcs_engine.get_global_cycle(), this->set, this->column)
+            #endif
+        }
+    }
     switch (status){
         case PACKAGE_STATE_TRANSMIT: 
             if (this->scatter) this->writeback(true);
@@ -155,7 +161,6 @@ void vima_vector_t::allocate() {
         sub_requests[i].status = PACKAGE_STATE_FREE;
     }
 
-    taken = false;
     status = PACKAGE_STATE_FREE;
     sub_ready = no_sub_requests;
     sub_req_offset = utils_t::get_power_of_two(LINE_SIZE);
