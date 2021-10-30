@@ -338,7 +338,8 @@ void vima_controller_t::process_instruction (uint32_t index){
                     vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
                     if (vima_buffer[index]->vima_write_vec == NULL) return;
                     vima_buffer[index]->vima_write_vec->assoc = vima_buffer[index];
-
+                    
+                    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
                     if (result == MISS) this->add_cache_misses();
                     else this->add_cache_hits();
                 }
@@ -409,6 +410,7 @@ void vima_controller_t::process_instruction (uint32_t index){
                         vima_buffer[index]->vima_write_vec_ub = search_cache (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE, &result);
                         if (vima_buffer[index]->vima_write_vec_ub == NULL) return;
                         vima_buffer[index]->vima_write_vec_ub->assoc = vima_buffer[index];
+                        if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
                         if (result == MISS) this->add_cache_misses();
                         else this->add_cache_hits();                        
                     }
@@ -441,19 +443,25 @@ void vima_controller_t::clock(){
 
     if (vima_buffer_count == 0) return;
 
-    if (vima_buffer[vima_buffer_start]->vima_read1_vec == NULL || vima_buffer[vima_buffer_start]->vima_read2_vec == NULL || vima_buffer[vima_buffer_start]->vima_write_vec == NULL || (VIMA_UNBALANCED && (vima_buffer[vima_buffer_start]->vima_read1_vec_ub == NULL || vima_buffer[vima_buffer_start]->vima_read2_vec_ub == NULL || vima_buffer[vima_buffer_start]->vima_write_vec_ub == NULL))){
+    /*if (vima_buffer[vima_buffer_start]->vima_read1_vec == NULL || vima_buffer[vima_buffer_start]->vima_read2_vec == NULL || vima_buffer[vima_buffer_start]->vima_write_vec == NULL || (VIMA_UNBALANCED && (vima_buffer[vima_buffer_start]->vima_read1_vec_ub == NULL || vima_buffer[vima_buffer_start]->vima_read2_vec_ub == NULL || vima_buffer[vima_buffer_start]->vima_write_vec_ub == NULL))){
         this->process_instruction (vima_buffer_start);
         return;
-    }
+    }*/
 
-    for (uint32_t i = 0; i < vima_buffer_count; i++) this->process_instruction ((vima_buffer_start + i) % VIMA_BUFFER);
+    for (uint32_t i = 0; i < vima_buffer_count; i++) {
+        /*ORCS_PRINTF ("[%u] read1 -> %s, read2 -> %s, write -> %s.\n", i, 
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read1_vec == NULL ? "YES" : "NO", 
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read2_vec == NULL ? "YES" : "NO", 
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_write_vec == NULL ? "YES" : "NO"
+        )*/
+        this->process_instruction ((vima_buffer_start + i) % VIMA_BUFFER);
+    }
 }
 
 void vima_controller_t::allocate(){
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_vima = cfg_root["VIMA_CONTROLLER"];
     libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
-    set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
     set_VIMA_CACHE_SIZE (cfg_vima["VIMA_CACHE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_vima["VIMA_VECTOR_SIZE"]);
@@ -463,6 +471,9 @@ void vima_controller_t::allocate(){
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
     this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
+
+    set_VIMA_BUFFER (this->get_lines()/3);
+    if (VIMA_UNBALANCED) set_VIMA_BUFFER (this->get_lines()/6);
 
     this->cache = new vima_vector_t*[sets]();
     for (uint32_t i = 0; i < sets; i++){
