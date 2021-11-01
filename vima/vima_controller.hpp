@@ -20,6 +20,7 @@ class vima_controller_t {
         uint32_t vima_buffer_count;
         uint16_t* store_hash;
         uint32_t bits_shift;
+        uint32_t free_lines;
 
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;

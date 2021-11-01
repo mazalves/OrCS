@@ -7,6 +7,7 @@ vima_controller_t::vima_controller_t(){
 
     this->lines = 0;
     this->sets = 0;
+    this->free_lines = 0;
 
     this->cache = NULL;
     this->vima_op_latencies = NULL;
@@ -435,9 +436,11 @@ void vima_controller_t::process_instruction (uint32_t index){
 }
 
 void vima_controller_t::clock(){
+    this->free_lines = 0;
     for (uint32_t i = 0; i < sets; i++){
         for (size_t j = 0; j < VIMA_CACHE_ASSOCIATIVITY; j++) {
             this->cache[i][j].clock();
+            if (this->cache[i][j].assoc == NULL) this->free_lines++;
         }
     }
 
@@ -468,12 +471,13 @@ void vima_controller_t::allocate(){
     set_VIMA_CACHE_ASSOCIATIVITY (cfg_vima["VIMA_CACHE_ASSOCIATIVITY"]);
     set_VIMA_CACHE_LATENCY (cfg_vima["VIMA_CACHE_LATENCY"]);
     set_VIMA_UNBALANCED (cfg_vima["VIMA_UNBALANCED"]);
+    set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
     this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
 
-    set_VIMA_BUFFER (this->get_lines()/3);
-    if (VIMA_UNBALANCED) set_VIMA_BUFFER (this->get_lines()/6);
+    //set_VIMA_BUFFER (this->get_lines()/3);
+    //if (VIMA_UNBALANCED) set_VIMA_BUFFER (this->get_lines()/6);
 
     this->cache = new vima_vector_t*[sets]();
     for (uint32_t i = 0; i < sets; i++){
@@ -532,10 +536,18 @@ void vima_controller_t::allocate(){
 
     vima_buffer = (memory_package_t**) malloc (VIMA_BUFFER * sizeof (memory_package_t*));
     store_hash = (uint16_t*) malloc (1024 * sizeof (uint16_t));
+
+    free_lines = this->get_lines();
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){
     if (vima_buffer_count < this->VIMA_BUFFER) {
+        uint32_t line_count = 0;
+        if (request->vima_read1 != 0) line_count++;
+        if (request->vima_read2 != 0) line_count++;
+        if (request->vima_write != 0) line_count++;
+        if (line_count > free_lines) return false;
+
         request->sent_to_ram = true;
         request->status = PACKAGE_STATE_VIMA;
         request->vima_cycle = orcs_engine.get_global_cycle();
