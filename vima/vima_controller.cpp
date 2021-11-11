@@ -123,7 +123,8 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
         index = get_index (address);
         for (uint32_t i = 0; i < get_lines(); i++){
-            if (get_index(cache[i][0].get_address()) == get_index (address) && get_tag(cache[i][0].get_address()) == get_tag (address)) {
+            if ((get_tag(cache[i][0].get_address()) == get_tag (address) && get_index(cache[i][0].get_address()) == get_index (address))
+		|| (VIMA_UNBALANCED && get_tag(cache[i][0].get_address()) == get_tag (address))) {
                 *result = HIT;
                 #if VIMA_DEBUG 
                     ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
@@ -138,7 +139,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     } else {
         index = get_index (address);
         for (i = 0; i < VIMA_CACHE_ASSOCIATIVITY; i++){
-            if (get_tag(cache[index][i].get_address()) == get_tag (address) && get_tag(cache[index][i].get_address()) == get_tag (address)) {
+            if (get_tag(cache[index][i].get_address()) == get_tag (address)) {
                 *result = HIT;
                 #if VIMA_DEBUG 
                     ORCS_PRINTF ("%lu VIMA Cache HIT! address %lu, tag = %lu, index = %lu.\n", orcs_engine.get_global_cycle(), address, get_tag (address), get_index (address))
@@ -472,6 +473,7 @@ void vima_controller_t::allocate(){
     set_VIMA_CACHE_LATENCY (cfg_vima["VIMA_CACHE_LATENCY"]);
     set_VIMA_UNBALANCED (cfg_vima["VIMA_UNBALANCED"]);
     set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
+    //set_VIMA_UNBALANCED (1);
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
     this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
@@ -543,9 +545,18 @@ void vima_controller_t::allocate(){
 bool vima_controller_t::addRequest (memory_package_t* request){
     if (vima_buffer_count < this->VIMA_BUFFER) {
         uint32_t line_count = 0;
-        if (request->vima_read1 != 0) line_count++;
-        if (request->vima_read2 != 0) line_count++;
-        if (request->vima_write != 0) line_count++;
+        if (request->vima_read1 != 0) {
+		line_count++;
+		if (VIMA_UNBALANCED) line_count++;
+	}
+        if (request->vima_read2 != 0) {
+		line_count++;
+		if (VIMA_UNBALANCED) line_count++;
+	}
+        if (request->vima_write != 0) {
+		line_count++;
+		if (VIMA_UNBALANCED) line_count++;
+	}
         if (line_count > free_lines) return false;
 
         request->sent_to_ram = true;
