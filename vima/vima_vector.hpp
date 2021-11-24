@@ -8,6 +8,7 @@ class vima_vector_t {
         uint64_t sub_req_offset;
         uint64_t set;
         uint64_t column;
+        bool issued = false;
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;

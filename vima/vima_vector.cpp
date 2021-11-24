@@ -30,46 +30,46 @@ void vima_vector_t::print_vector(){
 
 void vima_vector_t::fetch (bool random) {
     //fetch
-    if (this->next_address != 0){
+    if (this->next_address != 0 && !issued){
         this->address = this->next_address;
-        if (sub_ready == no_sub_requests){
-            #if VIMA_DEBUG 
-                ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
-            #endif
-            this->fetch_start = orcs_engine.get_global_cycle();
-            this->fetch_count++;
-            sub_ready = 0;
-            for (uint32_t i = 0; i < get_no_sub_requests(); i++){
-                sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
-                sub_requests[i].status = PACKAGE_STATE_UNTREATED;
-                sub_requests[i].sent_to_ram = false;
-                sub_requests[i].row_buffer = false;
-                sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
-                if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
-                sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
-                orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
-            } 
-        } else {
-            while (sub_ready < no_sub_requests && 
-                sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
-                sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {
-                    //ORCS_PRINTF ("LOAD : %u/%u sub-requests are ready! addr = %lu\n", sub_ready, get_no_sub_requests(), sub_requests[sub_ready].memory_address);
-                    sub_ready++;   
-            }
-        }
-        if (sub_ready >= no_sub_requests) {
-            #if VIMA_DEBUG 
-                ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
-            #endif
-            this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
-            dirty = false;
-            lru = orcs_engine.get_global_cycle();
-            status = PACKAGE_STATE_READY;
-        }
-    } else {
+        this->next_address = 0;
+        #if VIMA_DEBUG 
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
+        #endif
+        this->fetch_start = orcs_engine.get_global_cycle();
+        this->fetch_count++;
+        sub_ready = 0;
+        for (uint32_t i = 0; i < get_no_sub_requests(); i++){
+            sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
+            sub_requests[i].status = PACKAGE_STATE_UNTREATED;
+            sub_requests[i].sent_to_ram = false;
+            sub_requests[i].row_buffer = false;
+            sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+            if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
+            sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
+            orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
+        } 
+        issued = true;
+    }
+    
+    while (sub_ready < no_sub_requests && 
+        sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
+        sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {
+            //ORCS_PRINTF ("LOAD : %u/%u sub-requests are ready! addr = %lu\n", sub_ready, get_no_sub_requests(), sub_requests[sub_ready].memory_address);
+            sub_ready++;   
+    }
+        
+    if (sub_ready >= no_sub_requests) {
+        #if VIMA_DEBUG 
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] READY!\n", orcs_engine.get_global_cycle(), this->set, this->column)
+        #endif
+        this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
         dirty = false;
         lru = orcs_engine.get_global_cycle();
         status = PACKAGE_STATE_READY;
+        next_address = 0;
+        issued = false;
     }
     //setar os novos endereços das instruções
     //setar todas as instruções para LOAD
@@ -80,7 +80,7 @@ void vima_vector_t::fetch (bool random) {
 
 void vima_vector_t::writeback (bool random) {
     if (dirty) {
-        if (sub_ready == no_sub_requests){
+        if (!issued){
             #if VIMA_DEBUG 
                 ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu, lru = %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->lru)
             #endif
@@ -97,22 +97,25 @@ void vima_vector_t::writeback (bool random) {
                 sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                 orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
             } 
-        } else {
-            while (sub_ready < no_sub_requests && 
-                sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
-                sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {
-                    //ORCS_PRINTF ("STORE: %u/%u sub-requests are ready! addr = %lu\n", sub_ready, get_no_sub_requests(), sub_requests[sub_ready].memory_address);
-                    sub_ready++;
-            }
+            issued = true;
+    }
+        
+    while (sub_ready < no_sub_requests && 
+        sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
+        sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {
+            //ORCS_PRINTF ("STORE: %u/%u sub-requests are ready! addr = %lu\n", sub_ready, get_no_sub_requests(), sub_requests[sub_ready].memory_address);
+            sub_ready++;
         }
-        if (sub_ready >= no_sub_requests) {
-            #if VIMA_DEBUG 
-                ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
-            #endif
-            this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
-            status = PACKAGE_STATE_WAIT;
-        }
-    } else status = PACKAGE_STATE_WAIT;
+    }
+    
+    if (sub_ready >= no_sub_requests) {
+        #if VIMA_DEBUG 
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] WRITEBACK of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->writeback_start))
+        #endif
+        this->writeback_latency_total += (orcs_engine.get_global_cycle() - this->writeback_start);
+        status = PACKAGE_STATE_WAIT;
+        issued = false;
+    }
     //setar todas as instruções para STORE
     //enviar todas as instruções para a DRAM
     //contar quantas estão prontas
