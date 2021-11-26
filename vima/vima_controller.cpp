@@ -213,7 +213,7 @@ void vima_controller_t::check_completion (int index){
         } else this->add_cache_hits();
         this->add_cache_writes();
         this->add_cache_accesses();
-    }
+    } 
 
     vima_buffer[index]->vima_write_vec->set_next_address (vima_buffer[index]->vima_write);
     vima_buffer[index]->vima_write_vec->set_tag (get_tag (vima_buffer[index]->vima_write));
@@ -233,7 +233,7 @@ void vima_controller_t::check_completion (int index){
                 if (vima_buffer[index]->vima_write_vec_ub->dirty){
                     this->add_cache_writebacks();
                     vima_buffer[index]->vima_write_vec_ub->status = PACKAGE_STATE_TRANSMIT;
-                } else vima_buffer[index]->vima_write_vec_ub->status = PACKAGE_STATE_WAIT;
+                } 
                 this->add_cache_writes();
                 this->add_cache_accesses();
             }
@@ -332,7 +332,13 @@ void vima_controller_t::process_instruction (uint32_t index){
                     vima_buffer[index]->vima_write_vec->assoc = vima_buffer[index];
                     
                     if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
-                    if (result == MISS) this->add_cache_misses();
+                    if (result == MISS) {
+                        this->add_cache_misses();
+                        if (vima_buffer[index]->vima_write_vec->dirty){
+                            this->add_cache_writebacks();
+                            vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_TRANSMIT;
+                        }
+                    }
                     else this->add_cache_hits();
                 }
                 
