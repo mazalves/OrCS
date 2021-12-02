@@ -318,34 +318,6 @@ void vima_controller_t::process_instruction (uint32_t index){
                     this->add_cache_reads();
                 }
             }
-            if (vima_buffer[index]->vima_write != 0 && vima_buffer[index]->vima_write_vec == NULL){
-                if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read1){
-                    vima_buffer[index]->vima_write_vec = vima_buffer[index]->vima_read1_vec;
-                    this->add_cache_hits();
-                } else if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read2){
-                    vima_buffer[index]->vima_write_vec = vima_buffer[index]->vima_read2_vec;
-                    this->add_cache_hits();
-                } else if (store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] == 0) {
-                    cache_status_t result = MISS;
-                    vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
-                    if (vima_buffer[index]->vima_write_vec == NULL) return;
-                    vima_buffer[index]->vima_write_vec->assoc = vima_buffer[index];
-                    
-                    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
-                    if (result == MISS) {
-                        this->add_cache_misses();
-                        if (vima_buffer[index]->vima_write_vec->dirty){
-                            this->add_cache_writebacks();
-                            vima_buffer[index]->vima_write_vec->status = PACKAGE_STATE_TRANSMIT;
-                        }
-                    }
-                    else this->add_cache_hits();
-                }
-                
-                store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
-                this->add_cache_writes();
-                this->add_cache_accesses();
-            }
 
             if (VIMA_UNBALANCED){
                 if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec_ub == NULL) {
@@ -398,38 +370,16 @@ void vima_controller_t::process_instruction (uint32_t index){
                         this->add_cache_reads();
                     }
                 }
-                if (vima_buffer[index]->vima_write != 0 && vima_buffer[index]->vima_write_vec_ub == NULL){
-                    if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read1){
-                        vima_buffer[index]->vima_write_vec_ub = vima_buffer[index]->vima_read1_vec_ub;
-                        this->add_cache_hits();
-                    } else if (vima_buffer[index]->vima_write == vima_buffer[index]->vima_read2){
-                        vima_buffer[index]->vima_write_vec_ub = vima_buffer[index]->vima_read2_vec_ub;
-                        this->add_cache_hits();
-                    } else if (store_hash[((vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE) >> index_bits_shift) % 1024] == 0) {
-                        cache_status_t result = MISS;
-                        vima_buffer[index]->vima_write_vec_ub = search_cache (vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE, &result);
-                        if (vima_buffer[index]->vima_write_vec_ub == NULL) return;
-                        vima_buffer[index]->vima_write_vec_ub->assoc = vima_buffer[index];
-                        
-                        if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) result = MISS;
-                        if (result == MISS) {
-                            this->add_cache_misses();
-                            if (vima_buffer[index]->vima_write_vec_ub->dirty){
-                                this->add_cache_writebacks();
-                                vima_buffer[index]->vima_write_vec_ub->status = PACKAGE_STATE_TRANSMIT;
-                            }
-                        }
-                        else this->add_cache_hits();
-                    }
-                    
-                    store_hash[((vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE) >> index_bits_shift) % 1024] = 1;
-                    this->add_cache_writes();
-                    this->add_cache_accesses();
-                }
             }
 
             if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) return;
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) return;
+            if (VIMA_UNBALANCED){
+                if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec_ub == NULL) return;
+                if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec_ub == NULL) return;
+            }
+            store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
+            if (VIMA_UNBALANCED) store_hash[((vima_buffer[index]->vima_write + VIMA_VECTOR_SIZE) >> index_bits_shift) % 1024] = 1;
                 
             vima_buffer[index]->updatePackageTransmit(this->current_cache_access_latency);
             #if VIMA_DEBUG
