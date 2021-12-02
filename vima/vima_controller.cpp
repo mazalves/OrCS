@@ -296,8 +296,8 @@ void vima_controller_t::process_instruction (uint32_t index){
                     } else this->add_cache_hits();
                     this->add_cache_accesses();
                     this->add_cache_reads();
-                }
-            }
+                } else return;
+            } 
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
                 if (store_hash[(vima_buffer[index]->vima_read2 >> index_bits_shift) % 1024] == 0) {
                     cache_status_t result = MISS;
@@ -427,6 +427,9 @@ void vima_controller_t::process_instruction (uint32_t index){
                     this->add_cache_accesses();
                 }
             }
+
+            if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) return;
+            if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) return;
                 
             vima_buffer[index]->updatePackageTransmit(this->current_cache_access_latency);
             #if VIMA_DEBUG
