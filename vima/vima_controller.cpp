@@ -108,7 +108,7 @@ void vima_controller_t::instruction_ready (size_t index){
         ORCS_PRINTF ("%lu VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
     #endif
 
-    if (vima_buffer[index]->vima_write != 0) store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
+    store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
 
     vima_buffer_start = (vima_buffer_start + 1) % VIMA_BUFFER;
     vima_buffer_count--;
@@ -246,6 +246,7 @@ void vima_controller_t::check_completion (int index){
     }
 
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
+    store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
 
     #if VIMA_DEBUG
         ORCS_PRINTF ("%lu VIMA instruction %lu TRANSMIT -> WAIT.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number)
@@ -293,10 +294,13 @@ void vima_controller_t::process_instruction (uint32_t index){
                         } else vima_buffer[index]->vima_read1_vec->status = PACKAGE_STATE_WAIT;
                         vima_buffer[index]->vima_read1_vec->set_next_address (vima_buffer[index]->vima_read1);
                         vima_buffer[index]->vima_read1_vec->set_tag (get_tag (vima_buffer[index]->vima_read1));
-                    } else this->add_cache_hits();
+                    } else {
+                        vima_buffer[index]->vima_read1_vec->status = PACKAGE_STATE_READY;
+                        this->add_cache_hits();
+                    }
                     this->add_cache_accesses();
                     this->add_cache_reads();
-                } else return;
+                }
             } 
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
                 if (store_hash[(vima_buffer[index]->vima_read2 >> index_bits_shift) % 1024] == 0) {
@@ -313,7 +317,10 @@ void vima_controller_t::process_instruction (uint32_t index){
                         } else vima_buffer[index]->vima_read2_vec->status = PACKAGE_STATE_WAIT;
                         vima_buffer[index]->vima_read2_vec->set_next_address (vima_buffer[index]->vima_read2);
                         vima_buffer[index]->vima_read2_vec->set_tag (get_tag (vima_buffer[index]->vima_read2));
-                    } else this->add_cache_hits();
+                    } else {
+                        vima_buffer[index]->vima_read2_vec->status = PACKAGE_STATE_READY;
+                        this->add_cache_hits();
+                    }
                     this->add_cache_accesses();
                     this->add_cache_reads();
                 }
