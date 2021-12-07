@@ -78,6 +78,7 @@ void memory_channel_t::allocate() {
     set_BANK_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
     set_CHANNEL (cfg_memory_ctrl["CHANNEL"]);
     set_CLOSED_ROW (cfg_memory_ctrl["CLOSED_ROW"]);
+    set_CLOSED_ROW (0);
     
     if (!strcmp (cfg_memory_ctrl["REQUEST_PRIORITY"], "ROW_BUFFER_HITS_FIRST")){
         this->REQUEST_PRIORITY = REQUEST_PRIORITY_ROW_BUFFER_HITS_FIRST;
