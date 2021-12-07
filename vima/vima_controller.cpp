@@ -443,6 +443,9 @@ void vima_controller_t::allocate(){
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
     this->set_sets (lines/this->get_VIMA_CACHE_ASSOCIATIVITY());
 
+    this->set_VIMA_BUFFER (lines/3);
+    if (VIMA_UNBALANCED) this->set_VIMA_BUFFER (lines/6);
+
     this->cache = new vima_vector_t*[sets]();
     for (uint32_t i = 0; i < sets; i++){
         this->cache[i] = new vima_vector_t[VIMA_CACHE_ASSOCIATIVITY]();
