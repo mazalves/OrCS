@@ -330,8 +330,8 @@ void vima_controller_t::process_instruction (uint32_t index){
             }
 
             if ((vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) || (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL)) {
-                vima_buffer[index]->vima_read1_vec->assoc = NULL;
-                vima_buffer[index]->vima_read2_vec->assoc = NULL;
+                if (vima_buffer[index]->vima_read1_vec != NULL) vima_buffer[index]->vima_read1_vec->assoc = NULL;
+                if (vima_buffer[index]->vima_read2_vec != NULL) vima_buffer[index]->vima_read2_vec->assoc = NULL;
                 vima_buffer[index]->vima_read1_vec = NULL;
                 vima_buffer[index]->vima_read2_vec = NULL;
                 return;
