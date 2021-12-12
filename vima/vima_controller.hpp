@@ -68,7 +68,8 @@ class vima_controller_t {
         }
 
         inline uint64_t get_tag(uint64_t addr) {
-            return (addr & this->tag_bits_mask) >> this->tag_bits_shift;
+	    return addr >> this->index_bits_shift;
+            //return (addr & this->tag_bits_mask) >> this->tag_bits_shift;
         }
         
     public:
