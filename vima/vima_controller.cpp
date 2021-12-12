@@ -108,7 +108,7 @@ void vima_controller_t::instruction_ready (size_t index){
         ORCS_PRINTF ("%lu VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
     #endif
 
-    store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
+    store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 0;
 
     vima_buffer_start = (vima_buffer_start + 1) % VIMA_BUFFER;
     vima_buffer_count--;
@@ -244,11 +244,15 @@ void vima_controller_t::check_completion (int index){
     }
 
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
-    store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
+    store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 0;
 
     #if VIMA_DEBUG
         ORCS_PRINTF ("%lu VIMA instruction %lu TRANSMIT -> WAIT.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number)
     #endif
+}
+
+uint64_t vima_controller_t::hash (uint64_t address){
+    return (address*2654435761) % (uint64_t) pow(2, 32);
 }
 
 void vima_controller_t::process_instruction (uint32_t index){
@@ -269,7 +273,7 @@ void vima_controller_t::process_instruction (uint32_t index){
         case PACKAGE_STATE_VIMA:
             cache_status_t result_read1, result_read2;
             if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) {
-                if (store_hash[(vima_buffer[index]->vima_read1 >> index_bits_shift) % 1024] == 0) {
+                if (store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
                     vima_buffer[index]->vima_read1_vec = search_cache (vima_buffer[index]->vima_read1, &result_read1);
                     if (vima_buffer[index]->vima_read1_vec == NULL) return;
                     vima_buffer[index]->vima_read1_vec->assoc = vima_buffer[index];
@@ -277,31 +281,32 @@ void vima_controller_t::process_instruction (uint32_t index){
             }
 
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
-                if (store_hash[(vima_buffer[index]->vima_read2 >> index_bits_shift) % 1024] == 0) {
+                if (store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
                     vima_buffer[index]->vima_read2_vec = search_cache (vima_buffer[index]->vima_read2, &result_read2);
                     if (vima_buffer[index]->vima_read2_vec == NULL) return;
                     vima_buffer[index]->vima_read2_vec->assoc = vima_buffer[index];
                 }
             }
-
-	    if ((vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) || (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL)){
+        
+        if ((vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) || 
+            (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL)){
                 if (vima_buffer[index]->vima_read1_vec != NULL) vima_buffer[index]->vima_read1_vec->assoc = NULL;
                 if (vima_buffer[index]->vima_read2_vec != NULL) vima_buffer[index]->vima_read2_vec->assoc = NULL;
                 vima_buffer[index]->vima_read1_vec = NULL;
                 vima_buffer[index]->vima_read2_vec = NULL;
                 return;
-            }
+        }
 
-            #if VIMA_DEBUG
-                ORCS_PRINTF ("%lu IN  VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->uop_number, vima_buffer[index]->processor_id)
-                if (vima_buffer[index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[index]->vima_read1)
-                if (vima_buffer[index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[index]->vima_read2)
-                if (vima_buffer[index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[index]->vima_write)
-                    ORCS_PRINTF ("\n")
-            #endif
+        #if VIMA_DEBUG
+            ORCS_PRINTF ("%lu IN  VIMA %s -> %lu | processor: %u", orcs_engine.get_global_cycle(), get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->uop_number, vima_buffer[index]->processor_id)
+            if (vima_buffer[index]->vima_read1 != 0) ORCS_PRINTF (" | READ1: [%lu]", vima_buffer[index]->vima_read1)
+            if (vima_buffer[index]->vima_read2 != 0) ORCS_PRINTF (" | READ2: [%lu]", vima_buffer[index]->vima_read2)
+            if (vima_buffer[index]->vima_write != 0) ORCS_PRINTF (" | WRITE: [%lu]", vima_buffer[index]->vima_write)
+            ORCS_PRINTF ("\n")
+        #endif
 
             if (vima_buffer[index]->vima_read1 != 0){
-		if (vima_buffer[index]->vima_read1_vec == NULL) return;
+		        if (vima_buffer[index]->vima_read1_vec == NULL) return;
                 if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER) result_read1 = MISS;
                 if (result_read1 == MISS) {
                     this->add_cache_misses();
@@ -320,7 +325,7 @@ void vima_controller_t::process_instruction (uint32_t index){
             }
 
             if (vima_buffer[index]->vima_read2 != 0){
-		if (vima_buffer[index]->vima_read2_vec == NULL) return;
+		        if (vima_buffer[index]->vima_read2_vec == NULL) return;
                 if (result_read2 == MISS) {
                     this->add_cache_misses();
                     if (vima_buffer[index]->vima_read2_vec->dirty){
@@ -337,7 +342,7 @@ void vima_controller_t::process_instruction (uint32_t index){
                 this->add_cache_reads();
             }
 
-            store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 1;
+            store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 1;
             vima_buffer[index]->updatePackageTransmit(this->current_cache_access_latency);
             #if VIMA_DEBUG
                 ORCS_PRINTF ("%lu VIMA instruction %lu VIMA -> TRANSMIT.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number)
@@ -348,7 +353,25 @@ void vima_controller_t::process_instruction (uint32_t index){
     }
 }
 
+void vima_controller_t::print_buffer() {
+    ORCS_PRINTF ("VIMA_BUFFER = %u\n", VIMA_BUFFER)
+    for (uint32_t i = 0; i < vima_buffer_count; i++) {
+        ORCS_PRINTF ("[%u] read1 -> %s, read2 -> %s, write -> %s.\n", i, 
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read1_vec == NULL ? "YES" : "NO",
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read2_vec == NULL ? "YES" : "NO", 
+            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_write_vec == NULL ? "YES" : "NO"
+        )
+    }
+}
+
 void vima_controller_t::clock(){
+    if (orcs_engine.get_global_cycle() % HEARTBEAT_CLOCKS == 0 && vima_buffer_count > 0){
+        if (this->last_heartbeat == vima_buffer[vima_buffer_start]->vima_read1) {
+            ORCS_PRINTF ("TRAVADO!\n");
+            print_buffer();
+        }
+        this->last_heartbeat = vima_buffer[vima_buffer_start]->vima_read1;
+    }
     this->free_lines = 0;
     for (uint32_t i = 0; i < sets; i++){
         for (size_t j = 0; j < VIMA_CACHE_ASSOCIATIVITY; j++) {
@@ -449,7 +472,7 @@ void vima_controller_t::allocate(){
     vima_buffer_count = 0;
 
     vima_buffer = (memory_package_t**) malloc (VIMA_BUFFER * sizeof (memory_package_t*));
-    store_hash = (uint16_t*) malloc (1024 * sizeof (uint16_t));
+    store_hash = (uint16_t*) malloc (1013 * sizeof (uint16_t));
 
     free_lines = this->get_lines();
 }

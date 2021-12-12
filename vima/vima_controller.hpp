@@ -12,6 +12,7 @@ class vima_controller_t {
         uint32_t sets;
         uint32_t* vima_op_latencies;
         uint64_t current_cache_access_latency;
+        uint64_t last_heartbeat;
         vima_vector_t** cache;
         memory_package_t** vima_buffer;
         
@@ -61,6 +62,8 @@ class vima_controller_t {
         vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);
         void process_instruction (uint32_t index);
+        void print_buffer();
+        uint64_t hash (uint64_t address);
         
         // Get channel to access DATA
         inline uint64_t get_index(uint64_t addr) {

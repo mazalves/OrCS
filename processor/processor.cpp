@@ -3518,7 +3518,7 @@ void processor_t::clock()
 	}
 #endif
 
-	if (get_HAS_VIMA())
+	if (get_HAS_VIMA() && this->processor_id == 0)
 		orcs_engine.vima_controller->clock();
 	if (get_HAS_HIVE())
 		orcs_engine.hive_controller->clock();
