@@ -174,6 +174,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
 }
 
 void vima_controller_t::check_completion (int index){
+    if (orcs_engine.get_global_cycle() < this->ready_cycle) return;
     if (vima_buffer[index]->vima_read1_vec != NULL){
         if (vima_buffer[index]->vima_read1_vec->status != PACKAGE_STATE_READY) return;
         vima_buffer[index]->vima_read1_vec->set_lru (orcs_engine.get_global_cycle());
@@ -244,6 +245,7 @@ void vima_controller_t::check_completion (int index){
     }
 
     vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
+    this->ready_cycle = vima_buffer[index]->readyAt;
     store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 0;
 
     #if VIMA_DEBUG
@@ -475,6 +477,8 @@ void vima_controller_t::allocate(){
     store_hash = (uint16_t*) malloc (1013 * sizeof (uint16_t));
 
     free_lines = this->get_lines();
+
+    ready_cycle = 0;
 }
 
 bool vima_controller_t::addRequest (memory_package_t* request){

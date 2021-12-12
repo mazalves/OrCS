@@ -40,6 +40,7 @@ class vima_controller_t {
         uint64_t current_index;
         uint64_t request_count;
         uint64_t total_wait;
+        uint64_t ready_cycle;
 
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_BUFFER)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_VECTOR_SIZE)
