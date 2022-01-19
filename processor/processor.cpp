@@ -1762,6 +1762,11 @@ void processor_t::rename()
 			break;
 		}
 
+		// Verifica se há espaço na URS
+		if (this->unified_reservation_station.size() == this->unified_reservation_station.capacity()) {
+			break;
+		}
+
 		ERROR_ASSERT_PRINTF(this->decodeBuffer.front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n");
 
 		//=======================
