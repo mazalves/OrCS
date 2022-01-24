@@ -173,30 +173,7 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     return ret;
 }
 
-void vima_controller_t::check_completion (int index){
-    if (orcs_engine.get_global_cycle() < this->ready_cycle) return;
-    if (vima_buffer[index]->vima_read1_vec != NULL){
-        if (vima_buffer[index]->vima_read1_vec->status != PACKAGE_STATE_READY) return;
-        vima_buffer[index]->vima_read1_vec->set_lru (orcs_engine.get_global_cycle());
-        if (VIMA_UNBALANCED){
-            if (vima_buffer[index]->vima_read1_vec_ub != NULL){
-                if (vima_buffer[index]->vima_read1_vec_ub->status != PACKAGE_STATE_READY) return;
-                vima_buffer[index]->vima_read1_vec_ub->set_lru (orcs_engine.get_global_cycle());
-            }
-        }
-    }
-
-    if (vima_buffer[index]->vima_read2_vec != NULL){
-        if (vima_buffer[index]->vima_read2_vec->status != PACKAGE_STATE_READY) return;
-        vima_buffer[index]->vima_read2_vec->set_lru (orcs_engine.get_global_cycle());
-        if (VIMA_UNBALANCED){
-            if (vima_buffer[index]->vima_read2_vec_ub != NULL){
-                if (vima_buffer[index]->vima_read2_vec_ub->status != PACKAGE_STATE_READY) return;
-                vima_buffer[index]->vima_read2_vec_ub->set_lru (orcs_engine.get_global_cycle());
-            }
-        }
-    }
-
+void vima_controller_t::write (int index){
     if (vima_buffer[index]->vima_write_vec == NULL){
         cache_status_t result = MISS;
         vima_buffer[index]->vima_write_vec = search_cache (vima_buffer[index]->vima_write, &result);
@@ -243,8 +220,38 @@ void vima_controller_t::check_completion (int index){
         vima_buffer[index]->vima_write_vec_ub->set_lru (orcs_engine.get_global_cycle());
         vima_buffer[index]->vima_write_vec_ub->dirty = true;
     }
+}
 
-    vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
+void vima_controller_t::check_completion (int index){
+    if (orcs_engine.get_global_cycle() < this->ready_cycle) return;
+    if (vima_buffer[index]->vima_read1_vec != NULL){
+        if (vima_buffer[index]->vima_read1_vec->status != PACKAGE_STATE_READY) return;
+        vima_buffer[index]->vima_read1_vec->set_lru (orcs_engine.get_global_cycle());
+        if (VIMA_UNBALANCED){
+            if (vima_buffer[index]->vima_read1_vec_ub != NULL){
+                if (vima_buffer[index]->vima_read1_vec_ub->status != PACKAGE_STATE_READY) return;
+                vima_buffer[index]->vima_read1_vec_ub->set_lru (orcs_engine.get_global_cycle());
+            }
+        }
+    }
+
+    if (vima_buffer[index]->vima_read2_vec != NULL){
+        if (vima_buffer[index]->vima_read2_vec->status != PACKAGE_STATE_READY) return;
+        vima_buffer[index]->vima_read2_vec->set_lru (orcs_engine.get_global_cycle());
+        if (VIMA_UNBALANCED){
+            if (vima_buffer[index]->vima_read2_vec_ub != NULL){
+                if (vima_buffer[index]->vima_read2_vec_ub->status != PACKAGE_STATE_READY) return;
+                vima_buffer[index]->vima_read2_vec_ub->set_lru (orcs_engine.get_global_cycle());
+            }
+        }
+    }
+
+    this->write (index);    
+
+    if (!vima_buffer[index]->vima_execute) {
+        vima_buffer[index]->updatePackageWait (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
+        vima_buffer[index]->vima_execute = true;
+    }
     this->ready_cycle = vima_buffer[index]->readyAt;
     store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 0;
 
@@ -410,6 +417,10 @@ void vima_controller_t::allocate(){
     set_VIMA_CACHE_LATENCY (cfg_vima["VIMA_CACHE_LATENCY"]);
     set_VIMA_UNBALANCED (cfg_vima["VIMA_UNBALANCED"]);
     set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
+    set_VIMA_FU_INT_COUNT (cfg_vima["VIMA_FU_INT_COUNT"]);
+    set_VIMA_FU_FP_COUNT (cfg_vima["VIMA_FU_FP_COUNT"]);
+    set_VIMA_FU_INT_PER_INST (cfg_vima["VIMA_FU_INT_PER_INST"]);
+    set_VIMA_FU_FP_PER_INST (cfg_vima["VIMA_FU_FP_PER_INST"]);
     //set_VIMA_UNBALANCED (1);
 
     this->set_lines (this->get_VIMA_CACHE_SIZE()/this->get_VIMA_VECTOR_SIZE());
@@ -472,6 +483,9 @@ void vima_controller_t::allocate(){
     vima_buffer_start = 0;
     vima_buffer_end = 0;
     vima_buffer_count = 0;
+
+    vima_fu_int_free = VIMA_FU_INT_COUNT;
+    vima_fu_fp_free = VIMA_FU_FP_COUNT;
 
     vima_buffer = (memory_package_t**) malloc (VIMA_BUFFER * sizeof (memory_package_t*));
     store_hash = (uint16_t*) malloc (1013 * sizeof (uint16_t));

@@ -25,6 +25,7 @@ class memory_package_t {
         int64_t hive_write;
 
         bool is_vima;
+        bool vima_execute;
         uint64_t vima_read1;
         vima_vector_t* vima_read1_vec;
         vima_vector_t* vima_read1_vec_ub;

@@ -6,6 +6,10 @@ class vima_controller_t {
         uint32_t VIMA_CACHE_LATENCY;
         uint32_t VIMA_CACHE_SIZE;
         uint32_t VIMA_UNBALANCED;
+        uint32_t VIMA_FU_INT_COUNT;
+        uint32_t VIMA_FU_FP_COUNT;
+        uint32_t VIMA_FU_INT_PER_INST;
+        uint32_t VIMA_FU_FP_PER_INST;
         float CORE_TO_BUS_CLOCK_RATIO;
         
         uint32_t lines;
@@ -22,6 +26,9 @@ class vima_controller_t {
         uint16_t* store_hash;
         uint32_t bits_shift;
         uint32_t free_lines;
+
+        uint32_t vima_fu_int_free;
+        uint32_t vima_fu_fp_free;
 
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;
@@ -48,6 +55,10 @@ class vima_controller_t {
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_LATENCY)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_CACHE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_UNBALANCED)
+        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_FU_INT_COUNT)
+        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_FU_FP_COUNT)
+        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_FU_INT_PER_INST)
+        INSTANTIATE_GET_SET_ADD (uint32_t, VIMA_FU_FP_PER_INST)
         INSTANTIATE_GET_SET_ADD (float, CORE_TO_BUS_CLOCK_RATIO)
 
         INSTANTIATE_GET_SET_ADD (uint32_t, lines)
@@ -63,6 +74,7 @@ class vima_controller_t {
         vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
         void check_completion (int index);
         void process_instruction (uint32_t index);
+        void write (int index);
         void print_buffer();
         uint64_t hash (uint64_t address);
         
