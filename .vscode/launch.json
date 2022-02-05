@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "OrCS debug, vima 32 cores",
             "type": "cppdbg",
@@ -199,8 +200,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/orcs",
             "args": [
-                "-t", "../Traces/vecSumScalar",
-                "-c", "configuration_files/skylakeProposta.cfg"
+                "-t", "~/Experiment/ispass_tests/vima/traces/memset.1MB_64B.1t",
+                "-c", "configuration_files/vima_variations/sandy_vima_256B_64_1cores.cfg"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

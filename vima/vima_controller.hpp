@@ -72,8 +72,9 @@ class vima_controller_t {
         
         void print_vima_instructions();
         vima_vector_t* search_cache (uint64_t address, cache_status_t* result);
-        void check_completion (int index);
         void process_instruction (uint32_t index);
+        void execute (int index);
+        void commit (int index);
         void write (int index);
         void print_buffer();
         uint64_t hash (uint64_t address);
@@ -94,7 +95,6 @@ class vima_controller_t {
         void clock();
         void allocate();
         bool addRequest (memory_package_t* request);
-        void instruction_ready (size_t index);
         void statistics();
         void reset_statistics();
 };

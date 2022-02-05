@@ -412,7 +412,7 @@ void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_i
         }
     }
 
-    //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager finishRequest(): VIMA INSTRUCTION READY!\n", orcs_engine.get_global_cycle())
+    //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager finishRequest(): VIMA INSTRUCTION %lu READY!\n", orcs_engine.get_global_cycle(), request->uop_number)
 
     request->updatePackageReady();
     request->updateClients();
