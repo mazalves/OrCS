@@ -285,7 +285,7 @@ void vima_controller_t::process_instruction (uint32_t index){
         case PACKAGE_STATE_VIMA:
             cache_status_t result_read1, result_read2;
             if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) {
-                if (store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
+                if (index != vima_buffer_start || store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
                     vima_buffer[index]->vima_read1_vec = search_cache (vima_buffer[index]->vima_read1, &result_read1);
                     if (vima_buffer[index]->vima_read1_vec == NULL) return;
                     vima_buffer[index]->vima_read1_vec->assoc = vima_buffer[index];
@@ -293,7 +293,7 @@ void vima_controller_t::process_instruction (uint32_t index){
             }
 
             if (vima_buffer[index]->vima_read2 != 0 && vima_buffer[index]->vima_read2_vec == NULL) {
-                if (store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
+                if (index != vima_buffer_start || store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
                     vima_buffer[index]->vima_read2_vec = search_cache (vima_buffer[index]->vima_read2, &result_read2);
                     if (vima_buffer[index]->vima_read2_vec == NULL) return;
                     vima_buffer[index]->vima_read2_vec->assoc = vima_buffer[index];
@@ -371,8 +371,8 @@ void vima_controller_t::print_buffer() {
     int index = 0;
     for (uint32_t i = 0; i < vima_buffer_count; i++) {
         index = (vima_buffer_start + i) % VIMA_BUFFER;
-        ORCS_PRINTF ("[%u] %lu [%u] %s %s, readyAt %lu, %s, read1 -> %lu [%s] %s, read2 -> %lu [%s], write -> %lu [%s].\n", i, vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, get_enum_memory_operation_char(vima_buffer[index]->memory_operation), get_enum_package_state_char(vima_buffer[index]->status), vima_buffer[index]->readyAt, vima_buffer[index]->vima_execute ? "EXECUTED" : "NOT EXECUTED",
-            vima_buffer[index]->vima_read1, vima_buffer[index]->vima_read1_vec == NULL ? "YES" : "NO", get_enum_package_state_char(vima_buffer[index]->vima_read1_vec->status),
+        ORCS_PRINTF ("[%u] %lu [%u] %s %s, readyAt %lu, %s, read1 -> %lu [%s], read2 -> %lu [%s], write -> %lu [%s].\n", i, vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, get_enum_memory_operation_char(vima_buffer[index]->memory_operation), get_enum_package_state_char(vima_buffer[index]->status), vima_buffer[index]->readyAt, vima_buffer[index]->vima_execute ? "EXECUTED" : "NOT EXECUTED",
+            vima_buffer[index]->vima_read1, vima_buffer[index]->vima_read1_vec == NULL ? "YES" : "NO",
             vima_buffer[index]->vima_read2, vima_buffer[index]->vima_read2_vec == NULL ? "YES" : "NO",
             vima_buffer[index]->vima_write, vima_buffer[index]->vima_write_vec == NULL ? "YES" : "NO"
         )
