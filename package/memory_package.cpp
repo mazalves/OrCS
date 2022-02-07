@@ -26,6 +26,7 @@ memory_package_t::memory_package_t() {
 
     this->is_vima = false;
     this->vima_execute = false;
+    this->vima_free_fp = false;
     this->vima_read1 = 0;
     this->vima_read1_vec = NULL;
     this->vima_read1_vec_ub = NULL;

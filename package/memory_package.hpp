@@ -26,6 +26,7 @@ class memory_package_t {
 
         bool is_vima;
         bool vima_execute;
+        bool vima_free_fp;
         uint64_t vima_read1;
         vima_vector_t* vima_read1_vec;
         vima_vector_t* vima_read1_vec_ub;

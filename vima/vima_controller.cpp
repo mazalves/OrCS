@@ -235,6 +235,7 @@ void vima_controller_t::execute (int index){
         if (vima_fu_int_free >= VIMA_FU_INT_PER_INST) vima_fu_int_free -= VIMA_FU_INT_PER_INST;
         else return;
     }
+    //ORCS_PRINTF ("%lu inst %lu [%u] executing, vima_fu_int_free = %u\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, vima_fu_int_free)
     vima_buffer[index]->updatePackageTransmit (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
     vima_buffer[index]->vima_execute = true;
     #if VIMA_DEBUG
@@ -243,20 +244,6 @@ void vima_controller_t::execute (int index){
 }
 
 void vima_controller_t::commit (int index){
-    if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_ALU
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_MUL
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_DIV
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_MLA
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) {
-        vima_fu_fp_free += VIMA_FU_FP_PER_INST;
-    } else if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_ALU
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_DIV
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_MUL
-    || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_MLA){
-        vima_fu_int_free += VIMA_FU_INT_PER_INST;
-    }
-
     this->write (index);
     store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 0;
     vima_buffer_start = (vima_buffer_start + 1) % VIMA_BUFFER;
@@ -274,7 +261,26 @@ void vima_controller_t::process_instruction (uint32_t index){
             if (vima_buffer[index]->vima_read2_vec != NULL && vima_buffer[index]->vima_read2_vec->status != PACKAGE_STATE_READY) return;
             
             if (!vima_buffer[index]->vima_execute) this->execute (index);
-            else if (vima_buffer[index]->readyAt <= orcs_engine.get_global_cycle() && index == vima_buffer_start) this->commit (index);
+            else if (!vima_buffer[index]->vima_free_fp){
+                if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_ALU
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_MUL
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_DIV
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_FP_MLA
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_GATHER
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_SCATTER) {
+                    vima_fu_fp_free += VIMA_FU_FP_PER_INST;
+                } else if (vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_ALU
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_DIV
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_MUL
+                || vima_buffer[index]->memory_operation == MEMORY_OPERATION_VIMA_INT_MLA){
+                    vima_fu_int_free += VIMA_FU_INT_PER_INST;
+                }
+                //ORCS_PRINTF ("%lu inst %lu [%u] executed, vima_fu_int_free = %u\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, vima_fu_int_free)
+                vima_buffer[index]->vima_free_fp = true;
+            }
+            else if (vima_buffer[index]->readyAt <= orcs_engine.get_global_cycle() && index == vima_buffer_start) {
+                this->commit (index);
+            }
             break;
         case PACKAGE_STATE_VIMA:
             cache_status_t result_read1, result_read2;
@@ -360,12 +366,15 @@ void vima_controller_t::process_instruction (uint32_t index){
 }
 
 void vima_controller_t::print_buffer() {
-    ORCS_PRINTF ("VIMA_BUFFER = %u\n", VIMA_BUFFER)
+    ORCS_PRINTF ("VIMA_BUFFER = %u, vima_buffer_start = %u, vima_buffer_end = %u, vima_buffer_count = %u\n", VIMA_BUFFER, vima_buffer_start, vima_buffer_end, vima_buffer_count)
+    ORCS_PRINTF ("vima_fu_fp_free = %u, vima_fu_int_free = %u\n", vima_fu_fp_free, vima_fu_int_free)
+    int index = 0;
     for (uint32_t i = 0; i < vima_buffer_count; i++) {
-        ORCS_PRINTF ("[%u] %lu %s, read1 -> %s, read2 -> %s, write -> %s.\n", i, vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->uop_number, get_enum_memory_operation_char(vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->memory_operation),
-            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read1_vec == NULL ? "YES" : "NO",
-            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_read2_vec == NULL ? "YES" : "NO", 
-            vima_buffer[(vima_buffer_start + i) % VIMA_BUFFER]->vima_write_vec == NULL ? "YES" : "NO"
+        index = (vima_buffer_start + i) % VIMA_BUFFER;
+        ORCS_PRINTF ("[%u] %lu [%u] %s %s, readyAt %lu, %s, read1 -> %lu [%s] %s, read2 -> %lu [%s], write -> %lu [%s].\n", i, vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, get_enum_memory_operation_char(vima_buffer[index]->memory_operation), get_enum_package_state_char(vima_buffer[index]->status), vima_buffer[index]->readyAt, vima_buffer[index]->vima_execute ? "EXECUTED" : "NOT EXECUTED",
+            vima_buffer[index]->vima_read1, vima_buffer[index]->vima_read1_vec == NULL ? "YES" : "NO", get_enum_package_state_char(vima_buffer[index]->vima_read1_vec->status),
+            vima_buffer[index]->vima_read2, vima_buffer[index]->vima_read2_vec == NULL ? "YES" : "NO",
+            vima_buffer[index]->vima_write, vima_buffer[index]->vima_write_vec == NULL ? "YES" : "NO"
         )
     }
 }
@@ -375,6 +384,7 @@ void vima_controller_t::clock(){
         if (this->last_heartbeat == vima_buffer[vima_buffer_start]->vima_read1) {
             ORCS_PRINTF ("TRAVADO!\n");
             print_buffer();
+            ORCS_PRINTF ("%lu free lines = %u\n", orcs_engine.get_global_cycle(), this->free_lines)
         }
         this->last_heartbeat = vima_buffer[vima_buffer_start]->vima_read1;
     }
