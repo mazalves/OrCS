@@ -60,6 +60,8 @@ void vima_controller_t::statistics(){
         ORCS_PRINTF ("VIMA_Cache_Associativity:          %u\n", get_VIMA_CACHE_ASSOCIATIVITY())
         ORCS_PRINTF ("VIMA_Cache_Lines:                  %u\n", this->get_lines())
         ORCS_PRINTF ("VIMA_Cache_Sets:                   %u\n", this->get_sets())
+        ORCS_PRINTF ("Min._VIMA_FU_INT_FREE:             %u\n", min_vima_fu_int_free)
+        ORCS_PRINTF ("Min._VIMA_FU_FP_FREE:              %u\n", min_vima_fu_fp_free)
 
         uint64_t total_fetch_latency = 0;
         uint64_t total_fetch_count = 0;
@@ -236,6 +238,9 @@ void vima_controller_t::execute (int index){
         else return;
     }
     //ORCS_PRINTF ("%lu inst %lu [%u] executing, vima_fu_int_free = %u\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, vima_buffer[index]->processor_id, vima_fu_int_free)
+
+    if (vima_fu_fp_free < min_vima_fu_fp_free) min_vima_fu_fp_free = vima_fu_fp_free;
+    if (vima_fu_int_free < min_vima_fu_int_free) min_vima_fu_int_free = vima_fu_int_free;
     vima_buffer[index]->updatePackageTransmit (this->vima_op_latencies[vima_buffer[index]->memory_operation]);
     vima_buffer[index]->vima_execute = true;
     #if VIMA_DEBUG
@@ -483,6 +488,9 @@ void vima_controller_t::allocate(){
 
     vima_fu_int_free = VIMA_FU_INT_COUNT;
     vima_fu_fp_free = VIMA_FU_FP_COUNT;
+
+    min_vima_fu_fp_free = VIMA_FU_FP_COUNT;
+    min_vima_fu_int_free = VIMA_FU_INT_COUNT;
 
     vima_buffer = (memory_package_t**) malloc (VIMA_BUFFER * sizeof (memory_package_t*));
     store_hash = (uint16_t*) malloc (1013 * sizeof (uint16_t));

@@ -30,6 +30,9 @@ class vima_controller_t {
         uint32_t vima_fu_int_free;
         uint32_t vima_fu_fp_free;
 
+        uint32_t min_vima_fu_int_free;
+        uint32_t min_vima_fu_fp_free;
+
         uint64_t index_bits_mask;
         uint64_t index_bits_shift;
 
