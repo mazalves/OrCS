@@ -236,14 +236,16 @@ template <class CB_TYPE>
 void circular_buffer_t<CB_TYPE>::pop_back() {
     if (this->size > 0) {
         this->size--;
-        this->data[end_index].package_clean();
 
+        // The end index is the next after the last
         if (this->end_index == 0) {
             this->end_index = this->capacity - 1;
 
         } else {
             this->end_index--;
         }
+
+        this->data[end_index].package_clean();
 
     }
 }
