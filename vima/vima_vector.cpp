@@ -34,7 +34,7 @@ void vima_vector_t::fetch (bool random) {
         this->address = this->next_address;
         this->next_address = 0;
         #if VIMA_DEBUG 
-            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address)
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu for instruction %lu STARTED!\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->assoc->uop_number)
         #endif
         this->fetch_start = orcs_engine.get_global_cycle();
         this->fetch_count++;
@@ -61,7 +61,7 @@ void vima_vector_t::fetch (bool random) {
         
     if (sub_ready >= no_sub_requests) {
         #if VIMA_DEBUG 
-            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, (orcs_engine.get_global_cycle() - this->fetch_start))
+            ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] FETCH of address %lu for instruction %lu FINISHED! Took %lu cycles.\n", orcs_engine.get_global_cycle(), this->set, this->column, this->address, this->assoc->uop_number, (orcs_engine.get_global_cycle() - this->fetch_start))
             ORCS_PRINTF ("%lu VIMA Cache [%lu][%lu] READY!\n", orcs_engine.get_global_cycle(), this->set, this->column)
         #endif
         this->fetch_latency_total += (orcs_engine.get_global_cycle() - this->fetch_start);
