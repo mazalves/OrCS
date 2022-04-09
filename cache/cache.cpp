@@ -219,7 +219,7 @@ void cache_t::copyNextLevels(line_t *line, uint32_t idx, uint32_t processor_id) 
 }
 
 // Writebacks an address from a specific cache to its next lower leveL
-inline void cache_t::writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address) {
+void cache_t::writeBack(line_t *line, uint32_t processor_id, uint64_t memory_address) {
 	// printf("writeback in processor %d\n", processor_id);
     for (uint32_t i = this->level + 1; i < DATA_LEVELS - 1; i++) {
         ERROR_ASSERT_PRINTF(line->line_ptr_caches[processor_id][i] != NULL, "Error, no line reference in next levels.")
@@ -275,6 +275,17 @@ inline void cache_t::writeBack(line_t *line, uint32_t processor_id, uint64_t mem
 		}
 		line->clean_line();
 	}
+}
+
+line_t* cache_t::getLine (uint64_t memory_address){
+	uint64_t idx, tag;
+	this->tagIdxSetCalculation(memory_address, &idx, &tag);
+	for (size_t i = 0; i < this->sets[idx].n_lines; i++) {
+		if (this->sets[idx].lines[i].valid == 0) {
+			return &this->sets[idx].lines[i];
+		}
+	}
+	return NULL;
 }
 
 // Searches for a cache line to write data

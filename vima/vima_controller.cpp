@@ -420,7 +420,9 @@ void vima_controller_t::allocate(){
     set_VIMA_UNBALANCED (cfg_vima["VIMA_UNBALANCED"]);
     set_VIMA_BUFFER (cfg_vima["VIMA_BUFFER"]);
     set_VIMA_FU_INT_COUNT (cfg_vima["VIMA_FU_INT_COUNT"]);
+    set_VIMA_FU_INT_COUNT (64);
     set_VIMA_FU_FP_COUNT (cfg_vima["VIMA_FU_FP_COUNT"]);
+    set_VIMA_FU_FP_COUNT (64);
     set_VIMA_FU_INT_PER_INST (cfg_vima["VIMA_FU_INT_PER_INST"]);
     set_VIMA_FU_FP_PER_INST (cfg_vima["VIMA_FU_FP_PER_INST"]);
     //set_VIMA_UNBALANCED (1);

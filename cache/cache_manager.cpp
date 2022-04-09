@@ -498,6 +498,25 @@ bool cache_manager_t::searchData(memory_package_t *request) {
     return true;
 }
 
+void cache_manager_t::vima_check (uint64_t addr, uint32_t* ttc, int32_t* cache_indexes, uint32_t processor_id){
+    cache_t* cache;
+    uint32_t cache_status = 0, cache_level = 0;
+    uint32_t cache_latency;
+
+    for (int i = 0; i < 128; i++){
+        while (cache_level < DATA_LEVELS){
+            cache = &this->data_cache[cache_level][cache_indexes[cache_level]];
+            cache_status = this->searchAddress(addr, cache, &cache_latency, ttc);
+            cache->count--;
+            cache_level++;
+            if (cache_status == HIT) {
+                cache->writeBack (cache->getLine (addr), processor_id, addr);
+            }
+        }
+        addr += 64;
+    }
+}
+
 void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes){
     #if MEMORY_DEBUG
         ORCS_PRINTF ("[CACM] %lu {%lu} %lu %s will now be processed |", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char (request->memory_operation))
@@ -506,6 +525,9 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         ORCS_PRINTF ("%lu Cache Manager process(): request %lu, %s %s, readyAt %lu \n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status), request->readyAt)
     #endif
     cache_t* cache;
+    uint32_t ttc = 0;
+    uint32_t vima_requests = 128;
+
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_WRITE:
@@ -567,6 +589,19 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
             #if MEMORY_DEBUG 
                 ORCS_PRINTF (" sent to VIMA Controller.\n")
             #endif
+
+            this->vima_check(request->vima_read1, &ttc, cache_indexes, request->processor_id);
+            if (request->vima_read2 != 0) {
+                vima_requests += 128;
+                this->vima_check(request->vima_read2, &ttc, cache_indexes, request->processor_id);
+            }
+            if (request->vima_write != 0 && request->vima_write != request->vima_read1 && request->vima_write != request->vima_read2) {
+                vima_requests += 128;
+                this->vima_check(request->vima_write, &ttc, cache_indexes, request->processor_id);
+            }
+            ttc += vima_requests;
+
+            request->readyAt = orcs_engine.get_global_cycle() + ttc;
             orcs_engine.vima_controller->addRequest (request);
             break;
         default:

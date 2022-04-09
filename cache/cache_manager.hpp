@@ -63,6 +63,7 @@ class cache_manager_t {
         void requestCache (memory_package_t* request);
         void finishRequest (memory_package_t* request, int32_t* cache_indexes);
         void install (memory_package_t* request);
+        void vima_check (uint64_t addr, uint32_t* ttc, int32_t* cache_indexes, uint32_t processor_id);
 
     public:
         // instruction and data caches dynamically allocated
