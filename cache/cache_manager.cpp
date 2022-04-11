@@ -502,19 +502,30 @@ void cache_manager_t::vima_check (uint64_t addr, uint32_t* ttc, int32_t* cache_i
     cache_t* cache;
     uint32_t cache_status = 0, cache_level = 0;
     uint32_t cache_latency;
-
-    for (int i = 0; i < 128; i++){
-        while (cache_level < DATA_LEVELS){
-            cache = &this->data_cache[cache_level][cache_indexes[cache_level]];
+    uint32_t* miss_count = (uint32_t*) malloc (DATA_LEVELS*sizeof(uint32_t));
+    uint32_t total_latency = 0;
+    for (uint32_t i = 0; i < DATA_LEVELS; i++) miss_count[i] = 0;
+    
+    while (cache_level < DATA_LEVELS){
+        cache = &this->data_cache[cache_level][cache_indexes[cache_level]];
+        for (int i = 0; i < 128; i++){
             cache_status = this->searchAddress(addr, cache, &cache_latency, ttc);
             cache->count--;
-            cache_level++;
             if (cache_status == HIT) {
                 cache->writeBack (cache->getLine (addr), processor_id, addr);
-            }
+            } else miss_count[cache_level]++;
         }
+        if (cache_level == DATA_LEVELS-1) total_latency += (cache->latency * miss_count[cache_level])/16;
+        else total_latency += cache->latency * miss_count[cache_level];
+        cache_level++;
         addr += 64;
     }
+
+    *ttc = total_latency;
+
+    //ORCS_PRINTF ("ttc = %u, total_latency = %u\n", *ttc, total_latency)
+
+    free (miss_count);
 }
 
 void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes){
@@ -599,8 +610,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
                 vima_requests += 128;
                 this->vima_check(request->vima_write, &ttc, cache_indexes, request->processor_id);
             }
-            ttc += vima_requests;
-
+            
             request->readyAt = orcs_engine.get_global_cycle() + ttc;
             orcs_engine.vima_controller->addRequest (request);
             break;

@@ -288,6 +288,7 @@ void vima_controller_t::process_instruction (uint32_t index){
             }
             break;
         case PACKAGE_STATE_VIMA:
+            if (vima_buffer[index]->readyAt > orcs_engine.get_global_cycle()) break;
             cache_status_t result_read1, result_read2;
             if (vima_buffer[index]->vima_read1 != 0 && vima_buffer[index]->vima_read1_vec == NULL) {
                 if (index != vima_buffer_start || store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] == 0) {
