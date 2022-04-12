@@ -15,7 +15,8 @@ class vima_controller_t {
         uint32_t lines;
         uint32_t sets;
         uint32_t* vima_op_latencies;
-        uint64_t current_cache_access_latency;
+        uint32_t mult_factor_int;
+        uint32_t mult_factor_fp;
         uint64_t last_heartbeat;
         vima_vector_t** cache;
         memory_package_t** vima_buffer;

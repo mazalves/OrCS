@@ -515,6 +515,8 @@ void cache_manager_t::vima_check (uint64_t addr, uint32_t* ttc, int32_t* cache_i
                 cache->writeBack (cache->getLine (addr), processor_id, addr);
             } else miss_count[cache_level]++;
         }
+
+        //considerando aqui uma LLC com 16 bancos
         if (cache_level == DATA_LEVELS-1) total_latency += (cache->latency * miss_count[cache_level])/16;
         else total_latency += cache->latency * miss_count[cache_level];
         cache_level++;
@@ -536,8 +538,8 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
         ORCS_PRINTF ("%lu Cache Manager process(): request %lu, %s %s, readyAt %lu \n", orcs_engine.get_global_cycle(), request->memory_address, get_enum_memory_operation_char (request->memory_operation), get_enum_package_state_char (request->status), request->readyAt)
     #endif
     cache_t* cache;
-    uint32_t ttc = 0;
-    uint32_t vima_requests = 128;
+    //uint32_t ttc = 0;
+    //uint32_t vima_requests = 128;
 
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
@@ -601,7 +603,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
                 ORCS_PRINTF (" sent to VIMA Controller.\n")
             #endif
 
-            this->vima_check(request->vima_read1, &ttc, cache_indexes, request->processor_id);
+            /*this->vima_check(request->vima_read1, &ttc, cache_indexes, request->processor_id);
             if (request->vima_read2 != 0) {
                 vima_requests += 128;
                 this->vima_check(request->vima_read2, &ttc, cache_indexes, request->processor_id);
@@ -611,7 +613,7 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
                 this->vima_check(request->vima_write, &ttc, cache_indexes, request->processor_id);
             }
             
-            request->readyAt = orcs_engine.get_global_cycle() + ttc;
+            request->readyAt = orcs_engine.get_global_cycle() + ttc;*/
             orcs_engine.vima_controller->addRequest (request);
             break;
         default:

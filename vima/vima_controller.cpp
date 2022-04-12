@@ -11,7 +11,6 @@ vima_controller_t::vima_controller_t(){
 
     this->cache = NULL;
     this->vima_op_latencies = NULL;
-    this->current_cache_access_latency = 0;
 
     this->index_bits_mask = 0;
     this->index_bits_shift = 0;
@@ -114,7 +113,6 @@ vima_vector_t* vima_controller_t::search_cache (uint64_t address, cache_status_t
     uint64_t lru_cycle = UINT64_MAX;
     int32_t lru_way = -1;
     int32_t index = 0;
-    this->current_cache_access_latency += this->get_VIMA_CACHE_LATENCY();
     if (VIMA_CACHE_ASSOCIATIVITY == 1){
         index = get_index (address);
         for (uint32_t i = 0; i < get_lines(); i++){
@@ -262,6 +260,7 @@ void vima_controller_t::commit (int index){
 void vima_controller_t::process_instruction (uint32_t index){
     switch (vima_buffer[index]->status){
         case PACKAGE_STATE_TRANSMIT:
+            if (vima_buffer[index]->readyAt > orcs_engine.get_global_cycle()) break;
             if (vima_buffer[index]->vima_read1_vec != NULL && vima_buffer[index]->vima_read1_vec->status != PACKAGE_STATE_READY) return;
             if (vima_buffer[index]->vima_read2_vec != NULL && vima_buffer[index]->vima_read2_vec->status != PACKAGE_STATE_READY) return;
             
@@ -340,6 +339,7 @@ void vima_controller_t::process_instruction (uint32_t index){
                 }
                 this->add_cache_accesses();
                 this->add_cache_reads();
+                vima_buffer[index]->updatePackageTransmit(this->get_VIMA_CACHE_LATENCY() * mult_factor_int);
             }
 
             if (vima_buffer[index]->vima_read2 != 0){
@@ -358,10 +358,11 @@ void vima_controller_t::process_instruction (uint32_t index){
                 }
                 this->add_cache_accesses();
                 this->add_cache_reads();
+                vima_buffer[index]->updatePackageTransmit(this->get_VIMA_CACHE_LATENCY() * mult_factor_int);
             }
 
             store_hash[hash(vima_buffer[index]->vima_write >> index_bits_shift) % 1013] = 1;
-            vima_buffer[index]->updatePackageTransmit(this->current_cache_access_latency);
+            //vima_buffer[index]->updatePackageTransmit(this->get_VIMA_CACHE_LATENCY() * (VIMA_FU_INT_PER_INST/VIMA_FU_INT_COUNT));
             #if VIMA_DEBUG
                 ORCS_PRINTF ("%lu VIMA instruction %lu VIMA -> TRANSMIT.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number)
             #endif
@@ -460,8 +461,8 @@ void vima_controller_t::allocate(){
 
     vima_op_latencies = new uint32_t[MEMORY_OPERATION_LAST]();
 
-    int mult_factor_int = 1;
-    int mult_factor_fp = 1;
+    mult_factor_int = 1;
+    mult_factor_fp = 1;
     if (VIMA_FU_INT_PER_INST > VIMA_FU_INT_COUNT) {
         mult_factor_int = VIMA_FU_INT_PER_INST/VIMA_FU_INT_COUNT;
         VIMA_FU_INT_COUNT = VIMA_FU_INT_PER_INST;
@@ -470,6 +471,8 @@ void vima_controller_t::allocate(){
         mult_factor_fp = VIMA_FU_FP_PER_INST/VIMA_FU_FP_COUNT;
         VIMA_FU_FP_COUNT = VIMA_FU_FP_PER_INST;
     }
+
+    ORCS_PRINTF ("mul_factor_int = %d, mult_factor_fp = %d\n", mult_factor_int, mult_factor_fp)
 
     if (VIMA_FU_INT_PER_INST > VIMA_FU_INT_COUNT || VIMA_FU_FP_PER_INST > VIMA_FU_FP_COUNT) ERROR_ASSERT_PRINTF (VIMA_FU_INT_PER_INST%VIMA_FU_INT_COUNT == 0.0 && VIMA_FU_FP_PER_INST%VIMA_FU_FP_COUNT == 0.0, "Wrong number of SIMD units")
     
