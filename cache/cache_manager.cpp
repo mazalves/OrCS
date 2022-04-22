@@ -157,7 +157,6 @@ void cache_manager_t::get_cache_info(cacheId_t cache_type, libconfig::Setting &c
 }
 
 cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs) {
-    this->get_cache_levels(cache_type, cfg_cache_defs);
 
     uint32_t CACHE_LEVELS, *CACHE_AMOUNT = NULL;
     if (cache_type == INSTRUCTION) {
@@ -187,6 +186,8 @@ cache_t **cache_manager_t::instantiate_cache(cacheId_t cache_type, libconfig::Se
         for (uint32_t j = 0; j < CACHE_AMOUNT[i]; j++) {
             cache[i][j].allocate(NUMBER_OF_PROCESSORS, INSTRUCTION_LEVELS, DATA_LEVELS);
             cache[i][j].is_inst_cache = (cache_type == INSTRUCTION);
+            printf("Creating %s cache of level %d, I_LEVELS: %u, D_LEVELS: %u\n", cache[i][j].is_inst_cache ? "INST" : "DATA",
+                j, INSTRUCTION_LEVELS, DATA_LEVELS);
         }
     }
     delete[] CACHE_AMOUNT;
@@ -209,6 +210,9 @@ void cache_manager_t::allocate(uint32_t NUMBER_OF_PROCESSORS) {
     set_WAIT_CYCLE(cfg_cache_defs["CONFIG"]["WAIT_CYCLE"]);
 
     set_MAX_PARALLEL_REQUESTS_CORE(cfg_root["MEMORY_CONTROLLER"]["MAX_PARALLEL_REQUESTS_CORE"]);
+
+    this->get_cache_levels(INSTRUCTION, cfg_cache_defs);
+    this->get_cache_levels(DATA, cfg_cache_defs);
 
     this->instruction_cache = this->instantiate_cache(INSTRUCTION, cfg_cache_defs);
     this->data_cache = this->instantiate_cache(DATA, cfg_cache_defs);
