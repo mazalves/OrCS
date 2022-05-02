@@ -189,6 +189,14 @@ void memory_controller_t::reset_statistics(){
         this->max_wait_operations[i] = 0;
     }
 }
+
+
+// ============================================================================
+// Returns OK if there is still a requisition to be finished
+bool memory_controller_t::isBusy(){
+    if (working.size() != 0) return true;
+    return false;
+}
 // ============================================================================
 void memory_controller_t::clock(){
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].clock();

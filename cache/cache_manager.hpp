@@ -77,6 +77,7 @@ class cache_manager_t {
         cache_manager_t();
         ~cache_manager_t();
         void allocate(uint32_t NUMBER_OF_PROCESSORS);
+        bool isBusy();
         void clock();//for prefetcher
         void statistics(uint32_t core_id);
         void reset_statistics(uint32_t core_id);

@@ -575,6 +575,11 @@ void cache_manager_t::process (memory_package_t* request, int32_t* cache_indexes
     }
 }
 
+bool cache_manager_t::isBusy() {
+    if (requests.size() != 0) return true;
+    return false;
+}
+
 void cache_manager_t::clock() {
     // printf("clock executing\n");
     if (requests.size() > 0) {

@@ -34,6 +34,10 @@ bool orcs_engine_t::get_simulation_alive(uint32_t NUMBER_OF_PROCESSORS) {
 	for(uint16_t cpu=0;cpu<NUMBER_OF_PROCESSORS;cpu++){
 		if (this->processor[cpu].isBusy()) return OK;
 	}
+	if (this->memory_controller->isBusy()) return OK;
+
+	if (this->cacheManager->isBusy()) return OK;
+
 	return FAIL;
 }
 

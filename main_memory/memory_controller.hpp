@@ -97,6 +97,8 @@ class memory_controller_t{
             return (address & this->not_column_bits_mask);
         }
 
+        bool isBusy();
+
         // ==========================================================================
         memory_controller_t();
         ~memory_controller_t();
