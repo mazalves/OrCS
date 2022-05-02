@@ -3,6 +3,7 @@ class vima_vector_t {
         memory_package_t* sub_requests;
         uint32_t no_sub_requests;
         uint32_t sub_ready;
+        uint32_t sub_sent;
         uint64_t address;
         uint64_t next_address;
         uint64_t sub_req_offset;

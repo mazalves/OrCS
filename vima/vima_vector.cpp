@@ -4,6 +4,7 @@
 vima_vector_t::vima_vector_t(){
     this->no_sub_requests = 0;
     this->sub_ready = 0;
+    this->sub_sent = 0;
     this->address = 0;
     this->next_address = 0;
     this->sub_req_offset = 0;
@@ -39,17 +40,23 @@ void vima_vector_t::fetch (bool random) {
         this->fetch_start = orcs_engine.get_global_cycle();
         this->fetch_count++;
         sub_ready = 0;
+        sub_sent = 0;
         for (uint32_t i = 0; i < get_no_sub_requests(); i++){
             sub_requests[i].memory_operation = MEMORY_OPERATION_READ;
             sub_requests[i].status = PACKAGE_STATE_UNTREATED;
             sub_requests[i].sent_to_ram = false;
             sub_requests[i].row_buffer = false;
-            sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+            sub_requests[i].memory_address = address + i*256;
             if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
             sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
-            orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
+            //orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
         } 
         issued = true;
+    }
+
+    if (sub_sent < no_sub_requests) {
+        //ORCS_PRINTF ("%lu LOAD : %u/%u sub-requests sent! addr = %lu\n", orcs_engine.get_global_cycle(), sub_sent+1, get_no_sub_requests(), sub_requests[sub_sent].memory_address);
+        orcs_engine.memory_controller->requestDRAM (&sub_requests[sub_sent++]);
     }
     
     while (sub_ready < no_sub_requests && 
@@ -87,17 +94,23 @@ void vima_vector_t::writeback (bool random) {
             this->writeback_start = orcs_engine.get_global_cycle();
             this->writeback_count++;
             sub_ready = 0;
+            sub_sent = 0;
             for (uint32_t i = 0; i < get_no_sub_requests(); i++){
                 sub_requests[i].memory_operation = MEMORY_OPERATION_WRITE;
                 sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                 sub_requests[i].sent_to_ram = false;
                 sub_requests[i].row_buffer = false;
-                sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+                sub_requests[i].memory_address = address + i*256;
                 if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
                 sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
-                orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
+                //orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
             } 
             issued = true;
+    }
+
+    if (sub_sent < no_sub_requests) {
+        //ORCS_PRINTF ("%lu STORE : %u/%u sub-requests sent! addr = %lu\n", orcs_engine.get_global_cycle(), sub_sent+1, get_no_sub_requests(), sub_requests[sub_sent].memory_address);
+        orcs_engine.memory_controller->requestDRAM (&sub_requests[sub_sent++]);
     }
         
     while (sub_ready < no_sub_requests && 
@@ -155,9 +168,9 @@ void vima_vector_t::allocate() {
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
-    set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
+    set_no_sub_requests (VIMA_VECTOR_SIZE/256);
 
-    this->sub_requests = new memory_package_t[this->no_sub_requests * this->no_sub_requests]();
+    this->sub_requests = new memory_package_t[this->no_sub_requests]();
 
     for (size_t i = 0; i < get_no_sub_requests(); i++) {
         sub_requests[i].is_vima = true;
