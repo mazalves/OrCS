@@ -52,7 +52,7 @@ void vima_vector_t::fetch (bool random) {
         } 
         issued = true;
     }
-    
+
     while (sub_ready < no_sub_requests && 
         sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {
@@ -101,7 +101,7 @@ void vima_vector_t::writeback (bool random) {
             } 
             issued = true;
     }
-        
+
     while (sub_ready < no_sub_requests && 
         sub_requests[sub_ready].status == PACKAGE_STATE_WAIT && 
         sub_requests[sub_ready].readyAt <= orcs_engine.get_global_cycle()) {

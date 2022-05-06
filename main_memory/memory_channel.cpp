@@ -403,8 +403,7 @@ void memory_channel_t::clock(){
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->updatePackageDRAMReady (this->TIMING_CAS + this->latency_burst);
-                //if (DEBUG) 
-                ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 bank_read_requests[bank].shrink_to_fit();
                 break;
@@ -413,8 +412,7 @@ void memory_channel_t::clock(){
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 current_entry->updatePackageDRAMReady (this->TIMING_CWD + this->latency_burst);
-                //if (DEBUG) 
-                ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
+                if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 bank_write_requests[bank].shrink_to_fit();
                 break;
