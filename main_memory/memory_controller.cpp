@@ -76,6 +76,7 @@ void memory_controller_t::allocate(){
     set_LINE_SIZE (cfg_memory_ctrl["LINE_SIZE"]);
     set_WAIT_CYCLE (cfg_memory_ctrl["WAIT_CYCLE"]);
     set_CORE_TO_BUS_CLOCK_RATIO (cfg_memory_ctrl["CORE_TO_BUS_CLOCK_RATIO"]);
+    set_MAX_ISSUES_PER_CYCLE (cfg_memory_ctrl["MAX_ISSUES_PER_CYCLE"]);
 
     if ((int32_t)cfg_memory_ctrl["LATENCY_BURST_REDUCTION_FACTOR"] < 0) {
         set_latency_burst (ceil ((LINE_SIZE/BURST_WIDTH) * this->CORE_TO_BUS_CLOCK_RATIO));
@@ -191,13 +192,19 @@ void memory_controller_t::reset_statistics(){
 }
 // ============================================================================
 void memory_controller_t::clock(){
+    this->cycle_sent_count = 0;
+    this->cycle_max = false;
+
     for (i = 0; i < this->CHANNEL; i++) this->channels[i].clock();
 
     if (working.size() == 0) return;
 
     for (i = 0; i < working.size(); i++){
-        if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY){
+        if (working[i]->status != PACKAGE_STATE_DRAM_FETCH && working[i]->status != PACKAGE_STATE_DRAM_READY && 
+            !this->cycle_max){
             if (this->channels[get_channel (working[i]->memory_address)].addRequest (working[i])) {
+                //ORCS_PRINTF ("%lu request sent! Memory address = %lu, channel %lu, sent = %u.\n", orcs_engine.get_global_cycle(), working[i]->memory_address, get_channel (working[i]->memory_address), this->cycle_sent_count)
+                this->cycle_sent_count++;
                 working[i]->ram_cycle = orcs_engine.get_global_cycle();
                 working[i]->updatePackageDRAMFetch (0);
             }
@@ -214,6 +221,8 @@ void memory_controller_t::clock(){
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
             working.shrink_to_fit();
         }
+
+        if (this->cycle_sent_count >= this->get_MAX_ISSUES_PER_CYCLE()) this->cycle_max = true;
     }
 }
 // ============================================================================
@@ -264,6 +273,12 @@ void memory_controller_t::set_masks(){
     for (i = row_bits_shift; i < utils_t::get_power_of_two((uint64_t)INT64_MAX+1); i++) {
         this->row_bits_mask |= 1 << i;
     }
+
+    /// IF HMC
+    this->cycle_sent_max = this->get_CHANNEL() * this->get_BANK();
+
+    /// IF HBM
+    //this->cycle_sent_max = 1;
 }
 //=====================================================================
 uint64_t memory_controller_t::requestDRAM (memory_package_t* request){

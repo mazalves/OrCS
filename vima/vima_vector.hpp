@@ -9,9 +9,11 @@ class vima_vector_t {
         uint64_t set;
         uint64_t column;
         bool issued = false;
+        bool perfect = true;
 
         uint32_t LINE_SIZE;
         uint32_t VIMA_VECTOR_SIZE;
+        uint32_t ROW_BUFFER_SIZE;
         
     public:
         memory_package_t* assoc;
@@ -49,5 +51,6 @@ class vima_vector_t {
 
         INSTANTIATE_GET_SET_ADD (uint32_t,LINE_SIZE)
         INSTANTIATE_GET_SET_ADD (uint32_t,VIMA_VECTOR_SIZE)
+        INSTANTIATE_GET_SET_ADD (uint32_t,ROW_BUFFER_SIZE)
        
 };

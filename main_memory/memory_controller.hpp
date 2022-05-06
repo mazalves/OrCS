@@ -15,6 +15,10 @@ class memory_controller_t{
         uint64_t row_buffer_miss; //Counter row buffer misses
         uint64_t row_buffer_hit; //Counter row buffer hits
 
+        bool cycle_max;
+        uint32_t cycle_sent_count;
+        uint32_t cycle_sent_max;
+
         // =================================================
         // attr DRAM
         // =================================================
@@ -52,6 +56,7 @@ class memory_controller_t{
         uint32_t LINE_SIZE;
         
         float CORE_TO_BUS_CLOCK_RATIO;
+        uint32_t MAX_ISSUES_PER_CYCLE;
 
         uint32_t TIMING_AL;     // Added Latency for column accesses
         uint32_t TIMING_CAS;    // Column Access Strobe (CL) latency
@@ -125,6 +130,7 @@ class memory_controller_t{
         INSTANTIATE_GET_SET_ADD(uint32_t,WAIT_CYCLE)
         
         INSTANTIATE_GET_SET_ADD(float,CORE_TO_BUS_CLOCK_RATIO)
+        INSTANTIATE_GET_SET_ADD(uint32_t,MAX_ISSUES_PER_CYCLE)
 
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_AL)     // Added Latency for column accesses
         INSTANTIATE_GET_SET_ADD(uint32_t, TIMING_CAS)    // Column Access Strobe (CL) latency

@@ -44,7 +44,8 @@ void vima_vector_t::fetch (bool random) {
             sub_requests[i].status = PACKAGE_STATE_UNTREATED;
             sub_requests[i].sent_to_ram = false;
             sub_requests[i].row_buffer = false;
-            sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+            if (perfect) sub_requests[i].memory_address = address + i*this->get_ROW_BUFFER_SIZE();
+            else sub_requests[i].memory_address = address + i * this->get_LINE_SIZE();
             if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
             sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
             orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
@@ -92,7 +93,8 @@ void vima_vector_t::writeback (bool random) {
                 sub_requests[i].status = PACKAGE_STATE_UNTREATED;
                 sub_requests[i].sent_to_ram = false;
                 sub_requests[i].row_buffer = false;
-                sub_requests[i].memory_address = address + i*this->get_LINE_SIZE();
+                if (perfect) sub_requests[i].memory_address = address + i * this->get_ROW_BUFFER_SIZE();
+                else sub_requests[i].memory_address = address + i * this->get_LINE_SIZE();
                 if (random) sub_requests[i].memory_address += (rand() % UINT32_MAX);
                 sub_requests[i].born_cycle = orcs_engine.get_global_cycle();
                 orcs_engine.memory_controller->requestDRAM (&sub_requests[i]);
@@ -153,11 +155,14 @@ void vima_vector_t::allocate() {
     libconfig::Setting &cfg_root = orcs_engine.configuration->getConfig();
     libconfig::Setting &cfg_processor = cfg_root["VIMA_CONTROLLER"];
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
+    libconfig::Setting &cfg_memory_ctrl = cfg_root["MEMORY_CONTROLLER"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
-    set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
+    set_ROW_BUFFER_SIZE (cfg_memory_ctrl["BANK_ROW_BUFFER_SIZE"]);
+    if (perfect) set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_ROW_BUFFER_SIZE());
+    else set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
-    this->sub_requests = new memory_package_t[this->no_sub_requests * this->no_sub_requests]();
+    this->sub_requests = new memory_package_t[this->no_sub_requests]();
 
     for (size_t i = 0; i < get_no_sub_requests(); i++) {
         sub_requests[i].is_vima = true;
