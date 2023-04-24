@@ -2584,11 +2584,12 @@ void processor_t::execute()
 
 				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Read with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
 
-				this->memory_read_executed++;
+				
 
 				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
 					uint32_t pos = (rob_line->pos_mob + a) % rob_line->mob_limit;
 					rob_line->mob_base[pos].uop_executed = true;
+					this->memory_read_executed++;
 				}
 
 				rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
@@ -2602,11 +2603,12 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_MEM_STORE:
 			{
 				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Write with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
-				this->memory_write_executed++;
+				
 
 				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
 					uint32_t pos = (rob_line->pos_mob + a) % rob_line->mob_limit;
 					rob_line->mob_base[pos].uop_executed = true;
+					this->memory_write_executed++;
 				}
 
 				rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
