@@ -54,13 +54,13 @@ unsigned int hex_to_dec(char x) {
 }
 
 unsigned int ascii_to_hex(const char *src,
-                          xed_uint8_t *dst,
+                          xed_uint32_t *dst,
                           unsigned int max_bytes) {
     const unsigned int len = strlen(src);
     memset(dst, 0, max_bytes);
 
     for (unsigned int p = 0, i = 0; i < len / 2; ++i, p += 2)
-        dst[i] = (xed_uint8_t) (hex_to_dec(src[p]) * 16 + hex_to_dec(src[p+1]));
+        dst[i] = (xed_uint32_t) (hex_to_dec(src[p]) * 16 + hex_to_dec(src[p+1]));
     return len/2;
 }
 
@@ -656,6 +656,37 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_SUBPS:          // Sub Packed Single-Precision FP
         case XED_ICLASS_SUBSS:          // Sub Scalar Single-Precision FP
         case XED_ICLASS_SUBSD:          // Sub Low Double-Precision FP
+        case XED_ICLASS_VPAND:
+        case XED_ICLASS_VPANDD:
+        case XED_ICLASS_VPANDN:
+        case XED_ICLASS_VPANDND:
+        case XED_ICLASS_VPANDNQ:
+        case XED_ICLASS_VPANDQ:
+        case XED_ICLASS_VPADDB:
+        case XED_ICLASS_VPADDD:
+        case XED_ICLASS_VPADDQ:
+        case XED_ICLASS_VPADDSB:
+        case XED_ICLASS_VPADDSW:
+        case XED_ICLASS_VPADDUSB:
+        case XED_ICLASS_VPADDUSW:
+        case XED_ICLASS_VPADDW:
+        case XED_ICLASS_VPSLLD:
+        case XED_ICLASS_VPSLLDQ:
+        case XED_ICLASS_VPSLLQ:
+        case XED_ICLASS_VPSLLVD:
+        case XED_ICLASS_VPSLLVQ:
+        case XED_ICLASS_VPSLLVW:
+        case XED_ICLASS_VPSLLW:
+        case XED_ICLASS_VPTEST:
+        case XED_ICLASS_VPTESTMB:
+        case XED_ICLASS_VPTESTMD:
+        case XED_ICLASS_VPTESTMQ:
+        case XED_ICLASS_VPTESTMW:
+        case XED_ICLASS_VPTESTNMB:
+        case XED_ICLASS_VPTESTNMD:
+        case XED_ICLASS_VPTESTNMQ:
+        case XED_ICLASS_VPTESTNMW:
+        case XED_ICLASS_KORW:
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_ALU;
             TRACE_GENERATOR_DEBUG_PRINTF("\t FP ALU:%s\n",
                                         INS_Disassemble(ins).c_str());
@@ -682,6 +713,10 @@ opcode_package_t x86_to_static(const INS& ins) {
         case XED_ICLASS_MULPS:          // Multiply Packed Single-FP Values
 
         case XED_ICLASS_PMULUDQ:        // Multiply Packed Unsigned DW Integers
+
+        case XED_ICLASS_VPMULLD:
+        case XED_ICLASS_VPMULLQ:
+        case XED_ICLASS_VPMULLW:
             NewInstruction.opcode_operation = INSTRUCTION_OPERATION_FP_MUL;
             TRACE_GENERATOR_DEBUG_PRINTF("\t FP MUL:%s\n",
                                         INS_Disassemble(ins).c_str());

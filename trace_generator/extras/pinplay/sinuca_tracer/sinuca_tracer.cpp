@@ -651,6 +651,7 @@ VOID ImageLoad(IMG img, VOID *) {
         // The IPOINT_AFTER may be executed before the IPOINT_BEFORE.
         for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
             found_GOMP = false;
+            
             rtn_name = RTN_Name(rtn);
 
             // Syntetic Traces (HMC, x86, VIMA, MIPS)
@@ -772,198 +773,234 @@ VOID ImageLoad(IMG img, VOID *) {
                     RTN_Open(rtn);
 
 
-                    std::stringstream sync_str;
-                    sync_str << "#" << rtn_name.c_str() << "\n"         \
-                            << "$" << SYNC_BARRIER      << "\n";
-                    /*
-                    char *sync_str = new char[TRACE_LINE_SIZE];
-                    sprintf(sync_str, "#%s\n", rtn_name.c_str());
-                    sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
-                    */
-                    std::string tempStr = sync_str.str();
                     RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(DynamicOMP_char),
-                                    IARG_PTR, tempStr.c_str(),
-                                    IARG_THREAD_ID,
-                                    IARG_BOOL, true,
-                                    IARG_END);
-                    /// Parallel End
-                    RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(handleParallelControlEvent),
-                                    IARG_BOOL, false,
-                                    IARG_THREAD_ID,
-                                    IARG_END);
-
-                    RTN_Close(rtn);
-                    found_GOMP = true;
-                    break;
-                }
-            }
-            /// Barrier only on Master, insert on all traces (PARALLEL_START)
-            for (uint32_t i = 0;
-                    i < OMP_barrier_master_start.size() && !found_GOMP; i++) {
-                /// FOUND a Parallel START
-                if (strcmp(rtn_name.c_str(),
-                            OMP_barrier_master_start[i]) == 0) {
-                    RTN_Open(rtn);
-
-                    std::stringstream sync_str;
-                    sync_str << "#" << rtn_name.c_str() << "\n"         \
-                            << "$" << SYNC_BARRIER      << "\n";
-                    /*
-                    char *sync_str = new char[TRACE_LINE_SIZE];
-                    sprintf(sync_str, "#%s\n", rtn_name.c_str());
-                    sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
-                    */
-                    /// Parallel Start
-                    RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(handleParallelControlEvent),
+                                    AFUNPTR(handleOrCSTracingEvent),
                                     IARG_BOOL, true,
                                     IARG_THREAD_ID,
                                     IARG_END);
-
-                    std::string tempStr = sync_str.str();
-                    RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(DynamicOMP_char),
-                                    IARG_PTR, tempStr.c_str(),
-                                    IARG_THREAD_ID,
-                                    IARG_BOOL, true,
-                                    IARG_END);
-
-                    RTN_Close(rtn);
-                    found_GOMP = true;
+                    RTN_Close (rtn);
                     break;
                 }
             }
 
-            /// Barrier on all the threads
-            for (uint32_t i = 0;
-                    i < OMP_barrier_simple.size() && !found_GOMP; i++) {
-                if (strcmp(rtn_name.c_str(), OMP_barrier_simple[i]) == 0) {
-                    RTN_Open(rtn);
+            for (uint32_t i = 0; i < ORCS_tracing_control_stop.size(); i++){
+                if (strcmp(rtn_name.c_str(), ORCS_tracing_control_stop[i]) == 0){
+                    RTN_Open (rtn);
 
-                    std::stringstream sync_str;
-                    sync_str << "#" << rtn_name.c_str() << "\n"         \
-                            << "$" << SYNC_BARRIER      << "\n";
-                    /*
-                    char *sync_str = new char[TRACE_LINE_SIZE];
-                    sprintf(sync_str, "#%s\n", rtn_name.c_str());
-                    sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
-                    */
-                    std::string tempStr = sync_str.str();
                     RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(DynamicOMP_char),
-                                    IARG_PTR, tempStr.c_str(),
-                                    IARG_THREAD_ID,
+                                    AFUNPTR(handleOrCSTracingEvent),
                                     IARG_BOOL, false,
-                                    IARG_END);
-
-                    RTN_Close(rtn);
-                    found_GOMP = true;
-                    break;
-                }
-            }
-
-            /// Enter in a critical section
-            for (uint32_t i = 0;
-                    i < OMP_critical_start.size() && !found_GOMP; i++) {
-                if (strcmp(rtn_name.c_str(), OMP_critical_start[i]) == 0) {
-                    RTN_Open(rtn);
-
-                    std::stringstream sync_str;
-                    sync_str << "#" << rtn_name.c_str()     << "\n"         \
-                            << "$" << SYNC_CRITICAL_START   << "\n";
-                    /*
-                    char *sync_str = new char[TRACE_LINE_SIZE];
-                    sprintf(sync_str, "#%s\n", rtn_name.c_str());
-                    sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_START);
-                    */
-                    std::string tempStr = sync_str.str();
-                    RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(DynamicOMP_char),
-                                    IARG_PTR, tempStr.c_str(),
                                     IARG_THREAD_ID,
-                                    IARG_BOOL, false,
                                     IARG_END);
-
-                    RTN_Close(rtn);
-                    found_GOMP = true;
+                    RTN_Close (rtn);
                     break;
                 }
             }
 
-            /// Exit the critical section
-            for (uint32_t i = 0;
-                    i < OMP_critical_end.size() && !found_GOMP; i++) {
-                if (strcmp(rtn_name.c_str(), OMP_critical_end[i]) == 0) {
-                    RTN_Open(rtn);
-
-                    std::stringstream sync_str;
-                    sync_str << "#" << rtn_name.c_str()     << "\n"         \
-                            << "$" << SYNC_CRITICAL_END     << "\n";
-                    /*
-                    char *sync_str = new char[TRACE_LINE_SIZE];
-                    sprintf(sync_str, "#%s\n", rtn_name.c_str());
-                    sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_END);
-                    */
-                    std::string tempStr = sync_str.str();
-                    RTN_InsertCall(rtn, IPOINT_BEFORE,
-                                    AFUNPTR(DynamicOMP_char),
-                                    IARG_PTR, tempStr.c_str(),
-                                    IARG_THREAD_ID,
-                                    IARG_BOOL, false,
-                                    IARG_END);
-
-                    RTN_Close(rtn);
-                    found_GOMP = true;
-                    break;
-                }
-            }
-
-            /// Ignore the primitive OpenMP
-            for (uint32_t i = 0; i < OMP_ignore.size() && !found_GOMP; i++) {
-                if (strcmp(rtn_name.c_str(), OMP_ignore[i]) == 0) {
-                    #ifdef TRACE_GENERATOR_DEBUG
+            if (rtn_name.compare(0, 4, "GOMP") == 0) {
+                /// Barrier only on Master, insert on all traces (PARALLEL_START)
+                for (uint32_t i = 0;
+                        i < OMP_barrier_master_start.size() && !found_GOMP; i++) {
+                    /// FOUND a Parallel START
+                    if (strcmp(rtn_name.c_str(),
+                                OMP_barrier_master_start[i]) == 0) {
                         RTN_Open(rtn);
 
+                        std::stringstream sync_str;
+                        sync_str << "#" << rtn_name.c_str() << "\n"         \
+                                << "$" << SYNC_BARRIER      << "\n";
+                        /*
                         char *sync_str = new char[TRACE_LINE_SIZE];
-                        snprintf(sync_str,
-                                TRACE_LINE_SIZE,
-                                "#Ignoring GOMP call:\"%s\"\n",
-                                rtn_name.c_str());
+                        sprintf(sync_str, "#%s\n", rtn_name.c_str());
+                        sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
+                        */
+                        /// Parallel Start
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(handleParallelControlEvent),
+                                        IARG_BOOL, true,
+                                        IARG_THREAD_ID,
+                                        IARG_END);
 
+                        std::string tempStr = sync_str.str();
                         RTN_InsertCall(rtn, IPOINT_BEFORE,
                                         AFUNPTR(DynamicOMP_char),
-                                        IARG_PTR, sync_str,
+                                        IARG_PTR, tempStr.c_str(),
+                                        IARG_THREAD_ID,
+                                        IARG_BOOL, true,
+                                        IARG_END);
+
+                        RTN_Close(rtn);
+                        found_GOMP = true;
+                        break;
+                    }
+                }
+
+                /// Barrier on all the threads
+                for (uint32_t i = 0;
+                        i < OMP_barrier_simple.size() && !found_GOMP; i++) {
+                    if (strcmp(rtn_name.c_str(), OMP_barrier_simple[i]) == 0) {
+                        RTN_Open(rtn);
+
+                        std::stringstream sync_str;
+                        sync_str << "#" << rtn_name.c_str() << "\n"         \
+                                << "$" << SYNC_BARRIER      << "\n";
+                        /*
+                        char *sync_str = new char[TRACE_LINE_SIZE];
+                        sprintf(sync_str, "#%s\n", rtn_name.c_str());
+                        sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
+                        */
+                        std::string tempStr = sync_str.str();
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(DynamicOMP_char),
+                                        IARG_PTR, tempStr.c_str(),
                                         IARG_THREAD_ID,
                                         IARG_BOOL, false,
                                         IARG_END);
 
                         RTN_Close(rtn);
-                    #endif
-                    found_GOMP = true;
-                    break;
+                        found_GOMP = true;
+                        break;
+                    }
+                }
+
+                /// Enter in a critical section
+                for (uint32_t i = 0;
+                        i < OMP_critical_start.size() && !found_GOMP; i++) {
+                    if (strcmp(rtn_name.c_str(), OMP_critical_start[i]) == 0) {
+                        RTN_Open(rtn);
+
+                        std::stringstream sync_str;
+                        sync_str << "#" << rtn_name.c_str()     << "\n"         \
+                                << "$" << SYNC_CRITICAL_START   << "\n";
+                        /*
+                        char *sync_str = new char[TRACE_LINE_SIZE];
+                        sprintf(sync_str, "#%s\n", rtn_name.c_str());
+                        sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_START);
+                        */
+                        std::string tempStr = sync_str.str();
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(DynamicOMP_char),
+                                        IARG_PTR, tempStr.c_str(),
+                                        IARG_THREAD_ID,
+                                        IARG_BOOL, false,
+                                        IARG_END);
+
+                        RTN_Close(rtn);
+                        found_GOMP = true;
+                        break;
+                    }
+                }
+
+                /// Exit the critical section
+                for (uint32_t i = 0;
+                        i < OMP_critical_end.size() && !found_GOMP; i++) {
+                    if (strcmp(rtn_name.c_str(), OMP_critical_end[i]) == 0) {
+                        RTN_Open(rtn);
+
+                        std::stringstream sync_str;
+                        sync_str << "#" << rtn_name.c_str()     << "\n"         \
+                                << "$" << SYNC_CRITICAL_END     << "\n";
+                        /*
+                        char *sync_str = new char[TRACE_LINE_SIZE];
+                        sprintf(sync_str, "#%s\n", rtn_name.c_str());
+                        sprintf(sync_str, "%s$%u\n", sync_str, SYNC_CRITICAL_END);
+                        */
+                        std::string tempStr = sync_str.str();
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(DynamicOMP_char),
+                                        IARG_PTR, tempStr.c_str(),
+                                        IARG_THREAD_ID,
+                                        IARG_BOOL, false,
+                                        IARG_END);
+
+                        RTN_Close(rtn);
+                        found_GOMP = true;
+                        break;
+                    }
+                }
+
+                /// Ignore the primitive OpenMP
+                for (uint32_t i = 0; i < OMP_ignore.size() && !found_GOMP; i++) {
+                    if (strcmp(rtn_name.c_str(), OMP_ignore[i]) == 0) {
+                        #ifdef TRACE_GENERATOR_DEBUG
+                            RTN_Open(rtn);
+
+                            char *sync_str = new char[TRACE_LINE_SIZE];
+                            snprintf(sync_str,
+                                    TRACE_LINE_SIZE,
+                                    "#Ignoring GOMP call:\"%s\"\n",
+                                    rtn_name.c_str());
+
+                            RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                            AFUNPTR(DynamicOMP_char),
+                                            IARG_PTR, sync_str,
+                                            IARG_THREAD_ID,
+                                            IARG_BOOL, false,
+                                            IARG_END);
+
+                            RTN_Close(rtn);
+                        #endif
+                        found_GOMP = true;
+                        break;
+                    }
+                }
+
+                if (!found_GOMP) {
+                    /// If a different OpenMP call is found on the binary
+                    RTN_Open(rtn);
+
+                    char *sync_str = new char[TRACE_LINE_SIZE];
+                    snprintf(sync_str,
+                            TRACE_LINE_SIZE,
+                            "#Found different GOMP call:\"%s\"\n",
+                            rtn_name.c_str());
+
+                    RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char),
+                                    IARG_PTR, sync_str,
+                                    IARG_THREAD_ID,
+                                    IARG_BOOL, false,
+                                    IARG_END);
+
+                    RTN_Close(rtn);
+                }
+
+                // ~ printf("%s\n", rtn_name.c_str());s
+
+                /// Barrier only on Master, insert on all the traces (PARALLEL_END)
+                for (uint32_t i = 0; i < OMP_barrier_master_end.size() && !found_GOMP; i++) {
+                    /// FOUND a Parallel END
+                    if (strcmp(rtn_name.c_str(), OMP_barrier_master_end[i]) == 0) {
+                        RTN_Open(rtn);
+
+                        std::stringstream sync_str;
+                        sync_str << "#" << rtn_name.c_str() << "\n"         \
+                                << "$" << SYNC_BARRIER      << "\n";
+                        /*
+                        char *sync_str = new char[TRACE_LINE_SIZE];
+                        sprintf(sync_str, "#%s\n", rtn_name.c_str());
+                        sprintf(sync_str, "%s$%u\n", sync_str, SYNC_BARRIER);
+                        */
+                        std::string tempStr = sync_str.str();
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(DynamicOMP_char),
+                                        IARG_PTR, tempStr.c_str(),
+                                        IARG_THREAD_ID,
+                                        IARG_BOOL, true,
+                                        IARG_END);
+                        /// Parallel End
+                        RTN_InsertCall(rtn, IPOINT_BEFORE,
+                                        AFUNPTR(handleParallelControlEvent),
+                                        IARG_BOOL, false,
+                                        IARG_THREAD_ID,
+                                        IARG_END);
+
+                        RTN_Close(rtn);
+                        found_GOMP = true;
+                        break;
+                    }
                 }
             }
-
-            if (!found_GOMP) {
-                /// If a different OpenMP call is found on the binary
-                RTN_Open(rtn);
-
-                char *sync_str = new char[TRACE_LINE_SIZE];
-                snprintf(sync_str,
-                        TRACE_LINE_SIZE,
-                        "#Found different GOMP call:\"%s\"\n",
-                        rtn_name.c_str());
-
-                RTN_InsertCall(rtn, IPOINT_BEFORE, AFUNPTR(DynamicOMP_char),
-                                IARG_PTR, sync_str,
-                                IARG_THREAD_ID,
-                                IARG_BOOL, false,
-                                IARG_END);
-
-                RTN_Close(rtn);
-            }
+            
         }
     }
 }

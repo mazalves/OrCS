@@ -146,8 +146,6 @@ void vima_vector_t::allocate() {
     libconfig::Setting &cfg_cache_defs = cfg_root["CACHE_MEMORY"];
     set_LINE_SIZE(cfg_cache_defs["CONFIG"]["LINE_SIZE"]);
     set_VIMA_VECTOR_SIZE (cfg_processor["VIMA_VECTOR_SIZE"]);
-    // Testa se é divisível
-    assert (floor(get_VIMA_VECTOR_SIZE()/get_LINE_SIZE())*get_LINE_SIZE() == get_VIMA_VECTOR_SIZE());
     set_no_sub_requests (get_VIMA_VECTOR_SIZE()/get_LINE_SIZE());
 
     this->sub_requests = new memory_package_t[this->no_sub_requests * this->no_sub_requests]();

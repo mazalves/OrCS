@@ -162,17 +162,4 @@ class utils_t {
         static void largeSeparator(FILE *file);
         static void largestSeparator(FILE *file);
         static uint64_t hash_function(hash_function_t type, uint64_t input1, uint64_t input2, uint64_t bit_size);
-
-        static inline bool intersect(uint64_t addr_a, uint32_t size_a, uint64_t addr_b, uint32_t size_b) {
-            uint64_t menor = (addr_a > addr_b) ? addr_b : addr_a;
-            uint64_t maior = (addr_a > addr_b) ? addr_a : addr_b;
-            uint32_t tam_menor = (addr_a > addr_b) ? size_b : size_a;
-
-            // Maior precisa começar antes do menor terminar
-            if (maior < menor + tam_menor) {
-                return true;
-            }
-            return false;
-        }
-
 };

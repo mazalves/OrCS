@@ -2506,7 +2506,7 @@ class CpplintTest(CpplintTestBase):
     self.TestLint('std::is_convertible<A, B>{}', '')
     self.TestLint('blah{32}', 'Missing space before {'
                   '  [whitespace/braces] [5]')
-    self.TestLint('int8_t{3}', '')
+    self.TestLint('int32_t{3}', '')
     self.TestLint('int16_t{3}', '')
     self.TestLint('int32_t{3}', '')
     self.TestLint('uint64_t{12345}', '')

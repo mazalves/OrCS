@@ -168,6 +168,7 @@ bool memory_channel_t::addRequest (memory_package_t* request){
     #endif
     bool result = false;
     uint64_t bank = this->get_bank(request->memory_address);
+
     switch (request->memory_operation){
         case MEMORY_OPERATION_READ:
         case MEMORY_OPERATION_INST:
@@ -244,10 +245,10 @@ memory_package_t* memory_channel_t::findNextRead (uint32_t bank){
             for (i = 0; i < bank_read_requests[bank].size(); i++){
                 // Não é parte vetorial e deu hit
                 if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->memory_address) &&
-                    bank_read_requests[bank][i]->is_vectorial_part == -1){
+                    bank_read_requests[bank][i]->unique_conversion_id == 0){
                     return bank_read_requests[bank][i];
                 // Não é parte vetorial
-                } else if(bank_read_requests[bank][i]->is_vectorial_part == -1) {
+                } else if(bank_read_requests[bank][i]->unique_conversion_id == 0) {
                     if (selected_not_vectorial == -1) {selected_not_vectorial = i;}
                 // Deu hit
                 } else if (bank_last_row[bank] == get_row (bank_read_requests[bank][i]->memory_address)) {
@@ -286,10 +287,10 @@ memory_package_t* memory_channel_t::findNextWrite (uint32_t bank){
             for (i = 0; i < bank_write_requests[bank].size(); i++){
                 // Não é parte vetorial e deu hit
                 if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->memory_address) &&
-                    bank_write_requests[bank][i]->is_vectorial_part == -1){
+                    bank_write_requests[bank][i]->unique_conversion_id == 0){
                     return bank_write_requests[bank][i];
                 // Não é parte vetorial
-                } else if(bank_write_requests[bank][i]->is_vectorial_part == -1) {
+                } else if(bank_write_requests[bank][i]->unique_conversion_id == 0) {
                     if (selected_not_vectorial == -1) {selected_not_vectorial = i;}
                 // Deu hit
                 } else if (bank_last_row[bank] == get_row (bank_write_requests[bank][i]->memory_address)) {
@@ -376,6 +377,7 @@ void memory_channel_t::clock(){
         }
     }
 
+    // Faz uma busca round-robin pelo primeiro com dados prontos
     for (uint32_t i = 0; i < this->BANK; i++){
         this->bank_last_transmission++;
         if (this->bank_last_transmission >= this->BANK) this->bank_last_transmission = 0;
@@ -385,6 +387,7 @@ void memory_channel_t::clock(){
     }
     bank = this->bank_last_transmission;
 
+    // Se algum pronto tiver sido encontrado, tenta obter o resultado para a CPU
     if (bank_is_ready[bank]){
         current_entry = this->findNext (bank);
         
@@ -401,7 +404,9 @@ void memory_channel_t::clock(){
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_READ;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_READ] = orcs_engine.get_global_cycle() + this->latency_burst;
+                
                 current_entry->updatePackageDRAMReady (this->TIMING_CAS + this->latency_burst);
+                
                 if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_read_requests[bank].erase(std::remove(bank_read_requests[bank].begin(), bank_read_requests[bank].end(), current_entry), bank_read_requests[bank].end());
                 bank_read_requests[bank].shrink_to_fit();
@@ -410,7 +415,9 @@ void memory_channel_t::clock(){
                 this->bank_last_command[bank] = MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE;
                 this->bank_last_command_cycle[bank][MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
                 this->channel_last_command_cycle[MEMORY_CONTROLLER_COMMAND_COLUMN_WRITE] = orcs_engine.get_global_cycle() + this->latency_burst;
+                
                 current_entry->updatePackageDRAMReady (this->TIMING_CWD + this->latency_burst);
+                
                 if (DEBUG) ORCS_PRINTF ("%lu Memory Channel %lu requestDRAM(): bank %lu, finished memory request %lu from uop %lu, %s.\n", orcs_engine.get_global_cycle(), get_channel (current_entry->memory_address), get_bank (current_entry->memory_address), current_entry->memory_address, current_entry->uop_number, get_enum_memory_operation_char (current_entry->memory_operation))
                 bank_write_requests[bank].erase(std::remove(bank_write_requests[bank].begin(), bank_write_requests[bank].end(), current_entry), bank_write_requests[bank].end());
                 bank_write_requests[bank].shrink_to_fit();

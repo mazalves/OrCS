@@ -15,7 +15,8 @@ class memory_order_buffer_line_t : public memory_request_client_t {
         uint64_t vima_read1;
         uint64_t vima_read2;
         uint64_t vima_write;
-         
+        uint64_t unique_conversion_id;
+
         reorder_buffer_line_t* rob_ptr;                 /// rob pointer
         /// Memory Dependencies Control
         bool uop_executed; //*
@@ -27,8 +28,6 @@ class memory_order_buffer_line_t : public memory_request_client_t {
         //==========================================================================================
         uint32_t processor_id;                              // id of processor make request 
         uint64_t cycle_sent_to_DRAM;
-        //==========================================================================================
-        table_of_vectorizations_entry_t *tv_pointer;
         //==========================================================================================
         //Control variables
         bool processed; 

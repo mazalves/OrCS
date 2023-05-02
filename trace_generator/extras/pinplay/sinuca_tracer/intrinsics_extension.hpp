@@ -1,35 +1,4 @@
-//==============================================================================
-//
-// Copyright (C) 2010, 2011, 2012
-// Marco Antonio Zanata Alves
-//
-// GPPD - Parallel and Distributed Processing Group
-// Universidade Federal do Rio Grande do Sul
-//
-// This program is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-//
-// This program is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-//
-//==============================================================================
 // INTRINSICS EXTENSION HEADER
-///###########################################################################
-///  This file defines functions for intrinsics extensions.
-///###########################################################################
-
-#ifndef TRACE_GENERATOR_EXTRAS_PINPLAY_SINUCA_TRACER_INTRINSICS_EXTENSION_H_
-    #define TRACE_GENERATOR_EXTRAS_PINPLAY_SINUCA_TRACER_INTRINSICS_EXTENSION_H_
-#endif  //  TRACE_GENERATOR_EXTRAS_PINPLAY_SINUCA_TRACER_INTRINSICS_EXTENSION_H_
-
 #include <zlib.h>
 #include <vector>
 #include <string>
@@ -73,11 +42,11 @@ class thread_data_t {
         UINT8 pad[PADSIZE];
 };
 
-PIN_LOCK lock;              /// Lock for methods shared among multiple threads
-thread_data_t* thread_data;  /// Lock for methods shared among multiple threads
+PIN_LOCK lock;                  /// Lock for methods shared among multiple threads
+thread_data_t* thread_data;     /// Lock for methods shared among multiple threads
 
-uint32_t count_trace = 0;   /// Current BBL trace number
-bool is_instrumented = false;  /// Will be enabled by PinPoints
+uint32_t count_trace = 0;       /// Current BBL trace number
+bool is_instrumented = false;   /// Will be enabled by PinPoints
 
 std::ofstream StaticTraceFile;
 gzFile gzStaticTraceFile;
@@ -90,12 +59,153 @@ struct data_instr {
     UINT32 instr_len;
 };
 
+// HMC Instruction names
+std::string cmp_name0 ("_hmc128_saddimm_s");
+std::string cmp_name1 ("_hmc64_incr_s");
+std::string cmp_name2 ("_hmc64_bwrite_s");      
+std::string cmp_name3 ("_hmc128_bswap_s");
+std::string cmp_name4 ("_hmc128_or_s");         
+std::string cmp_name5 ("_hmc128_and_s");
+std::string cmp_name6 ("_hmc128_nor_s");        
+std::string cmp_name7 ("_hmc128_xor_s");
+std::string cmp_name8 ("_hmc128_nand_s");       
+std::string cmp_name9 ("_hmc64_equalto_s");
+std::string cmp_name10 ("_hmc128_equalto_s");   
+std::string cmp_name11 ("_hmc64_cmpswapgt_s");
+std::string cmp_name12 ("_hmc64_cmpswaplt_s");  
+std::string cmp_name13 ("_hmc128_cmpswapz_s");
+std::string cmp_name14 ("_hmc64_cmpswapeq_s");  
+std::string cmp_name15 ("_hmc128_cmpswapgt_s");
+std::string cmp_name16 ("_hmc128_cmpswaplt_s"); 
+std::string cmp_name17 ("_hmc64_cmpgteq_s");
+std::string cmp_name18 ("_hmc64_cmplteq_s");    
+std::string cmp_name19 ("_hmc64_cmplt_s");
+
+// VIMA Instruction names
+std::string cmp_name20("_vim64_iadds");     std::string cmp_name21("_vim2K_iadds");
+std::string cmp_name22("_vim64_iaddu");     std::string cmp_name23("_vim2K_iaddu");
+std::string cmp_name24("_vim64_isubs");     std::string cmp_name25("_vim2K_isubs");
+std::string cmp_name26("_vim64_isubu");     std::string cmp_name27("_vim2K_isubu");
+std::string cmp_name28("_vim64_iabss");     std::string cmp_name29("_vim2K_iabss");
+std::string cmp_name30("_vim64_imaxs");     std::string cmp_name31("_vim2K_imaxs");
+std::string cmp_name32("_vim64_imins");     std::string cmp_name33("_vim2K_imins");
+std::string cmp_name34("_vim64_icpys");     std::string cmp_name35("_vim2K_icpys");
+std::string cmp_name36("_vim64_icpyu");     std::string cmp_name37("_vim2K_icpyu");
+std::string cmp_name38("_vim64_iandu");     std::string cmp_name39("_vim2K_iandu");
+std::string cmp_name40("_vim64_iorun");     std::string cmp_name41("_vim2K_iorun");
+std::string cmp_name42("_vim64_ixoru");     std::string cmp_name43("_vim2K_ixoru");
+std::string cmp_name44("_vim64_inots");     std::string cmp_name45("_vim2K_inots");
+std::string cmp_name46("_vim64_islts");     std::string cmp_name47("_vim2K_islts");
+std::string cmp_name48("_vim64_isltu");     std::string cmp_name49("_vim2K_isltu");
+std::string cmp_name50("_vim64_icmqs");     std::string cmp_name51("_vim2K_icmqs");
+std::string cmp_name52("_vim64_icmqu");     std::string cmp_name53("_vim2K_icmqu");
+std::string cmp_name54("_vim64_isllu");     std::string cmp_name55("_vim2K_isllu");
+std::string cmp_name56("_vim64_isrlu");     std::string cmp_name57("_vim2K_isrlu");
+std::string cmp_name58("_vim64_isras");     std::string cmp_name59("_vim2K_isras");
+std::string cmp_name60("_vim64_idivs");     std::string cmp_name61("_vim2K_idivs");
+std::string cmp_name62("_vim64_idivu");     std::string cmp_name63("_vim2K_idivu");
+std::string cmp_name64("_vim32_idivs");     std::string cmp_name65("_vim1K_idivs");
+std::string cmp_name66("_vim32_idivu");     std::string cmp_name67("_vim1K_idivu");
+std::string cmp_name68("_vim64_imuls");     std::string cmp_name69("_vim2K_imuls");
+std::string cmp_name70("_vim64_imulu");     std::string cmp_name71("_vim2K_imulu");
+std::string cmp_name72("_vim32_imuls");     std::string cmp_name73("_vim1K_imuls");
+std::string cmp_name74("_vim32_imulu");     std::string cmp_name75("_vim1K_imulu");
+std::string cmp_name76("_vim64_icumu");     std::string cmp_name77("_vim2K_icumu");
+std::string cmp_name78("_vim64_icums");     std::string cmp_name79("_vim2K_icums");
+std::string cmp_name80("_vim64_imovs");     std::string cmp_name81("_vim2K_imovs");
+std::string cmp_name82("_vim64_imovu");     std::string cmp_name83("_vim2K_imovu");
+std::string cmp_name84("_vim64_fadds");     std::string cmp_name85("_vim2K_fadds");
+std::string cmp_name86("_vim64_fsubs");     std::string cmp_name87("_vim2K_fsubs");
+std::string cmp_name88("_vim64_fabss");     std::string cmp_name89("_vim2K_fabss");
+std::string cmp_name90("_vim64_fmaxs");     std::string cmp_name91("_vim2K_fmaxs");
+std::string cmp_name92("_vim64_fmins");     std::string cmp_name93("_vim2K_fmins");
+std::string cmp_name94("_vim64_fcpys");     std::string cmp_name95("_vim2K_fcpys");
+std::string cmp_name96("_vim64_fslts");     std::string cmp_name97("_vim2K_fslts");
+std::string cmp_name98("_vim64_fcmqs");     std::string cmp_name99("_vim2K_fcmqs");
+std::string cmp_name100("_vim64_fdivs");     std::string cmp_name101("_vim2K_fdivs");
+std::string cmp_name102("_vim64_fmuls");     std::string cmp_name103("_vim2K_fmuls");
+std::string cmp_name104("_vim64_fcums");     std::string cmp_name105("_vim2K_fcums");
+std::string cmp_name106("_vim64_fmovs");     std::string cmp_name107("_vim2K_fmovs");
+std::string cmp_name108("_vim32_dadds");     std::string cmp_name109("_vim1K_dadds");
+std::string cmp_name110("_vim32_dsubs");     std::string cmp_name111("_vim1K_dsubs");
+std::string cmp_name112("_vim32_dabss");     std::string cmp_name113("_vim1K_dabss");
+std::string cmp_name114("_vim32_dmaxs");     std::string cmp_name115("_vim1K_dmaxs");
+std::string cmp_name116("_vim32_dmins");     std::string cmp_name117("_vim1K_dmins");
+std::string cmp_name118("_vim32_dcpys");     std::string cmp_name119("_vim1K_dcpys");
+std::string cmp_name120("_vim32_dslts");     std::string cmp_name121("_vim1K_dslts");
+std::string cmp_name122("_vim32_dcmqs");     std::string cmp_name123("_vim1K_dcmqs");
+std::string cmp_name124("_vim32_ddivs");     std::string cmp_name125("_vim1K_ddivs");
+std::string cmp_name126("_vim32_dmuls");     std::string cmp_name127("_vim1K_dmuls");
+std::string cmp_name128("_vim32_dcums");     std::string cmp_name129("_vim1K_dcums");
+std::string cmp_name130("_vim32_dmovs");     std::string cmp_name131("_vim1K_dmovs");
+std::string cmp_name160("_vim64_ilmku");     std::string cmp_name161("_vim2K_ilmku");
+std::string cmp_name162("_vim64_ilmks");     std::string cmp_name163("_vim2K_ilmks");
+std::string cmp_name164("_vim64_flmks");     std::string cmp_name165("_vim2K_flmks");
+std::string cmp_name166("_vim32_dlmks");     std::string cmp_name167("_vim1K_dlmks");
+std::string cmp_name168("_vim64_ismku");     std::string cmp_name169("_vim2K_ismku");
+std::string cmp_name170("_vim64_ismks");     std::string cmp_name171("_vim2K_ismks");
+std::string cmp_name172("_vim64_fsmks");     std::string cmp_name173("_vim2K_fsmks");
+std::string cmp_name174("_vim32_dsmks");     std::string cmp_name175("_vim1K_dsmks");
+std::string cmp_name176("_vim64_irmku");     std::string cmp_name177("_vim2K_irmku");
+std::string cmp_name178("_vim64_irmks");     std::string cmp_name179("_vim2K_irmks");
+std::string cmp_name180("_vim64_frmks");     std::string cmp_name181("_vim2K_frmks");
+std::string cmp_name182("_vim32_drmks");     std::string cmp_name183("_vim1K_drmks");
+std::string cmp_name184("_vim64_ipmtu");     std::string cmp_name185("_vim2K_ipmtu");
+std::string cmp_name186("_vim64_ipmts");     std::string cmp_name187("_vim2K_ipmts");
+std::string cmp_name188("_vim64_fpmts");     std::string cmp_name189("_vim2K_fpmts");
+std::string cmp_name190("_vim32_dpmts");     std::string cmp_name191("_vim1K_dpmts");
+std::string cmp_name192("_vim64_imodu");     std::string cmp_name193("_vim2K_imodu");
+std::string cmp_name194("_vim64_imods");     std::string cmp_name195("_vim2K_imods");
+std::string cmp_name196("_vim64_igtru");     std::string cmp_name197("_vim2K_igtru");
+std::string cmp_name198("_vim64_igtrs");     std::string cmp_name199("_vim2K_igtrs");
+std::string cmp_name200("_vim64_fgtrs");     std::string cmp_name201("_vim2K_fgtrs");
+std::string cmp_name202("_vim32_dgtrs");     std::string cmp_name203("_vim1K_dgtrs");
+std::string cmp_name204("_vim64_isctu");     std::string cmp_name205("_vim2K_isctu");
+std::string cmp_name206("_vim64_iscts");     std::string cmp_name207("_vim2K_iscts");
+std::string cmp_name208("_vim64_fscts");     std::string cmp_name209("_vim2K_fscts");
+std::string cmp_name210("_vim32_dscts");     std::string cmp_name211("_vim1K_dscts");
+std::string cmp_name212("_vim64_idptu");     std::string cmp_name213("_vim2K_idptu");
+std::string cmp_name214("_vim64_idpts");     std::string cmp_name215("_vim2K_idpts");
+std::string cmp_name216("_vim64_iscou");     std::string cmp_name217("_vim2K_iscou");
+std::string cmp_name218("_vim64_iscos");     std::string cmp_name219("_vim2K_iscos");
+
+
+// MIPS Instruction names
+std::string cmp_name132("_mps32_add");
+std::string cmp_name133("_mps32_addu");
+std::string cmp_name134("_mps32_sub");
+std::string cmp_name135("_mps32_subu");
+std::string cmp_name136("_mps32_addi");
+std::string cmp_name137("_mps32_addiu");
+std::string cmp_name138("_mps32_and");
+std::string cmp_name139("_mps32_nor");
+std::string cmp_name140("_mps32_or");
+std::string cmp_name141("_mps32_xor");
+std::string cmp_name142("_mps32_andi");
+std::string cmp_name143("_mps32_ori");
+std::string cmp_name144("_mps32_xori");
+std::string cmp_name145("_mps32_slt");
+std::string cmp_name146("_mps32_sltu");
+std::string cmp_name147("_mps32_slti");
+std::string cmp_name148("_mps32_sltiu");
+std::string cmp_name149("_mps32_sll");
+std::string cmp_name150("_mps32_srl");
+std::string cmp_name151("_mps32_sra");
+std::string cmp_name152("_mps32_div");
+std::string cmp_name153("_mps32_divu");
+std::string cmp_name154("_mps32_mod");
+std::string cmp_name155("_mps32_modu");
+std::string cmp_name156("_mps32_mult");
+std::string cmp_name157("_mps32_multu");
+std::string cmp_name158("_mps64_mult");
+std::string cmp_name159("_mps64_multu");
+
 //==============================================================================
 // Header Functions
 //==============================================================================
-VOID initialize_intrinsics_hmc(data_instr hmc_x86_data[HMC_INS_COUNT]);
-VOID initialize_intrinsics_vima(data_instr vim_x86_data[VIMA_INS_COUNT]);
-VOID initialize_intrinsics_mips(data_instr mps_x86_data[MPS_INS_COUNT]);
+VOID initialize_intrinsics_hmc(data_instr hmc_x86_data[20]);
+VOID initialize_intrinsics_vima(data_instr vim_x86_data[114]);
+VOID initialize_intrinsics_mips(data_instr mps_x86_data[28]);
 INT icheck_conditions(std::string rtn_name);
 INT icheck_conditions_hmc(std::string rtn_name);
 INT icheck_conditions_vima(std::string rtn_name);
@@ -104,26 +214,10 @@ INT icheck_1parameter(std::string rtn_name);
 INT icheck_2parameters(std::string rtn_name);
 VOID write_dynamic_char(char *dyn_str, THREADID threadid);
 VOID write_static_char(char *stat_str);
-VOID hmc_write_memory_1param(ADDRINT read, UINT32 size,
-                            UINT32 bbl, THREADID threadid);
-VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write,
-                            UINT32 size, UINT32 bbl, THREADID threadid);
-VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2,
-                            ADDRINT write, UINT32 size,
-                            UINT32 bbl, THREADID threadid);
-VOID arch_x86_set_data_instr(data_instr *hmc_x86_data,
-                            char const *rtn_name,
-                            char const *hmc_instr_name,
-                            char const *x86_instr_name,
-                            UINT32 instr_len);
+VOID hmc_write_memory_1param(ADDRINT read, UINT32 size, UINT32 bbl, THREADID threadid);
+VOID hmc_write_memory_2param(ADDRINT read, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid);
+VOID hmc_write_memory_3param(ADDRINT read1, ADDRINT read2, ADDRINT write, UINT32 size, UINT32 bbl, THREADID threadid);
+VOID arch_x86_set_data_instr(data_instr *hmc_x86_data, char const *rtn_name, char const *hmc_instr_name, char const *x86_instr_name, UINT32 instr_len);
 VOID arch_x86_trace_instruction(RTN hmc_x86_rtn, data_instr *hmc_x86_data);
-VOID synthetic_trace_generation(std::string rtn_name,
-                                data_instr hmc_x86_data[HMC_INS_COUNT],
-                                data_instr vim_x86_data[VIMA_INS_COUNT],
-                                data_instr mps_x86_data[MPS_INS_COUNT],
-                                RTN rtn);
-VOID specific_trace_generation(std::string rtn_name,
-                                const char *arch_name,
-                                int n_instr,
-                                data_instr *arch_x86_data,
-                                RTN rtn);
+VOID synthetic_trace_generation(std::string rtn_name, data_instr hmc_x86_data[20], data_instr vim_x86_data[114], data_instr mps_x86_data[28], RTN rtn);
+VOID specific_trace_generation(std::string rtn_name, const char *arch_name, int n_instr, data_instr *arch_x86_data, RTN rtn);

@@ -26,14 +26,18 @@ class memory_package_t {
 
         bool is_vima;
         uint64_t vima_read1;
+        vima_vector_t* vima_read1_vec;
         uint64_t vima_read2;
+        vima_vector_t* vima_read2_vec;
         uint64_t vima_write;
-        int32_t is_vectorial_part;
+        vima_vector_t* vima_write_vec;
+        uint64_t unique_conversion_id;
 
         bool row_buffer;
         cacheId_t type;
         uint64_t* op_count;
         uint32_t latency;
+        bool cpu_informed; // If VIMA success signal was sent to the CPU
 
         memory_operation_t memory_operation;    /// memory operation
         std::vector<memory_request_client_t*> clients; ///update these
@@ -44,13 +48,15 @@ class memory_package_t {
         void updatePackageUntreated(uint32_t stallTime);
         void updatePackageReady();
         void updatePackageWait(uint32_t stallTime);
+        void updatePackageConfirm(uint32_t stallTime);
+        void updatePackageTransactional(uint32_t stallTime);
+
         void updatePackageFree(uint32_t stallTime);
         void updatePackageHive(uint32_t stallTime);
         void updatePackageVima(uint32_t stallTime);
         void updatePackageTransmit(uint32_t stallTime);
         void updatePackageDRAMFetch(uint32_t stallTime);
         void updatePackageDRAMReady(uint32_t stallTime);
-        void updatePackageWaitTM(uint32_t stallTime);
         void updateClients();
         void printPackage();
 };

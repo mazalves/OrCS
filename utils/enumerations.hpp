@@ -120,11 +120,14 @@ enum package_state_t {
     PACKAGE_STATE_READY,
     PACKAGE_STATE_WAIT,
     PACKAGE_STATE_TRANSMIT,
+    PACKAGE_STATE_CONFIRM,   // Waiting for the CPU confirmation and sending data (ld1 + ld2 + st)
+    PACKAGE_STATE_TRANSACTIONAL, // After a VIMA operation completes, sending the CPU confirmation
     PACKAGE_STATE_HIVE,
     PACKAGE_STATE_VIMA,
     PACKAGE_STATE_DRAM_FETCH,
     PACKAGE_STATE_DRAM_READY,
-    PACKAGE_STATE_WAIT_TM // Espera operações da TM
+    PACKAGE_STATE_CONVERTED,
+    PACKAGE_STATE_IGNORED // After a conversion be successful, the package goes to this state
 };
 const char *get_enum_package_state_char(package_state_t type);
 // ============================================================================
@@ -137,8 +140,8 @@ enum processor_stage_t {
     PROCESSOR_STAGE_RENAME,
     PROCESSOR_STAGE_DISPATCH,
     PROCESSOR_STAGE_EXECUTION,
-    PROCESSOR_STAGE_WAITING_DYN,
-    PROCESSOR_STAGE_COMMIT
+    PROCESSOR_STAGE_COMMIT,
+    PROCESSOR_STAGE_WAITING_DYN // Waiting for conversion confirmation
 };
 const char *get_enum_processor_stage_char(processor_stage_t type);
 // ============================================================================
@@ -227,84 +230,4 @@ enum branch_prediction_method_t {
     BRANCH_PREDICTION_METHOD_PIECEWISE
 };
 // ============================================================================
-enum vectorizer_statistic_t {
-    /* Types of pre-vectorization */
-    VECTORIZER_PRE_VECTORIZED_MOV = 0,
-    VECTORIZER_PRE_VECTORIZED_OPERATION,
-    VECTORIZER_NO_VACANCIES_TV,
-
-    /* Pre-vectorization steps */
-    VECTORIZER_LOAD_1_DEFINED,
-    VECTORIZER_LOAD_2_DEFINED,
-    VECTORIZER_STORE_DEFINED_MOV,
-    VECTORIZER_STORE_DEFINED_OP,
-    
-    /* Invalidation sources */
-    VECTORIZER_LOCK_TS, // Para impedir a revetorização de algo invalidado
-    VECTORIZER_INVALIDATION_TL,
-    VECTORIZER_INVALIDATION_TO,
-    VECTORIZER_INVALIDATION_TS,
-    VECTORIZER_INVALIDATION_TV,
-    VECTORIZER_INVALIDATION_AFTER_ALL_IN_ROB, // Faltaram substituições de regs para comitar e o rob encheu
-                                              // Poderia invalidar a pŕoxima vetorização e travar para garantir :p
-
-    /* Quem pediu para invalidar tudo */
-    VECTORIZER_TL_STARTED_INVALIDATION,
-    VECTORIZER_TO_STARTED_INVALIDATION,
-    VECTORIZER_TS_STARTED_INVALIDATION,
-    VECTORIZER_TV_STARTED_INVALIDATION,
-    VECTORIZER_LOAD_STRIDE_STARTED_INVALIDATION,
-    VECTORIZER_STORE_STRIDE_STARTED_INVALIDATION,
-    VECTORIZER_VECTORIZATION_STARTED_INVALIDATION,
-
-    
-    /* Quem invalidou o treinamento */
-    VECTORIZER_TL_INVALIDATED_TRAINING,
-    VECTORIZER_TO_INVALIDATED_TRAINING,
-    VECTORIZER_TS_INVALIDATED_TRAINING,
-    VECTORIZER_NEW_VECTORIZATION_INVALIDATED_TRAINING,
-    VECTORIZER_VECTORIZATION_INVALIDATED_TRAINING,
-
-    /* Invalidações por conflito de escritas e leituras */
-    VECTORIZER_AGU_WRITE_OVER_READ_1,
-    VECTORIZER_AGU_WRITE_OVER_READ_2,
-    VECTORIZER_AGU_READ_OVER_WRITE,
-
-    /* Invalidações por dependências */
-    VECTORIZER_DEPENDENCY_INVALIDATION,
-
-    /* Invalidação de próximo */
-    VECTORIZER_CASCADE_INVALIDATION, 
-
-    /* Falta de entradas */
-    VECTORIZER_TL_NOT_ENOUGH_ENTRIES,
-    VECTORIZER_TO_NOT_ENOUGH_ENTRIES,
-    VECTORIZER_TS_NOT_ENOUGH_ENTRIES,
-    VECTORIZER_TV_NOT_ENOUGH_ENTRIES,    
-    VECTORIZER_TI_NOT_ENOUGH_ENTRIES,
-
-    /* Ignored */
-    VECTORIZER_ASSIGNED_TO_IGNORED_INST,
-    VECTORIZER_TOTAL_IGNORED_INST,
-    VECTORIZER_IGNORED_AND_COMMITTED,
-    VECTORIZER_IGNORED_AND_DISCARDED,
-
-    /* Reexecutadas */
-    VECTORIZER_REEXECUTED_INST,
-
-    /* Invalidações para destravar o pipeline */
-    VECTORIZER_UNLOCK_ROB_FULL,
-    VECTORIZER_UNLOCK_PROGRAM_ENDED,
-    VECTORIZER_UNLOCK_MOB_FULL_WITH_LOAD_STALL,
-
-    /* Vetorizações completadas com sucesso */
-    VECTORIZER_SUCCESSFULLY_COMPLETED_VECTORIZATION,
-    VECTORIZER_SUCCESSFULLY_DISCARDED_VECTORIZATION,
-
-    /* Last/size */
-    VECTORIZER_STATISTIC_LAST
-};
-const char *get_enum_vectorizer_statistic_char(vectorizer_statistic_t type);
-// ============================================================================
-
 #endif

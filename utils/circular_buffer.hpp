@@ -56,8 +56,6 @@ class circular_buffer_t {
         inline uint32_t get_capacity();
         inline bool is_full();
         inline bool is_empty();
-        inline bool has_n_empties(uint32_t n);
-
 
         inline CB_TYPE* front();
         inline CB_TYPE* back();
@@ -68,6 +66,7 @@ class circular_buffer_t {
         void pop_back();
         void pop_push();
         void print_all();
+        inline void pop_all();
 };
 // ============================================================================
 template <class CB_TYPE>
@@ -100,7 +99,7 @@ void circular_buffer_t<CB_TYPE>::allocate(uint32_t elements) {
 // ============================================================================
 template <class CB_TYPE>
 inline CB_TYPE& circular_buffer_t<CB_TYPE>::operator[](uint32_t index) {
-    ERROR_ASSERT_PRINTF(index < this->capacity, "Trying to access beyond the circular buffer size.\n")
+    ERROR_ASSERT_PRINTF(index < this->size, "Trying to access beyond the circular buffer size.\n")
     ERROR_ASSERT_PRINTF(this->data != NULL, "Trying to access beyond the circular buffer size.\n")
 
     uint32_t position = this->beg_index + index;
@@ -132,12 +131,6 @@ inline bool circular_buffer_t<CB_TYPE>::is_full() {
 template <class CB_TYPE>
 inline bool circular_buffer_t<CB_TYPE>::is_empty() {
     return (this->size == 0);
-}
-
-// ============================================================================
-template <class CB_TYPE>
-inline bool circular_buffer_t<CB_TYPE>::has_n_empties(uint32_t n) {
-    return ((this->capacity - this->size) >= n);
 }
 
 // ============================================================================
@@ -244,14 +237,16 @@ template <class CB_TYPE>
 void circular_buffer_t<CB_TYPE>::pop_back() {
     if (this->size > 0) {
         this->size--;
-        this->data[end_index].package_clean();
 
+        // The end index is the next after the last
         if (this->end_index == 0) {
             this->end_index = this->capacity - 1;
 
         } else {
             this->end_index--;
         }
+
+        this->data[end_index].package_clean();
 
     }
 }
@@ -284,6 +279,14 @@ void circular_buffer_t<CB_TYPE>::print_all() {
        ORCS_PRINTF("%s\n",this->data[i].content_to_string().c_str())
     }
 }
+// ==============================================================================
+//Reseta o buffer circular
 
+template <class CB_TYPE>
+inline void circular_buffer_t<CB_TYPE>::pop_all() {
+    this->beg_index = 0;
+    this->end_index = 0;
+    this->size = 0;
+}
 
 #endif  // _CIRCULAR_BUFFER_HPP_

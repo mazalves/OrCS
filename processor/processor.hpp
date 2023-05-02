@@ -45,7 +45,13 @@ public:
 };
 
 class processor_t {
-    private:    
+    private:
+	//===============
+	//VIMA Conversion
+	//===============
+	bool conversion_enabled;
+	uint32_t VIMA_SIZE;
+
 	//=============
 	//Fetch Related
 	//=============
@@ -62,7 +68,8 @@ class processor_t {
 	uint64_t stall_full_MOB_Read;
 	uint64_t stall_full_MOB_Write;
 	uint64_t stall_full_ROB;
-	bool mob_read_stall;
+	uint64_t stall_full_RS;
+
 	//=============
 	//Statistics Dispatch
 	//=============
@@ -220,8 +227,6 @@ class processor_t {
 
 
 
-
-
     public:
 		
 		// ====================================================================
@@ -242,10 +247,7 @@ class processor_t {
 		bool snapshoted;
 		uint64_t fetchCounter;
 		uint64_t decodeCounter;
-		uint64_t renameCounter[4]; // 0 -> Usual inst
-								   // 1 -> Dynamic generated VIMA
-								   // 2 -> Ignored
-								   // 3 -> Reexecuted
+		uint64_t renameCounter;
 		uint64_t uopCounter;
 		uint64_t commit_uop_counter;
 		uint32_t memory_read_executed;
@@ -253,9 +255,9 @@ class processor_t {
 		uint32_t memory_hive_executed;
 		uint32_t memory_vima_executed;
 		// ====================================================================
-		// Vectorizer
+		// VIMA Converter
 		// ====================================================================
-		vectorizer_t * vectorizer;
+		vima_converter_t vima_converter;
 		
 		// ====================================================================
 		/// Methods
@@ -269,13 +271,13 @@ class processor_t {
 		void printConfiguration();
 		void printCache(FILE *output);
 		uint32_t get_cache_list(cacheId_t cache_type, libconfig::Setting &cfg_cache_defs, uint32_t *ASSOCIATIVITY, uint32_t *LATENCY, uint32_t *SIZE, uint32_t *SETS, uint32_t *LEVEL);
-		registers_tracker_entry_t *get_tv_register_id(uint32_t id);  //REMOVE
+
 		// ====================================================================
 		// ROB RELATED
 		void update_registers(reorder_buffer_line_t *robLine);
 		void solve_registers_dependency(reorder_buffer_line_t *rob_line);
 		int32_t searchPositionROB(ROB_t *rob);
-		inline int32_t has_n_empty_entries_rob(ROB_t *rob, int32_t n_entries);
+		void returnPositionROB(ROB_t *rob);
 		void removeFrontROB(ROB_t *rob);
 		// ====================================================================
 		// MOB READ RELATED
@@ -317,7 +319,14 @@ class processor_t {
 		uint32_t mob_vima();
 		void clean_mob_vima();
 		
+
 		void commit();
+
+		// ====================================================================
+		// Conversion
+		// ====================================================================
+		void check_conversion();
+		void conversion_invalidation(uint64_t unique_conversion_id);
 
 		// ====================================================================
 		// Bool Functions @return 
@@ -420,6 +429,7 @@ class processor_t {
 
 
 		INSTANTIATE_GET_SET(uint64_t,processor_id)
+		INSTANTIATE_GET_SET(uint64_t,VIMA_SIZE)
 		// ====================================================================
 		// Statistics
 		// ====================================================================
@@ -434,6 +444,7 @@ class processor_t {
 
 
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_ROB)
+		INSTANTIATE_GET_SET_ADD(uint64_t,stall_full_RS)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stall_empty_RS)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_disambiguation_read_false_positive)
 		INSTANTIATE_GET_SET_ADD(uint64_t,stat_disambiguation_write_false_positive)
@@ -571,8 +582,3 @@ class processor_t {
 		
 		// ====================================================================
 };
-
-
-inline int32_t processor_t::has_n_empty_entries_rob(ROB_t *rob, int32_t n_entries) {
-	return (rob->robUsed + n_entries <= rob->SIZE);
-}

@@ -18,7 +18,7 @@ class branch_predictor_t{
         // para acesso direto btb
         //===================================
         uint32_t index;
-        uint8_t way;
+        uint32_t way;
         //===================================
         //metodos para btb
         //===================================

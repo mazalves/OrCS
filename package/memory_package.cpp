@@ -26,10 +26,13 @@ memory_package_t::memory_package_t() {
 
     this->is_vima = false;
     this->vima_read1 = 0;
+    this->vima_read1_vec = NULL;
     this->vima_read2 = 0;
+    this->vima_read2_vec = NULL;
     this->vima_write = 0;
+    this->vima_write_vec = NULL;
 
-    this->is_vectorial_part = -1;
+    this->unique_conversion_id = 0;
 
     row_buffer = false;
     type = DATA;
@@ -37,6 +40,7 @@ memory_package_t::memory_package_t() {
     sent_to_cache_level = new uint32_t[END]();
     sent_to_cache_level_at = new uint32_t[END]();
     this->latency = 0;
+    this->cpu_informed = false;
 
     memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
 }
@@ -76,6 +80,30 @@ void memory_package_t::updatePackageWait (uint32_t stallTime){
         ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
     #endif
     this->status = PACKAGE_STATE_WAIT;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    this->latency += stallTime;
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
+}
+
+void memory_package_t::updatePackageConfirm (uint32_t stallTime){
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
+    this->status = PACKAGE_STATE_CONFIRM;
+    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
+    this->latency += stallTime;
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
+    #endif
+}
+
+void memory_package_t::updatePackageTransactional (uint32_t stallTime){
+    #if MEMORY_DEBUG
+        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
+    #endif
+    this->status = PACKAGE_STATE_TRANSACTIONAL;
     this->readyAt = orcs_engine.get_global_cycle() + stallTime;
     this->latency += stallTime;
     #if MEMORY_DEBUG
@@ -155,23 +183,16 @@ void memory_package_t::updatePackageDRAMReady (uint32_t stallTime){
     #endif
 }
 
-void memory_package_t::updatePackageWaitTM (uint32_t stallTime){
-    #if MEMORY_DEBUG
-        ORCS_PRINTF ("[MEMP] %lu {%lu} %lu %s %s -> ", orcs_engine.get_global_cycle(), opcode_number, memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status))
-    #endif
-    this->status = PACKAGE_STATE_WAIT_TM;
-    this->readyAt = orcs_engine.get_global_cycle() + stallTime;
-    this->latency += stallTime;
-    #if MEMORY_DEBUG
-        ORCS_PRINTF ("%s, born: %lu, readyAt: %lu, latency: %u, stallTime: %u\n", get_enum_package_state_char (status), born_cycle, readyAt, latency, stallTime)
-    #endif
-}
-
 void memory_package_t::printPackage(){
     ORCS_PRINTF ("%lu Address: %lu | Operation: %s | Status: %s | Uop: %lu | ReadyAt: %lu\n", orcs_engine.get_global_cycle(), memory_address, get_enum_memory_operation_char (memory_operation), get_enum_package_state_char (status), uop_number, readyAt)
 }
 
 void memory_package_t::updateClients(){
+#if VIMA_CONVERSION_DEBUG == 1
+    if (this->is_vima) {
+        printf("VIMA updated clients\n");
+    }
+#endif
     for (size_t i = 0; i < clients.size(); i++) {
         clients[i]->updatePackageReady (0);
     }

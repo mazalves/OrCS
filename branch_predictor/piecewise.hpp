@@ -8,9 +8,9 @@ private:
     uint64_t THETA;
 
 public:
-    int8_t ***W;
+    int32_t ***W;
     uint64_t *GA;
-    uint8_t *GHR;
+    uint32_t *GHR;
     float saida;
     void allocate (uint32_t processor_id);
     taken_t predict(uint64_t address);

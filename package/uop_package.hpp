@@ -13,7 +13,6 @@ class uop_package_t{
     int32_t read_regs[MAX_REGISTERS];
     int32_t write_regs[MAX_REGISTERS];
 
-
     instruction_operation_t uop_operation;
     uint64_t memory_address[MAX_MEM_OPERATIONS];
     uint32_t memory_size[MAX_MEM_OPERATIONS];
@@ -34,28 +33,30 @@ class uop_package_t{
     uint32_t throughput;
     functional_unit_t *functional_unit;
 
-    // # do uop na instrução
-    uint8_t uop_id;
-    bool waiting; // Esperando correspondente vetorial, não executa, só fica no ROB e calcula o endereço se for ld ou st
-    bool reexecution; // Foi reexecutada escalarmente após uma tentativa de vetorização frustrada
-    uint32_t validation_number; // Número da validação da qual a instrução faz parte
-                                // Usado para a verificação do stride pela AGU
-    uint8_t structural_id;
+    uint32_t uop_id;
+    bool is_masked;
 
-    bool sent_to_new_renamed_uop; // Controle para enviar apenas uma vez mesmo com buffers cheios
+    int32_t linked_to_converter; // -1 -> Not linked
+                                // 0 -> First load
+                                // 1 -> Second load
+                                // 2 -> Op
+                                // 3 -> Store
+    uint64_t unique_conversion_id;
+    bool ignore_on_conversion_success;
+    bool reexecuted;
+    int64_t linked_to_iteration; // Caso esteja sendo ignorada, uma instrução precisa confirmar seu endereço com a AGU e o VC
+                                  // então essa variável indica a iteração a ser utilizada para a validação do endereço
 
-    table_of_vectorizations_entry_t *vectorization_linked; // Caso seja uma instrução externa a uma vetorização linka aqui
-    uint8_t vectorization_linked_id;                       // , marca seu id aqui
+    bool already_sent;  // Caso já tenha sido avaliado pelo conversor, contém true
+                        // é útil porque o controle do conversor é feito antes das verificações de entradas no ROB e MOBs
 
-    
+
     void opcode_to_uop(uint64_t uop_number, 
             instruction_operation_t uop_operation, 
             uint32_t latency, uint32_t throughput, functional_unit_t *fu_id,
-            opcode_package_t opcode, uint8_t uop_id);
+            opcode_package_t opcode, uint32_t uop_id, bool is_masked);
 
     inline void add_memory_operation(uint64_t memory_address, uint32_t memory_size);
-
-    inline void add_vectorization_reference(table_of_vectorizations_entry_t *tl_entry);
 
 
     bool operator==(const uop_package_t &package);
@@ -72,10 +73,6 @@ class uop_package_t{
     uint64_t born_cycle;
     uint64_t readyAt;
     package_state_t status;
-
-    // Quando completar a execução, marca na tabela que ela está completa
-    // Permitindo o commit das instruções ignoradas (após juntar todas e garantir que deu certo :p)
-    table_of_vectorizations_entry_t *tv_pointer;
 };
 
 inline void uop_package_t::add_memory_operation(uint64_t memory_address, uint32_t memory_size) {
@@ -85,8 +82,4 @@ inline void uop_package_t::add_memory_operation(uint64_t memory_address, uint32_
     ++num_mem_operations;
 
     return;
-}
-
-inline void uop_package_t::add_vectorization_reference(table_of_vectorizations_entry_t *tv_entry) {
-    this->tv_pointer = tv_entry;
 }

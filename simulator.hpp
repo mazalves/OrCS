@@ -68,6 +68,7 @@ class memory_order_buffer_line_t;
 class functional_unit_t;
 class processor_t;
 class instruction_set_t;
+class memory_package_t;
 
 //  =========================================//
 // Cache Classes
@@ -113,27 +114,9 @@ class hive_register_t;
 //  =========================================//
 class vima_controller_t;
 class vima_vector_t;
-class transactional_operation_t;
-class transactions_controller_t;
-//  =========================================//
-// Vectorizer Classes
-//  =========================================//
-class table_of_pre_vectorization_t;
-class table_of_pre_vectorization_entry_t;
-class table_of_ignored_t;
-class table_of_ignored_entry_t;
-class registers_tracker_t;
-class registers_tracker_entry_t;
-class table_of_loads_t;
-class table_of_loads_entry_t;
-class table_of_operations_t;
-class table_of_operations_entry_t;
-class table_of_stores_t;
-class table_of_stores_entry_t;
-class table_of_vectorizations_t;
-class table_of_vectorizations_entry_t;
-class vectorizer_t;
-
+class back_list_entry_t;
+class vima_converter_t;
+class vima_prefetcher_t;
 
 //  =========================================//
 // DATA Types
@@ -185,6 +168,12 @@ extern orcs_engine_t orcs_engine;
 #include "./processor/memory_disambiguation/disambiguation_hashed.hpp"
 
 //  =========================================//
+// VIMA Converter
+//  =========================================//
+#include "./processor/vima_converter.hpp"
+#include "./processor/vima_prefetcher.hpp"
+
+//  =========================================//
 // Core Includes
 //  =========================================//
 #include "./package/uop_package.hpp"
@@ -226,26 +215,6 @@ extern orcs_engine_t orcs_engine;
 // // VIMA INCLUDES
 #include "./vima/vima_controller.hpp"
 #include "./vima/vima_vector.hpp"
-#include "./vima/transactions_controller.hpp"
-#include "./vima/transactional_operation.hpp"
-//  =========================================//
-// // Vectorizer INCLUDES
-#include "./Vectorizer/vectorizer.hpp"
-#include "./Vectorizer/table_of_pre_vectorization.hpp"
-#include "./Vectorizer/table_of_pre_vectorization_entry.hpp"
-#include "./Vectorizer/table_of_ignored.hpp"
-#include "./Vectorizer/table_of_ignored_entry.hpp"
-#include "./Vectorizer/registers_tracker.hpp"
-#include "./Vectorizer/registers_tracker_entry.hpp"
-#include "./Vectorizer/table_of_loads_entry.hpp"
-#include "./Vectorizer/table_of_loads.hpp"
-#include "./Vectorizer/table_of_operations_entry.hpp"
-#include "./Vectorizer/table_of_operations.hpp"
-#include "./Vectorizer/table_of_stores_entry.hpp"
-#include "./Vectorizer/table_of_stores.hpp"
-#include "./Vectorizer/table_of_vectorizations.hpp"
-#include "./Vectorizer/table_of_vectorizations_entry.hpp"
-
 //  =========================================//
 
 #endif  // _ORCS_ORCS_HPP_

@@ -89,7 +89,7 @@ static uint32_t process_argv(int argc, char **argv) {
     return NUMBER_OF_PROCESSORS;
 }
 
-std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){   
+std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
     std::string final_report;
     char report[1000];
     // Data - Atual,total, active cores
@@ -160,13 +160,10 @@ std::string get_status_execution(uint32_t NUMBER_OF_PROCESSORS){
         snprintf(report,sizeof(report),"Instructions Fetched/Instructions Total: %lu of %lu\n",fetched_opcodes,total_opcodes);
         final_report+=report;
 
-        // Get total uops renamed, uops completed
-        uint64_t uops_renamed = orcs_engine.processor[cpu].renameCounter[0];
-        for (uint8_t i = 1; i < 4; ++i) {
-            uops_renamed += orcs_engine.processor[cpu].renameCounter[i];
-        }
+        // Get total uops decoded, uops completed
+        uint64_t uops_decoded = orcs_engine.processor[cpu].renameCounter;
         uint64_t uop_completed = orcs_engine.processor[cpu].commit_uop_counter;
-        snprintf(report,sizeof(report),"Uops Completed/Uops renamed: %lu of %lu\n",uop_completed,uops_renamed);
+        snprintf(report,sizeof(report),"Uops Completed/Uops decoded: %lu of %lu\n",uop_completed,uops_decoded);
         final_report+=report;
 
         ////////
