@@ -82,6 +82,7 @@ class cache_manager_t {
         void statistics(uint32_t core_id);
         void reset_statistics(uint32_t core_id);
         void generateIndexArray(uint32_t processor_id, int32_t *cache_indexes);
+        void flush_requests();
         bool searchData(memory_package_t *mob_line);
         bool available(uint32_t processor_id, memory_operation_t op);
         

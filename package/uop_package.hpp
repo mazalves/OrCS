@@ -33,22 +33,36 @@ class uop_package_t{
     uint32_t throughput;
     functional_unit_t *functional_unit;
 
-    uint32_t uop_id;
+    uint32_t uop_id; // Indica que uop da instrução é
     bool is_masked;
 
-    int32_t linked_to_converter; // -1 -> Not linked
-                                // 0 -> First load
-                                // 1 -> Second load
-                                // 2 -> Op
-                                // 3 -> Store
+    // -1 -> Not linked
+    // 0 -> First load
+    // 1 -> Second load
+    // 2 -> Op
+    // 3 -> Store
+    int32_t linked_to_converter;
+
+    /* Links the instruction with a conversion */
     uint64_t unique_conversion_id;
-    bool ignore_on_conversion_success;
-    bool reexecuted;
+
+    /* Is a instruction that identifies the begining of a conversion
+       beeing used to block the pipeline and allow flushes in invalidations */
+    bool is_placeholder;
+    uint8_t conversion_result; // 1 -> COMMIT
+                               // 2 -> INVALIDATION
+                               // 0 -> WAITING
+    conversion_status_t conversion_status; // Para o caso de ser um placeholder em um flush
+
+
     int64_t linked_to_iteration; // Caso esteja sendo ignorada, uma instrução precisa confirmar seu endereço com a AGU e o VC
                                   // então essa variável indica a iteração a ser utilizada para a validação do endereço
 
     bool already_sent;  // Caso já tenha sido avaliado pelo conversor, contém true
                         // é útil porque o controle do conversor é feito antes das verificações de entradas no ROB e MOBs
+
+
+    trace_checkpoint_t checkpoint;
 
 
     void opcode_to_uop(uint64_t uop_number, 
@@ -67,6 +81,8 @@ class uop_package_t{
     void updatePackageFree(uint32_t stallTime);
     std::string content_to_string();
     std::string content_to_string2();
+    void print_content();
+    
     // Control variables
     uint64_t opcode_number;
     uint64_t uop_number;

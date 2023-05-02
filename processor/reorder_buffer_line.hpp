@@ -28,6 +28,8 @@ class reorder_buffer_line_t {
         uint32_t wait_reg_deps_number;                  /// Must wait BEFORE execution
         reorder_buffer_line_t* *reg_deps_ptr_array;     /// Elements to wake-up AFTER execution
         uint32_t wake_up_elements_counter;              /// Counter of elements to wakeup
+        conversion_status_t* *reg_deps_conv_ptr_array;     /// Conversions to wake-up AFTER execution
+        uint32_t wake_up_conversions_counter;              /// Counter of conversions to wakeup
         memory_order_buffer_line_t* mob_base;            /// mob pointer to memory request 
         int32_t pos_mob;
         uint32_t mob_limit;

@@ -25,11 +25,13 @@
 reorder_buffer_line_t::reorder_buffer_line_t() {
     this->package_clean();
     this->reg_deps_ptr_array = NULL;
+    this->reg_deps_conv_ptr_array = NULL;
 }
 
 // ============================================================================
 reorder_buffer_line_t::~reorder_buffer_line_t() {
     utils_t::template_delete_array<reorder_buffer_line_t*>(reg_deps_ptr_array);
+    utils_t::template_delete_array<conversion_status_t*>(reg_deps_conv_ptr_array);
 }
 
 // ============================================================================
@@ -42,6 +44,7 @@ void reorder_buffer_line_t::package_clean() {
     this->waiting_mem_request = 0;
     this->wait_reg_deps_number = 0; 
     this->wake_up_elements_counter = 0;
+    this->wake_up_conversions_counter = 0;
     this->sent=false;
     this->processor_id=0;
     this->committed =false;
@@ -62,6 +65,7 @@ std::string reorder_buffer_line_t::content_to_string() {
     content_string = content_string + " | Stage:" + get_enum_processor_stage_char(this->stage);
     content_string = content_string + " | Reg.Wait:" + utils_t::uint32_to_string(this->wait_reg_deps_number);
     content_string = content_string + " | WakeUp:" + utils_t::uint32_to_string(this->wake_up_elements_counter);
+    content_string = content_string + " | WakeUpConv.:" + utils_t::uint32_to_string(this->wake_up_conversions_counter);
     content_string = content_string + " | ReadyAt: " + utils_t::uint64_to_string(this->uop.readyAt);
     content_string = content_string + " | Sent: " + utils_t::bool_to_string(this->sent);
     if(this->mob_base != NULL){
@@ -83,6 +87,7 @@ std::string reorder_buffer_line_t::content_to_string2() {
     content_string = content_string + " | Stage:" + get_enum_processor_stage_char(this->stage);
     content_string = content_string + " | Reg.Wait:" + utils_t::uint32_to_string(this->wait_reg_deps_number);
     content_string = content_string + " | WakeUp:" + utils_t::uint32_to_string(this->wake_up_elements_counter);
+    content_string = content_string + " | WakeUpConv.:" + utils_t::uint32_to_string(this->wake_up_conversions_counter);
     content_string = content_string + " | ReadyAt: " + utils_t::uint64_to_string(this->uop.readyAt);
     content_string = content_string + " | Sent: " + utils_t::bool_to_string(this->sent);
     return content_string;

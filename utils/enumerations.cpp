@@ -70,7 +70,6 @@ const char *get_enum_processor_stage_char(processor_stage_t type) {
         case PROCESSOR_STAGE_DISPATCH:    return "DISPATCH    "; break;
         case PROCESSOR_STAGE_EXECUTION:   return "EXECUTION   "; break;
         case PROCESSOR_STAGE_COMMIT:      return "COMMIT      "; break;
-        case PROCESSOR_STAGE_WAITING_DYN: return "WAITING_DYN "; break;
     }
     ERROR_PRINTF("Wrong PROCESSOR_STAGE\n");
     return "FAIL";

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table, td, th {
+
+            border-color: black;
+            border-style: solid;
+            border-collapse: collapse;
+            border-width: 1px;
+        }
+        td, th {
+            padding: 10px;
+        }
+
+        th {
+            background-color: #BBBBBB;
+        }
+        .gambiarra_problema {
+            color: #BB0000;
+        }
+        .TODO li {
+            color:#880000;
+        }
+        .DOING li {
+            color: #eb8704;
+        }
+
+        .DONE li {
+            color: #008800;
+        }
+
+        .ABANDONED li {
+            color: #852bcf;
+        }
+
+        span.ABANDONED {
+            color: #852bcf;
+        }
+
+        li.TODO {
+            color:#eb2704;
+        }
+    </style>
+    <title>Extensão WSCAD</title>
+</head>
+<body>
+    <h1>Testes realizados</h1>
+    <h2>Remoção de instruções convertidas do ROB</h2>
+    <h3>Descrição</h3>
+    <p>Para evitar que as instruções convertidas sejam armazenadas no ROB, armazenamos o PC da primeira instrução convertida.
+        As demais instruções da conversão entram de maneira usual no ROB.</p>
+    <h3>Dependências</h3>
+    <p>Cada instrução da qual uma instrução convertida dependeria para calcular seu endereço é marcada,
+        assim quando ela termina de executar, uma AGU adicional pode calcular qual seria o endereço acessado
+        caso a instrução não fosse levada para a VIMA.
+
+    </p>
+
+    <h4>Descobrindo dependências</h4>
+    <p>Para encontrar as dependências, extendemos o <strong>vetor de dependências</strong> armazenando o PC de cada instrução que escreveu por último em cada registrador.
+    Assim, conforme identificamos um conjunto, obtemos as instruções das quais cada instrução dele depende.</p>
+    <p>O PC e a micro-op dessas instruções é armazenado junto com as informações de cada instrução da conversão.</p>
+
+    <h4>Garantindo dependências</h4>
+    <p>Após a execução de uma micro-op que gerou uma dependência em <strong>uma das instruções</strong> de <strong>uma das conversões</strong> em andamento, utilizamos uma AGU adicional para calcular o endereço de acesso dessa instrução.</p>
+    <ul>
+        <li>Se o <em>stride</em> for mantido, a conversão continua.</li>
+        <li>Se o <em>stride</em> mudar, realizamos o <em>flush</em> do <em>pipeline</em> recomeçando a execução a partir
+        do PC salvo.</li>
+    </ul>
+
+    <h3>Garantindo coerência em <em>flush</em></h3>
+    <p>Para garantir que uma instrução não seja executada duas vezes em caso de <em>flush</em>, a partir do momento em que um PC é salvo e uma conversão inicia, todas as demais instruções ganham um ponteiro para essa conversão. Assim, seu <em>commit</em> só será realizado após um fim bem sucedido da conversão.</p>
+
+    <h3>Fim da conversão</h3>
+    A conversão pode ser encerrada de duas maneiras, em um <em>flush</em> ou sendo bem sucedida.
+
+    <h4>Conversão falha (<em>Flush</em>)</h4>
+    Uma conversão falha quando:
+    <ul>
+        <li>Seu <em>stride</em> é alterado.</li>
+        <li>Outra instrução acessando a memória é executada entre as da conversão.</li>
+        <li>Uma instrução de salto aparece entre as convertidas.</li>
+        <li>Uma excessão/interrupção/troca de contexto é acionada.</li>
+        <li>Uma instrução externa lê um registrador escrito pelas iterações intermediárias da conversão.</li>
+        <li>Uma instrução externa escreve em um registrador lido pela operação ou pelo <em>store</em> da conversão.</li>
+    </ul>
+
+    <h4>Conversão bem sucedida</h4>
+    <p>Em uma conversão bem sucedida, as instruções bloqueadas para <em>commit</em> são liberadas e a conversão é completada.</p>
+
+    <h3>Arquivos relacionados</h3>
+    <table>
+        <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+        </tr>
+        <tr>
+            <td>mecanismo_pc</td>
+            <td>Pasta</td>
+            <td>Contém uma versão do OrCS alterada com a otimização de não colocar as instruções sendo convertidas no ROB. <br>
+                Outras otimizações existentes:
+                <ul>
+                    <li>Lista de bloqueados</li>
+                    <li>Conversões consecutivas</li>
+                    <li>Conversões agressivas</li>
+                </ul>
+            </td>
+
+        </tr>
+        <tr>
+            <td>mecanismo_original</td>
+            <td>Pasta</td>
+            <td>Versão para comparação com a nova otimização. <br>
+                Contém uma versão do OrCS apenas com as seguintes otimizações:
+                <ul>
+                    <li>Lista de bloqueados</li>
+                    <li>Conversões consecutivas</li>
+                    <li>Conversões agressivas</li>
+                </ul>
+            </td>
+
+        </tr>
+    </table>
+
+    <h3>Instruções de uso/testes</h3>
+
+    <h4>TODOs list:</h4>
+    <ul type="square" class="TODO">
+        <li>Colocar uma instrução placeholder para travar o commit das demais.</li>
+        <li>Usar o placeholder para iniciar o flush, caso necessário.</li>
+        <li>Verificar se <em>stride</em> bate.</li>
+        <ul><li>Se não bater, deve invalidar a conversão e chamar o <em>flush</em>.</li></ul>
+        <li>Contabilizar o tempo do cálculo dos endereços da conversão na AGU.</li>
+        <li>Verificar pq o Original program instructions diminui em relação ao mecanismo_original.</li>
+        
+        
+    </ul>
+    
+    <h4>DOINGs list:</h4>
+    <ul type="round" class="DOING">
+        <li>Gerar traços escalares e SSE de 128 bits.
+            <ul> 
+                
+                <li>Gerar traços - Gerando na pilheira1...</li>
+                <li>Dar um jeito de gerar os sse de 128 bits!!! - ok</li>
+                <li class="gambiarra_problema">Deixei as chamadas de função do VIMA tracer, já que estão meio misturadas com os BBs e não são tão significativas no tempo total dos laços maiores e do mecanismo.</li>
+                <li>Fazer acessarem os mesmos endereços de memória.</li>
+                <li>Gerar scripts para executar.</li>
+                <li>Gerar scripts para processar resultados.</li>
+                <li>Gerar gráficos.</li>
+            </ul>
+        </li>
+        <li>Gerar exercútáveis escalares, de 128, 256 e 512 bits
+            <ul>
+                <li>Observações</li>
+                <ul>
+                    <li>Gerando e colocando em exe/Files/</li>
+                    <li>Precisei transformar em intrinsics para poder gerar certinho.</li>
+                    <li>As variáveis de src e dst preciram estar em main, caso contrário vários deles ficam dando load nos endereços delas a cada iteração.</li>
+                    <li>Em escalares e de 128 bits precisei deixar como volatile para evitar que ele otimizasse retirando iterações.</li>
+                </ul>
+            </ul>
+        </li>
+    </ul>
+
+    <h4>DONEs list:</h4>
+    <ul class="DONE">
+        <li>Será que os ganhos são só pelo tempo da AGU? Perguntar pro Marco se posso considerar um circuito paralelo de verificação em um ciclo (ou o suficiente para cada iteração).
+            <ul>
+                <li class="green">Não, segundo ele, tanto por operações paralelas por mais espaço no ROB quanto por mais conversões paralelas.</li>
+                <li class="gree">Posso considerar sim, sem atraso significativo.</li>
+            </ul>
+        </li>
+        <li> Bug - Como paramos de deixar as instruções convertidas no ROB, a invalidação por conversão travada parou de funcionar.
+            <ul>
+                <li>Mudei a invalidação para, ao invés de verificar se a cabeça do ROB é parte da conversão, verificar se está esperando por uma conversão (waiting_for_conversion == true) e se a conversão esperada é a convesão atual (waiting_conversion_id == this-&gt;vima_converter.current_conversion-&gt;unique_conversion_id).</li>
+                <li>Também removi uma condição que verificava se era uma instrução convertida que realizava o cálculo de endereços da conversão.</li>
+                <li>Alterei a condição das invalidações para não mais considerar a uop como PROCESSOR_STAGE_WAITING_DYN mas sim uma uop esperando uma conversão quando o ROB enche.</li>
+                <li>Também mudei para considerar o waiting_conversion_id ao invés do unique_conversion_id da primeira uop travada (já que ela não faz parte da conversão).</li>
+                <li>Criei a flag <strong>DEBUG_CONVERSION</strong> para mostrar os debugs mais relevantes do mecanismo que utilizei dessa vez.</li>
+            </ul>
+        </li>
+        <li>Alterar o SAPIVe para formar padrões com instruções escalares e de 128 bits também.
+            <ul>
+                <li>Detecção dos padrões</li>
+                <li>Cálculo de próximos endereços com essas novos tamanhos
+                    <ul>
+                        <li><strong>necessary_AVX_256_iterations_to_one_vima</strong> trocado por <strong>(VIMA_SIZE/uop-&gt;mem_size)</strong></li>
+                    </ul>
+                </li>
+                <li>Invalidações devem ser ajustadas para não acontecer em qualquer escalar.</li>
+                <li>Estava usando o opcode_operation ao invés de uop_operation para contabilizar quantas uops de load e store.</li>
+            </ul>
+        </li>
+        <li>Implementar o <em>flush.</em>
+            <ul>
+                <li>Como o flush limpa os buffers, precisamos reiniciar a execução com o clock()...
+                    <ul>
+                        <li>Se invalidar, retornamos da função atual até a <strong>processor::clock()</strong>.</li>
+                        <li><strong>vima_converter_t::AGU_result</strong> agora retorna um <strong>bool</strong></li>
+                        <ul>
+                            <li>Se for falso, retornamos para a função <strong>processor_t::clock()</strong></li>
+                        </ul>
+                        <li>Quando são as primeiras duas iterações, não precisamos ser tão rígidos, apenas descartar...
+                            <ul>
+                                <li class="gambiarra_problema">Para simplificar nossos experimentos, fazemos flush mesmo nesse caso :p</li>
+                            </ul>
+                        </li>
+                        <li class="todo">Deu um erro por parar no meio, aparentemente uma instrução para no meio do despacho, sei lá....</li>
+                    </ul>
+                </li>
+
+                <li>Deve ser executado a cada invalidação.</li>
+                <li>Se não existir um checkpoint, nenhuma conversão foi iniciada, então não precisa do flush ( <strong>processor.conversion_flush</strong> ).</li>
+
+                <li>Deve remover todas as instruções após a primeira convertida ( <strong>processor.conversion_flush</strong> ).</li>
+                <li>Deve reiniciar a leitura de instruções pela primeira convertida, da conversão que invalidou.</li>
+                <li>Preciso colocar uma flag nas requisições à memória invalidadas:
+                    <ul>
+                        <li>Cache manager <strong>request</strong>, cada entrada que será invalidada recebe <strong>true</strong> em sua flag <strong>flushed</strong>. (<strong>cache_manager_t::flush_requests</strong>) e sua lista de clientes é limpa.
+                        <ul>
+                            <li>Assim, a CPU não é informada quando completar.</li>
+                            <li class="gambiarra_problema">Ainda assim, a execução das requisições continua, mesmo invalidadas.</li>
+                            <li>Caso outra instrução aproveite aquela requisição, sua flag <strong>flushed</strong> é resetada.</li>
+                        </ul>
+                        <li>Para a VIMA basta invalidar que ela não informa a CPU.</li>
+                    </ul>
+                </li>
+                <li class="gambiarra_problema">O contador decodeCounter é atualizado com o valor de fetchCounter. (Problema: O valor dele não contabiliza corretamente tudo que foi feito...)</li>
+                <li>Preciso resolver as dependências de quem for tirado com quem continua...</li>
+                <ul>
+                    <li>
+                        resolve_registers_to(rob_line)
+                        <ol>
+                            <li>Tira os rastros de uma uop do RAT, evitando que futuras instruções dependam dela.</li>
+                            <li>Passa por cada instrução do ROB verificando se tinha uma dependência com ela. Se tinha, resolve. </li>
+                            <li>Passa por cada conversão que deveria acordar e desvincula.</li>
+                            <li>RESTRIÇÂO: Precisamos chamar essa função a partir da última uop do ROB, caso contrário podemos não achar todas as dependências existentes.</li>
+                        </ol>
+
+                    </li>
+                    <li>resolve_registers_to(conversion)
+                        <ul>
+                            <li>Passa por cada instrução do ROB removendo a dependência com ela.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </ul>
+        </li>
+        <li>Porque original_program_instructions está diferente na versão pc (198672) e na versão original (196619) do mecanismo?
+            <ul>
+                <li>mecanismo_original: Comentei linhas 2629 e 2633 de processor.cpp</li>
+                <li>mecanismo_pc: Comentei linhas 2738 e 2742 de processor.cpp</li>
+                <li>Era um problema a respeito de como contabilizava as instruções e quando liberava a entrada do decodeBuffer.</li>
+            </ul>
+
+        </li>
+        <li>Armazenar o PC do início da conversão.
+            <ul>
+                <li>Implementei a função <strong>get_checkpoint</strong> no trace_reader_t.
+                    <ul>
+                        <li>Salva a posição no traço dinâmico (qual BBL).</li>
+                        <li>Salva o opcode dentro do BBL do traço dinâmico (<strong>currect_opcode</strong>).</li>
+                        <li>Salva a posição no traço de memória.</li>
+                        <li>Salva se estava em um BBL ou migrando de um ao outro: <strong>is_inside_bbl</strong>.</li>
+                    </ul></li>
+                <li>Implementei a classe <strong>trace_checkpoint_t</strong> para armazenar os dados retornados pela <strong>get_checkpoint</strong>.</li>
+                <li>A princípio, criamos um novo checkpoint a cada instrução (<strong>uop_package_t.checkpoint</strong> e <strong>opcode_package_t.checkpoint</strong> ).
+                    <ul>
+                        <li>O próprio <strong>trace_fetch</strong> salva o checkpoint quando lê a instrução.</li>
+                    </ul>
+                </li>
+                <li>
+                    Se for o início de uma conversão, salvamos nos dados da conversão (<strong>vima_converter.checkpoint</strong>).
+                    <ul>
+                    <li>A uop_number inicial da conversão, para poder invalidar as que vierem depois no pipeline.</li>
+                    <li class="gambiarra_problema">O opcode_number inicial da conversão, para reajustarmos o decodeCounter e o fetchCounter.</li>
+                    <li>O próprio checkpoint do traço, armazenado na instrução (uop-&gt;checkpoint).</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Impedir instruções entre as convertidas de fazer <em>commit</em>.
+            <ul>
+                <li>Cada uop recebeu um campo chamado: <strong>waiting_conversion_id</strong> que contém o id da conversão que ela deve esperar antes de realizar commit.</li>
+                <li>Além de um campo booleano <strong>waiting_for_conversion</strong> que informa se o campo anterior contém um id válido.</li>
+                <li>Quando confirmamos a conversão, liberamos as travadas para comitar utilizando a função <strong>check_conversion</strong>, que define <strong>waiting_for_conversion</strong> como falso para as instruções esperando uma conversão concluída.</li>
+                <li class="TODO">Quando invalidamos uma conversão, precisamos fazer flush (fica pro próximo todo)</li>
+            </ul>
+        </li>
+        <li>Liberar o <em>commit</em> ao fim da conversão.
+            <ul>
+                <li>
+                    Critérios para o commit de uma conversão:
+                    <ol>
+                        <li>Infos remaining deve ser igual a 0, indicando que a conversão já iniciou.</li>
+                        <li>Cada vez que uma instrução de load ou store de uma conversão é renomeada, reduzimos seu mem_addr_confirmations_remaining. </li>
+                        <li>Quando esse valor chegar a 0, esperamos wait_reg_deps_number chegar a 0.</li>
+                        <li>Quando ele chegar, esperamos o ciclo global do OrCS passar de deps_readyAt. </li>
+                    </ol>
+                </li>
+                <li>
+                    Para saber se uma conversão está completa, a cada ciclo a função <strong>clock</strong> é chamada no <strong>vima_converter</strong>. Por sua vez, essa função chama a <strong>check_conversions</strong>, que verifica cada uma das conversões ativas. Caso uma conversão tenha completado, enviamos um sinal para a VIMA e marcamos <strong>CPU_requirements_meet</strong> como true.
+                </li>
+                 
+            </ul>
+            </li>
+        <li>Criar dependências entre as instruções e conversões.
+            <ul>
+                <li>Usando a função update_registers_to_conversion do processor.cpp</li>
+                <li>Cada entrada do RAT agora têm mais dois campos:
+                    <ul>
+                        <li>wake_up_conversions_counter: número de conversões que precisam ser informadas quando a instrução completar.</li>
+                        <li>reg_deps_conv_ptr_array: ponteiro para as conversões que devem ser avisadas.</li>
+                    </ul>
+                </li>
+                <li>Cada conversão também ganhou dois campos:
+                    <ul>
+                        <li>wait_reg_deps_number: indicando quantas dependências ela está esperando serem resolvidas</li>
+                        <li>deps_readyAt: indicando quando a dependência mais distante (das já informadas como resolvidas) vai completar.</li>
+                    </ul> 
+                </li>
+                
+            </ul>
+        </li>
+        
+        
+        <li>Identificar instrução escrevendo em cada registrador <span class="ABANDONED">(Serve apenas para uma ideia abandonada...)</span>. 
+            <ul>
+                <li>Para isso criamos as seguintes variáveis
+                    <ul>
+                        <li>
+                            uint64_t write_addr[259]: Armazena o endereço correspondente                     
+                        </li>
+                        <li>
+                            uint64_t write_uop[259]: Armazena o uop_id correspondente
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Não colocar instruções sendo convertidas no ROB. <br>
+            Alterações:
+            <ul>
+                <li>Uma instrução com uop.ignore_on_conversion_success == true, não vai ser mais colocada no ROB.</li>
+                <li>Para isso, a variável <strong>bool</strong> ignore_on_conversion_success recebe o valor desse atributo (evita problemas quando tiramos do buffer do decode).</li>
+                <li>As conversões já iniciam com o endereço de todas as iterações confirmado.
+                    <ul>
+                        <li class="gambiarra_problema">Chamamos confirm_mem_addr para cada uop no momento em que teria sido adicionada ao ROB.</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Montar um ambiente de testes.
+            <ul>
+                <li>Com um traço de cada tipo</li>
+                <li>Um arquivo run_debug.py para executar os testes</li>
+            </ul>
+        </li>
+
+    </ul>
+
+    <h4>Ideias abandonadas:</h4>
+    <ul class="ABANDONED">
+        <li>
+            Marcar instruções que geram dependências nas convertidas.
+            <ul>
+                <li>Na iteração 0, armazenamos quais instruções geraram dependência com as instruções do padrão.</li>
+                <li>A partir da primeira iteração convertida (p), cada instrução que gera dependência é marcada com o id da conversão e uma flag (<em>conversion_source</em>) indicando que deve informar o seu resultado à conversão.</li>
+                <li>Apenas precisamos (das dependências dos loads) e (das dependências para a geração do endereço do store).</li>
+            </ul>
+        </li>
+        <li>Calcular o endereço da iteração da conversão após execução de uma marcada.</li>
+    </ul>
+
+    <h3>Versões salvas</h3>
+    <table>
+        <tr>
+            <th>Pasta</th>
+            <th>Versão</th>
+        </tr>
+        <tr>
+            <td>Old/mecanismo_pc_pre_reuniao</td>
+            <td>Após a implementação das dependências e de travar instruções entre as convertidas, as liberando para commit quando a conversão é concluída, com <em>flush</em> em caso de falha de uma conversão. Porém, sem esperar até uma instrução especial que marca a conversão ser a cabeça do ROB para realizar o flush.</td>
+        </tr>
+        <tr>
+            <td>Old/mecanismo_pc_pre_flush</td>
+            <td>Após a implementação das dependências e de travar instruções entre as convertidas, as liberando para commit quando a conversão é concluída. Porém antes de implementar o <em>flush</em> em caso de falha de uma conversão.</td>
+        </tr>
+        <tr>
+            <td>Old/mecanismo_pc_pre_dependencias</td>
+            <td>Já tinha implementado para não colocar as instruções convertidas no ROB, porém não tinha impedido as demais entre elas de comitarem e nem tinha estabelecido dependências entre a conversão e instruções que geram os dados usados por seus loads/stores (endereços)</td>
+        </tr>
+        <tr>
+            <td>Old/mecanismo_pc_pre_padroes_escalares</td>
+            <td>Já tinha implementado para não colocar as instruções convertidas no ROB, o flush e as dependências. Porém não tinha implementado a detecção e conversão de padrões escalares e de 128 bits.</td>
+        </tr>
+    </table>
+
+        <h1>Geração de traços</h1>
+        <p>
+            Os códigos fonte para a geração dos traços foram armazenados na pasta <strong>Experiments/src</strong>.
+            Eles utilizam intrinsics aninhadas, porém com o avanço dos compiladores, é possível que isso para de gerar o resultado com os padrões que precisamos...
+        </p>
+
+        <p>Cada fonte dessa pasta é compilado considerando diferentes tamanho de laço (de 1 a 4096 iterações) e os executáveis resultates são armazenados em <strong>Experiments/exe</strong>.
+        Isso é feito utilizando o executável <strong>Experiments/createTraces.sh</strong> que vai chamar o script em python3 <strong>Experiments/src/compile.py</strong>.
+        Para realizar paralelamente essas compilações, o compile.py foi dividido em compile_scalar.py, compile_128.py, compile_256.py e compile_512.py, cada um fazendo um tipo distinto de compilação.</p>
+
+        <p>Por fim, retirei os blocos básicos iniciais e finais dos traços, já que possuíam chamadas a funções do OrCS tracer, utilizando <strong>Experiments/corrigirTracos/corrigir.py</strong>. Em seguida, usei o <strong>Experiments/corrigirTracos/fixDifferentMemoryTraces.py</strong> para garantir que traços do mesmo tipo (cópia de memória e soma vetorial) acessavam os mesmos endereços na memória, garantindo certa consistência aos resultados. Por fim o <strong>Experiments/corrigirTracos/verify.py</strong> é usado para verificar se os endereços de memória ficaram realmente consistentes.</p>
+        <p>Esses 3 arquivos devem ser executados dentro da pasta dos traços! A recomendação é copiar os traços de memória para uma pasta separada e executar nessa pasta, assim caso algo dê errado, ainda temos os originais. Se tudo der certo, voltamos os arquivos modificados para a pasta original deles (que contém os traços dinâmicos e estáticos).</p>
+
+        <h1>Compilação das versões do simulador</h1>
+        <p>Utilizamos uma versão base do OrCS (<strong>OrCS_original</strong>) e uma versão com nosso mecanismo (<strong>mecanismo_pc</strong>). O arquivo <strong>makefile</strong> na pasta ExtensaoWSCAD (antes da Experiments) tem um makefile que faz a compilação dessas versões e copia os executáveis resultantes para a pasta <strong>Experiments/exe</strong>.</p>
+        
+        <h1>Geração de resultados</h1>
+        <p>
+            A geração dos resultados pode ser feita com o script <strong>Experiments/script_to_run.py</strong> que vai realizar execuções paralelas das simulações.
+            Para isso, devemos configurar a iteração de inicio (inicio) [a iteração consiste no número de iterações do programa que está sendo simulado, isso varia de 1 a 4096], o número de iterações realizado por cada thread (numeroEmCada) e o número de threads (paralelos).
+            Quando as execuções acabarem, precisamos reajustar esses parâmetros para onde parou e continuar até as 4096 iterações (Não tem problema passar dela, ele só não faz nada :p).
+        </p>
+
+        <p>
+            Os resultados dessa etapa serão colocados nas pastas Experiments/Results/OrCS_original e Experiments/Results/mecanismo_pc. <br>
+            Em seguida, você deve separar os arquivos da Experiments/Results/mecanismo_pc nas pastas:
+        </p>
+        <ul>
+            <li>
+                Experiments/Results/mecanismo_pc/p0
+            </li>
+            <li>
+                Experiments/Results/mecanismo_pc/p1
+            </li>
+            <li>
+                Experiments/Results/mecanismo_pc/p2
+            </li>
+            <li>
+                Experiments/Results/mecanismo_pc/p4
+            </li>
+            <li>
+                Experiments/Results/mecanismo_pc/p8
+            </li>
+            <li>
+                Experiments/Results/mecanismo_pc/p16
+            </li>
+        </ul>
+        <p>Considerando o fim do nome de cada um desses arquivos. Isso pode ser feito utilizando python3 <strong>Experiments/script_to_organize.py</strong>.</p>
+
+        <h1>Extração de resultados</h1>
+        <p>
+            Da mesma maneira que para gerar os resultados, a extração deles pode ser realizada com o script <strong>Experiments/script_to_analysis.py</strong>.
+            Ele também deve ser configurado com um número de iteração inicial (inicio), o número de iterações processado por cada processo (numeroEmCada) e o número de processos em paralelo (paralelos).
+        </p>
+        <p>Após os processos terminarem, esses valores devem ser atualizados até que a iteração 4096 seja processada. Não tem problema passar dela, ele só não faz nada :p</p>
+
+        <p>Em seguida, os arquivos .csv gerados na pasta <strong>Experiments/Results</strong> devem ser unidos utilizando o script: <strong>Experiments/joinAnalysis.py</strong>.</p>
+        <p>Esse script gera dois arquivos, que contém nossos resultados extraídos: <strong>Experiments/Results/Original.csv</strong> e <strong>Experiments/Results/MecanismoPC.csv</strong>, apagando todos os arquivos CSV parciais. Além disso ele move qualquer Original.csv e MecanismoPC.csv que existia antes em <strong>Experiments/Results</strong> para <strong>Experiments/Results/Old</strong>, evitando sua sobrescrita.</p>
+        
+        <h1>Geração de gráficos</h1>
+
+
+
+</body>
+</html>

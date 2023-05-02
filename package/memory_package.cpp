@@ -43,6 +43,7 @@ memory_package_t::memory_package_t() {
     this->cpu_informed = false;
 
     memory_operation = MEMORY_OPERATION_LAST;    /// memory operation
+    flushed = false;
 }
 
 memory_package_t::~memory_package_t(){

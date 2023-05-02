@@ -6,11 +6,11 @@ processor_t::processor_t()
 	this->stall_full_FetchBuffer = 0;
 	this->stall_wrong_branch = 0;
 	//=============
-	//Statistics Decode
+	// Statistics Decode
 	//=============
 	this->stall_full_DecodeBuffer = 0;
 	//=============
-	//Statistics Rename
+	// Statistics Rename
 	//=============
 	this->registerWrite = 0;
 	this->stall_full_MOB_Read = 0;
@@ -19,11 +19,11 @@ processor_t::processor_t()
 	this->stall_full_RS = 0;
 
 	//=============
-	//Statistics Dispatch
+	// Statistics Dispatch
 	//=============
 	this->stall_empty_RS = 0;
 	//=============
-	//Statistics Execute
+	// Statistics Execute
 	//=============
 	this->stat_disambiguation_read_false_positive = 0;
 	this->stat_disambiguation_write_false_positive = 0;
@@ -36,7 +36,7 @@ processor_t::processor_t()
 	this->core_ram_request_wait_cycles = 0;
 	this->core_ram_requests = 0;
 	//=============
-	//Statistics Commit
+	// Statistics Commit
 	//=============
 	this->stat_inst_int_alu_completed = 0;
 	this->stat_inst_mul_alu_completed = 0;
@@ -83,8 +83,8 @@ processor_t::processor_t()
 
 	this->QTDE_INTEGER_FU = 0;
 
-	//FP ULAS LATENCY
-	// FLOATING POINT DIV
+	// FP ULAS LATENCY
+	//  FLOATING POINT DIV
 	this->LATENCY_FP_DIV = 0;
 	this->WAIT_NEXT_FP_DIV = 0;
 	this->FP_DIV = 0;
@@ -103,7 +103,7 @@ processor_t::processor_t()
 	this->PARALLEL_STORES = 0;
 
 	// ======================
-	///UNIFIED FUS
+	/// UNIFIED FUS
 
 	// PROCESSOR BUFFERS SIZE
 	this->FETCH_BUFFER = 0;
@@ -111,7 +111,7 @@ processor_t::processor_t()
 	this->RAT_SIZE = 0;
 	this->ROB_SIZE = 0;
 	this->UNIFIED_RS = 0;
-	//MOB
+	// MOB
 	this->MOB_READ = 0;
 	this->MOB_WRITE = 0;
 	this->MOB_HIVE = 0;
@@ -142,8 +142,8 @@ processor_t::processor_t()
 
 	this->VIMA_EXCEPT = 0;
 
-	//this->KILO = 1024 = 0;
-	//this->MEGA = KILO*KILO = 0;
+	// this->KILO = 1024 = 0;
+	// this->MEGA = KILO*KILO = 0;
 
 	this->LINE_SIZE = 0;
 	this->DATA_CACHES = 0;
@@ -186,8 +186,15 @@ processor_t::processor_t()
 	this->memory_vima_executed = 0;
 	this->memory_hive_executed = 0;
 
-	//Setting Pointers to NULL
-	// ========OLDEST MEMORY OPERATIONS POINTER======
+	// Writings tracker
+	for (int32_t i = 0; i < MAX_REGISTERS; ++i)
+	{
+		this->write_addr[i] = 0;
+		this->write_uop[i] = 0;
+	}
+
+	// Setting Pointers to NULL
+	//  ========OLDEST MEMORY OPERATIONS POINTER======
 	this->oldest_read_to_send = NULL;
 	this->oldest_write_to_send = NULL;
 	this->oldest_hive_to_send = NULL;
@@ -216,7 +223,6 @@ processor_t::processor_t()
 	this->register_alias_table = NULL;
 	// ==========ROB========
 	this->reorderBuffer.reorderBuffer = NULL;
-
 }
 
 unordered_map<uint64_t, bool> read_executed;
@@ -249,28 +255,29 @@ processor_t::~processor_t()
 		}
 	}
 
-	//Memory structures
+	// Memory structures
 	utils_t::template_delete_array(this->memory_order_buffer_read);
 	utils_t::template_delete_array(this->memory_order_buffer_write);
 	utils_t::template_delete_array(this->memory_order_buffer_hive);
 	utils_t::template_delete_array(this->memory_order_buffer_vima);
 
 	utils_t::template_delete_variable(this->disambiguator);
-	//auxiliar var to maintain status oldest instruction
+	// auxiliar var to maintain status oldest instruction
 	utils_t::template_delete_variable(this->oldest_read_to_send);
 	utils_t::template_delete_variable(this->oldest_write_to_send);
 	utils_t::template_delete_variable(this->oldest_hive_to_send);
 	utils_t::template_delete_variable(this->oldest_vima_to_send);
 
-	//deleting deps array rob
+	// deleting deps array rob
 	for (size_t i = 0; i < ROB_SIZE; i++)
 	{
 		utils_t::template_delete_array(this->reorderBuffer.reorderBuffer[i].reg_deps_ptr_array[0]);
+		utils_t::template_delete_array(this->reorderBuffer.reorderBuffer[i].reg_deps_conv_ptr_array[0]);
 	}
 	// deleting rob
 	utils_t::template_delete_array(this->reorderBuffer.reorderBuffer);
 
-	//delete RAT
+	// delete RAT
 	utils_t::template_delete_array(this->register_alias_table);
 
 	delete[] this->total_latency;
@@ -388,7 +395,7 @@ void processor_t::allocate()
 	set_WAIT_NEXT_INT_DIV(cfg_processor["WAIT_NEXT_INT_DIV"]);
 	set_INTEGER_DIV(cfg_processor["INTEGER_DIV"]);
 
-	set_QTDE_INTEGER_FU(INTEGER_ALU+INTEGER_MUL+INTEGER_DIV);
+	set_QTDE_INTEGER_FU(INTEGER_ALU + INTEGER_MUL + INTEGER_DIV);
 
 	set_LATENCY_FP_DIV(cfg_processor["LATENCY_FP_DIV"]);
 	set_WAIT_NEXT_FP_DIV(cfg_processor["WAIT_NEXT_FP_DIV"]);
@@ -402,7 +409,7 @@ void processor_t::allocate()
 	set_WAIT_NEXT_FP_ALU(cfg_processor["WAIT_NEXT_FP_ALU"]);
 	set_FP_ALU(cfg_processor["FP_ALU"]);
 
-	set_QTDE_FP_FU(FP_ALU+FP_MUL+FP_DIV);
+	set_QTDE_FP_FU(FP_ALU + FP_MUL + FP_DIV);
 
 	set_PARALLEL_LOADS(cfg_processor["PARALLEL_LOADS"]);
 	set_PARALLEL_STORES(cfg_processor["PARALLEL_STORES"]);
@@ -602,7 +609,7 @@ void processor_t::allocate()
 	}
 
 	// =========================================================================================
-	//disambiguator
+	// disambiguator
 	switch (this->DISAMBIGUATION_METHOD)
 	{
 	case DISAMBIGUATION_METHOD_HASHED:
@@ -613,14 +620,14 @@ void processor_t::allocate()
 	}
 	case DISAMBIGUATION_METHOD_PERFECT:
 	{
-		//this->disambiguator = new disambiguation_perfect_t;
+		// this->disambiguator = new disambiguation_perfect_t;
 		break;
 	}
 	}
 
 	// parallel requests
 	// =========================================================================================
-	//DRAM
+	// DRAM
 	// =========================================================================================
 	this->request_DRAM = 0;
 	// =========================================================================================
@@ -649,7 +656,6 @@ void processor_t::allocate()
 	if (get_HAS_VIMA())
 		this->fu_mem_vima.allocate(fu_cnt++, VIMA_UNIT, WAIT_NEXT_MEM_VIMA);
 
-
 	// reserving space to uops on UFs pipeline, waitng to executing ends
 	this->unified_reservation_station.reserve(ROB_SIZE);
 
@@ -676,13 +682,22 @@ void processor_t::allocate()
 	this->conversion_enabled = (uint32_t)cfg_processor["VIMA_CONVERSION_ENABLED"] ? true : false;
 	this->VIMA_SIZE = cfg_processor["VIMA_SIZE"];
 
-	this->vima_converter.initialize(cfg_processor["LATENCY_MEM_VIMA"], cfg_processor["WAIT_NEXT_MEM_VIMA"],	&this->fu_mem_vima, this->VIMA_SIZE,
-	                                (uint32_t)cfg_converter["PREFETCH_BUFFER_SIZE"], (uint32_t)cfg_converter["CONTIGUOUS_CONVERSIONS_TO_PREFETCH"], (uint32_t)cfg_converter["PREFETCH_SIZE"]);
-
+	this->vima_converter.initialize(cfg_processor["LATENCY_MEM_VIMA"], cfg_processor["WAIT_NEXT_MEM_VIMA"], &this->fu_mem_vima, this->VIMA_SIZE,
+									(uint32_t)cfg_converter["PREFETCH_BUFFER_SIZE"], (uint32_t)cfg_converter["CONTIGUOUS_CONVERSIONS_TO_PREFETCH"], (uint32_t)cfg_converter["PREFETCH_SIZE"]);
 }
 // =====================================================================
 bool processor_t::isBusy()
 {
+#ifdef DEBUG_CONVERSION
+	printf("%lu - isBusy() - traceIsOver: %s empty_fetchBuffer: %s empty_decodeBuffer: %s empty_vima_converter: %s ROB: %u\n",
+		   orcs_engine.get_global_cycle(),
+		   (this->traceIsOver) ? "true" : "false",
+		   (this->fetchBuffer.is_empty()) ? "true" : "false",
+		   (this->decodeBuffer.is_empty()) ? "true" : "false",
+		   (this->vima_converter.vima_instructions_buffer.is_empty()) ? "true" : "false",
+		   reorderBuffer.robUsed);
+#endif
+
 	return (this->traceIsOver == false ||
 			!this->fetchBuffer.is_empty() ||
 			!this->decodeBuffer.is_empty() ||
@@ -717,13 +732,65 @@ int32_t processor_t::searchPositionROB(ROB_t *rob)
 void processor_t::returnPositionROB(ROB_t *rob)
 {
 	rob->robUsed--;
-	if (rob->robEnd == 0) {
+	if (rob->robEnd == 0)
+	{
 		rob->robEnd = rob->SIZE - 1;
-	} else {
+	}
+	else
+	{
 		rob->robEnd--;
 	}
-
+	rob->reorderBuffer[rob->robEnd].package_clean();
 }
+
+uint32_t processor_t::lastPositionROB(ROB_t *rob)
+{
+	if (rob->robEnd == 0)
+	{
+		return rob->SIZE - 1;
+	}
+	else
+	{
+		return rob->robEnd - 1;
+	}
+}
+
+uint32_t processor_t::lastPosition_mob_read()
+{
+	if (this->memory_order_buffer_read_end == 0)
+	{
+		return MOB_READ - 1;
+	}
+	else
+	{
+		return this->memory_order_buffer_read_end - 1;
+	}
+}
+
+uint32_t processor_t::lastPosition_mob_write()
+{
+	if (this->memory_order_buffer_write_end == 0)
+	{
+		return MOB_WRITE - 1;
+	}
+	else
+	{
+		return this->memory_order_buffer_write_end - 1;
+	}
+}
+
+uint32_t processor_t::lastPosition_mob_vima()
+{
+	if (this->memory_order_buffer_vima_end == 0)
+	{
+		return MOB_VIMA - 1;
+	}
+	else
+	{
+		return this->memory_order_buffer_vima_end - 1;
+	}
+}
+
 
 // ======================================
 // Remove the Head of the reorder buffer
@@ -733,6 +800,7 @@ void processor_t::removeFrontROB(ROB_t *rob)
 {
 
 	ERROR_ASSERT_PRINTF(rob->reorderBuffer[rob->robStart].reg_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", rob->reorderBuffer[rob->robStart].content_to_string().c_str())
+	ERROR_ASSERT_PRINTF(rob->reorderBuffer[rob->robStart].reg_deps_conv_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", rob->reorderBuffer[rob->robStart].content_to_string().c_str())
 	rob->reorderBuffer[rob->robStart].package_clean();
 	rob->robUsed--;
 	rob->robStart++;
@@ -770,14 +838,18 @@ int32_t processor_t::search_n_positions_mob_read(uint32_t n, uint32_t *mob_size)
 void processor_t::remove_front_mob_read(uint32_t n)
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB Read Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB Read Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
 #endif
-	for (uint32_t i = 0; i < n; ++i) {
+#if MEMORY_DEBUG
+	ORCS_PRINTF("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_read[this->memory_order_buffer_read_start].memory_address, get_enum_memory_operation_char(memory_order_buffer_read[this->memory_order_buffer_read_start].memory_operation), get_enum_package_state_char(this->memory_order_buffer_read[this->memory_order_buffer_read_start].status), this->memory_order_buffer_read[this->memory_order_buffer_read_start].readyAt)
+#endif
+	for (uint32_t i = 0; i < n; ++i)
+	{
 		ERROR_ASSERT_PRINTF(this->memory_order_buffer_read_used > 0, "Removendo do MOB_READ sem estar usado\n")
 		ERROR_ASSERT_PRINTF(this->memory_order_buffer_read[this->memory_order_buffer_read_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias, unique_conversion_id: %lu\n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_start].unique_conversion_id, this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
 		this->memory_order_buffer_read_used--;
@@ -796,26 +868,27 @@ void processor_t::remove_front_mob_read(uint32_t n)
 void processor_t::remove_back_mob_read()
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB Read Back Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB Read Back Entry \n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
+#endif
+
+	/* New end */
+	this->memory_order_buffer_read_end = this->lastPosition_mob_read();
+#if MEMORY_DEBUG
+	ORCS_PRINTF("[MOBL] %lu %lu %s uop %lu removed from (READ) memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_read[this->memory_order_buffer_read_end].memory_address, get_enum_memory_operation_char(memory_order_buffer_read[this->memory_order_buffer_read_end].memory_operation),memory_order_buffer_read[this->memory_order_buffer_read_end].uop_number, get_enum_package_state_char(this->memory_order_buffer_read[this->memory_order_buffer_read_end].status), this->memory_order_buffer_read[this->memory_order_buffer_read_end].readyAt)
 #endif
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_read_used > 0, "Removendo do MOB_READ sem estar usado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_read[this->memory_order_buffer_read_end].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_end].content_to_string().c_str())
+	
+	
 	this->memory_order_buffer_read_used--;
 	this->memory_order_buffer_read[this->memory_order_buffer_read_end].package_clean();
-	if (this->memory_order_buffer_read_end == 0)
-	{
-		this->memory_order_buffer_read_end = MOB_READ - 1;
-	}
-	else
-	{
-		this->memory_order_buffer_read_end--;
-	}
 }
+
 
 // ============================================================================
 // get position on MOB hive.
@@ -850,7 +923,9 @@ int32_t processor_t::search_position_mob_vima(uint32_t *mob_size)
 	{
 		position = this->memory_order_buffer_vima_end;
 		*mob_size = MOB_VIMA;
+
 		this->memory_order_buffer_vima_used++;
+		//printf("memory_order_buffer_vima_used: %u\n", this->memory_order_buffer_vima_used);
 		this->memory_order_buffer_vima_end++;
 		if (this->memory_order_buffer_vima_end >= MOB_VIMA)
 		{
@@ -866,12 +941,12 @@ int32_t processor_t::search_position_mob_vima(uint32_t *mob_size)
 void processor_t::remove_front_mob_hive()
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB HIVE Entry \n%s\n", this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB HIVE Entry \n%s\n", this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
 #endif
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_hive_used > 0, "Removendo do MOB_HIVE sem estar usado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_hive[this->memory_order_buffer_hive_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", this->memory_order_buffer_read[this->memory_order_buffer_read_start].content_to_string().c_str())
@@ -890,12 +965,12 @@ void processor_t::remove_front_mob_hive()
 void processor_t::remove_front_mob_vima()
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB VIMA Entry \n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_vima_start].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB VIMA Entry \n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_vima_start].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
 #endif
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vima_used > 0, "Removendo do MOB_VIMA sem estar usado\n")
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vima[this->memory_order_buffer_vima_start].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_read_start].content_to_string().c_str())
@@ -907,8 +982,6 @@ void processor_t::remove_front_mob_vima()
 		this->memory_order_buffer_vima_start = 0;
 	}
 }
-
-
 
 int32_t processor_t::search_n_positions_mob_write(uint32_t n, uint32_t *mob_size)
 {
@@ -934,12 +1007,12 @@ int32_t processor_t::search_n_positions_mob_write(uint32_t n, uint32_t *mob_size
 void processor_t::remove_front_mob_write()
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB Write Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_start].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB Write Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_start].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
 #endif
 #if MEMORY_DEBUG
 	ORCS_PRINTF("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_write[this->memory_order_buffer_write_start].memory_address, get_enum_memory_operation_char(memory_order_buffer_write[this->memory_order_buffer_write_start].memory_operation), get_enum_package_state_char(this->memory_order_buffer_write[this->memory_order_buffer_write_start].status), this->memory_order_buffer_write[this->memory_order_buffer_write_start].readyAt)
@@ -962,28 +1035,50 @@ void processor_t::remove_front_mob_write()
 void processor_t::remove_back_mob_write()
 {
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("==========\n")
-			ORCS_PRINTF("RM MOB Write Back Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_end].content_to_string().c_str())
-			ORCS_PRINTF("==========\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB Write Back Entry \n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_end].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
+	}
 #endif
+	/* New end */
+	this->memory_order_buffer_write_end = this->lastPosition_mob_write();
+
 #if MEMORY_DEBUG
-	ORCS_PRINTF("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_write[this->memory_order_buffer_write_end].memory_address, get_enum_memory_operation_char(memory_order_buffer_write[this->memory_order_buffer_write_end].memory_operation), get_enum_package_state_char(this->memory_order_buffer_write[this->memory_order_buffer_write_end].status), this->memory_order_buffer_write[this->memory_order_buffer_write_end].readyAt)
+	ORCS_PRINTF("[MOBL] %lu %lu %s uop %lu removed from (write) memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_write[this->memory_order_buffer_write_end].memory_address, get_enum_memory_operation_char(memory_order_buffer_write[this->memory_order_buffer_write_end].memory_operation),memory_order_buffer_write[this->memory_order_buffer_write_end].uop_number, get_enum_package_state_char(this->memory_order_buffer_write[this->memory_order_buffer_write_end].status), this->memory_order_buffer_write[this->memory_order_buffer_write_end].readyAt)
 #endif
 	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write_used > 0, "Removendo do MOB_WRITE sem estar usado\n")
-
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_write[this->memory_order_buffer_write_end].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", this->memory_order_buffer_write[this->memory_order_buffer_write_end].content_to_string().c_str())
+	
+	
 	this->memory_order_buffer_write_used--;
 	this->memory_order_buffer_write[this->memory_order_buffer_write_end].package_clean();
-	if (this->memory_order_buffer_write_end == 0)
+}
+// ============================================================================
+// remove back mob vima
+// ============================================================================
+void processor_t::remove_back_mob_vima()
+{
+#if COMMIT_DEBUG
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 	{
-		this->memory_order_buffer_write_end = MOB_WRITE - 1;
+		ORCS_PRINTF("==========\n")
+		ORCS_PRINTF("RM MOB Write Back Entry \n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].content_to_string().c_str())
+		ORCS_PRINTF("==========\n")
 	}
-	else
-	{
-		this->memory_order_buffer_write_end--;
-	}
+#endif
+	/* New end */
+	this->memory_order_buffer_vima_end = this->lastPosition_mob_vima();
+#if MEMORY_DEBUG
+	ORCS_PRINTF("[MOBL] %lu %lu %s removed from (VIMA) memory order buffer | %s | readyAt = %u.\n", orcs_engine.get_global_cycle(), memory_order_buffer_vima[this->memory_order_buffer_vima_end].memory_address, get_enum_memory_operation_char(memory_order_buffer_vima[this->memory_order_buffer_vima_end].memory_operation), get_enum_package_state_char(this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].status), this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].readyAt)
+#endif
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vima_used > 0, "Removendo do MOB_VIMA sem estar usado\n")
+	ERROR_ASSERT_PRINTF(this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].mem_deps_ptr_array[0] == NULL, "Removendo sem resolver dependencias\n%s\n", this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].content_to_string().c_str())
+	
+	
+	this->memory_order_buffer_vima_used--;
+	this->memory_order_buffer_vima[this->memory_order_buffer_vima_end].package_clean();
 }
 // ============================================================================
 
@@ -1004,26 +1099,26 @@ void processor_t::fetch()
 		if (orcs_engine.cacheManager->available(this->processor_id, MEMORY_OPERATION_INST))
 		{
 			operation.package_clean();
-			//bool updated = false;
+			// bool updated = false;
 
 			//=============================
-			//Stall full fetch buffer
+			// Stall full fetch buffer
 			//=============================
 			if (this->fetchBuffer.size == FETCH_BUFFER)
 			{
-				//printf("STALL\n");
+				// printf("STALL\n");
 				this->add_stall_full_FetchBuffer();
 				break;
 			}
 			//=============================
-			//Stall branch wrong predict
+			// Stall branch wrong predict
 			//=============================
 			if (this->get_stall_wrong_branch() > orcs_engine.get_global_cycle())
 			{
 				break;
 			}
 			//=============================
-			//Get new Opcode
+			// Get new Opcode
 			//=============================
 			if (!orcs_engine.trace_reader[this->processor_id].trace_fetch(&operation))
 			{
@@ -1031,36 +1126,34 @@ void processor_t::fetch()
 				break;
 			}
 
-
 			// * ============================ * //
 
 			//============================
-			//add control variables
+			// add control variables
 			//============================
 			operation.readyAt = orcs_engine.get_global_cycle() + FETCH_LATENCY;
 			operation.opcode_number = this->fetchCounter;
 			this->fetchCounter++;
 
 #if FETCH_DEBUG
-				ORCS_PRINTF("%s - Opcode Fetched Opcode Number %lu %s\n", operation.opcode_assembly,
-							operation.opcode_number,
-							operation.content_to_string2().c_str())
+			ORCS_PRINTF("%s - Opcode Fetched Opcode Number %lu %s\n", operation.opcode_assembly,
+						operation.opcode_number,
+						operation.content_to_string2().c_str())
 #endif
 
 			//============================
-			///Solve Branch
+			/// Solve Branch
 			//============================
 
 			if (this->hasBranch)
 			{
-				//solve
+				// solve
 				uint32_t stallWrongBranch = orcs_engine.branchPredictor[this->processor_id].solveBranch(this->previousBranch, operation);
 				this->set_stall_wrong_branch(orcs_engine.get_global_cycle() + stallWrongBranch);
 				this->hasBranch = false;
 
-
-				//uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
-				// ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
+				// uint32_t ttc = orcs_engine.cacheManager->searchInstruction (this->processor_id, operation.opcode_address);
+				//  ORCS_PRINTF("ready after wrong branch %lu\n",this->get_stall_wrong_branch()+ttc)
 				operation.updatePackageWait(stallWrongBranch);
 				this->previousBranch.package_clean();
 			}
@@ -1074,15 +1167,16 @@ void processor_t::fetch()
 				this->hasBranch = true;
 			}
 			//============================
-			//Insert into fetch buffer
+			// Insert into fetch buffer
 			//============================
-
 			if (POSITION_FAIL == this->fetchBuffer.push_back(operation))
 			{
 				break;
 			}
-
-#if PROCESSOR_DEBUG
+#ifdef DEBUG_CONVERSION
+			printf("Status: %s -- ReadyAt: %u (fetch buffer: %u/%u)\n", get_enum_package_state_char(this->fetchBuffer[fetchBuffer.size - 1].status), this->fetchBuffer[fetchBuffer.size - 1].readyAt, this->fetchBuffer.size, this->fetchBuffer.capacity);
+#endif
+#if (PROCESSOR_DEBUG != 0) || defined(DEBUG_CONVERSION)
 			assert(operation.opcode_operation != -1);
 			ORCS_PRINTF("%lu processor %lu fetch(): addr %lu opcode %lu %s, readyAt %u, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
 						orcs_engine.get_global_cycle(),
@@ -1113,31 +1207,31 @@ void processor_t::fetch()
 			request->readyAt = orcs_engine.get_global_cycle();
 			request->born_cycle = orcs_engine.get_global_cycle();
 			request->sent_to_ram = false;
+			request->flushed = false;
 			request->type = INSTRUCTION;
 			request->op_count[request->memory_operation]++;
 #if MEMORY_DEBUG
-				ORCS_PRINTF("[PROC] %lu {%lu} %lu %s sent to memory.I\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char(request->memory_operation))
+			ORCS_PRINTF("[PROC] %lu {%lu} %lu %s sent to memory.I\n", orcs_engine.get_global_cycle(), request->opcode_number, request->memory_address, get_enum_memory_operation_char(request->memory_operation))
 #endif
-				inst_requests++;
-				if (!orcs_engine.cacheManager->searchData(request))
-					delete request;
-
+			inst_requests++;
+			if (!orcs_engine.cacheManager->searchData(request))
+				delete request;
 		}
 	}
 
 // Buffers status
 #if FETCH_DEBUG
-		printf("Ciclo: %lu - F: %u/%d  D: %d/%u ROB: %u/%u MOB R: %u/%u MOB W: %u/%u URS: %lu/%u\n",
-			   orcs_engine.get_global_cycle(),
-			   fetchBuffer.size, FETCH_BUFFER,
-			   decodeBuffer.size, DECODE_BUFFER,
-			   this->reorderBuffer.robUsed, this->reorderBuffer.SIZE,
-			   this->memory_order_buffer_read_used, this->MOB_READ,
-			   this->memory_order_buffer_write_used, this->MOB_WRITE,
-			   unified_reservation_station.size(), UNIFIED_RS);
+	printf("Ciclo: %lu - F: %u/%d  D: %d/%u ROB: %u/%u MOB R: %u/%u MOB W: %u/%u URS: %lu/%u - committed: %lu\n",
+		   orcs_engine.get_global_cycle(),
+		   fetchBuffer.size, FETCH_BUFFER,
+		   decodeBuffer.size, DECODE_BUFFER,
+		   this->reorderBuffer.robUsed, this->reorderBuffer.SIZE,
+		   this->memory_order_buffer_read_used, this->MOB_READ,
+		   this->memory_order_buffer_write_used, this->MOB_WRITE,
+		   unified_reservation_station.size(), UNIFIED_RS,
+		   this->commit_uop_counter);
 #endif
 }
-
 
 // ============================================================================
 /*
@@ -1167,11 +1261,11 @@ void processor_t::fetch()
 void processor_t::decode()
 {
 #if DECODE_DEBUG
-		ORCS_PRINTF("Decode Stage\n")
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("Opcode to decode %lu %s\n", this->fetchBuffer.front()->opcode_number, this->fetchBuffer.front()->content_to_string2().c_str())
-		}
+	ORCS_PRINTF("Decode Stage\n")
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("Opcode to decode %lu %s\n", this->fetchBuffer.front()->opcode_number, this->fetchBuffer.front()->content_to_string2().c_str())
+	}
 #endif
 
 	uop_package_t new_uop;
@@ -1192,11 +1286,11 @@ void processor_t::decode()
 		// First instruction must be ready
 		if (instr->status != PACKAGE_STATE_READY || instr->readyAt > orcs_engine.get_global_cycle())
 		{
+
 			break;
 		}
 
 		uint32_t num_uops = 0;
-
 
 		if ((get_HAS_HIVE() && instr->is_hive) ||
 			(get_HAS_VIMA() && (instr_op == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
@@ -1206,20 +1300,25 @@ void processor_t::decode()
 								instr_op == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 								instr_op == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 								instr_op == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-								instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+								instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
 								instr_op == INSTRUCTION_OPERATION_VIMA_GATHER ||
-								instr_op == INSTRUCTION_OPERATION_VIMA_SCATTER))) {
+								instr_op == INSTRUCTION_OPERATION_VIMA_SCATTER)))
+		{
 			num_uops += 1;
 		}
 		else
 		{
-			if (instr->num_reads <= 2) num_uops += instr->num_reads;
-			else {
+			if (instr->num_reads <= 2)
+				num_uops += instr->num_reads;
+			else
+			{
 				num_uops += 1; // Gather
 			}
 
-			if (instr->num_writes <= 1) num_uops += instr->num_writes;
-			else {
+			if (instr->num_writes <= 1)
+				num_uops += instr->num_writes;
+			else
+			{
 				num_uops += 1; // Scatter
 			}
 
@@ -1229,7 +1328,7 @@ void processor_t::decode()
 			/*if (instr_op != INSTRUCTION_OPERATION_BRANCH &&
 				instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
 				instr_op != INSTRUCTION_OPERATION_MEM_STORE) {*/
-				num_uops += instr_set->uops_per_instruction[instr->instruction_id].size();
+			num_uops += instr_set->uops_per_instruction[instr->instruction_id].size();
 			/*}*/
 		}
 
@@ -1240,10 +1339,15 @@ void processor_t::decode()
 			break;
 		}
 
-		if (strstr(instr->opcode_assembly, "_MASKmskw") != NULL) {
+		if (strstr(instr->opcode_assembly, "_MASKmskw") != NULL)
+		{
 			is_masked = true;
 		}
 
+		if (this->decodeCounter != instr->opcode_number)
+		{
+			printf("%lu != %lu -- ", this->decodeCounter, instr->opcode_number);
+		}
 
 		ERROR_ASSERT_PRINTF(this->decodeCounter == instr->opcode_number,
 							"Trying decode out-of-order");
@@ -1281,7 +1385,7 @@ void processor_t::decode()
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 #if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
 				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
@@ -1315,7 +1419,7 @@ void processor_t::decode()
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 #if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
 				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
@@ -1348,7 +1452,7 @@ void processor_t::decode()
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 #if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
 				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
@@ -1369,7 +1473,7 @@ void processor_t::decode()
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
+				instr_op == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_GATHER ||
 				instr_op == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
@@ -1397,7 +1501,7 @@ void processor_t::decode()
 				statusInsert = this->decodeBuffer.push_back(new_uop);
 
 #if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
 #if VIMA_DEBUG
@@ -1423,54 +1527,55 @@ void processor_t::decode()
 		// Decode Reads
 		// =====================
 		//// Read 1 and Read 2
-		if (instr->num_reads <= 2) {
+		if (instr->num_reads <= 2)
+		{
 			for (uint32_t r = 0; r < instr->num_reads; ++r)
 			{
-			new_uop.package_clean();
-			new_uop.opcode_to_uop(this->uopCounter++,
-								  INSTRUCTION_OPERATION_MEM_LOAD,
-								  this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
-								  *this->fetchBuffer.front(), uops_created, is_masked);
-			new_uop.add_memory_operation(instr->reads_addr[r], instr->reads_size[r]);
-			++uops_created;
-			// If op is not load, clear registers
-			if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_writes > 0))
-			 //(instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
-			{
-				// ===== Read Regs =============================================
-				/// Clear RRegs
-				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				new_uop.package_clean();
+				new_uop.opcode_to_uop(this->uopCounter++,
+									  INSTRUCTION_OPERATION_MEM_LOAD,
+									  this->LATENCY_MEM_LOAD, this->WAIT_NEXT_MEM_LOAD, &(this->fu_mem_load),
+									  *this->fetchBuffer.front(), uops_created, is_masked);
+				new_uop.add_memory_operation(instr->reads_addr[r], instr->reads_size[r]);
+				++uops_created;
+				// If op is not load, clear registers
+				if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_writes > 0))
+				//(instr_op != INSTRUCTION_OPERATION_MEM_LOAD)
 				{
-					new_uop.read_regs[i] = POSITION_FAIL;
+					// ===== Read Regs =============================================
+					/// Clear RRegs
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						new_uop.read_regs[i] = POSITION_FAIL;
+					}
+					/// Insert BASE and INDEX into RReg
+					new_uop.read_regs[0] = instr->base_reg;
+					new_uop.read_regs[1] = instr->index_reg;
+					// ===== Write Regs =============================================
+					/// Clear WRegs
+					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+					{
+						new_uop.write_regs[i] = POSITION_FAIL;
+					}
+					/// Insert 258 into WRegs
+					new_uop.write_regs[0] = 258;
 				}
-				/// Insert BASE and INDEX into RReg
-				new_uop.read_regs[0] = instr->base_reg;
-				new_uop.read_regs[1] = instr->index_reg;
-				// ===== Write Regs =============================================
-				/// Clear WRegs
-				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-				{
-					new_uop.write_regs[i] = POSITION_FAIL;
-				}
-				/// Insert 258 into WRegs
-				new_uop.write_regs[0] = 258;
-			}
 
-			new_uop.updatePackageWait(DECODE_LATENCY);
-			new_uop.born_cycle = orcs_engine.get_global_cycle();
-			this->total_operations[new_uop.opcode_operation]++;
-			statusInsert = this->decodeBuffer.push_back(new_uop);
+				new_uop.updatePackageWait(DECODE_LATENCY);
+				new_uop.born_cycle = orcs_engine.get_global_cycle();
+				this->total_operations[new_uop.opcode_operation]++;
+				statusInsert = this->decodeBuffer.push_back(new_uop);
 
-
-			#if DECODE_DEBUG
+#if DECODE_DEBUG
 				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			#endif
-			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-								"Erro, Tentando decodificar mais uops que o maximo permitido");
+#endif
+				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+									"Erro, Tentando decodificar mais uops que o maximo permitido");
 			}
 		}
-		//// Gather 
-		else {
+		//// Gather
+		else
+		{
 			new_uop.package_clean();
 			new_uop.opcode_to_uop(this->uopCounter++,
 								  INSTRUCTION_OPERATION_MEM_LOAD,
@@ -1510,9 +1615,9 @@ void processor_t::decode()
 			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
-			#if DECODE_DEBUG
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-			#endif
+#if DECODE_DEBUG
+			ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+#endif
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
 								"Erro, Tentando decodificar mais uops que o maximo permitido");
 		}
@@ -1526,95 +1631,95 @@ void processor_t::decode()
 			instr_op != INSTRUCTION_OPERATION_MEM_LOAD &&
 			instr_op != INSTRUCTION_OPERATION_MEM_STORE)
 		{*/
-			// Iterate over uops from instruction
-			for (uint32_t uop_idx : uops)
+		// Iterate over uops from instruction
+		for (uint32_t uop_idx : uops)
+		{
+			uop_info_t uop = instr_set->uops[uop_idx];
+			new_uop.package_clean();
+			new_uop.opcode_to_uop(this->uopCounter++,
+								  instr_op,
+								  uop.latency,
+								  this->functional_units[uop.fu_id].wait_next,
+								  &(this->functional_units[uop.fu_id]),
+								  *instr, uops_created, is_masked);
+
+			new_uop.add_memory_operation(0, 0);
+
+			// REDO
+			if (instr_op == INSTRUCTION_OPERATION_BRANCH ||
+				instr_op == INSTRUCTION_OPERATION_MEM_LOAD ||
+				instr_op == INSTRUCTION_OPERATION_MEM_STORE)
 			{
-				uop_info_t uop = instr_set->uops[uop_idx];
-				new_uop.package_clean();
-				new_uop.opcode_to_uop(this->uopCounter++,
-									  instr_op,
-									  uop.latency,
-									  this->functional_units[uop.fu_id].wait_next,
-									  &(this->functional_units[uop.fu_id]),
-									  *instr, uops_created, is_masked);
-
-				new_uop.add_memory_operation(0, 0);
-
-				// REDO
-				if (instr_op == INSTRUCTION_OPERATION_BRANCH ||
-					instr_op == INSTRUCTION_OPERATION_MEM_LOAD ||
-					instr_op == INSTRUCTION_OPERATION_MEM_STORE) {
-					new_uop.uop_operation = INSTRUCTION_OPERATION_OTHER;
-				}
-
-				++uops_created;
-				if (instr->num_reads > 0)
-				{
-					// ===== Read Regs =============================================
-					//registers /258 aux onde pos[i] = fail
-					/// Clear RRegs
-					// Just the reads consume base and index regs
-					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-					{
-						new_uop.read_regs[i] = POSITION_FAIL;
-					}
-
-					bool inserted_258 = false;
-					int32_t pos = 0;
-					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-					{
-						if (instr->read_regs[i] == POSITION_FAIL)
-						{
-							new_uop.read_regs[pos] = 258;
-							inserted_258 = true;
-							break;
-						}
-
-						if ((instr->read_regs[i] != (int32_t) instr->base_reg) &&
-							(instr->read_regs[i] != (int32_t) instr->index_reg)) {
-								new_uop.read_regs[pos++] = instr->read_regs[i];
-							}
-						
-					}
-					ERROR_ASSERT_PRINTF(inserted_258,
-										"Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
-										MAX_REGISTERS);
-				}
-
-				if ((instr->num_writes > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH))
-				{
-					// ===== Write Regs =============================================
-					//registers /258 aux onde pos[i] = fail
-					bool inserted_258 = false;
-					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-					{
-						if (new_uop.write_regs[i] == POSITION_FAIL)
-						{
-							new_uop.write_regs[i] = 258;
-							inserted_258 = true;
-							break;
-						}
-					}
-					ERROR_ASSERT_PRINTF(inserted_258,
-										"Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
-										MAX_REGISTERS);
-				}
-
-
-				new_uop.updatePackageWait(DECODE_LATENCY);
-				new_uop.born_cycle = orcs_engine.get_global_cycle();
-				this->total_operations[new_uop.uop_operation]++;
-				statusInsert = this->decodeBuffer.push_back(new_uop);
-
-				#if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
-				#endif
-				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-									"Erro, Tentando decodificar mais uops que o maximo permitido");
+				new_uop.uop_operation = INSTRUCTION_OPERATION_OTHER;
 			}
+
+			++uops_created;
+			if (instr->num_reads > 0)
+			{
+				// ===== Read Regs =============================================
+				// registers /258 aux onde pos[i] = fail
+				/// Clear RRegs
+				// Just the reads consume base and index regs
+				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				{
+					new_uop.read_regs[i] = POSITION_FAIL;
+				}
+
+				bool inserted_258 = false;
+				int32_t pos = 0;
+				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				{
+					if (instr->read_regs[i] == POSITION_FAIL)
+					{
+						new_uop.read_regs[pos] = 258;
+						inserted_258 = true;
+						break;
+					}
+
+					if ((instr->read_regs[i] != (int32_t)instr->base_reg) &&
+						(instr->read_regs[i] != (int32_t)instr->index_reg))
+					{
+						new_uop.read_regs[pos++] = instr->read_regs[i];
+					}
+				}
+				ERROR_ASSERT_PRINTF(inserted_258,
+									"Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
+									MAX_REGISTERS);
+			}
+
+			if ((instr->num_writes > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH))
+			{
+				// ===== Write Regs =============================================
+				// registers /258 aux onde pos[i] = fail
+				bool inserted_258 = false;
+				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
+				{
+					if (new_uop.write_regs[i] == POSITION_FAIL)
+					{
+						new_uop.write_regs[i] = 258;
+						inserted_258 = true;
+						break;
+					}
+				}
+				ERROR_ASSERT_PRINTF(inserted_258,
+									"Could not insert register_258, all MAX_REGISTERS(%d) used.\n",
+									MAX_REGISTERS);
+			}
+
+			new_uop.updatePackageWait(DECODE_LATENCY);
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.uop_operation]++;
+			statusInsert = this->decodeBuffer.push_back(new_uop);
+
+#if DECODE_DEBUG
+			ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+#endif
+			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+								"Erro, Tentando decodificar mais uops que o maximo permitido");
+		}
 		/*}*/
 		// =====================
-		//Decode Branch
+		// Decode Branch
 		// =====================
 		if (instr_op == INSTRUCTION_OPERATION_BRANCH)
 		{
@@ -1649,7 +1754,7 @@ void processor_t::decode()
 			if (instr->num_writes > 0)
 			{
 				// ===== Write Regs =============================================
-				//registers /258 aux onde pos[i] = fail
+				// registers /258 aux onde pos[i] = fail
 				bool inserted_258 = false;
 				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
 				{
@@ -1670,9 +1775,8 @@ void processor_t::decode()
 			this->total_operations[new_uop.opcode_operation]++;
 			statusInsert = this->decodeBuffer.push_back(new_uop);
 
-
 #if DECODE_DEBUG
-				ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+			ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
 			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
@@ -1680,73 +1784,70 @@ void processor_t::decode()
 		}
 
 		// =====================
-		//Decode Write
+		// Decode Write
 		// =====================
 		if (instr->num_writes > 0)
 		{
-			
-				new_uop.package_clean();
-				new_uop.opcode_to_uop(this->uopCounter++,
-									  INSTRUCTION_OPERATION_MEM_STORE,
-									  this->LATENCY_MEM_STORE, this->WAIT_NEXT_MEM_STORE, &(this->fu_mem_store),
-									  *instr, uops_created, is_masked);
-									  
-				for (uint32_t w = 0; w < instr->num_writes; ++w)
+
+			new_uop.package_clean();
+			new_uop.opcode_to_uop(this->uopCounter++,
+								  INSTRUCTION_OPERATION_MEM_STORE,
+								  this->LATENCY_MEM_STORE, this->WAIT_NEXT_MEM_STORE, &(this->fu_mem_store),
+								  *instr, uops_created, is_masked);
+
+			for (uint32_t w = 0; w < instr->num_writes; ++w)
+			{
+				new_uop.add_memory_operation(instr->writes_addr[w], instr->writes_size[w]);
+			}
+
+			++uops_created;
+			//
+			if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_reads > 0))
+			{
+				// Is just dependent from the last uop from opcode
+				bool inserted_258 = false;
+				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
 				{
-					new_uop.add_memory_operation(instr->writes_addr[w], instr->writes_size[w]);
+					new_uop.read_regs[i] = POSITION_FAIL;
 				}
+				/// Insert 258 into WRegs
+				new_uop.read_regs[0] = 258;
+				inserted_258 = true;
 
-				++uops_created;
-				//
-				if ((uops.size() > 0) || (instr_op == INSTRUCTION_OPERATION_BRANCH) || (instr->num_reads > 0))
+				ERROR_ASSERT_PRINTF(inserted_258,
+									"Could not insert register_258, all MAX_REGISTERS(%d) used.", MAX_REGISTERS)
+
+				// ===== Write Regs =============================================
+				/// Clear WRegs
+				for (uint32_t i = 0; i < MAX_REGISTERS; i++)
 				{
-					// Is just dependent from the last uop from opcode
-					bool inserted_258 = false;
-					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-					{
-						new_uop.read_regs[i] = POSITION_FAIL;
-					}
-					/// Insert 258 into WRegs
-					new_uop.read_regs[0] = 258;
-					inserted_258 = true;
-
-
-
-					ERROR_ASSERT_PRINTF(inserted_258,
-										"Could not insert register_258, all MAX_REGISTERS(%d) used.", MAX_REGISTERS)
-
-					// ===== Write Regs =============================================
-					/// Clear WRegs
-					for (uint32_t i = 0; i < MAX_REGISTERS; i++)
-					{
-						new_uop.write_regs[i] = POSITION_FAIL;
-					}
+					new_uop.write_regs[i] = POSITION_FAIL;
 				}
+			}
 
-				new_uop.updatePackageWait(DECODE_LATENCY);
-				new_uop.born_cycle = orcs_engine.get_global_cycle();
-				this->total_operations[new_uop.opcode_operation]++;
-				statusInsert = this->decodeBuffer.push_back(new_uop);
-
+			new_uop.updatePackageWait(DECODE_LATENCY);
+			new_uop.born_cycle = orcs_engine.get_global_cycle();
+			this->total_operations[new_uop.opcode_operation]++;
+			statusInsert = this->decodeBuffer.push_back(new_uop);
 
 #if DECODE_DEBUG
-					ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
+			ORCS_PRINTF("uop created %s\n", this->decodeBuffer.back()->content_to_string2().c_str())
 #endif
 
-				ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
-									"Erro, Tentando decodificar mais uops que o maximo permitido")
+			ERROR_ASSERT_PRINTF(statusInsert != POSITION_FAIL,
+								"Erro, Tentando decodificar mais uops que o maximo permitido")
 #if PROCESSOR_DEBUG
-				assert(new_uop.uop_operation != -1);
-				ORCS_PRINTF("%lu processor %lu decode(): addr %lu uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-							orcs_engine.get_global_cycle(),
-							this->processor_id,
-							new_uop.opcode_address,
-							new_uop.uop_number,
-							get_enum_instruction_operation_char(new_uop.uop_operation),
-							new_uop.readyAt,
-							this->fetchBuffer.get_size(),
-							this->decodeBuffer.get_size(),
-							reorderBuffer.robUsed);
+			assert(new_uop.uop_operation != -1);
+			ORCS_PRINTF("%lu processor %lu decode(): addr %lu uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+						orcs_engine.get_global_cycle(),
+						this->processor_id,
+						new_uop.opcode_address,
+						new_uop.uop_number,
+						get_enum_instruction_operation_char(new_uop.uop_operation),
+						new_uop.readyAt,
+						this->fetchBuffer.get_size(),
+						this->decodeBuffer.get_size(),
+						reorderBuffer.robUsed);
 #endif
 		}
 
@@ -1779,6 +1880,7 @@ void processor_t::update_registers(reorder_buffer_line_t *new_rob_line)
 					this->register_alias_table[read_register]->wake_up_elements_counter++;
 					this->register_alias_table[read_register]->reg_deps_ptr_array[j] = new_rob_line;
 					new_rob_line->wait_reg_deps_number++;
+					
 					dependencies_created++;
 					break;
 				}
@@ -1801,10 +1903,50 @@ void processor_t::update_registers(reorder_buffer_line_t *new_rob_line)
 	}
 }
 
+/* Creates dependencies with a conversion */
+uint64_t dependencies_with_conversion_created = 0;
+uint64_t calls_for_dependencies_with_conversion_creation = 0;
+void processor_t::update_registers_to_conversion(uop_package_t *uop, conversion_status_t *conversion)
+{
+	calls_for_dependencies_with_conversion_creation++;
+	/// Control the Register Dependency - Register READ
+	for (uint32_t k = 0; k < MAX_REGISTERS; k++)
+	{
+		if (uop->read_regs[k] < 0)
+			break;
+		uint32_t read_register = uop->read_regs[k];
+		ERROR_ASSERT_PRINTF(read_register < RAT_SIZE,
+							"Read Register (%d) > Register Alias Table Size (%d)\n", read_register, RAT_SIZE);
+
+		/// If there is a dependency
+		if (this->register_alias_table[read_register] != NULL)
+		{
+			for (uint32_t j = 0; j < ROB_SIZE; j++)
+			{
+				// Busca uma posição vazia no vetor
+				if (this->register_alias_table[read_register]->reg_deps_conv_ptr_array[j] == NULL)
+				{
+					// Preenche
+					this->register_alias_table[read_register]->wake_up_conversions_counter++;
+					this->register_alias_table[read_register]->reg_deps_conv_ptr_array[j] = conversion;
+					conversion->wait_reg_deps_number++;
+					dependencies_with_conversion_created++;
+					break;
+				}
+			}
+		}
+	}
+
+	/// Control the Register Dependency - Register WRITE
+	// Não precisamos das dependências de escrita. Até porque conversões não levam os resultados pra
+	// CPU em nossos experimentos
+}
+
 // ============================================================================
 bool converted = false;
 bool invalidate = false;
-//bool travado = false;
+bool ignore_on_conversion_success = false;
+// bool travado = false;
 
 void processor_t::rename()
 {
@@ -1812,59 +1954,64 @@ void processor_t::rename()
 	int32_t pos_rob, pos_mob = POSITION_FAIL;
 	uint32_t MOB_LIMIT = 0;
 	circular_buffer_t<uop_package_t> *origin_buffer = NULL;
-	//printf("Rename\n");
+	// printf("Rename\n");
 
 	// Traço acabou, só estamos travando pela conversão :p
-	if (this->traceIsOver && this->fetchBuffer.is_empty() && this->decodeBuffer.is_empty() && this->vima_converter.vima_instructions_buffer.is_empty()) {
+	if (this->traceIsOver && this->fetchBuffer.is_empty() && this->decodeBuffer.is_empty() && this->vima_converter.vima_instructions_buffer.is_empty())
+	{
 #if VIMA_CONVERSION_DEBUG
 		printf("  Fim da simulação: ");
 #endif
 		this->vima_converter.invalidation_reason["NO MORE INSTRUCTIONS ON RENAME TO COMPLETE THE CONVERSION"]++;
-		if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-            printf("Invalidado por NO MORE INSTRUCTIONS ON RENAME TO COMPLETE THE CONVERSION\n");
-        }
-		this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+		this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+		return;
 	}
 
 	for (i = 0; i < RENAME_WIDTH; i++)
 	{
-		//memory_order_buffer_line_t *mob_line = NULL;
+		// memory_order_buffer_line_t *mob_line = NULL;
 		memory_order_buffer_line_t *mob_base = NULL;
 		MOB_LIMIT = 0;
 		pos_mob = POSITION_FAIL;
 
-
 		// Checando se há uop decodificado, se está pronto, e se o ciclo de pronto
 		// é maior ou igual ao atual
 		if ((this->decodeBuffer.is_empty() ||
-			this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
-			this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()) &&
+			 this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
+			 this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()) &&
 			(this->vima_converter.vima_instructions_buffer.is_empty()))
 		{
-			//printf("Decode front not ready STATUS %s readyAt %lu\n", get_enum_package_state_char(this->decodeBuffer.front()->status), this->decodeBuffer.front()->readyAt);
+			/*
+			if (this->decodeBuffer.is_empty()) {
+				printf("Decode empty!\n");
+			} else {
+				printf("Decode front not ready STATUS %s readyAt %lu\n", get_enum_package_state_char(this->decodeBuffer.front()->status), this->decodeBuffer.front()->readyAt);
+			}
+			*/
 			break;
 		}
 
-
-
-
-
 		// *************************************************
-		// Avalia se a uop pode fazer parte de uma conversão
+		// Envia primeiro as instruções VIMA de conversões
 		// *************************************************
-		if (this->vima_converter.vima_instructions_buffer.is_empty()) {
+		if (this->vima_converter.vima_instructions_buffer.is_empty())
+		{
 			origin_buffer = &this->decodeBuffer;
-		} else {
+		}
+		else
+		{
+			// printf("Do buffer vima (used: %u)\n", this->vima_converter.vima_instructions_buffer.get_size());
+			// printf("Conversion placeholder: %s\n", this->vima_converter.vima_instructions_buffer.front()->is_placeholder ? "true" : "false");
 			origin_buffer = &this->vima_converter.vima_instructions_buffer;
 		}
 
 		// **********************************************************************
-		// Verifica se tem espaço antes de avaliar a instrução
+		// Verifica se tem espaço na URSs antes de avaliar a instrução
 		// (para evitar invalidações entre uma avaliação e sua entrada no rob :p)
-		// Verifica se há espaço na URSs
 		// **********************************************************************
-		
-		if (this->unified_reservation_station.size() == this->unified_reservation_station.capacity()) {
+
+		if (this->unified_reservation_station.size() == this->unified_reservation_station.capacity())
+		{
 			this->add_stall_full_RS();
 			break;
 		}
@@ -1872,7 +2019,8 @@ void processor_t::rename()
 		// ==============
 		// All operations
 		// ==============
-		if (reorderBuffer.robUsed >= ROB_SIZE) {
+		if (reorderBuffer.robUsed >= ROB_SIZE)
+		{
 			/*if(!travado){
 				travado = true;
 				printf("********************************************************\n");
@@ -1882,7 +2030,7 @@ void processor_t::rename()
 			this->add_stall_full_ROB();
 			break;
 		}
-		//travado = false;
+		// travado = false;
 
 		//=======================
 		// Memory Operation Read
@@ -1893,9 +2041,9 @@ void processor_t::rename()
 			if (this->memory_order_buffer_read_used >= MOB_READ || reorderBuffer.robUsed >= ROB_SIZE)
 			{
 				this->add_stall_full_MOB_Read();
+
 				break;
 			}
-
 		}
 
 		//=======================
@@ -1910,51 +2058,57 @@ void processor_t::rename()
 			}
 		}
 
-
 		// LOAD AVX
 		uop_package_t *uop = origin_buffer->front();
-		
-		
-		// Check if converter is active
-		if (this->vima_converter.current_conversion == 0x0) {
+		uop_package_t uop_clone = *uop;
+
+		// Reseta o flag de conversão para cada nova instrução
+		if (uop->already_sent == false)
+		{
+			ignore_on_conversion_success = false;
+		}
+
+		// Se não tiver uma conversão em andamento, tenta criar uma nova
+		if (this->vima_converter.current_conversion == 0x0)
+		{
 			this->vima_converter.start_new_conversion();
 		}
 
-		// Analysis only once per uop
-		if (uop->already_sent == false && this->vima_converter.current_conversion != 0x0) {
+		// Analysis only once per uop - Tenta encaixar a uop na conversão em andamento (tem que ter uma :o)
+		if (uop->already_sent == false && this->vima_converter.current_conversion != 0x0)
+		{
 			uop->already_sent = true;
 			converted = false;
 			invalidate = false;
 			// Deve ser bem organizado, com (ld1 ld2 op st) / (ld1 st) em sequência no laço
-			if (uop->uop_operation == INSTRUCTION_OPERATION_BRANCH) {
-				if (this->vima_converter.state_machine != 0) {
+			if (uop->uop_operation == INSTRUCTION_OPERATION_BRANCH)
+			{
+				if (this->vima_converter.state_machine != 0)
+				{
 #if VIMA_CONVERSION_DEBUG
 					printf("  Branch no meio da conversão: ");
 #endif
 					this->vima_converter.invalidation_reason["BRANCH BETWEEN FIRST LOAD AND STORE"]++;
-					if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        			    printf("Invalidado por BRANCH BETWEEN FIRST LOAD AND STORE\n");
-        			}
-					this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+					this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+					return;
 				}
 			}
 
-
 			if (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD &&
-				(origin_buffer->front()->memory_size[0] == AVX_256_SIZE ||
-				 origin_buffer->front()->memory_size[0] == AVX_512_SIZE) &&
-				(!this->vima_converter.is_blacklisted(origin_buffer->front()))) {
-				
-				if (this->vima_converter.state_machine == 0 && conversion_enabled) {
+				(!this->vima_converter.is_blacklisted(origin_buffer->front())))
+			{
+				if (this->vima_converter.state_machine == 0 && conversion_enabled)
+				{
 
 #if VIMA_CONVERSION_DEBUG
 					printf("  First load\n");
-#endif	
-					
+#endif
+
 					converted = true;
 					this->vima_converter.state_machine = 1;
 
-					if (this->vima_converter.iteration == 0) {
+					if (this->vima_converter.iteration == 0)
+					{
 
 						// Copia informações
 						this->vima_converter.addr[0] = uop->opcode_address;
@@ -1966,8 +2120,9 @@ void processor_t::rename()
 						uop->linked_to_converter = 0;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						this->vima_converter.current_conversion->infos_remaining++;
-
-					} else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[0]  == uop->opcode_address && this->vima_converter.uop_id[0] == uop->uop_id) {
+					}
+					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[0] == uop->opcode_address && this->vima_converter.uop_id[0] == uop->uop_id)
+					{
 						// Copia informações
 						this->vima_converter.addr[4] = uop->opcode_address;
 						this->vima_converter.uop_id[4] = uop->uop_id;
@@ -1977,29 +2132,35 @@ void processor_t::rename()
 						this->vima_converter.current_conversion->infos_remaining++;
 					}
 
-
 					if (this->vima_converter.current_conversion->conversion_started &&
-						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning && 
-						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending && 
-						this->vima_converter.addr[0]  == uop->opcode_address && 
-						this->vima_converter.uop_id[0] == uop->uop_id) {
-						uop->ignore_on_conversion_success = true;
+						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning &&
+						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending &&
+						this->vima_converter.addr[0] == uop->opcode_address &&
+						this->vima_converter.uop_id[0] == uop->uop_id)
+					{
+						ignore_on_conversion_success = true;
+
 						uop->linked_to_converter = 0;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						uop->linked_to_iteration = this->vima_converter.iteration;
 
+						// Checkpoint para flush
+						if (this->vima_converter.iteration == this->vima_converter.current_conversion->conversion_beginning)
+						{
+							this->vima_converter.current_conversion->checkpoint = uop->checkpoint;
+							this->vima_converter.current_conversion->checkpoint_uop_number = uop->uop_number;
+						}
 					}
 
 					// Check if pattern is maintained
-					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[0] != uop->opcode_address || this->vima_converter.uop_id[0] != uop->uop_id)) {
+					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[0] != uop->opcode_address || this->vima_converter.uop_id[0] != uop->uop_id))
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Pattern changed, first load changed: \n");
 #endif
 						this->vima_converter.invalidation_reason["PATTERN CHANGED FIRST LOAD CHANGED"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    printf("Invalidado por PATTERN CHANGED FIRST LOAD CHANGED\n");
-        				}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+						this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+						return;
 					}
 
 					// **********************************
@@ -2010,18 +2171,21 @@ void processor_t::rename()
 						this->vima_converter.regs_list[uop->write_regs[i]] = true;
 #if VIMA_CONVERSION_DEBUG
 						printf("	Load1 escreveu no registrador %d\n", uop->write_regs[i]);
-#endif	
+#endif
 					}
-
-				} else if ((this->vima_converter.state_machine == 1) &&
-							((uop->opcode_address != this->vima_converter.addr[0]) ||
-							(uop->uop_id != this->vima_converter.uop_id[0]))) {
+				}
+				else if ((this->vima_converter.state_machine == 1) &&
+						 ((uop->opcode_address != this->vima_converter.addr[0]) ||
+						  (uop->uop_id != this->vima_converter.uop_id[0])))
+				{
 					converted = true;
 					this->vima_converter.state_machine = 2;
+
 #if VIMA_CONVERSION_DEBUG
 					printf("  Second load\n");
-#endif	
-					if (this->vima_converter.iteration  == 0) {
+#endif
+					if (this->vima_converter.iteration == 0)
+					{
 						// Copia informações
 						this->vima_converter.addr[1] = uop->opcode_address;
 						this->vima_converter.uop_id[1] = uop->uop_id;
@@ -2031,10 +2195,10 @@ void processor_t::rename()
 						uop->linked_to_converter = 1;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						this->vima_converter.current_conversion->infos_remaining++;
-
 					}
-					//Segundo load da segunda iteração, para descobrir o stride 
-					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[1] == uop->opcode_address && this->vima_converter.uop_id[1] == uop->uop_id) {
+					// Segundo load da segunda iteração, para descobrir o stride
+					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[1] == uop->opcode_address && this->vima_converter.uop_id[1] == uop->uop_id)
+					{
 						// Copia informações
 						this->vima_converter.addr[5] = uop->opcode_address;
 						this->vima_converter.uop_id[5] = uop->uop_id;
@@ -2042,65 +2206,63 @@ void processor_t::rename()
 						uop->linked_to_converter = 5;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						this->vima_converter.current_conversion->infos_remaining++;
-
 					}
 
 					// Check if pattern is maintained
-					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[1] != uop->opcode_address || this->vima_converter.uop_id[1] != uop->uop_id)) {
+					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[1] != uop->opcode_address || this->vima_converter.uop_id[1] != uop->uop_id))
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Pattern changed, second load changed: \n");
 #endif
 						this->vima_converter.invalidation_reason["PATTERN CHANGED SECOND LOAD CHANGED"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    printf("Invalidado por PATTERN CHANGED SECOND LOAD CHANGED\n");
-        				}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+						this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+						return;
 					}
 
 					if (this->vima_converter.current_conversion->conversion_started &&
-						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning && 
-						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending && 
-						this->vima_converter.addr[1]  == uop->opcode_address && 
-						this->vima_converter.uop_id[1] == uop->uop_id) {
-						uop->ignore_on_conversion_success = true;
+						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning &&
+						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending &&
+						this->vima_converter.addr[1] == uop->opcode_address &&
+						this->vima_converter.uop_id[1] == uop->uop_id)
+					{
+						ignore_on_conversion_success = true;
+
 						uop->linked_to_converter = 1;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						uop->linked_to_iteration = this->vima_converter.iteration;
 					}
-
 
 					// **********************************
 					// Setting conversion write registers
 					// **********************************
 					for (uint32_t i = 0; i < MAX_REGISTERS && uop->write_regs[i] != POSITION_FAIL; i++)
 					{
-							this->vima_converter.regs_list[uop->write_regs[i]] = true;
+						this->vima_converter.regs_list[uop->write_regs[i]] = true;
 #if VIMA_CONVERSION_DEBUG
 						printf("	Load2 escreveu no registrador %d\n", uop->write_regs[i]);
-#endif	
-					}
-
-
-				} else if ((uop->opcode_address == this->vima_converter.addr[0]) &&
-							(uop->uop_id == this->vima_converter.uop_id[0])){
-						// Mesmo load passou 2 vezes seguidas, invalida conversão
-#if VIMA_CONVERSION_DEBUG
-						printf("  Same load twice: \n");
 #endif
-						invalidate = true;
+					}
 				}
-
+				else if ((uop->opcode_address == this->vima_converter.addr[0]) &&
+						 (uop->uop_id == this->vima_converter.uop_id[0]))
+				{
+					// Mesmo load passou 2 vezes seguidas, invalida conversão
+#if VIMA_CONVERSION_DEBUG
+					printf("  Same load twice: \n");
+#endif
+					invalidate = true;
+				}
 			}
-
 
 			// OPERATION
 			if ((origin_buffer->front()->uop_operation != INSTRUCTION_OPERATION_MEM_LOAD) &&
 				(origin_buffer->front()->uop_operation != INSTRUCTION_OPERATION_MEM_STORE) &&
-				(origin_buffer->front()->uop_operation != INSTRUCTION_OPERATION_BRANCH)) {
+				(origin_buffer->front()->uop_operation != INSTRUCTION_OPERATION_BRANCH))
+			{
 				bool all_written = true;
 #if VIMA_CONVERSION_DEBUG
 				printf("  Operation\n");
-#endif				
+#endif
 				uint32_t masked = (origin_buffer->front()->is_masked) ? 1 : 0;
 
 				// ********************************************
@@ -2110,39 +2272,48 @@ void processor_t::rename()
 				for (uint32_t i = 0; i < MAX_REGISTERS && uop->read_regs[i] != POSITION_FAIL; i++)
 				{
 					++num_read_regs;
-					if (this->vima_converter.regs_list[uop->read_regs[i]] == false) {
+					if (this->vima_converter.regs_list[uop->read_regs[i]] == false)
+					{
 #if VIMA_CONVERSION_DEBUG
-						//printf("	OP Registrador %d não bate!\n", uop->read_regs[i]);
-#endif						
+						// printf("	OP Registrador %d não bate!\n", uop->read_regs[i]);
+#endif
 						// Give a chance if it is a mask
-						if (masked) {
+						if (masked)
+						{
 							masked = false;
-							//printf("        => Pode ser máscara!\n");
-						} else {						
+							// printf("        => Pode ser máscara!\n");
+						}
+						else
+						{
 							all_written = false;
 						}
-					} else {
+					}
+					else
+					{
 #if VIMA_CONVERSION_DEBUG
-						//printf("	Op leu do registrador %d OK\n", uop->read_regs[i]);
-#endif	
+						// printf("	Op leu do registrador %d OK\n", uop->read_regs[i]);
+#endif
 					}
 				}
 
-				if (num_read_regs == 0) {
+				if (num_read_regs == 0)
+				{
 					all_written = false;
 				}
 
 				// **************************************************
 				// Operação descendente de loads, faz parte do padrão
 				// **************************************************
-				if (all_written && this->vima_converter.state_machine == 2) {
+				if (all_written && this->vima_converter.state_machine == 2)
+				{
 #if VIMA_CONVERSION_DEBUG
 					printf("  Op Found\n");
-#endif	
+#endif
 					converted = true;
 					this->vima_converter.state_machine = 3;
 
-					if (this->vima_converter.iteration == 0) {
+					if (this->vima_converter.iteration == 0)
+					{
 						// Copia informações
 						this->vima_converter.addr[2] = uop->opcode_address;
 						this->vima_converter.uop_id[2] = uop->uop_id;
@@ -2153,8 +2324,9 @@ void processor_t::rename()
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 					}
 
-					// Op da segunda iteração 
-					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[2] == uop->opcode_address && this->vima_converter.uop_id[2] == uop->uop_id) {
+					// Op da segunda iteração
+					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[2] == uop->opcode_address && this->vima_converter.uop_id[2] == uop->uop_id)
+					{
 						// Copia informações
 						this->vima_converter.addr[6] = uop->opcode_address;
 						this->vima_converter.uop_id[6] = uop->uop_id;
@@ -2164,28 +2336,28 @@ void processor_t::rename()
 					}
 					//
 
-					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[2] != uop->opcode_address || this->vima_converter.uop_id[2] != uop->uop_id)) {
+					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[2] != uop->opcode_address || this->vima_converter.uop_id[2] != uop->uop_id))
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Pattern changed: \n");
 #endif
 						this->vima_converter.invalidation_reason["PATTERN CHANGED OP CHANGED"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    printf("Invalidado por PATTERN CHANGED OP CHANGED\n");
-        				}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+						this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+						return;
 					}
 
 					if (this->vima_converter.current_conversion->conversion_started &&
-						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning && 
-						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending && 
-						this->vima_converter.addr[2]  == uop->opcode_address && 
-						this->vima_converter.uop_id[2] == uop->uop_id) {
-						uop->ignore_on_conversion_success = true;
+						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning &&
+						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending &&
+						this->vima_converter.addr[2] == uop->opcode_address &&
+						this->vima_converter.uop_id[2] == uop->uop_id)
+					{
+						ignore_on_conversion_success = true;
+
 						uop->linked_to_converter = 2;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						uop->linked_to_iteration = this->vima_converter.iteration;
 					}
-
 
 					// **********************************
 					// Setting conversion write registers
@@ -2196,25 +2368,24 @@ void processor_t::rename()
 
 #if VIMA_CONVERSION_DEBUG
 						printf("Op escreveu no registrador %d\n", uop->write_regs[i]);
-#endif	
+#endif
 					}
-				} else if (all_written && this->vima_converter.state_machine != 2) {
+				}
+				else if (all_written && this->vima_converter.state_machine != 2)
+				{
 #if VIMA_CONVERSION_DEBUG
 					printf("  Pattern changed, unexpected op: \n");
 #endif
 					invalidate = true;
 				}
-
 			}
 
-
 			// STORE AVX
-			if (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_STORE &&
-				(origin_buffer->front()->memory_size[0] == AVX_256_SIZE ||
-				 origin_buffer->front()->memory_size[0] == AVX_512_SIZE)) {
+			if (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+			{
 #if VIMA_CONVERSION_DEBUG
 				printf("  Store\n");
-#endif	
+#endif
 				bool all_written = true;
 				// *****************************************************************
 				// Check if data register (last register) was written by the load/op
@@ -2222,32 +2393,38 @@ void processor_t::rename()
 
 				// get number of read registers
 				uint32_t num_read_regs = 0;
-				for (; num_read_regs < MAX_REGISTERS && uop->read_regs[num_read_regs] != POSITION_FAIL; num_read_regs++);
+				for (; num_read_regs < MAX_REGISTERS && uop->read_regs[num_read_regs] != POSITION_FAIL; num_read_regs++)
+					;
 
-				if (this->vima_converter.regs_list[uop->read_regs[num_read_regs - 1]] == false) {
+				if (this->vima_converter.regs_list[uop->read_regs[num_read_regs - 1]] == false)
+				{
 #if VIMA_CONVERSION_DEBUG
-					//printf("	Store %lu:%u: Registrador %d não bate!\n", uop->opcode_address, uop->uop_id, uop->read_regs[num_read_regs - 1]);
-#endif	
+					// printf("	Store %lu:%u: Registrador %d não bate!\n", uop->opcode_address, uop->uop_id, uop->read_regs[num_read_regs - 1]);
+#endif
 					all_written = false;
-				}else{
-#if VIMA_CONVERSION_DEBUG
-					//printf("	Store %lu:%u: Registrador %d OK!\n", uop->opcode_address, uop->uop_id, uop->read_regs[num_read_regs - 1]);
-#endif	
 				}
-
+				else
+				{
+#if VIMA_CONVERSION_DEBUG
+					// printf("	Store %lu:%u: Registrador %d OK!\n", uop->opcode_address, uop->uop_id, uop->read_regs[num_read_regs - 1]);
+#endif
+				}
 
 				// ***************************************
 				// If its a descendent from the pattern op
 				// ***************************************
-				if (all_written && (this->vima_converter.state_machine == 3 || this->vima_converter.state_machine == 1)) {
+				if (all_written && (this->vima_converter.state_machine == 3 || this->vima_converter.state_machine == 1))
+				{
 					bool is_mov = (this->vima_converter.state_machine == 1);
 					this->vima_converter.state_machine = 0;
 					// Copia informações
 #if VIMA_CONVERSION_DEBUG
 					printf("  Store Found\n");
-#endif	
+#endif
 					converted = true;
-					if (this->vima_converter.iteration == 0) {
+					/* Store da primeira iteração */
+					if (this->vima_converter.iteration == 0)
+					{
 						// Copia informações
 						this->vima_converter.addr[3] = uop->opcode_address;
 						this->vima_converter.uop_id[3] = uop->uop_id;
@@ -2259,8 +2436,9 @@ void processor_t::rename()
 						this->vima_converter.current_conversion->infos_remaining++;
 						this->vima_converter.current_conversion->is_mov = is_mov;
 					}
-					// Store da segunda iteração
-					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[3] == uop->opcode_address && this->vima_converter.uop_id[3] == uop->uop_id) {
+					/* Store da segunda iteração  - As duas primeiras só checam se o stride é contíguo */
+					else if (this->vima_converter.iteration == 1 && this->vima_converter.addr[3] == uop->opcode_address && this->vima_converter.uop_id[3] == uop->uop_id)
+					{
 						// Copia informações
 						this->vima_converter.addr[7] = uop->opcode_address;
 						this->vima_converter.uop_id[7] = uop->uop_id;
@@ -2270,32 +2448,29 @@ void processor_t::rename()
 						this->vima_converter.current_conversion->infos_remaining++;
 					}
 
-
-					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[3] != uop->opcode_address || this->vima_converter.uop_id[3] != uop->uop_id)) {
+					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[3] != uop->opcode_address || this->vima_converter.uop_id[3] != uop->uop_id))
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Pattern changed: \n");
 #endif
 						this->vima_converter.invalidation_reason["PATTERN CHANGED STORE CHANGED"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    printf("Invalidado por PATTERN CHANGED STORE CHANGED\n");
-        				}
-
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+						this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+						return;
 					}
 
 					// *****************************************
 					// Check if conversion type (is_mov) changed
 					// *****************************************
-					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[3] == uop->opcode_address && this->vima_converter.uop_id[3] == uop->uop_id)) {
-						if (this->vima_converter.current_conversion->is_mov != is_mov) {
+					if ((this->vima_converter.iteration > 0) && (this->vima_converter.addr[3] == uop->opcode_address && this->vima_converter.uop_id[3] == uop->uop_id))
+					{
+						if (this->vima_converter.current_conversion->is_mov != is_mov)
+						{
 #if VIMA_CONVERSION_DEBUG
 							printf("  Conversion type (is_mov) changed (Old: %s New %s): \n", this->vima_converter.current_conversion->is_mov ? "true" : "false", is_mov ? "true" : "false");
-#endif	
+#endif
 							this->vima_converter.invalidation_reason["PATTERN CHANGED IS_MOV ATRIBUTE CHANGED"]++;
-							if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    	printf("Invalidado por PATTERN CHANGED IS_MOV ATRIBUTE CHANGED\n");
-        					}
-							this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+							this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+							return;
 						}
 					}
 
@@ -2303,16 +2478,17 @@ void processor_t::rename()
 					// Get converted instructions
 					// **************************
 					if (this->vima_converter.current_conversion->conversion_started &&
-						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning && 
-						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending && 
-						this->vima_converter.addr[3]  == uop->opcode_address && 
-						this->vima_converter.uop_id[3] == uop->uop_id) {
-						uop->ignore_on_conversion_success = true;
+						this->vima_converter.iteration >= this->vima_converter.current_conversion->conversion_beginning &&
+						this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending &&
+						this->vima_converter.addr[3] == uop->opcode_address &&
+						this->vima_converter.uop_id[3] == uop->uop_id)
+					{
+						ignore_on_conversion_success = true;
+
 						uop->linked_to_converter = 3;
 						uop->unique_conversion_id = this->vima_converter.current_conversion->unique_conversion_id;
 						uop->linked_to_iteration = this->vima_converter.iteration;
 					}
-
 
 					// **********************************
 					// Setting conversion write registers
@@ -2321,25 +2497,26 @@ void processor_t::rename()
 					{
 						this->vima_converter.regs_list[uop->write_regs[i]] = true;
 					}
-
 					this->vima_converter.iteration++;
-
 
 #if VIMA_CONVERSION_DEBUG
 					printf("  ACHEI O PADRÃO %d vezes!!! (%lu #%u; %lu #%u; %lu #%u; %lu #%u)\n", this->vima_converter.iteration, this->vima_converter.addr[0], this->vima_converter.uop_id[0], this->vima_converter.addr[1], this->vima_converter.uop_id[1], this->vima_converter.addr[2], this->vima_converter.uop_id[2], this->vima_converter.addr[3], this->vima_converter.uop_id[3]);
-#endif	
+#endif
+
 					// *********************************************
 					// Check if can start converting next iterations
 					// *********************************************
 					if (this->vima_converter.current_conversion->conversion_ending > 0 && this->vima_converter.iteration > this->vima_converter.current_conversion->conversion_ending)
 					{
 						// ********************************
-                    	// Start to convert next iterations
-                    	// ********************************
-                    	this->vima_converter.continue_conversion(this->vima_converter.current_conversion);
+						// Start to convert next iterations
+						// ********************************
+						//printf("Iniciando uma continuação\n");
+						this->vima_converter.continue_conversion(this->vima_converter.current_conversion);
 					}
-
-				} else if (all_written && this->vima_converter.state_machine != 3 && this->vima_converter.state_machine != 1) {
+				}
+				else if (all_written && this->vima_converter.state_machine != 3 && this->vima_converter.state_machine != 1)
+				{
 #if VIMA_CONVERSION_DEBUG
 					printf("  Pattern changed, unexpected store: \n");
 #endif
@@ -2347,27 +2524,26 @@ void processor_t::rename()
 				}
 			}
 
+			//	 *********************************************************
+			//	 Verifica se existe dependência com algum reg da conversão
+			//	 *********************************************************
 
-		//	 *********************************************************
-		//	 Verifica se existe dependência com algum reg da conversão
-		//	 *********************************************************
-
-			if	 (converted == false) {
+			if (converted == false)
+			{
 				// Instruções externas durante a conversão não podem ler regs de conversão
-				if ((this->vima_converter.current_conversion->conversion_ending == 0) || (this->vima_converter.iteration < this->vima_converter.current_conversion->conversion_ending))
+				if ((this->vima_converter.current_conversion->conversion_ending == 0) || (this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending))
 				{
 					for (uint32_t i = 0; i < MAX_REGISTERS && uop->read_regs[i] != POSITION_FAIL; i++)
 					{
-						if (this->vima_converter.regs_list[uop->read_regs[i]] == true) {
+						if (this->vima_converter.regs_list[uop->read_regs[i]] == true)
+						{
 							// Leitura de escrito pela conversão! Invalida a conversão
 #if VIMA_CONVERSION_DEBUG
 							printf("  Leitura de escrito pela conversão: \n");
 #endif
 							this->vima_converter.invalidation_reason["CONVERSION REGISTER READ"]++;
-							if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        				    	printf("Invalidado por CONVERSION REGISTER READ\n");
-        					}
-							this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+							this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+							return;
 						}
 					}
 					// Marca registradores sobrescritos
@@ -2379,62 +2555,78 @@ void processor_t::rename()
 					// ***********************************************
 					// Instruções externas não podem acessar à memória
 					// ***********************************************
-					if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD) {
+					if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Instrução externa com acesso à memória!\n");
 						printf("  Addr: %lu UOP id: %u ASM %s INSTRUCTION_OPERATION_MEM_LOAD: %s\n", uop->opcode_address, uop->uop_id, uop->opcode_assembly, (uop->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD) ? "true" : "false");
 #endif
-						if (this->vima_converter.iteration > 0 || this->vima_converter.state_machine > 0) { // Existe uma conversão em andamento
-						this->vima_converter.invalidation_reason["LOAD FROM EXTERN"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        					printf("Invalidado por LOAD FROM EXTERN\n");
-        				}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+						if (this->vima_converter.iteration > 0 || this->vima_converter.state_machine > 0)
+						{ // Existe uma conversão em andamento
+							this->vima_converter.invalidation_reason["LOAD FROM EXTERN"]++;
+							this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+							return;
 						}
-}
-					if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
+					}
+					if (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+					{
 #if VIMA_CONVERSION_DEBUG
 						printf("  Instrução externa com acesso à memória!\n");
 						printf("  Addr: %lu UOP id: %u ASM %s INSTRUCTION_OPERATION_MEM_STORE: %s\n", uop->opcode_address, uop->uop_id, uop->opcode_assembly, (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE) ? "true" : "false");
 #endif
-						if (this->vima_converter.iteration > 0 || this->vima_converter.state_machine > 0) { // Existe uma conversão em andamento
+						if (this->vima_converter.iteration > 0 || this->vima_converter.state_machine > 0)
+						{ // Existe uma conversão em andamento
 							this->vima_converter.invalidation_reason["STORE FROM EXTERN"]++;
-							if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-        						printf("Invalidado por STORE FROM EXTERN\n");
-        					}
-							this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+							this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+							return;
 						}
-}
+					}
+					/* Demais instruções são travadas pelo placeholder */
+					if ((this->vima_converter.iteration > this->vima_converter.current_conversion->conversion_beginning) &&
+						(this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending))
+					{
+						this->vima_converter.blocked_until_conversion_complete++;
+					}
 				}
-			}	
+			}
 
-			if	 (invalidate) {
+			if (invalidate)
+			{
 				this->vima_converter.invalidation_reason["PATTERN CHANGED SOME WAY"]++;
-				if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-					printf("Invalidado por PATTERN CHANGED SOME WAY\n");
-				}
-				this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
+				this->conversion_mark_to_invalidate(this->vima_converter.current_conversion->unique_conversion_id);
+				return;
 			}
 		}
-		
+
 		// Verifica se há espaço na URS
-		if (this->unified_reservation_station.size() == this->unified_reservation_station.capacity()) {
+		if (this->unified_reservation_station.size() == this->unified_reservation_station.capacity())
+		{
 			break;
 		}
 
-		//ERROR_ASSERT_PRINTF(origin_buffer->front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n");
+		ERROR_ASSERT_PRINTF(!(ignore_on_conversion_success && uop->is_vima), "VIMA sendo ignorada!\n");
+
+		// ERROR_ASSERT_PRINTF(origin_buffer->front()->uop_number == this->renameCounter, "Erro, renomeio incorreto\n");
+
+		//=======================
+		// Writes tracker
+		//=======================
+		for (uint32_t i = 0; i < MAX_REGISTERS && uop->write_regs[i] != POSITION_FAIL; i++)
+		{
+			this->write_addr[uop->write_regs[i]] = uop->opcode_address;
+			this->write_uop[uop->write_regs[i]] = uop->uop_id;
+		}
 
 		//=======================
 		// Memory Operation Read
 		//=======================
-		if (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+		if ((ignore_on_conversion_success == false) && (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD))
 		{
 
 			if (this->memory_order_buffer_read_used >= MOB_READ || reorderBuffer.robUsed >= ROB_SIZE)
 			{
 				break;
 			}
-
 
 			// Retorna a primeira posição de um conjunto de n livres, ou POSITION_FAIL
 			pos_mob = this->search_n_positions_mob_read(origin_buffer->front()->num_mem_operations, &MOB_LIMIT);
@@ -2445,14 +2637,13 @@ void processor_t::rename()
 				break;
 			}
 
-
 			mob_base = this->memory_order_buffer_read;
 		}
 
 		//=======================
 		// Memory Operation Write
 		//=======================
-		if (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		if ((ignore_on_conversion_success == false) && (origin_buffer->front()->uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
 		{
 			if (this->memory_order_buffer_write_used >= MOB_WRITE || reorderBuffer.robUsed >= ROB_SIZE)
 			{
@@ -2487,7 +2678,8 @@ void processor_t::rename()
 				uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
 				uop_operation == INSTRUCTION_OPERATION_HIVE_STORE)
 			{
-				if (this->memory_order_buffer_hive_used >= MOB_HIVE || reorderBuffer.robUsed >= ROB_SIZE) {
+				if (this->memory_order_buffer_hive_used >= MOB_HIVE || reorderBuffer.robUsed >= ROB_SIZE)
+				{
 					break;
 				}
 
@@ -2498,12 +2690,11 @@ void processor_t::rename()
 					break;
 				}
 
-
 				mob_base = this->memory_order_buffer_hive;
 
-				//ORCS_PRINTF("reservando espaço no MOB para instrução %s %lu\n",
-				//            get_enum_instruction_operation_char(origin_buffer->front()->opcode_operation),
-				//            origin_buffer->front()->opcode_number);
+				// ORCS_PRINTF("reservando espaço no MOB para instrução %s %lu\n",
+				//             get_enum_instruction_operation_char(origin_buffer->front()->uop_operation),
+				//             origin_buffer->front()->opcode_number);
 			}
 		}
 
@@ -2521,20 +2712,25 @@ void processor_t::rename()
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
-				uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER  ||
+				uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
+				uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
 				uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
-				if (this->memory_order_buffer_vima_used >= MOB_VIMA || reorderBuffer.robUsed >= ROB_SIZE) {
+				//printf("memory_order_buffer_vima_used: %u/%u\n", this->memory_order_buffer_vima_used, MOB_VIMA);
+				//printf("reorderBuffer.robUsed: %u/%u\n", reorderBuffer.robUsed, ROB_SIZE);
+				if (this->memory_order_buffer_vima_used >= MOB_VIMA || reorderBuffer.robUsed >= ROB_SIZE)
+				{
+					// printf("memory_order_buffer_vima_used: %u/%u\n", this->memory_order_buffer_vima_used, MOB_VIMA);
+					// printf("reorderBuffer.robUsed: %u/%u\n", reorderBuffer.robUsed, ROB_SIZE);
 					break;
 				}
 				else
 				{
-					#if VIMA_DEBUG
+#if VIMA_DEBUG
 					ORCS_PRINTF("%lu Processor rename(): memory_order_buffer_vima used = %u.\n",
 								orcs_engine.get_global_cycle(),
 								this->memory_order_buffer_vima_used);
-					#endif
+#endif
 				}
 
 				pos_mob = this->search_position_mob_vima(&MOB_LIMIT);
@@ -2544,39 +2740,64 @@ void processor_t::rename()
 					break;
 				}
 
-				//mob_line = &this->memory_order_buffer_vima[pos_mob];
+				// mob_line = &this->memory_order_buffer_vima[pos_mob];
 				mob_base = this->memory_order_buffer_vima;
 			}
 		}
 
+		// Debug
+		/*
+		if (uop->waiting_for_conversion) {
+			printf("%lu - %s - Waiting for %lu (%u/%lu)\n", uop->uop_number, uop->opcode_assembly, uop->waiting_conversion_id, this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_ending);
+		} else if (uop->ignore_on_conversion_success) {
+			printf("%lu - %s - Conversion %lu (%u/%lu)\n", uop->uop_number, uop->opcode_assembly, uop->unique_conversion_id, this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_ending);
+		} else {
+			printf("%lu - %s - Other\n", uop->uop_number, uop->opcode_assembly);
+		}
+		*/
+
 		//=======================
 		// Verificando se tem espaco no ROB se sim vamos inserir
 		//=======================
-		pos_rob = this->searchPositionROB(&reorderBuffer);
-
-
-		if (pos_rob == POSITION_FAIL)
-		{
-			this->add_stall_full_ROB();
-			break;
-		}
-
-		// ===============================================
-		// Inserting on ROB
-		// ===============================================
 		reorder_buffer_line_t *rob_line = NULL;
-		rob_line = &this->reorderBuffer.reorderBuffer[pos_rob];
-		rob_line->uop = *origin_buffer->front();
 
-		
+		if (ignore_on_conversion_success == false)
+		{
+			pos_rob = this->searchPositionROB(&reorderBuffer);
 
+			if (pos_rob == POSITION_FAIL)
+			{
+				this->add_stall_full_ROB();
+				break;
+			}
 
-		if (rob_line->uop.ignore_on_conversion_success) {
-			//printf("  => Inserting converted in ROB\n");
+			// ===============================================
+			// Inserting on ROB
+			// ===============================================
+
+			rob_line = &this->reorderBuffer.reorderBuffer[pos_rob];
+			rob_line->uop = *origin_buffer->front();
+		}
+		else if ((uop->uop_operation == INSTRUCTION_OPERATION_MEM_LOAD) ||
+				 (uop->uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
+		{
+			// Uma das instruções esperadas (ld/st) foi obtida
+			this->vima_converter.confirm_mem_addr(uop);
+#ifdef DEBUG_CONVERSION
+			printf("[%lu] Iteration %u (Start: %lu, End: %lu) (Remaining Mem addr: %ld -> %ld)\n", this->vima_converter.current_conversion->unique_conversion_id, this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_beginning, this->vima_converter.current_conversion->conversion_ending, this->vima_converter.current_conversion->mem_addr_confirmations_remaining + 1, this->vima_converter.current_conversion->mem_addr_confirmations_remaining);
+#endif
+		}
+		origin_buffer->front()->package_clean();
+		origin_buffer->pop_front();
+		this->renameCounter++;
+
+		if (ignore_on_conversion_success)
+		{
+			// printf("  => Inserting converted in ROB\n");
 			this->vima_converter.instructions_intercepted++;
-			//printf("Intercepted: %s (%lu) from iteration %lu\n", rob_line->uop.opcode_assembly,
-			//													 rob_line->uop.opcode_address,
-			//													 rob_line->uop.linked_to_iteration);
+			// printf("Intercepted: %s (%lu) from iteration %lu\n", rob_line->uop->opcode_assembly,
+			//													 rob_line->uop->opcode_address,
+			//													 rob_line->uop->linked_to_iteration);
 		} /*else {
 			printf("  => Inserting common in ROB\n");
 		}*/
@@ -2584,79 +2805,84 @@ void processor_t::rename()
 		// =======================
 		// Setting controls to ROB.
 		// =======================
-		// Converted operations wait for commit
-		if (rob_line->uop.ignore_on_conversion_success &&
-		   (rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_LOAD) &&
-		   (rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_STORE)) {
-			rob_line->stage = PROCESSOR_STAGE_WAITING_DYN;
-			rob_line->uop.updatePackageWait(RENAME_LATENCY);
-			rob_line->mob_base = mob_base;//mob_line;
+		// Common operations
+		if (ignore_on_conversion_success == false)
+		{
+
+			if (rob_line->uop.is_placeholder)
+			{
+				rob_line->stage = PROCESSOR_STAGE_COMMIT;
+				rob_line->uop.updatePackageReady(RENAME_LATENCY);
+			}
+			else
+			{
+				rob_line->stage = PROCESSOR_STAGE_RENAME;
+				rob_line->uop.updatePackageWait(RENAME_LATENCY + DISPATCH_LATENCY);
+			}
+
+			rob_line->mob_base = mob_base; // mob_line;
 			rob_line->pos_mob = pos_mob;
 			rob_line->mob_limit = MOB_LIMIT;
 			rob_line->waiting_mem_request = 0;
 			rob_line->processor_id = this->processor_id;
+
+			//rob_line->uop.print_content();
+			// =======================
+			// Making registers dependences
+			// =======================
+			if (rob_line->uop.is_vima == false || rob_line->uop.unique_conversion_id == 0)
+			{
+				this->update_registers(rob_line);
+			}
 		}
-		// Common instructions and converted loads/stores
-		 else {
-			rob_line->stage = PROCESSOR_STAGE_RENAME;
-			rob_line->uop.updatePackageWait(RENAME_LATENCY + DISPATCH_LATENCY);
-			rob_line->mob_base = mob_base;//mob_line;
-			rob_line->pos_mob = pos_mob;
-			rob_line->mob_limit = MOB_LIMIT;
-			rob_line->waiting_mem_request = 0;
-			rob_line->processor_id = this->processor_id;
+		else
+		{
+			// Cria dependência com a conversão
+			this->update_registers_to_conversion(&uop_clone, this->vima_converter.current_conversion);
 		}
 
-		if(rob_line->uop.is_vima == false) {
+		if (uop_clone.is_vima == false)
+		{
 			++this->vima_converter.original_program_instructions;
 		}
 
-		if (rob_line->uop.unique_conversion_id > 0 && rob_line->uop.linked_to_converter < 0 && rob_line->uop.is_vima == false) {
+		/* Condição que nunca deve ocorrer, se acontecer, segfault!!! */
+		if (uop_clone.unique_conversion_id > 0 && uop_clone.linked_to_converter < 0 && uop_clone.is_vima == false && !uop_clone.is_placeholder)
+		{
 			int *a = 0x0;
 			*a = 3;
 		}
 
-
-		// =======================
-		// Making registers dependences
-		// =======================
-		if (rob_line->uop.is_vima == false || rob_line->uop.unique_conversion_id == 0) {
-			this->update_registers(rob_line);
-		}
-
-//#if RENAME_DEBUG
+#if RENAME_DEBUG
 		ORCS_PRINTF("Rename Opcode number: %lu %s\n",
-					uop->opcode_number,
-					uop->opcode_assembly)
-//#endif
-		origin_buffer->front()->package_clean();
-		origin_buffer->pop_front();
-		this->renameCounter++;
+					uop_clone.opcode_number,
+					uop_clone.opcode_assembly)
+#endif
+
 		// =======================
 		// Insert into Reservation Station
 		// =======================
-		// Excludes op being converted
-		if (!(rob_line->uop.ignore_on_conversion_success &&
-		   (rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_LOAD) &&
-		   (rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_STORE))) {
-				this->unified_reservation_station.push_back(rob_line);
-		   }
+		// Excludes all converted instructions
+		if (ignore_on_conversion_success == false && uop_clone.is_placeholder == false)
+		{
 
-
+			this->unified_reservation_station.push_back(rob_line);
+		}
 
 		// =======================
 		// Insert into MOB
 		// =======================
-		if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
+		if ((ignore_on_conversion_success == false) && (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD))
 		{
 			for (uint32_t r = 0; r < rob_line->uop.num_mem_operations; ++r)
 			{
 				uint32_t pos = (pos_mob + r) % MOB_LIMIT;
+				rob_line->mob_base[pos].package_clean();
 				rob_line->mob_base[pos].opcode_address = rob_line->uop.opcode_address;
 				rob_line->mob_base[pos].memory_address = rob_line->uop.memory_address[r];
 				rob_line->mob_base[pos].memory_size = rob_line->uop.memory_size[r];
 				rob_line->mob_base[pos].memory_operation = MEMORY_OPERATION_READ;
-				rob_line->mob_base[pos].status = (!rob_line->uop.ignore_on_conversion_success) ? PACKAGE_STATE_WAIT : PACKAGE_STATE_CONVERTED;
+				rob_line->mob_base[pos].status = (!ignore_on_conversion_success) ? PACKAGE_STATE_WAIT : PACKAGE_STATE_CONVERTED;
 				rob_line->mob_base[pos].readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
 				rob_line->mob_base[pos].uop_number = rob_line->uop.uop_number;
 				rob_line->mob_base[pos].processor_id = this->processor_id;
@@ -2671,7 +2897,7 @@ void processor_t::rename()
 				printf("Mob[7]: %p\n", (void *)&rob_line->mob_base[7]);
 				printf("Mob read[7]: %p\n", (void *)&this->memory_order_buffer_read[7]);
 				printf("Reads mob: %p\n Writes mob: %p\n", (void *)this->memory_order_buffer_read, (void *)this->memory_order_buffer_write);
-			
+
 			}*/
 #if MEMORY_DEBUG
 			ORCS_PRINTF("[ROBL] %lu {%lu} %lu %s added to reorder order buffer (Ready: %lu).\n",
@@ -2682,16 +2908,17 @@ void processor_t::rename()
 						rob_line->mob_base[rob_line->pos_mob].readyToGo);
 #endif
 		}
-		else if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		else if ((ignore_on_conversion_success == false) && (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
 		{
 			for (uint32_t w = 0; w < rob_line->uop.num_mem_operations; ++w)
 			{
 				uint32_t pos = (pos_mob + w) % MOB_LIMIT;
+				rob_line->mob_base[pos].package_clean();
 				rob_line->mob_base[pos].opcode_address = rob_line->uop.opcode_address;
 				rob_line->mob_base[pos].memory_address = rob_line->uop.memory_address[w];
 				rob_line->mob_base[pos].memory_size = rob_line->uop.memory_size[w];
 				rob_line->mob_base[pos].memory_operation = MEMORY_OPERATION_WRITE;
-				rob_line->mob_base[pos].status = (!rob_line->uop.ignore_on_conversion_success) ? PACKAGE_STATE_WAIT : PACKAGE_STATE_CONVERTED;
+				rob_line->mob_base[pos].status = (!ignore_on_conversion_success) ? PACKAGE_STATE_WAIT : PACKAGE_STATE_CONVERTED;
 				rob_line->mob_base[pos].readyToGo = orcs_engine.get_global_cycle() + RENAME_LATENCY + DISPATCH_LATENCY;
 				rob_line->mob_base[pos].uop_number = rob_line->uop.uop_number;
 				rob_line->mob_base[pos].processor_id = this->processor_id;
@@ -2705,19 +2932,20 @@ void processor_t::rename()
 						get_enum_memory_operation_char(rob_line->mob_base[rob_line->pos_mob].memory_operation));
 #endif
 		}
-		else if (this->get_HAS_HIVE() &&
-					(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
+		else if ((ignore_on_conversion_success == false) && (this->get_HAS_HIVE() &&
+															 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL)))
 		{
 			pos_mob = rob_line->pos_mob;
+			rob_line->mob_base[pos_mob].package_clean();
 			rob_line->mob_base[pos_mob].is_hive = true;
 			rob_line->mob_base[pos_mob].is_hive = false;
 			rob_line->mob_base[pos_mob].opcode_address = rob_line->uop.opcode_address;
@@ -2769,19 +2997,20 @@ void processor_t::rename()
 			rob_line->mob_base[pos_mob].uop_number = rob_line->uop.uop_number;
 			rob_line->mob_base[pos_mob].processor_id = this->processor_id;
 		}
-		else if (this->get_HAS_VIMA() &&
-					(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER))
+		else if ((ignore_on_conversion_success == false) && (this->get_HAS_VIMA() &&
+															 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)))
 		{
 			pos_mob = rob_line->pos_mob;
+			rob_line->mob_base[pos_mob].package_clean();
 			rob_line->mob_base[pos_mob].is_hive = false;
 			rob_line->mob_base[pos_mob].is_vima = true;
 			rob_line->mob_base[pos_mob].unique_conversion_id = rob_line->uop.unique_conversion_id;
@@ -2832,11 +3061,13 @@ void processor_t::rename()
 			rob_line->mob_base[pos_mob].processor_id = this->processor_id;
 		}
 
-		//linking rob and mob
-		if ((rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
+		// linking rob and mob
+		if ((ignore_on_conversion_success == false) &&
+			(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD ||
+			 rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
 		{
-			for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a) {
+			for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a)
+			{
 				uint32_t pos = (pos_mob + a) % MOB_LIMIT;
 				mob_base[pos].rob_ptr = rob_line;
 				mob_base[pos].unique_conversion_id = rob_line->uop.unique_conversion_id;
@@ -2844,46 +3075,47 @@ void processor_t::rename()
 
 			if (DISAMBIGUATION_ENABLED)
 			{
-				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a) {
+				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a)
+				{
 					uint32_t pos = (pos_mob + a) % MOB_LIMIT;
 					this->disambiguator->make_memory_dependences(&rob_line->mob_base[pos]);
 				}
 			}
 		}
-		else if (this->get_HAS_HIVE() &&
-					(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL))
+		else if ((ignore_on_conversion_success == false) && (this->get_HAS_HIVE() &&
+															 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOAD ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_STORE ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_LOCK ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_UNLOCK ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_INT_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HIVE_FP_MUL)))
 		{
 			rob_line->mob_base[rob_line->pos_mob].rob_ptr = rob_line;
-			//mob_line->rob_ptr = rob_line;
+			// mob_line->rob_ptr = rob_line;
 
 			if (DISAMBIGUATION_ENABLED)
 			{
 				this->disambiguator->make_memory_dependences(&rob_line->mob_base[rob_line->pos_mob]);
 			}
 		}
-		else if (this->get_HAS_VIMA() &&
-					(rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
-					rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER))
+		else if ((ignore_on_conversion_success == false) && (this->get_HAS_VIMA() &&
+															 (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
+															  rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)))
 		{
 			rob_line->mob_base[rob_line->pos_mob].rob_ptr = rob_line;
-			//mob_line->rob_ptr = rob_line;
+			// mob_line->rob_ptr = rob_line;
 
 #if VIMA_DEBUG
 			ORCS_PRINTF("%lu Processor rename(): VIMA instruction %lu uop %lu renamed!\n",
@@ -2899,19 +3131,31 @@ void processor_t::rename()
 		}
 
 #if PROCESSOR_DEBUG
-	assert(rob_line->uop.uop_operation != -1);
-	ORCS_PRINTF("%lu processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
-				orcs_engine.get_global_cycle(),
-				this->processor_id,
-				rob_line->uop.uop_number,
-				get_enum_instruction_operation_char(rob_line->uop.uop_operation),
-				rob_line->uop.readyAt,
-				this->fetchBuffer.get_size(),
-				origin_buffer->get_size(),
-				reorderBuffer.robUsed)
+		if (ignore_on_conversion_success == false){
+			assert(rob_line->uop.uop_operation != -1);
+			ORCS_PRINTF("%lu processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+						orcs_engine.get_global_cycle(),
+						this->processor_id,
+						rob_line->uop.uop_number,
+						get_enum_instruction_operation_char(rob_line->uop.uop_operation),
+						rob_line->uop.readyAt,
+						this->fetchBuffer.get_size(),
+						origin_buffer->get_size(),
+						reorderBuffer.robUsed)
+		} else {
+			ORCS_PRINTF("%lu IGNORED processor %lu rename(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+			orcs_engine.get_global_cycle(),
+			this->processor_id,
+			uop_clone.uop_number,
+			get_enum_instruction_operation_char(uop_clone.uop_operation),
+			uop_clone.readyAt,
+			this->fetchBuffer.get_size(),
+			origin_buffer->get_size(),
+			reorderBuffer.robUsed)
+		}
 #endif
 
-	} //end for
+	} // end for
 }
 
 // ============================================================================
@@ -2938,9 +3182,11 @@ void processor_t::dispatch()
 
 	for (uint32_t i = 0; i < this->unified_reservation_station.size() && i < UNIFIED_RS; i++)
 	{
-		//pointer to entry
+		// pointer to entry
+		// printf("Despachando a unified_reservation_station[%u] - uop: %lu\n", i, this->unified_reservation_station[i]->uop.uop_number);
 		reorder_buffer_line_t *rob_line = this->unified_reservation_station[i];
 		uop_package_t *uop = &(rob_line->uop);
+
 
 #if DISPATCH_DEBUG
 		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
@@ -2963,34 +3209,34 @@ void processor_t::dispatch()
 			if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_ALU ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MUL ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_DIV ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU  ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL  ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_ALU ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MUL ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_DIV ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_INT_MLA ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA  ||
-				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER  ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_FP_MLA ||
+				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_GATHER ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_VIMA_SCATTER)
 			{
 				rob_line->wait_reg_deps_number = 0;
 			}
 		}
 
-		uint32_t wait_regs = (!rob_line->uop.ignore_on_conversion_success || rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_STORE)
-							 ? 0
-							 : 1; // Stores wont receive op data, so there is a dependence
+		uint32_t wait_regs = 0;
 		/*if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE) {
 			printf("uop number: %lu - Next waiting regs: %u/%u\n", rob_line->uop.uop_number, rob_line->wait_reg_deps_number, wait_regs);
 		}*/
+
+		//rob_line->uop.print_content();
 
 		if ((uop->readyAt <= orcs_engine.get_global_cycle()) && (rob_line->wait_reg_deps_number == wait_regs))
 		{
 			ERROR_ASSERT_PRINTF(rob_line->uop.status == PACKAGE_STATE_WAIT,
 								"Error, uop not ready being dispatched\n %s\n",
 								rob_line->content_to_string().c_str());
-				ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME,
+			ERROR_ASSERT_PRINTF(rob_line->stage == PROCESSOR_STAGE_RENAME,
 								"Error, uop not in Rename to rename stage\n %s\n",
 								rob_line->content_to_string().c_str());
-				//if dispatched
+			// if dispatched
 			bool dispatched = false;
 			if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_BARRIER ||
 				rob_line->uop.uop_operation == INSTRUCTION_OPERATION_HMC_ROA ||
@@ -3000,7 +3246,7 @@ void processor_t::dispatch()
 				ERROR_PRINTF("Invalid instruction LAST||BARRIER||HMC_ROA||HMC_ROWA being dispatched.\n");
 				continue;
 			}
-				functional_unit_t *fu = uop->functional_unit;
+			functional_unit_t *fu = uop->functional_unit;
 			if (fu->dispatch_cnt < fu->size)
 			{
 				for (uint32_t k = 0; k < fu->size; ++k)
@@ -3016,7 +3262,7 @@ void processor_t::dispatch()
 					}
 				}
 			}
-			//remover os postos em execucao aqui
+			// remover os postos em execucao aqui
 			if (dispatched == true)
 			{
 
@@ -3035,7 +3281,7 @@ void processor_t::dispatch()
 				// remove from reservation station
 				this->unified_reservation_station.erase(this->unified_reservation_station.begin() + i);
 				i--;
-			} //end if dispatched
+			} // end if dispatched
 
 #if PROCESSOR_DEBUG
 			assert(rob_line->uop.uop_operation != -1);
@@ -3046,11 +3292,15 @@ void processor_t::dispatch()
 						rob_line->uop.readyAt, this->fetchBuffer.get_size(), this->decodeBuffer.get_size(), reorderBuffer.robUsed);
 #endif
 
-		} //end if robline is ready
-	} //end for
-} //end method
+		} // end if robline is ready
+		/*else {
+			printf("Not prepared: Ready_at: %lu/%lu Wait_regs: %u\n",
+				uop->readyAt, orcs_engine.get_global_cycle(), rob_line->wait_reg_deps_number);
+		}*/
+	}	  // end for
+} // end method
 
-//clean_mob_write() copy!
+// clean_mob_write() copy!
 void processor_t::clean_mob_hive()
 {
 	uint32_t pos = this->memory_order_buffer_hive_start;
@@ -3110,13 +3360,13 @@ void processor_t::clean_mob_vima()
 	}
 }
 
-
 void processor_t::clean_mob_read()
 {
 	// ==================================
 	// verificar leituras prontas no ciclo,
 	// remover do MOB e atualizar os registradores,
 	// ==================================
+
 	uint32_t pos = this->memory_order_buffer_read_start;
 	for (uint32_t i = 0; i < this->memory_order_buffer_read_used; i++)
 	{
@@ -3125,7 +3375,8 @@ void processor_t::clean_mob_read()
 			this->memory_order_buffer_read[pos].processed == false)
 		{
 #if MEMORY_DEBUG
-			ORCS_PRINTF("[MOBL] %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n",
+			ORCS_PRINTF("[MOBL] (uop: %lu) %lu %lu %s removed from memory order buffer | %s | readyAt = %u.\n",
+						memory_order_buffer_read[pos].uop_number,
 						orcs_engine.get_global_cycle(),
 						memory_order_buffer_read[pos].memory_address,
 						get_enum_memory_operation_char(memory_order_buffer_read[pos].memory_operation),
@@ -3149,7 +3400,8 @@ void processor_t::clean_mob_read()
 
 			// Se for o último necessário para o Commit
 			this->memory_order_buffer_read[pos].rob_ptr->waiting_mem_request--;
-			if (this->memory_order_buffer_read[pos].rob_ptr->waiting_mem_request == 0) {
+			if (this->memory_order_buffer_read[pos].rob_ptr->waiting_mem_request == 0)
+			{
 				this->memory_order_buffer_read[pos].rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 				this->memory_order_buffer_read[pos].rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 				this->solve_registers_dependency(this->memory_order_buffer_read[pos].rob_ptr);
@@ -3157,12 +3409,6 @@ void processor_t::clean_mob_read()
 
 			this->memory_order_buffer_read[pos].processed = true;
 			this->memory_read_executed--;
-			if (this->memory_order_buffer_read[pos].rob_ptr->uop.ignore_on_conversion_success) {
-				this->memory_order_buffer_read[pos].rob_ptr->uop.reexecuted = true;
-			}
-
-
-
 
 			if (DISAMBIGUATION_ENABLED)
 			{
@@ -3199,7 +3445,7 @@ void processor_t::execute()
 		ORCS_PRINTF("========== Execute Stage ==========\n")
 	}
 #endif
-	//printf("Execute\n");
+	// printf("Execute\n");
 
 	if (this->get_HAS_VIMA())
 		this->clean_mob_vima();
@@ -3310,30 +3556,25 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_MEM_LOAD:
 			{
 
-				// If its being converted start to wait the conversion finish
-				if (rob_line->uop.ignore_on_conversion_success) {
-					rob_line->stage = PROCESSOR_STAGE_WAITING_DYN;
-					read_executed[rob_line->uop.uop_number] = true;
-					this->memory_read_executed++;
-				}
-				// Usual loads act as usual
-				else {
-					ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Read with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
-					read_executed[rob_line->uop.uop_number] = true;
-					this->memory_read_executed++;
-				}
+				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Read with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
+				read_executed[rob_line->uop.uop_number] = true;
 
-				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
+
+				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a)
+				{
 					uint32_t pos = (rob_line->pos_mob + a) % rob_line->mob_limit;
 					rob_line->mob_base[pos].uop_executed = true;
+					this->memory_read_executed++;
 				}
 
-				
 				// Update VIMA conversor
-				if (rob_line->uop.linked_to_converter >= 0) {
-					this->vima_converter.AGU_result(&rob_line->uop);
+				if (rob_line->uop.linked_to_converter >= 0)
+				{
+					if (!this->vima_converter.AGU_result(&rob_line->uop))
+					{
+						return;
+					}
 				}
-
 
 				rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
 				uop_total_executed++;
@@ -3346,28 +3587,23 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_MEM_STORE:
 			{
 
-
-				// If its being converted start to wait the conversion finish
-				if (rob_line->uop.ignore_on_conversion_success) {
-					rob_line->stage = PROCESSOR_STAGE_WAITING_DYN;
-					this->memory_write_executed++;
-
-				}
-				// Usual store act as usual
-				else {
-					ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Write with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
-					this->memory_write_executed++;
-				}
-
+				ERROR_ASSERT_PRINTF(rob_line->mob_base != NULL, "Write with a NULL pointer to MOB\n%s\n", rob_line->content_to_string().c_str())
 				
-				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a){
+
+				for (uint32_t a = 0; a < rob_line->uop.num_mem_operations; ++a)
+				{
 					uint32_t pos = (rob_line->pos_mob + a) % rob_line->mob_limit;
 					rob_line->mob_base[pos].uop_executed = true;
+					this->memory_write_executed++;
 				}
 
 				// Update VIMA conversor
-				if (rob_line->uop.linked_to_converter >= 0) {
-					this->vima_converter.AGU_result(&rob_line->uop);
+				if (rob_line->uop.linked_to_converter >= 0)
+				{
+					if (!this->vima_converter.AGU_result(&rob_line->uop))
+					{
+						return;
+					}
 				}
 
 				rob_line->uop.updatePackageWait(EXECUTE_LATENCY);
@@ -3385,7 +3621,7 @@ void processor_t::execute()
 			case INSTRUCTION_OPERATION_LAST:
 				ERROR_PRINTF("Invalid BARRIER | HMC ROA | HMC ROWA | ÇAST.\n");
 				break;
-			} //end switch
+			} // end switch
 #if EXECUTE_DEBUG
 			if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
 			{
@@ -3406,8 +3642,8 @@ void processor_t::execute()
 						reorderBuffer.robUsed);
 #endif
 
-		} //end if ready package
-	}	  //end for
+		} // end if ready package
+	}	  // end for
 
 #if EXECUTE_DEBUG
 	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
@@ -3434,6 +3670,9 @@ void processor_t::execute()
 		this->mob_hive();
 	}
 
+	//printf("memory_vima_executed %d\n", this->memory_vima_executed);
+	//printf("Meanwhile mob VIMA contains %u waiting\n", this->memory_order_buffer_vima_used);
+
 	if (this->memory_vima_executed != 0)
 	{
 		this->mob_vima();
@@ -3447,8 +3686,12 @@ void processor_t::execute()
 	{
 		if (this->memory_write_executed != 0)
 		{
-			while (this->mob_write() == CLEANING_WRITES);
+			while (this->mob_write() == CLEANING_WRITES)
+				;
 		}
+		/* else {
+			printf("No memory writes! - WRITE BUFFER: %u\n", this->memory_order_buffer_write_used);
+		}*/
 	}
 	// =====================================
 #if EXECUTE_DEBUG
@@ -3457,11 +3700,31 @@ void processor_t::execute()
 		ORCS_PRINTF("=========================================================================\n")
 	}
 #endif
-} //end method
+} // end method
 
 // ============================================================================
 memory_order_buffer_line_t *processor_t::get_next_op_load()
 {
+
+	/*if (orcs_engine.get_global_cycle() >= 524) {
+		printf("MOB READ: %u\n", this->memory_order_buffer_read_used);
+		uint32_t pos = this->memory_order_buffer_read_start;
+		for (uint32_t j = 0; j < this->memory_order_buffer_read_used; j++)
+		{
+			printf("    uop: %lu - uop_ex: %s Status: %s Sent: %s Wait_deps: %u Ready: %lu/%lu\n", 
+						this->memory_order_buffer_read[pos].uop_number,
+						this->memory_order_buffer_read[pos].uop_executed ? "true" : "false",
+						get_enum_package_state_char(this->memory_order_buffer_read[pos].status),
+						this->memory_order_buffer_read[pos].sent ? "true" : "false",
+						this->memory_order_buffer_read[pos].wait_mem_deps_number,
+						this->memory_order_buffer_read[pos].readyToGo,
+						orcs_engine.get_global_cycle());
+			pos++;
+			if (pos >= MOB_READ)
+				pos = 0;
+		}
+	}*/
+
 	uint32_t pos = this->memory_order_buffer_read_start;
 	for (uint32_t i = 0; i < this->memory_order_buffer_read_used; i++)
 	{
@@ -3499,7 +3762,9 @@ uint32_t processor_t::mob_read()
 		}
 
 		memory_package_t *request = new memory_package_t();
-
+#if MEMORY_DEBUG == 1
+		printf("Sending %lu to manager\n", this->oldest_read_to_send->uop_number);
+#endif
 		request->clients.push_back(oldest_read_to_send);
 		request->opcode_address = oldest_read_to_send->opcode_address;
 		request->memory_address = oldest_read_to_send->memory_address;
@@ -3514,6 +3779,7 @@ uint32_t processor_t::mob_read()
 		request->readyAt = orcs_engine.get_global_cycle();
 		request->born_cycle = orcs_engine.get_global_cycle();
 		request->sent_to_ram = false;
+		request->flushed = false;
 		request->type = DATA;
 		request->uop_number = oldest_read_to_send->uop_number;
 		request->processor_id = this->processor_id;
@@ -3528,9 +3794,9 @@ uint32_t processor_t::mob_read()
 
 		if (orcs_engine.cacheManager->searchData(request))
 		{
-			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_read_to_send->cycle_send_request = orcs_engine.get_global_cycle(); // Cycle which sent request to memory system
 			this->oldest_read_to_send->sent = true;
-			this->oldest_read_to_send->rob_ptr->sent = true; ///Setting flag which marks sent request. set to remove entry on mob at commit
+			this->oldest_read_to_send->rob_ptr->sent = true; /// Setting flag which marks sent request. set to remove entry on mob at commit
 		}
 		else
 		{
@@ -3539,10 +3805,10 @@ uint32_t processor_t::mob_read()
 		}
 
 		this->oldest_read_to_send = NULL;
-	} //end if request null
+	} // end if request null
 
 	return OK;
-} //end method
+} // end method
 
 void processor_t::print_mob_hive()
 {
@@ -3584,15 +3850,15 @@ memory_order_buffer_line_t *processor_t::get_next_op_hive()
 			this->memory_order_buffer_hive[pos].readyToGo <= orcs_engine.get_global_cycle())
 		{
 #if DEBUG
-			//ORCS_PRINTF ("Processor get_next_op_hive(): fetching next HIVE instruction from MOB.\n")
+			// ORCS_PRINTF ("Processor get_next_op_hive(): fetching next HIVE instruction from MOB.\n")
 			for (uint32_t j = 0; j < this->memory_order_buffer_hive_used; j++)
 			{
-				//ORCS_PRINTF ("Processor get_next_op_hive(): %s %s %lu %u %lu.\n",
-				//             get_enum_package_state_char(this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].status),
-				//             get_enum_memory_operation_char(this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].memory_operation),
-				//             this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].uop_number,
-				//             this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].wait_mem_deps_number,
-				//             this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].readyToGo);
+				// ORCS_PRINTF ("Processor get_next_op_hive(): %s %s %lu %u %lu.\n",
+				//              get_enum_package_state_char(this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].status),
+				//              get_enum_memory_operation_char(this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].memory_operation),
+				//              this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].uop_number,
+				//              this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].wait_mem_deps_number,
+				//              this->memory_order_buffer_hive[(this->memory_order_buffer_hive_start+j) % MOB_HIVE].readyToGo);
 			}
 #endif
 			return &this->memory_order_buffer_hive[pos];
@@ -3615,6 +3881,7 @@ memory_order_buffer_line_t *processor_t::get_next_op_vima()
 			this->memory_order_buffer_vima[pos].wait_mem_deps_number == 0 &&
 			this->memory_order_buffer_vima[pos].readyToGo <= orcs_engine.get_global_cycle())
 		{
+			//printf("Selecting from %u others\n", this->memory_order_buffer_vima_used);
 			return &this->memory_order_buffer_vima[pos];
 		}
 		pos++;
@@ -3653,6 +3920,7 @@ uint32_t processor_t::mob_hive()
 		request->born_cycle = orcs_engine.get_global_cycle();
 		request->type = DATA;
 		request->sent_to_ram = false;
+		request->flushed = false;
 		request->uop_number = oldest_hive_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
@@ -3664,9 +3932,9 @@ uint32_t processor_t::mob_hive()
 
 		if (orcs_engine.cacheManager->searchData(request))
 		{
-			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_hive_to_send->cycle_send_request = orcs_engine.get_global_cycle(); // Cycle which sent request to memory system
 			this->oldest_hive_to_send->sent = true;
-			this->oldest_hive_to_send->rob_ptr->sent = true; ///Setting flag which marks sent request. set to remove entry on mob at commit
+			this->oldest_hive_to_send->rob_ptr->sent = true; /// Setting flag which marks sent request. set to remove entry on mob at commit
 		}
 		else
 			delete request;
@@ -3678,6 +3946,7 @@ uint32_t processor_t::mob_hive()
 // ============================================================================
 uint32_t processor_t::mob_vima()
 {
+	//printf("Mob VIMA contains %u waiting\n", this->memory_order_buffer_vima_used);
 	if (this->oldest_vima_to_send == NULL)
 		this->oldest_vima_to_send = this->get_next_op_vima();
 
@@ -3705,6 +3974,7 @@ uint32_t processor_t::mob_vima()
 		request->born_cycle = orcs_engine.get_global_cycle();
 		request->type = DATA;
 		request->sent_to_ram = false;
+		request->flushed = false;
 		request->uop_number = oldest_vima_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
@@ -3716,9 +3986,9 @@ uint32_t processor_t::mob_vima()
 
 		if (orcs_engine.cacheManager->searchData(request))
 		{
-			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_vima_to_send->cycle_send_request = orcs_engine.get_global_cycle(); // Cycle which sent request to memory system
 			this->oldest_vima_to_send->sent = true;
-			this->oldest_vima_to_send->rob_ptr->sent = true; ///Setting flag which marks sent request. set to remove entry on mob at commit
+			this->oldest_vima_to_send->rob_ptr->sent = true; /// Setting flag which marks sent request. set to remove entry on mob at commit
 		}
 		else
 			delete request;
@@ -3732,16 +4002,44 @@ memory_order_buffer_line_t *processor_t::get_next_op_store()
 {
 	uint32_t i = this->memory_order_buffer_write_start;
 
+	/*if (orcs_engine.get_global_cycle() >= 710) {
+		printf("MOB WRITE: %u\n", this->memory_order_buffer_write_used);
+		uint32_t pos = this->memory_order_buffer_write_start;
+		for (uint32_t j = 0; j < this->memory_order_buffer_write_used; j++)
+		{
+			printf("    uop: %lu\n", this->memory_order_buffer_write[pos].uop_number);
+			pos++;
+			if (pos >= MOB_WRITE)
+				pos = 0;
+		}
+	}*/
+
 	if ((this->memory_order_buffer_write[i].uop_executed &&
-		this->memory_order_buffer_write[i].status == PACKAGE_STATE_WAIT &&
-		this->memory_order_buffer_write[i].sent == false &&
-		this->memory_order_buffer_write[i].wait_mem_deps_number <= 0 &&
-		this->memory_order_buffer_write[i].readyToGo <= orcs_engine.get_global_cycle()) ||
+		 this->memory_order_buffer_write[i].status == PACKAGE_STATE_WAIT &&
+		 this->memory_order_buffer_write[i].sent == false &&
+		 this->memory_order_buffer_write[i].wait_mem_deps_number <= 0 &&
+		 this->memory_order_buffer_write[i].readyToGo <= orcs_engine.get_global_cycle()) ||
 		(this->memory_order_buffer_write[i].status == PACKAGE_STATE_IGNORED &&
-		this->memory_order_buffer_write[i].uop_executed))
+		 this->memory_order_buffer_write[i].uop_executed))
 	{
 		return &this->memory_order_buffer_write[i];
 	}
+	/*
+	else {
+		printf("MOB write oldest: uop %lu not ready to go - MOB size: %u\n", this->memory_order_buffer_write[i].uop_number, this->memory_order_buffer_write_used);
+		if (this->memory_order_buffer_write[i].uop_number == 316)
+		{
+			printf("Reason for not ready: uop %lu executed %s status %s sent %s wait_mem_deps_number %d readyToGo %lu/%lu\n",
+				   this->memory_order_buffer_write[i].uop_number,
+				   this->memory_order_buffer_write[i].uop_executed ? "true" : "false",
+				   get_enum_package_state_char(this->memory_order_buffer_write[i].status),
+				   this->memory_order_buffer_write[i].sent ? "true" : "false",
+				   this->memory_order_buffer_write[i].wait_mem_deps_number,
+				   this->memory_order_buffer_write[i].readyToGo, orcs_engine.get_global_cycle());
+
+		}
+	} */
+	
 	return NULL;
 }
 // ============================================================================
@@ -3749,18 +4047,29 @@ uint64_t escritas_enviadas = 0;
 uint64_t write_mshr_stall = 0;
 uint32_t processor_t::mob_write()
 {
-	if (this->oldest_write_to_send == NULL) {
+	if (this->oldest_write_to_send == NULL)
+	{
 		this->oldest_write_to_send = this->get_next_op_store();
+
+		/*if (this->oldest_write_to_send == NULL)	
+		{
+			printf("Received write from uop null as oldest\n");
+		} else {
+			printf("Received write from uop %lu as oldest\n",  this->oldest_write_to_send->uop_number);
+		}*/
 	}
 
 	if (this->oldest_write_to_send != NULL && !this->oldest_write_to_send->sent)
 	{
+		//printf("MOB write oldest: uop - %lu\n",  this->oldest_write_to_send->uop_number);
 
-		if (this->oldest_write_to_send->status == PACKAGE_STATE_CONVERTED) {
+		if (this->oldest_write_to_send->status == PACKAGE_STATE_CONVERTED)
+		{
 			return OK;
 		}
 
-		if (this->oldest_write_to_send->status == PACKAGE_STATE_IGNORED) {
+		if (this->oldest_write_to_send->status == PACKAGE_STATE_IGNORED)
+		{
 			if (DISAMBIGUATION_ENABLED)
 			{
 				this->disambiguator->solve_memory_dependences(this->oldest_write_to_send);
@@ -3781,7 +4090,7 @@ uint32_t processor_t::mob_write()
 
 		memory_package_t *request = new memory_package_t();
 
-		//request->clients.push_back (oldest_write_to_send);
+		// request->clients.push_back (oldest_write_to_send);
 		request->opcode_address = oldest_write_to_send->opcode_address;
 		request->memory_address = oldest_write_to_send->memory_address;
 		request->memory_size = oldest_write_to_send->memory_size;
@@ -3796,6 +4105,7 @@ uint32_t processor_t::mob_write()
 		request->born_cycle = orcs_engine.get_global_cycle();
 		request->type = DATA;
 		request->sent_to_ram = false;
+		request->flushed = false;
 		request->uop_number = oldest_write_to_send->uop_number;
 		request->processor_id = this->processor_id;
 		request->op_count[request->memory_operation]++;
@@ -3809,18 +4119,18 @@ uint32_t processor_t::mob_write()
 		if (orcs_engine.cacheManager->searchData(request))
 		{
 			escritas_enviadas++;
-			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); //Cycle which sent request to memory system
+			this->oldest_write_to_send->cycle_send_request = orcs_engine.get_global_cycle(); // Cycle which sent request to memory system
 			this->oldest_write_to_send->sent = true;
-			this->oldest_write_to_send->rob_ptr->sent = true; ///Setting flag which marks sent request. set to remove entry on mob at commit
-			
+			this->oldest_write_to_send->rob_ptr->sent = true; /// Setting flag which marks sent request. set to remove entry on mob at commit
+
 			// Se for o último necessário para o Commit
 			this->oldest_write_to_send->rob_ptr->waiting_mem_request--;
-			if(this->oldest_write_to_send->rob_ptr->waiting_mem_request == 0) {
+			if (this->oldest_write_to_send->rob_ptr->waiting_mem_request == 0)
+			{
 				this->oldest_write_to_send->rob_ptr->stage = PROCESSOR_STAGE_COMMIT;
 				this->oldest_write_to_send->rob_ptr->uop.updatePackageReady(COMMIT_LATENCY);
 				this->solve_registers_dependency(this->oldest_write_to_send->rob_ptr);
 			}
-
 
 			this->oldest_write_to_send->processed = true;
 			this->memory_write_executed--;
@@ -3840,7 +4150,7 @@ uint32_t processor_t::mob_write()
 
 		this->oldest_write_to_send = NULL;
 		// =============================================================
-	} //end if request null
+	} // end if request null
 	return OK;
 }
 // ============================================================================
@@ -3850,51 +4160,43 @@ void processor_t::check_conversion()
 	// **********************************
 	// Verifica cada conversão em aguardo
 	// **********************************
-	for (uint32_t conversion_index=0; conversion_index < this->vima_converter.current_conversions.get_size(); ++conversion_index)
+	for (uint32_t conversion_index = 0; conversion_index < this->vima_converter.current_conversions.get_size(); ++conversion_index)
 	{
-		if (this->vima_converter.current_conversions[conversion_index].entry_can_be_removed) {
+		if (this->vima_converter.current_conversions[conversion_index].entry_can_be_removed)
+		{
+			if (conversion_index == this->vima_converter.current_conversions.get_size() - 1)
+				printf("%u Conversion already complete\n", conversion_index);
 			continue;
 		}
 
-
-		if (this->vima_converter.current_conversions[conversion_index].CPU_requirements_meet && 
-		    this->vima_converter.current_conversions[conversion_index].VIMA_requirements_meet &&
+		if (this->vima_converter.current_conversions[conversion_index].CPU_requirements_meet &&
+			this->vima_converter.current_conversions[conversion_index].VIMA_requirements_meet &&
 			this->vima_converter.current_conversions[conversion_index].VIMA_requirements_meet_readyAt <= orcs_engine.get_global_cycle())
 		{
+			//printf("%lu Conversion ready to commit\n", this->vima_converter.current_conversions[conversion_index].unique_conversion_id);
 			this->vima_converter.conversion_successful++;
-
+			//if (conversion_index == this->vima_converter.current_conversions.get_size() - 1) printf("%u Conversion completing\n", conversion_index);
 			// Adjust ROB converted entries to commit
 			ROB_t *rob = &this->reorderBuffer;
-			for (uint32_t i=0; i < rob->robUsed; ++i)
+			for (uint32_t i = 0; i < rob->robUsed; ++i)
 			{
 				uint32_t pos = (rob->robStart + i) % rob->SIZE;
 				reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos];
 
-
-				if (rob_line->stage == PROCESSOR_STAGE_WAITING_DYN && 
-				    rob_line->uop.unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id) 
+				if (rob_line->uop.is_placeholder &&
+					rob_line->uop.unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id)
 				{
-#if VIMA_CONVERSION_DEBUG == 1
-					printf("check_conversion %lu converted\n", rob_line->uop.uop_number);
-#endif
-					this->vima_converter.instructions_intercepted_until_commit++;
-					rob_line->stage = PROCESSOR_STAGE_COMMIT;
-					rob_line->uop.status = PACKAGE_STATE_READY;
-					if (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE){
-						rob_line->sent = true;
-					}
-					rob_line->uop.readyAt = orcs_engine.get_global_cycle(); // Transmission delay accounted inside vima_controller
-					this->solve_registers_dependency(rob_line);
+					rob_line->uop.conversion_result = 1; // COMMIT
 				}
 			}
 
 			// Adjust Read MOB converted entries
-			//printf("Checking from %u to %u\n", this->memory_order_buffer_read_start, this->memory_order_buffer_read_start + this->memory_order_buffer_read_used - 1);
+			// printf("Checking from %u to %u\n", this->memory_order_buffer_read_start, this->memory_order_buffer_read_start + this->memory_order_buffer_read_used - 1);
 			uint32_t pos = this->memory_order_buffer_read_start;
 			for (uint32_t i = 0; i < this->memory_order_buffer_read_used; i++)
 			{
-				if (this->memory_order_buffer_read[pos].status == PACKAGE_STATE_CONVERTED && 
-				    this->memory_order_buffer_read[pos].unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id)
+				if (this->memory_order_buffer_read[pos].status == PACKAGE_STATE_CONVERTED &&
+					this->memory_order_buffer_read[pos].unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id)
 				{
 					/*printf("i: %u / %u\n", i, this->memory_order_buffer_read_used);
 					if (pos == 0) {
@@ -3903,7 +4205,7 @@ void processor_t::check_conversion()
 					}*/
 					this->memory_order_buffer_read[pos].status = PACKAGE_STATE_IGNORED;
 					this->memory_order_buffer_read[pos].sent = true;
-					//printf("Removendo dependencias de %lu [pos: %u]\n", this->memory_order_buffer_read[pos].uop_number, pos);
+					// printf("Removendo dependencias de %lu [pos: %u]\n", this->memory_order_buffer_read[pos].uop_number, pos);
 					if (DISAMBIGUATION_ENABLED)
 					{
 
@@ -3919,13 +4221,13 @@ void processor_t::check_conversion()
 			pos = this->memory_order_buffer_write_start;
 			for (uint32_t i = 0; i < this->memory_order_buffer_write_used; i++)
 			{
-				
-				if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_CONVERTED && 
-				    this->memory_order_buffer_write[pos].unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id)
+
+				if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_CONVERTED &&
+					this->memory_order_buffer_write[pos].unique_conversion_id == this->vima_converter.current_conversions[conversion_index].unique_conversion_id)
 				{
 					this->memory_order_buffer_write[pos].status = PACKAGE_STATE_IGNORED;
-					//printf("MOB write position of uop number %lu changed to ignored\n", this->memory_order_buffer_write[pos].uop_number);
-					// The remaining steps are made by mob_write sequentially
+					// printf("MOB write position of uop number %lu changed to ignored\n", this->memory_order_buffer_write[pos].uop_number);
+					//  The remaining steps are made by mob_write sequentially
 				}
 				pos++;
 				if (pos >= MOB_WRITE)
@@ -3937,12 +4239,22 @@ void processor_t::check_conversion()
 			// ***************************
 			this->vima_converter.current_conversions[conversion_index].entry_can_be_removed = true;
 		}
+		else
+		{
+			/*if (conversion_index == this->vima_converter.current_conversions.get_size() - 1) {
+				printf("%u Conversion in progress... (CPU: %s VIMA: %s VIMA_readyAt: %lu/%lu)\n",
+						conversion_index,
+						this->vima_converter.current_conversions[conversion_index].CPU_requirements_meet ? "true" : "false",
+						this->vima_converter.current_conversions[conversion_index].VIMA_requirements_meet ? "true" : "false",
+						this->vima_converter.current_conversions[conversion_index].VIMA_requirements_meet_readyAt, orcs_engine.get_global_cycle());
+			}*/
+		}
 	}
 
 	// *************************
 	// Remove conversões antigas
 	// *************************
-	while(this->vima_converter.current_conversions.get_size() > 0 && this->vima_converter.current_conversions[0].entry_can_be_removed)
+	while (this->vima_converter.current_conversions.get_size() > 0 && this->vima_converter.current_conversions[0].entry_can_be_removed)
 	{
 #if VIMA_CONVERSION_DEBUG == 1
 		printf("********************************\n");
@@ -3953,66 +4265,182 @@ void processor_t::check_conversion()
 	}
 }
 
-// ============================================================================
-void processor_t::conversion_invalidation(uint64_t unique_conversion_id)
+void processor_t::conversion_flush(conversion_status_t *conversion)
 {
-    // *****************************************
-    // Libera instruções em espera para execução
-    // *****************************************
 
-	ROB_t *rob = &this->reorderBuffer;
-	for (uint32_t i=0; i < rob->robUsed; ++i)
-	{	
-		// ++++++++++++++++++ Ops ++++++++++++++++++
-		uint32_t pos = (rob->robStart + i) % rob->SIZE;
-		reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos];
-		if (rob_line->stage == PROCESSOR_STAGE_WAITING_DYN && rob_line->uop.unique_conversion_id == unique_conversion_id) {
-			rob_line->stage = PROCESSOR_STAGE_RENAME;
-			rob_line->uop.reexecuted = true;
-			
-			// Insert in URS
-			if ((rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_LOAD) &&
-		   		(rob_line->uop.uop_operation != INSTRUCTION_OPERATION_MEM_STORE)) {
-				this->unified_reservation_station.push_back(rob_line);
-				this->vima_converter.instructions_reexecuted++;
-		   }
-		}
+	// ***********************************************************
+	// Remove instruções após a primeira da conversão
+	// ***********************************************************
+
+	/* Clean fetch buffer */
+	this->vima_converter.flushed_instructions += this->fetchBuffer.get_size();
+	this->fetchBuffer.pop_all();
+
+	/* Clean VIMA instruction buffer */
+	this->vima_converter.flushed_instructions += this->vima_converter.vima_instructions_buffer.get_size();
+	this->vima_converter.vima_instructions_buffer.pop_all();
+
+	/* Clean decode buffer */
+	this->vima_converter.flushed_instructions += this->decodeBuffer.get_size();
+	this->decodeBuffer.pop_all();
+
+	/* Decode counter */
+	this->decodeCounter = this->fetchCounter;
+
+	/* Clean RAT */
+	for (uint32_t i = 0; i < RAT_SIZE; ++i)
+	{
+		this->register_alias_table[i] = NULL;
 	}
 
+	/* Clean execution buffers */
+	utils_t::largeSeparator();
+	printf("INVALIDAÇÃO!\n");
+	utils_t::largeSeparator();
+
+	/* --------------------------- unified_reservation_station --------------------------- */
+	while (this->unified_reservation_station.size() > 0)
+	{
+		printf("Dando pop da unified_reservation_station[%lu]\n", this->unified_reservation_station.size() - 1);
+		this->unified_reservation_station.pop_back();
+	}
+	assert(this->unified_reservation_station.size() == 0);
+
+	/* --------------------------- unified_functional_units --------------------------- */
+	while (this->unified_functional_units.size() > 0)
+	{
+		this->unified_functional_units.pop_back();
+		printf("Dando pop da unified_functional_units[%lu]\n", this->unified_functional_units.size() - 1);
+	}
+	assert(this->unified_functional_units.size() == 0);
+
 	// +++++++++++++ Loads/stores  +++++++++++++
-	// Mob READ
+	// Resolve dependências:
 	uint32_t pos = this->memory_order_buffer_read_start;
 	for (uint32_t i = 0; i < this->memory_order_buffer_read_used; i++)
 	{
-
-		if (this->memory_order_buffer_read[pos].status == PACKAGE_STATE_CONVERTED) {
-			assert(this->memory_order_buffer_read[pos].rob_ptr->uop.unique_conversion_id == this->memory_order_buffer_read[pos].unique_conversion_id);
-		}
-		
-		if (this->memory_order_buffer_read[pos].status == PACKAGE_STATE_CONVERTED && this->memory_order_buffer_read[pos].unique_conversion_id == unique_conversion_id)
-		{
-			this->memory_order_buffer_read[pos].status = PACKAGE_STATE_WAIT;
-			this->vima_converter.instructions_reexecuted++;
-		}
+		this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_read[pos]);
 		pos++;
 		if (pos >= MOB_READ)
 			pos = 0;
 	}
 
-	// Mob Write
 	pos = this->memory_order_buffer_write_start;
 	for (uint32_t i = 0; i < this->memory_order_buffer_write_used; i++)
 	{
-		if (this->memory_order_buffer_write[pos].status == PACKAGE_STATE_CONVERTED && this->memory_order_buffer_write[pos].unique_conversion_id == unique_conversion_id)
-		{
-			this->memory_order_buffer_write[pos].status = PACKAGE_STATE_WAIT;
-			this->vima_converter.instructions_reexecuted++;
-		}
+		this->disambiguator->solve_memory_dependences(&this->memory_order_buffer_write[pos]);
 		pos++;
 		if (pos >= MOB_WRITE)
 			pos = 0;
 	}
 
+	// Mob READ clean, just newer instruction
+	pos = this->memory_order_buffer_read_start;
+	while(this->memory_order_buffer_read_used > 0)
+	{
+
+		/* Remove entrada */
+		remove_back_mob_read();
+
+		pos++;
+		if (pos >= MOB_READ)
+			pos = 0;
+	}
+	this->memory_read_executed = 0;
+	this->oldest_read_to_send = NULL; 
+	assert(this->memory_order_buffer_read_used == 0);
+	
+	printf("MOB Read limpo! - Used: %u\n", this->memory_order_buffer_read_used);
+
+	// Mob Write clean, just newer instruction
+	pos = this->memory_order_buffer_write_start;
+	while(this->memory_order_buffer_write_used > 0)
+	{
+
+		/* Remove entrada */
+		remove_back_mob_write();
+
+
+		pos++;
+		if (pos >= MOB_WRITE)
+			pos = 0;
+	}
+	this->memory_write_executed = 0;
+	this->oldest_write_to_send = NULL;
+	assert(this->memory_order_buffer_write_used == 0);
+
+	printf("MOB Write limpo! - Used: %u\n", this->memory_order_buffer_write_used);
+
+	// Mob VIMA clean, just newer instruction
+	pos = this->memory_order_buffer_vima_start;
+	while(this->memory_order_buffer_vima_used > 0)
+	{
+		// A VIMA sempre tem uop 0 e não é reaproveitada, então não precisa verificar
+		remove_back_mob_vima();
+
+		pos++;
+		if (pos >= MOB_VIMA)
+			pos = 0;
+	}
+	this->memory_vima_executed = 0;
+	this->oldest_vima_to_send = NULL;
+	assert(this->memory_order_buffer_vima_used == 0);
+
+	printf("MOB VIMA limpo! - Used: %u\n", this->memory_order_buffer_vima_used);
+
+	// Clean requests (READ/WRITE)
+	orcs_engine.cacheManager->flush_requests();
+	printf("Requests limpos!\n");
+
+	/* Clean rob buffer, just newer instruction */
+	/* Precisa limpar o ROB depois porque os outros apontam para ele */
+	/// Vou removendo uma a uma até chegar em uma mais nova
+	/// Não vai ter problema com dependências porque sempre tiro as mais velhas.
+	ROB_t *rob = &this->reorderBuffer;
+
+	while (rob->robUsed > 0)
+	{
+		this->resolve_registers_to(&rob->reorderBuffer[lastPositionROB(rob)]);
+		returnPositionROB(rob);
+		this->vima_converter.flushed_instructions++;
+#ifdef DEBUG_CONVERSION
+		printf("Devolvi posição! ROB used: %u\n", rob->robUsed);
+#endif
+	}
+	assert(rob->robUsed == 0);
+	printf("ROB limpo!\n");
+
+	// ***********************************************************
+	// Reinicia a busca de instruções pelo checkpoint
+	// ***********************************************************
+	orcs_engine.trace_reader->set_checkpoint(conversion->checkpoint);
+	printf("Checkpoint estabelecido!\n");
+}
+
+// ============================================================================
+/* Marca o placeholder da conversão para fazer invalidar quando na cabeça do ROB */
+void processor_t::conversion_mark_to_invalidate(uint64_t unique_conversion_id)
+{
+	ROB_t *rob = &this->reorderBuffer;
+	printf("%lu Conversion marked to invalidate\n", unique_conversion_id);
+	
+	for (uint32_t i = 0; i < rob->robUsed; ++i)
+	{
+		uint32_t pos = (rob->robStart + i) % rob->SIZE;
+		reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos];
+
+		/*if (pos == rob->robEnd) {
+			printf("ROB end UID: %lu != %lu\n", rob_line->uop.unique_conversion_id, unique_conversion_id);
+		}*/
+		
+		if (rob_line->uop.is_placeholder &&
+			rob_line->uop.unique_conversion_id == unique_conversion_id)
+		{
+			printf("Placeholder marked successfully!\n");
+			rob_line->uop.conversion_result = 2; // INVALIDATION
+			rob_line->uop.conversion_status = *this->vima_converter.get_conversion(unique_conversion_id);
+		}
+	}
 }
 
 // ============================================================================
@@ -4052,14 +4480,15 @@ void processor_t::commit()
 		{
 			this->check_conversion();
 		}
-		
-		/*
-		if (rob->robUsed != 0 && (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE)) {
+
+#ifdef DEBUG_CONVERSION
+		if (rob->robUsed != 0 && (rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD || rob_line->uop.uop_operation == INSTRUCTION_OPERATION_MEM_STORE))
+		{
 			uint32_t pos = (rob_line->pos_mob + 0) % rob_line->mob_limit;
-		
-			ORCS_PRINTF("%lu Ignored: %s unique_conversion_id: %lu Iteration: %ld Stage: %d (AGU executed: %s - Processed: %s [pos: %u] - Sent: %s): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+
+			ORCS_PRINTF("%lu Placeholder: %s unique_conversion_id: %lu Iteration: %ld Stage: %d (AGU executed: %s - Processed: %s [pos: %u] - Sent: %s): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
 						orcs_engine.get_global_cycle(),
-						(rob_line->uop.ignore_on_conversion_success) ? "true" : "false",
+						(rob_line->uop.is_placeholder) ? "true" : "false",
 						rob_line->uop.unique_conversion_id,
 						rob_line->uop.linked_to_iteration,
 						rob_line->stage,
@@ -4073,10 +4502,12 @@ void processor_t::commit()
 						this->fetchBuffer.get_size(),
 						this->decodeBuffer.get_size(),
 						rob->robUsed);
-		} else {
-			ORCS_PRINTF("%lu Ignored: %s unique_conversion_id: %lu Iteration: %ld Stage: %d: uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
+		}
+		else
+		{
+			ORCS_PRINTF("%lu Placeholder: %s unique_conversion_id: %lu Iteration: %ld Stage: %d: uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
 						orcs_engine.get_global_cycle(),
-						(rob_line->uop.ignore_on_conversion_success) ? "true" : "false",
+						(rob_line->uop.is_placeholder) ? "true" : "false",
 						rob_line->uop.unique_conversion_id,
 						rob_line->uop.linked_to_iteration,
 						rob_line->stage,
@@ -4087,15 +4518,26 @@ void processor_t::commit()
 						this->decodeBuffer.get_size(),
 						rob->robUsed);
 		}
-		*/
-		
+
+		if (rob_line->uop.is_vima)
+		{
+			printf("COMMIT: VIMA UID: %lu\n", rob_line->uop.unique_conversion_id);
+		}
+#endif
+
+		if (rob_line->uop.is_placeholder && rob_line->uop.conversion_result == 2)
+		{
+			// Invalidated
+			this->vima_converter.invalidate_conversion(&rob_line->uop.conversion_status);
+		}
 
 		if ((rob->robUsed != 0) &&
 			rob_line->stage == PROCESSOR_STAGE_COMMIT &&
+			(rob_line->uop.is_placeholder == false ||
+			 rob_line->uop.conversion_result == 1) &&
 			rob_line->uop.status == PACKAGE_STATE_READY &&
 			rob_line->uop.readyAt <= orcs_engine.get_global_cycle())
 		{
-
 
 			this->commit_uop_counter++;
 			switch (rob_line->uop.uop_operation)
@@ -4228,7 +4670,7 @@ void processor_t::commit()
 			}
 
 			ERROR_ASSERT_PRINTF(uint32_t(pos_buffer) == rob->robStart, "Commiting different from the position start\n");
-#if PROCESSOR_DEBUG
+#if (PROCESSOR_DEBUG != 0) || defined(DEBUG_CONVERSION)
 
 			assert(rob_line->uop.uop_operation != -1);
 			ORCS_PRINTF("%lu processor %lu commit(): uop %lu %s, readyAt %lu, fetchBuffer: %u, decodeBuffer: %u, robUsed: %u.\n",
@@ -4243,11 +4685,11 @@ void processor_t::commit()
 #endif
 
 #if COMMIT_DEBUG
-				if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-				{
-					ORCS_PRINTF("======================================\n")
-					ORCS_PRINTF("RM ROB Entry \n%s\n", rob->reorderBuffer[rob->robStart].content_to_string().c_str())
-				}
+			if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+			{
+				ORCS_PRINTF("======================================\n")
+				ORCS_PRINTF("RM ROB Entry \n%s\n", rob->reorderBuffer[rob->robStart].content_to_string().c_str())
+			}
 #endif
 
 			if (rob->reorderBuffer[rob->robStart].sent == true)
@@ -4255,11 +4697,6 @@ void processor_t::commit()
 				if (rob->reorderBuffer[rob->robStart].uop.uop_operation == INSTRUCTION_OPERATION_MEM_LOAD)
 				{
 					this->remove_front_mob_read(rob->reorderBuffer[rob->robStart].uop.num_mem_operations);
-					if (rob->reorderBuffer[rob->robStart].uop.ignore_on_conversion_success &&
-					    !rob->reorderBuffer[rob->robStart].uop.reexecuted) {
-						this->memory_read_executed--;
-					}
-				
 				}
 				else if (rob->reorderBuffer[rob->robStart].uop.is_hive)
 				{
@@ -4285,6 +4722,17 @@ void processor_t::commit()
 		/// Could not commit the older, then stop looking for ready uops
 		else
 		{
+
+#ifdef DEBUG_CONVERSION
+			printf("Rob->robUsed: %u\n", rob->robUsed);
+			printf("HEAD-Opcode number: %lu\n", rob_line->uop.opcode_number);
+			printf("HEAD_Uop number: %lu\n", rob_line->uop.uop_number);
+			printf("rob_line->stage: %s\n", get_enum_processor_stage_char(rob_line->stage));
+			printf("rob_line->uop.is_placeholder: %s\n", rob_line->uop.is_placeholder ? "true" : "false");
+			printf("rob_line->uop.status: %s\n", get_enum_package_state_char(rob_line->uop.status));
+			printf("rob_line->uop.readyAt: %lu/%lu\n", rob_line->uop.readyAt, orcs_engine.get_global_cycle());
+#endif
+
 			if (this->vima_converter.current_conversion != 0x0)
 			{
 
@@ -4298,69 +4746,78 @@ void processor_t::commit()
 				reorder_buffer_line_t *rob_line = &rob->reorderBuffer[pos_buffer];
 				if ((rob->SIZE == rob->robUsed) &&
 					(this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending) &&
-					rob_line->stage == PROCESSOR_STAGE_WAITING_DYN && 
+					rob_line->uop.is_placeholder &&
 					rob_line->uop.unique_conversion_id == this->vima_converter.current_conversion->unique_conversion_id)
-					{
+				{
 #if VIMA_CONVERSION_DEBUG == 1
-						printf("INVALIDATION: ROB full but not enough iterations inside\n");
-#endif	
-						this->vima_converter.invalidation_reason["UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-							printf("Invalidado por UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE\n");
-						}
-						this->vima_converter.invalidate_conversion(&this->vima_converter.current_conversions[this->vima_converter.current_conversions.get_size() - 1]);
-					} 
-					/*
-					else {
-						printf("ROB %u/%u - Iteration: %u/%lu - Stage: %u != %u ID: %lu != %lu\n",
-						    	rob->SIZE, rob->robUsed,
-								this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_ending,
-								rob_line->stage, PROCESSOR_STAGE_WAITING_DYN,
-								rob_line->uop.unique_conversion_id, this->vima_converter.current_conversion->unique_conversion_id);
-					}
-					*/
-					
+					printf("INVALIDATION: ROB full but not enough iterations inside\n");
+#endif
+					this->vima_converter.invalidation_reason["UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE"]++;
+					this->conversion_mark_to_invalidate(rob_line->uop.unique_conversion_id);
+					return;
+				}
+#ifdef DEBUG_CONVERSION
+				else
+				{
+					printf("ROB %u/%u - Iteration: %u/%lu - is_placeholder: %s ID: %lu != %lu\n",
+						   rob->SIZE, rob->robUsed,
+						   this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_ending,
+						   rob_line->uop.is_placeholder ? "true" : "false",
+						   rob_line->uop.unique_conversion_id, this->vima_converter.current_conversion->unique_conversion_id);
+				}
+#endif
 
 				// A instrução VIMA está travada no estágio de execute porque a VIMA não consegue decidir se
 				// armazena ou joga fora o seu resultado enquanto a CPU não responder.
 				// Assim ela não pode comitar nem desfazer a conversão pela regra acima.
-				 if ((rob->SIZE == rob->robUsed) &&
+				/*if ((rob->SIZE == rob->robUsed) &&
 					(this->vima_converter.iteration <= this->vima_converter.current_conversion->conversion_ending) &&
-					rob_line->stage == PROCESSOR_STAGE_EXECUTION && 
+					rob_line->stage == PROCESSOR_STAGE_EXECUTION &&
 					rob_line->uop.is_vima &&
 					this->vima_converter.current_conversion->VIMA_requirements_meet &&
 					this->vima_converter.current_conversion->VIMA_requirements_meet_readyAt <= orcs_engine.get_global_cycle() &&
 					rob_line->uop.unique_conversion_id == this->vima_converter.current_conversion->unique_conversion_id)
-					{
+				{
 #if VIMA_CONVERSION_DEBUG == 1
-						printf("INVALIDATION: ROB full but not enough iterations inside, freeing VIMA\n");
-#endif	
-						this->vima_converter.invalidation_reason["UNBLOCKING ROB WITH VIMA AS HEAD NOT ENOUGH ITERATIONS INSIDE"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-							printf("Invalidado por UNBLOCKING ROB WITH VIMA AS HEAD NOT ENOUGH ITERATIONS INSIDE\n");
-						}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
-					}
-
+					printf("INVALIDATION: ROB full but not enough iterations inside, freeing VIMA\n");
+#endif
+					this->vima_converter.invalidation_reason["UNBLOCKING ROB WITH VIMA AS HEAD NOT ENOUGH ITERATIONS INSIDE"]++;
+					this->conversion_mark_to_invalidate(this->vima_converter.current_conversion);
+					return;
+				}*/
 
 				// Verifica se está travado porque acabaram as instruções até o rename sem completar as iterações
 				if (this->traceIsOver &&
 					this->fetchBuffer.is_empty() &&
 					this->decodeBuffer.is_empty() &&
+					rob_line->uop.is_placeholder &&
 					rob_line->uop.unique_conversion_id == this->vima_converter.current_conversion->unique_conversion_id && // Tem uma instrução da conversão tentando comittar
-					((rob_line->uop.ignore_on_conversion_success && (!rob_line->uop.reexecuted)) || rob_line->uop.is_vima) && // Não era uma das de cálculo do endereço
-					this->vima_converter.iteration <= 
-					this->vima_converter.current_conversion->conversion_ending) {
+					this->vima_converter.iteration <=
+						this->vima_converter.current_conversion->conversion_ending)
+				{
 #if VIMA_CONVERSION_DEBUG == 1
-						printf("INVALIDATION: Not enough instructions remaining to complete the conversion\n");
-#endif	
-						this->vima_converter.invalidation_reason["UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE PROGRAM ENDED"]++;
-						if (this->vima_converter.current_conversion->base_addr[0] == (uint64_t)94167590130871) {
-							printf("Invalidado por UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE PROGRAM ENDED\n");
-						}
-						this->vima_converter.invalidate_conversion(this->vima_converter.current_conversion);
-					}
+					printf("INVALIDATION: Not enough instructions remaining to complete the conversion\n");
+#endif
+					this->vima_converter.invalidation_reason["UNBLOCKING ROB NOT ENOUGH ITERATIONS INSIDE PROGRAM ENDED"]++;
+					this->conversion_mark_to_invalidate(rob_line->uop.unique_conversion_id);
+					return;
+				}
+#ifdef DEBUG_CONVERSION
+				else
+				{
+					printf("Invalidation - Verification\n");
+					printf("Trace is over: %s\n", this->traceIsOver ? "true" : "false");
+					printf("fetchBuffer is empty: %s\n", this->fetchBuffer.is_empty() ? "true" : "false");
+					printf("decodeBuffer is empty: %s\n", this->decodeBuffer.is_empty() ? "true" : "false");
+					printf("is_placeholder: %s -- Stats: %u\n", rob_line->uop.is_placeholder ? "true" : "false", rob_line->uop.conversion_result);
+					printf("unique_conversion_id (%lu) == (%lu) current_conversion->unique_conversion_id\n", rob_line->uop.unique_conversion_id, this->vima_converter.current_conversion->unique_conversion_id);
 
+					if (rob_line->uop.is_placeholder)
+					{
+						this->vima_converter.conversionStats(rob_line->uop.unique_conversion_id);
+					}
+				}
+#endif
 
 				i = 0;
 #if DEBUG
@@ -4379,13 +4836,13 @@ void processor_t::commit()
 		}
 	} // end for
 #if COMMIT_DEBUG
-		if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
-		{
-			ORCS_PRINTF("=========================================================================\n")
-		}
+	if (orcs_engine.get_global_cycle() > WAIT_CYCLE)
+	{
+		ORCS_PRINTF("=========================================================================\n")
+	}
 #endif
 
-} //end method
+} // end method
 
 // ============================================================================
 void processor_t::solve_registers_dependency(reorder_buffer_line_t *rob_line)
@@ -4401,8 +4858,8 @@ void processor_t::solve_registers_dependency(reorder_buffer_line_t *rob_line)
 		if (this->register_alias_table[write_register] != NULL && this->register_alias_table[write_register]->uop.uop_number == rob_line->uop.uop_number)
 		{
 			this->register_alias_table[write_register] = NULL;
-		} //end if
-	}	  //end for
+		} // end if
+	}	  // end for
 
 	// =========================================================================
 	// SOLVE REGISTER DEPENDENCIES - RAT
@@ -4425,8 +4882,159 @@ void processor_t::solve_registers_dependency(reorder_buffer_line_t *rob_line)
 			break;
 		}
 	}
+
+	/// Solve dependencies with conversions
+	for (uint32_t j = 0; j < ROB_SIZE; j++)
+	{
+		/// There is an unsolved dependency
+		if (rob_line->reg_deps_conv_ptr_array[j] != NULL)
+		{
+			rob_line->wake_up_conversions_counter--;
+			rob_line->reg_deps_conv_ptr_array[j]->wait_reg_deps_number--;
+			assert(rob_line->reg_deps_conv_ptr_array[j]->wait_reg_deps_number >= 0);
+			/// This update the ready cycle, and it is usefull to compute the time each instruction waits for the functional unit
+			if (rob_line->reg_deps_conv_ptr_array[j]->deps_readyAt <= orcs_engine.get_global_cycle())
+				rob_line->reg_deps_conv_ptr_array[j]->deps_readyAt = orcs_engine.get_global_cycle();
+			rob_line->reg_deps_conv_ptr_array[j] = NULL;
+		}
+		/// All the dependencies are solved
+		else
+		{
+			break;
+		}
+	}
 }
-void processor_t::reset_statistics(){
+
+// ============================================================================
+// IMPORTANTE: Chame a partir da uop mais antiga no ROB
+// Isso tira todas as dependências com uma uop, assim podemos tirar ela
+// do ROB sem bagunçar as resoluções de dependências futuras
+void processor_t::resolve_registers_to(reorder_buffer_line_t *rob_line)
+{
+	/// Remove pointers from Register Alias Table (RAT)
+	for (uint32_t j = 0; j < MAX_REGISTERS; j++)
+	{
+		if (rob_line->uop.write_regs[j] < 0)
+			break;
+
+		uint32_t write_register = rob_line->uop.write_regs[j];
+		ERROR_ASSERT_PRINTF(write_register < RAT_SIZE, "Write Register (%d) > Register Alias Table Size (%d)\n", write_register, RAT_SIZE);
+		if (this->register_alias_table[write_register] != NULL && this->register_alias_table[write_register]->uop.uop_number == rob_line->uop.uop_number)
+		{
+			this->register_alias_table[write_register] = NULL;
+		} // end if
+	}	  // end for
+
+	// =========================================================================
+	// SOLVE REGISTER DEPENDENCIES - RAT
+	// =========================================================================
+	/// Para cada elemento do ROB
+	ROB_t *rob = &this->reorderBuffer;
+	for (uint32_t rob_p = 0; (rob_p < rob->robUsed) && (rob_line->wait_reg_deps_number > 0); ++rob_p)
+	{
+		uint32_t pos = (rob->robStart + rob_p) % rob->SIZE;
+		reorder_buffer_line_t *other_rob_line = &rob->reorderBuffer[pos];
+
+		/// There is an unsolved dependency
+		if (other_rob_line->wake_up_elements_counter > 0)
+		{
+			for (int64_t k = other_rob_line->wake_up_elements_counter - 1; k >= 0; --k)
+			{
+				if ((other_rob_line->reg_deps_ptr_array[k] != NULL) && (other_rob_line->reg_deps_ptr_array[k] == rob_line))
+				{
+					other_rob_line->wake_up_elements_counter--;
+					other_rob_line->reg_deps_ptr_array[k]->wait_reg_deps_number--;
+					if (other_rob_line->reg_deps_ptr_array[k]->uop.readyAt <= orcs_engine.get_global_cycle())
+						other_rob_line->reg_deps_ptr_array[k]->uop.readyAt = orcs_engine.get_global_cycle();
+					other_rob_line->reg_deps_ptr_array[k] = NULL;
+
+					/* Move todas as dependências em uma posição maior para ocupar a posição desta*/
+					other_rob_line->reg_deps_ptr_array[k] = NULL;
+					for (uint64_t l = k; l < other_rob_line->wake_up_elements_counter; ++l)
+					{
+						other_rob_line->reg_deps_ptr_array[l] = other_rob_line->reg_deps_ptr_array[l + 1];
+					}
+					other_rob_line->reg_deps_ptr_array[other_rob_line->wake_up_elements_counter] = NULL;
+				}
+			}
+		}
+	}
+
+	assert((rob_line->wait_reg_deps_number == 0));
+
+	/// =============================
+	/// Para cada conversão associada
+	/// =============================
+	for (uint32_t j = 0; j < ROB_SIZE; j++)
+	{
+		/// There is an unsolved dependency
+		if (rob_line->reg_deps_conv_ptr_array[j] != NULL)
+		{
+			rob_line->wake_up_conversions_counter--;
+			rob_line->reg_deps_conv_ptr_array[j]->wait_reg_deps_number--;
+			assert(rob_line->reg_deps_conv_ptr_array[j]->wait_reg_deps_number >= 0);
+			/// This update the ready cycle, and it is usefull to compute the time each instruction waits for the functional unit
+			if (rob_line->reg_deps_conv_ptr_array[j]->deps_readyAt <= orcs_engine.get_global_cycle())
+				rob_line->reg_deps_conv_ptr_array[j]->deps_readyAt = orcs_engine.get_global_cycle();
+			rob_line->reg_deps_conv_ptr_array[j] = NULL;
+		}
+		/// All the dependencies are solved
+		else
+		{
+			break;
+		}
+	}
+}
+
+// ============================================================================
+////IMPORTATE: Deve ser chamada antes de limpar a conversão!!!
+// Isso tira todas as dependências com uma conversão, assim podemos tirar ela
+// sem bagunçar as resoluções de dependências futuras
+void processor_t::resolve_registers_to(conversion_status_t *conversion)
+{
+
+	// =========================================================================
+	// SOLVE REGISTER DEPENDENCIES - RAT
+	// =========================================================================
+	/// Para cada elemento do ROB
+
+	ROB_t *rob = &this->reorderBuffer;
+	for (uint32_t rob_p = 0; (rob_p < rob->robUsed) && (conversion->wait_reg_deps_number > 0); ++rob_p)
+	{
+		uint32_t pos = (rob->robStart + rob_p) % rob->SIZE;
+		reorder_buffer_line_t *other_rob_line = &rob->reorderBuffer[pos];
+
+		/// There is an unsolved dependency
+		if (other_rob_line->wake_up_conversions_counter > 0)
+		{
+			for (int64_t k = other_rob_line->wake_up_conversions_counter - 1; k >= 0; --k)
+			{
+
+				if ((other_rob_line->reg_deps_conv_ptr_array[k] != NULL) && (other_rob_line->reg_deps_conv_ptr_array[k] == conversion))
+				{
+					other_rob_line->wake_up_conversions_counter--;
+					other_rob_line->reg_deps_conv_ptr_array[k]->wait_reg_deps_number--;
+					if (other_rob_line->reg_deps_conv_ptr_array[k]->deps_readyAt <= orcs_engine.get_global_cycle())
+						other_rob_line->reg_deps_conv_ptr_array[k]->deps_readyAt = orcs_engine.get_global_cycle();
+
+					other_rob_line->reg_deps_conv_ptr_array[k] = NULL;
+
+					/* Move todas as dependências em uma posição maior para ocupar a posição desta*/
+					other_rob_line->reg_deps_conv_ptr_array[k] = NULL;
+					for (uint64_t l = k; l < other_rob_line->wake_up_conversions_counter; ++l)
+					{
+						other_rob_line->reg_deps_conv_ptr_array[l] = other_rob_line->reg_deps_conv_ptr_array[l + 1];
+					}
+					other_rob_line->reg_deps_conv_ptr_array[other_rob_line->wake_up_conversions_counter] = NULL;
+				}
+			}
+		}
+	}
+	assert((conversion->wait_reg_deps_number == 0));
+}
+
+void processor_t::reset_statistics()
+{
 	this->fetchCounter = 0;
 	this->decodeCounter = 0;
 	this->renameCounter = 0;
@@ -4434,12 +5042,13 @@ void processor_t::reset_statistics(){
 
 	this->mem_req_wait_cycles = 0;
 	this->core_ram_request_wait_cycles = 0;
-	this->set_core_ram_requests (0);
-	this->set_stat_inst_load_completed (0);
-	this->set_stat_inst_store_completed (0);
-	this->set_stat_inst_hive_completed (0);
-	this->set_stat_inst_vima_completed (0);
-	for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++) this->total_operations[i] = 0;
+	this->set_core_ram_requests(0);
+	this->set_stat_inst_load_completed(0);
+	this->set_stat_inst_store_completed(0);
+	this->set_stat_inst_hive_completed(0);
+	this->set_stat_inst_vima_completed(0);
+	for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++)
+		this->total_operations[i] = 0;
 	this->disambiguator->reset_statistics();
 }
 // ============================================================================
@@ -4478,7 +5087,7 @@ void processor_t::statistics()
 		int32_t *cache_indexes = new int32_t[plevels]();
 		orcs_engine.cacheManager->generateIndexArray(this->processor_id, cache_indexes);
 
-		//assuming you want LLC, plevels-1 should be LLC
+		// assuming you want LLC, plevels-1 should be LLC
 		fprintf(output, "MPKI:                             %lf\n", (float)orcs_engine.cacheManager->data_cache[plevels - 1][cache_indexes[plevels - 1]].get_cache_miss() / ((float)this->fetchCounter / 1000));
 		fprintf(output, "Average_wait_cycles_wait_mem_req: %lf\n", (float)this->mem_req_wait_cycles / this->get_stat_inst_load_completed());
 		fprintf(output, "Core_Request_RAM_AVG_Cycle:       %lf\n", (float)this->core_ram_request_wait_cycles / this->get_core_ram_requests());
@@ -4494,11 +5103,11 @@ void processor_t::statistics()
 		fprintf(output, "Stalls Rename MOB Read:      %lu\n", this->get_stall_full_MOB_Read());
 		fprintf(output, "Stalls Rename MOB Write:     %lu\n", this->get_stall_full_MOB_Write());
 
-
 		utils_t::largestSeparator(output);
 		fprintf(output, "Dependencies created:          %lu\n", dependencies_created);
 		fprintf(output, "Calls for dependencies creation:          %lu\n", calls_for_dependencies_creation);
-
+		fprintf(output, "Dependencies with conversion created:          %lu\n", dependencies_with_conversion_created);
+		fprintf(output, "Calls for dependencies with conversion creation:          %lu\n", calls_for_dependencies_with_conversion_creation);
 
 		utils_t::largestSeparator(output);
 		for (int i = 0; i < INSTRUCTION_OPERATION_LAST; i++)
@@ -4541,12 +5150,12 @@ void processor_t::printCache(FILE *output)
 		fprintf(output, "%u SIZE -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->size);
 		fprintf(output, "%u ASSOCIATIVITY -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->associativity);
 		fprintf(output, "%u LATENCY -> %u\n", i, orcs_engine.cacheManager->instruction_cache[i]->latency);
-		fprintf(output, "%u SETS -> %u\n\n",  i, orcs_engine.cacheManager->instruction_cache[i]->n_sets);
+		fprintf(output, "%u SETS -> %u\n\n", i, orcs_engine.cacheManager->instruction_cache[i]->n_sets);
 	}
 	fprintf(output, "==================Data $================\n");
 	for (uint32_t i = 0; i < DATA_CACHES; i++)
 	{
-		fprintf(output, "%u SIZE -> %u\n",i, orcs_engine.cacheManager->data_cache[i]->size);
+		fprintf(output, "%u SIZE -> %u\n", i, orcs_engine.cacheManager->data_cache[i]->size);
 		fprintf(output, "%u ASSOCIATIVITY -> %u\n", i, orcs_engine.cacheManager->data_cache[i]->associativity);
 		fprintf(output, "%u LATENCY -> %u\n", i, orcs_engine.cacheManager->data_cache[i]->latency);
 		fprintf(output, "%u SETS -> %u\n\n", i, orcs_engine.cacheManager->data_cache[i]->n_sets);
@@ -4557,7 +5166,8 @@ void processor_t::printCache(FILE *output)
 void processor_t::printConfiguration()
 {
 	FILE *output = fopen(orcs_engine.output_file_name, "a+");
-	if (output == NULL) output = stdout;
+	if (output == NULL)
+		output = stdout;
 	if (output != NULL)
 	{
 		fprintf(output, "===============Stages Width============\n");
@@ -4599,13 +5209,19 @@ void processor_t::clock()
 		ORCS_PRINTF("Cycle %lu\n", orcs_engine.get_global_cycle())
 	}
 #endif
-
 	if (get_HAS_VIMA())
 		orcs_engine.vima_controller->clock();
 	if (get_HAS_HIVE())
 		orcs_engine.hive_controller->clock();
 
+			
 	orcs_engine.cacheManager->clock();
+
+	/////////////////////////////////////////////////
+	//// Verifica se uma conversão pode completar
+	/////////////////////////////////////////////////
+	this->vima_converter.clock();
+
 	/////////////////////////////////////////////////
 	//// Verifica se existe coisas no ROB
 	//// CommitStage
@@ -4615,15 +5231,17 @@ void processor_t::clock()
 
 	if (reorderBuffer.robUsed != 0)
 	{
-		this->commit();	  //commit instructions -> remove from ROB
-		this->execute();  //verify Uops ready on UFs, then remove
-		this->dispatch(); //dispath ready uops to UFs
+		this->commit();	  // commit instructions -> remove from ROB
+		this->execute();  // verify Uops ready on UFs, then remove
+		this->dispatch(); // dispath ready uops to UFs
 	}
 
 	/////////////////////////////////////////////////
 	//// Verifica se existe coisas no DecodeBuffer
 	//// Rename
 	/////////////////////////////////////////////////
+
+
 	if (!this->decodeBuffer.is_empty() ||
 		!this->vima_converter.vima_instructions_buffer.is_empty())
 	{

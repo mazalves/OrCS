@@ -19,12 +19,16 @@ void uop_package_t::package_clean()
     this->is_vima = false;
     this->linked_to_converter = -1;
     this->unique_conversion_id = 0;
-    this->ignore_on_conversion_success = false;
+    this->is_placeholder = false;
+    this->conversion_result = 0;
+    this->conversion_status.package_clean();
+
     this->linked_to_iteration = -1;
     this->already_sent = false;
-    this->reexecuted = false;
 
-    
+
+
+    this->checkpoint.package_clean();
 
     memset(this->read_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
     memset(this->write_regs, POSITION_FAIL, sizeof(int32_t) * MAX_REGISTERS);
@@ -90,10 +94,14 @@ void uop_package_t::opcode_to_uop(
     this->is_masked = is_masked;
     this->linked_to_converter = -1;
     this->unique_conversion_id = 0;
-    this->ignore_on_conversion_success = false;
+    this->is_placeholder = false;
+    this->conversion_result = 0;
+    this->conversion_status.package_clean();
     this->linked_to_iteration = -1;
     this->already_sent = false;
-    this->reexecuted = false;
+
+
+    this->checkpoint = opcode.checkpoint;
 
 
     memcpy(this->read_regs, opcode.read_regs, sizeof(int32_t) * MAX_REGISTERS);
@@ -170,4 +178,12 @@ std::string uop_package_t::content_to_string2() {
     content_string = content_string + " Ready At" + utils_t::uint64_to_string(this->readyAt);
 
     return content_string;
+}
+
+void uop_package_t::print_content() {
+    printf("#Uop %" PRIu64 " VIMA: %s Placeholder: %s UID: %lu\n",
+            this->uop_number,
+            this->is_vima ? "True" : "False",
+            this->is_placeholder ? "True" : "False",
+            this->unique_conversion_id);
 }

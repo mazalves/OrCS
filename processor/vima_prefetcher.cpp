@@ -64,13 +64,10 @@ void vima_prefetcher_t::shift_sequential_conversion(conversion_status_t *status)
     status->VIMA_requirements_meet = false;
     status->VIMA_requirements_meet_readyAt = 0;
 
-    if (status->mem_size == AVX_256_SIZE) {
-            status->base_mem_addr[0] = status->base_mem_addr[0] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_256_iterations_to_one_vima);
-            status->base_mem_addr[1] = (status->is_mov) ? 0x0 : status->base_mem_addr[1] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_256_iterations_to_one_vima);
-            status->base_mem_addr[3] = status->base_mem_addr[3] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_256_iterations_to_one_vima);
-    } else {
-            status->base_mem_addr[0] = status->base_mem_addr[0] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_512_iterations_to_one_vima);
-            status->base_mem_addr[1] = (status->is_mov) ? 0x0 : status->base_mem_addr[1] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_512_iterations_to_one_vima);
-            status->base_mem_addr[3] = status->base_mem_addr[3] + (status->mem_size * orcs_engine.processor->vima_converter.necessary_AVX_512_iterations_to_one_vima);
-    }
+
+    // (VIMA_SIZE/status->mem_size)
+    status->base_mem_addr[0] = status->base_mem_addr[0] + (status->mem_size * (orcs_engine.processor->vima_converter.VIMA_SIZE/status->mem_size));
+    status->base_mem_addr[1] = (status->is_mov) ? 0x0 : status->base_mem_addr[1] + (status->mem_size * (orcs_engine.processor->vima_converter.VIMA_SIZE/status->mem_size));
+    status->base_mem_addr[3] = status->base_mem_addr[3] + (status->mem_size * (orcs_engine.processor->vima_converter.VIMA_SIZE/status->mem_size));
+
 }

@@ -17,6 +17,8 @@ public:
 		for (uint32_t i = 0; i < size; i++)
 		{
 			this->reorderBuffer[i].reg_deps_ptr_array = utils_t::template_allocate_initialize_array<reorder_buffer_line_t *>(size, NULL);
+			this->reorderBuffer[i].reg_deps_conv_ptr_array = utils_t::template_allocate_initialize_array<conversion_status_t *>(size, NULL);
+		
 		}
 	}
 
@@ -258,7 +260,10 @@ class processor_t {
 		// VIMA Converter
 		// ====================================================================
 		vima_converter_t vima_converter;
-		
+		// Rastreiam última instrução que escreveu em cada registrador
+		uint64_t write_addr[259];
+		uint64_t write_uop[259]; // Armazena o uop_id correspondente
+
 		// ====================================================================
 		/// Methods
 		// ====================================================================
@@ -275,31 +280,39 @@ class processor_t {
 		// ====================================================================
 		// ROB RELATED
 		void update_registers(reorder_buffer_line_t *robLine);
+		void update_registers_to_conversion(uop_package_t *uop, conversion_status_t *conversion);
 		void solve_registers_dependency(reorder_buffer_line_t *rob_line);
+		void resolve_registers_to(reorder_buffer_line_t *rob_line);
+		void resolve_registers_to(conversion_status_t *conversion);
 		int32_t searchPositionROB(ROB_t *rob);
 		void returnPositionROB(ROB_t *rob);
+		uint32_t lastPositionROB(ROB_t *rob);
 		void removeFrontROB(ROB_t *rob);
 		// ====================================================================
 		// MOB READ RELATED
 		int32_t search_n_positions_mob_read(uint32_t n, uint32_t *mob_size);
 		void remove_front_mob_read(uint32_t n);
 		void remove_back_mob_read();
+		uint32_t lastPosition_mob_read();
 		// ====================================================================
 		// MOB WRITE RELATED
 		int32_t search_n_positions_mob_write(uint32_t n, uint32_t *mob_size);
 		void remove_front_mob_write();
 		void remove_back_mob_write();
+		uint32_t lastPosition_mob_write();
 		// ====================================================================
 		// MOB HIVE RELATED
 		void print_mob_hive();
 		int32_t search_position_mob_hive(uint32_t *mob_size);
 		void remove_front_mob_hive();
 		// ====================================================================
-		// MOB HIVE RELATED
+		// MOB VIMA RELATED
 		void print_mob_vima();
 		int32_t search_n_positions_mob_vima(uint32_t n, uint32_t *mob_size);
 		int32_t search_position_mob_vima(uint32_t *mob_size);
 		void remove_front_mob_vima();
+		void remove_back_mob_vima();
+		uint32_t lastPosition_mob_vima();
 		// ====================================================================
 		// ====================================================================
 		// Stage Methods
@@ -326,8 +339,9 @@ class processor_t {
 		// Conversion
 		// ====================================================================
 		void check_conversion();
-		void conversion_invalidation(uint64_t unique_conversion_id);
-
+		void conversion_flush(conversion_status_t * conversion);
+		void conversion_mark_to_invalidate(uint64_t unique_conversion_id);
+		
 		// ====================================================================
 		// Bool Functions @return 
 		bool isBusy();

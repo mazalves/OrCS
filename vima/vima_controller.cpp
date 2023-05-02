@@ -110,6 +110,7 @@ void vima_controller_t::print_vima_instructions(){
 void vima_controller_t::instruction_ready (size_t index){
     #if VIMA_DEBUG 
         ORCS_PRINTF ("%lu VIMA Controller clock(): instruction %lu, %s ready at cycle %lu.\n", orcs_engine.get_global_cycle(), vima_buffer[index]->uop_number, get_enum_memory_operation_char (vima_buffer[index]->memory_operation), vima_buffer[index]->readyAt)
+        ORCS_PRINTF ("Remaining VIMA instructions (this ready counts): %u.\n", vima_buffer_count)
     #endif
 
     if (vima_buffer[index]->vima_write != 0) store_hash[(vima_buffer[index]->vima_write >> index_bits_shift) % 1024] = 0;
@@ -503,6 +504,7 @@ void vima_controller_t::allocate(){
 bool vima_controller_t::addRequest (memory_package_t* request){
     if (vima_buffer_count < this->VIMA_BUFFER) {
         request->sent_to_ram = true;
+        request->flushed = false;
         request->status = PACKAGE_STATE_VIMA;
         request->vima_cycle = orcs_engine.get_global_cycle();
 
@@ -517,9 +519,11 @@ bool vima_controller_t::addRequest (memory_package_t* request){
         return true;
     } else {
         request->sent_to_ram = false;
+        request->flushed = false;
         #if VIMA_DEBUG 
             ORCS_PRINTF ("VIMA Controller addRequest(): VIMA buffer is full!\n")
         #endif
     }
     return false;
 }
+

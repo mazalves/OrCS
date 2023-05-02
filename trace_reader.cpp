@@ -623,6 +623,7 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     // =================================================================
     /// Fetch new BBL inside the dynamic file.
     // =================================================================
+    trace_checkpoint_t checkpoint = this->get_checkpoint();
     if (!this->is_inside_bbl) {
         success = this->trace_next_dynamic(&new_BBL);
         if (success) {
@@ -641,6 +642,7 @@ bool trace_reader_t::trace_fetch(opcode_package_t *m) {
     // =================================================================
     NewOpcode = this->binary_dict[this->currect_bbl][this->currect_opcode];
     DEBUG_PRINTF("BBL:%u  OPCODE:%u = %s\n",this->currect_bbl, this->currect_opcode, NewOpcode.opcode_assembly);
+    NewOpcode.checkpoint = checkpoint;
 
     this->currect_opcode++;
     if (this->currect_opcode >= this->binary_bbl_size[this->currect_bbl]) {
@@ -699,4 +701,24 @@ void trace_reader_t::statistics() {
         fclose(output);
 }
 
+trace_checkpoint_t trace_reader_t::get_checkpoint () {
+    trace_checkpoint_t checkpoint;
 
+    checkpoint.is_inside_bbl = this->is_inside_bbl;
+    checkpoint.dynamic_checkpoint = gzseek(this->gzDynamicTraceFile, 0, SEEK_CUR);
+    checkpoint.memory_checkpoint = gzseek(this->gzMemoryTraceFile, 0, SEEK_CUR);
+    checkpoint.opcode_checkpoint = this->currect_opcode;
+    checkpoint.valid = true;
+
+    return checkpoint;
+}
+
+
+void trace_reader_t::set_checkpoint (trace_checkpoint_t checkpoint) {
+    this->is_inside_bbl = checkpoint.is_inside_bbl;
+    gzclearerr(this->gzDynamicTraceFile);
+    gzclearerr(this->gzMemoryTraceFile);
+    gzseek(this->gzDynamicTraceFile, checkpoint.dynamic_checkpoint, SEEK_SET);
+    gzseek(this->gzMemoryTraceFile, checkpoint.memory_checkpoint, SEEK_SET);
+    this->currect_opcode = checkpoint.opcode_checkpoint;
+}

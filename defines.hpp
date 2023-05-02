@@ -35,6 +35,7 @@
 #define VIMA_CONVERSION_DEBUG 0
 #define VIMA_INSTRUCTIONS_BUFFER 100
 
+//#define DEBUG_CONVERSION
 
 
 // ========================

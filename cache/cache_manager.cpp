@@ -315,6 +315,10 @@ bool cache_manager_t::isIn (memory_package_t* request){
                 ORCS_PRINTF ("will be forwarded by %lu %s.\n", requests[i]->memory_address, get_enum_memory_operation_char (requests[i]->memory_operation))
             #endif
             for (size_t j = 0; j < request->clients.size(); j++) requests[i]->clients.push_back (request->clients[j]);
+#ifdef DEBUG_CONVERSION
+            if (requests[i]->flushed) printf("Reaproveitando request que seria flushed!\n");
+#endif
+            requests[i]->flushed = false;
             delete request;
             return true;
         }
@@ -417,7 +421,7 @@ void cache_manager_t::finishRequest (memory_package_t* request, int32_t* cache_i
     //if (request->is_vima) ORCS_PRINTF ("%lu Cache Manager finishRequest(): VIMA INSTRUCTION READY!\n", orcs_engine.get_global_cycle())
 
     request->updatePackageReady();
-    request->updateClients();
+    if (request->flushed == false) request->updateClients();
     requests.erase (std::remove (requests.begin(), requests.end(), request), requests.end());
     requests.shrink_to_fit();
     //if (request->memory_operation != MEMORY_OPERATION_INST) 
@@ -464,6 +468,13 @@ void cache_manager_t::install (memory_package_t* request){
 }
 
 
+void cache_manager_t::flush_requests() {
+    for (size_t i = 0; i < requests.size(); i++) {
+            requests[i]->flushed = true;
+            requests[i]->clients.clear(); // Remove old clients
+    }
+}
+
 uint64_t already_searching_inst = 0;
 uint64_t already_searching_read = 0;
 uint64_t already_searching_write = 0;
@@ -494,6 +505,9 @@ bool cache_manager_t::searchData(memory_package_t *request) {
         } else if (mem_t == MEMORY_OPERATION_WRITE) {
             already_searching_write++;
         }
+        #if MEMORY_DEBUG
+            ORCS_PRINTF ("is not new from uop: %lu\n", request->uop_number);
+        #endif
     }
     return true;
 }
@@ -597,7 +611,9 @@ void cache_manager_t::clock() {
                     this->finishRequest (requests[i], cache_indexes);
                     --i;
                 }
-                else if (!requests[i]->sent_to_ram) this->process (requests[i], cache_indexes);
+                else if (!requests[i]->sent_to_ram)  {
+                    this->process (requests[i], cache_indexes);
+                }
             }
 
         }

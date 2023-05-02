@@ -9,57 +9,61 @@
     // Write register control
     for (uint32_t i=0; i < 259; ++i) regs_list[i] = false;
 
-            // Conversions data
-            this->next_unique_conversion_id = 1;
-            this->current_conversion = NULL;
-            this->current_conversions.allocate(CURRENT_CONVERSIONS_SIZE); // Greater than any ROB could support
-            this->conversions_blacklist.allocate(CONVERSION_BLACKLIST_SIZE);
+    // Conversions data
+    this->next_unique_conversion_id = 1;
+    this->current_conversion = NULL;
+    this->current_conversions.allocate(CURRENT_CONVERSIONS_SIZE); // Greater than any ROB could support
+    this->conversions_blacklist.allocate(CONVERSION_BLACKLIST_SIZE);
 
     // Prefetch
     this->contiguous_conversions = 0;
     this->prefetcher = new vima_prefetcher_t();
 
-            // Statistics
-            this->vima_instructions_launched = 0;
+    // Statistics
+    this->vima_instructions_launched = 0;
+    this->placeholder_instructions_launched = 0;
 
     this->conversion_failed = 0;
     this->conversion_successful = 0;
     this->prefetched_vima_used = 0;
     this->prefetch_failed = 0;
 
-            this->instructions_intercepted = 0;
-            this->instructions_intercepted_until_commit = 0;
-            this->instructions_reexecuted = 0;
-            this->original_program_instructions = 0;
+    this->instructions_intercepted = 0;
+    this->instructions_intercepted_until_commit = 0;
+    this->instructions_reexecuted = 0;
+    this->original_program_instructions = 0;
 
-            this->conversion_entry_allocated = 0;
-            this->not_enough_conversion_entries = 0;
-
-
-            this->AGU_result_from_wrong_conversion = 0;
-            this->AGU_result_from_current_conversion = 0;
-
-            this->AVX_256_to_VIMA_conversions = 0;
-            this->AVX_512_to_VIMA_conversions = 0;
-
-            this->time_waiting_for_infos = 0;
-            this->time_waiting_for_infos_start = 0;
-            this->time_waiting_for_infos_stop = 0;
-    
-	this->VIMA_before_CPU = 0;
-	this->CPU_before_VIMA = 0;
-
-            this->conversions_blacklisted = 0;
-            this->avoided_by_the_blacklist = 0;
+    this->conversion_entry_allocated = 0;
+    this->not_enough_conversion_entries = 0;
 
 
+    this->AGU_result_from_wrong_conversion = 0;
+    this->AGU_result_from_current_conversion = 0;
 
-            // *******************************
-			// Create a new conversion manager
-			// *****************************
-			this->start_new_conversion();
 
-        }
+    this->time_waiting_for_infos = 0;
+    this->time_waiting_for_infos_start = 0;
+    this->time_waiting_for_infos_stop = 0;
+
+    this->VIMA_before_CPU = 0;
+    this->CPU_before_VIMA = 0;
+
+    this->blocked_until_conversion_complete = 0;
+    this->unblocked_after_conversion_complete = 0;
+
+    this->conversions_blacklisted = 0;
+    this->avoided_by_the_blacklist = 0;
+
+    this->flushed_instructions = 0;
+
+
+
+    // *******************************
+    // Create a new conversion manager
+    // *****************************
+    this->start_new_conversion();
+
+}
         
 void vima_converter_t::initialize(uint32_t mem_operation_latency, uint32_t mem_operation_wait_next, functional_unit_t *mem_operation_fu, uint32_t VIMA_SIZE, 
                                   uint32_t PREFETCH_BUFFER_SIZE, uint32_t CONTIGUOUS_CONVERSIONS_TO_PREFETCH, uint32_t PREFETCH_SIZE) {
@@ -67,10 +71,6 @@ void vima_converter_t::initialize(uint32_t mem_operation_latency, uint32_t mem_o
             this->mem_operation_wait_next = mem_operation_wait_next;
             this->mem_operation_fu = mem_operation_fu;
             this->VIMA_SIZE = VIMA_SIZE;
-            assert (VIMA_SIZE % AVX_256_SIZE == 0);
-            assert (VIMA_SIZE % AVX_512_SIZE == 0);
-            this->necessary_AVX_256_iterations_to_one_vima = (VIMA_SIZE/AVX_256_SIZE);// + 1 /* Get address data */;
-            this->necessary_AVX_512_iterations_to_one_vima = (VIMA_SIZE/AVX_512_SIZE);// + 1 /* Get address data */;
             this->CONTIGUOUS_CONVERSIONS_TO_PREFETCH = CONTIGUOUS_CONVERSIONS_TO_PREFETCH;
             this->prefetcher->initialize(PREFETCH_BUFFER_SIZE, CONTIGUOUS_CONVERSIONS_TO_PREFETCH, PREFETCH_SIZE);
 
@@ -92,6 +92,47 @@ instruction_operation_t vima_converter_t::define_vima_operation(conversion_statu
     return INSTRUCTION_OPERATION_VIMA_FP_ALU;
 }
 
+
+uop_package_t vima_converter_t::create_placeholder_for_conversion(conversion_status_t *conversion_data) {
+    // ******************************************
+    // Cria um placeholder para a conversão
+    // ******************************************
+    opcode_package_t base_opcode;
+    uop_package_t base_uop;
+    base_opcode.package_clean();
+    base_uop.package_clean();
+
+    base_uop.opcode_to_uop(0, INSTRUCTION_OPERATION_NOP,
+								0, 0, NULL,
+								base_opcode, 0, false);
+
+#if VIMA_CONVERSION_DEBUG
+        printf("Generating Placeholder instruction with Conversion ID: %lu\n", conversion_data->unique_conversion_id);
+#endif
+
+		base_uop.is_hive = false;
+		base_uop.hive_read1 = -1;
+		base_uop.hive_read2 = -1;
+		base_uop.hive_write = -1;
+
+		base_uop.updatePackageWait(0);
+		base_uop.born_cycle = orcs_engine.get_global_cycle();
+
+		base_uop.unique_conversion_id = conversion_data->unique_conversion_id;
+        base_uop.is_placeholder = true;
+
+        return base_uop;
+
+}
+
+void vima_converter_t::generate_placeholder_instruction(conversion_status_t *conversion_data) {
+    /* Conversion Placeholder */
+    assert (!this->vima_instructions_buffer.is_full());
+    this->vima_instructions_buffer.push_back(this->create_placeholder_for_conversion(conversion_data));
+
+    this->placeholder_instructions_launched++;
+}
+
 void vima_converter_t::generate_VIMA_instruction(conversion_status_t *conversion_data) {
         
         // ******************************************
@@ -110,7 +151,7 @@ void vima_converter_t::generate_VIMA_instruction(conversion_status_t *conversion
 								base_opcode, 0, false);
 		base_uop.add_memory_operation(0, 1);
 #if VIMA_CONVERSION_DEBUG
-        printf("Generating VIMA instruction with ID: %lu\n", conversion_data->unique_conversion_id);
+        printf("Generating VIMA instruction with Conversion ID: %lu\n", conversion_data->unique_conversion_id);
 #endif
 		base_uop.unique_conversion_id = conversion_data->unique_conversion_id;
 		base_uop.is_hive = false;
@@ -130,6 +171,7 @@ void vima_converter_t::generate_VIMA_instruction(conversion_status_t *conversion
 
         assert (!this->vima_instructions_buffer.is_full());
         this->vima_instructions_buffer.push_back(base_uop);
+
         this->vima_instructions_launched++;
 
 #if VIMA_CONVERSION_DEBUG
@@ -137,9 +179,42 @@ void vima_converter_t::generate_VIMA_instruction(conversion_status_t *conversion
 #endif
 }
 
+void vima_converter_t::check_conversions() {
+    for (uint32_t i=0; i<this->current_conversions.get_size(); ++i) {
+        if( (this->current_conversions[i].vima_sent == true) && // Ao menos a conversão foi lançada
+            (this->current_conversions[i].CPU_requirements_meet == false) && // Ela nunca completou os requisitos na CPU
+            (this->current_conversions[i].infos_remaining == 0) && // Já obteve as informações das iterações iniciais
+            (this->current_conversions[i].mem_addr_confirmations_remaining == 0) && // Já conseguiu calcular os endereços de acesso à memória (não verificamos isso ainda...)
+            (this->current_conversions[i].wait_reg_deps_number == 0) && // As dependências foram resolvidas
+            (orcs_engine.get_global_cycle() > this->current_conversions[i].deps_readyAt)) { // Já deu tempo da última dependência se resolver
+                // Permitir o commit pela CPU
+                //printf("Conversão %lu completada!\n", this->current_conversions[i].unique_conversion_id);
+                this->current_conversions[i].CPU_requirements_meet = true;
+                orcs_engine.vima_controller->confirm_transaction(1 /* Success */, this->current_conversions[i].unique_conversion_id);
+                if (this->current_conversions[i].VIMA_requirements_meet && 
+                    this->current_conversions[i].VIMA_requirements_meet_readyAt <= orcs_engine.get_global_cycle())
+                    {
+                        this->VIMA_before_CPU++;
+                    } else {
+                        this->CPU_before_VIMA++;
+                    }
+                
+            }
+    }
+    /*if (this->current_conversions.get_size() > 0) {
+        printf("Conversão mais antiga:\n");
+        printf("    CPU_requirements_meet: %s\n    infos_remaining: %u\n    mem_addr_confirmations_remaining: %ld\n    wait_reg_deps_number: %d\n    deps_readyAt: %lu/%lu\n",
+            this->current_conversions[0].CPU_requirements_meet ? "true" : "false",
+            this->current_conversions[0].infos_remaining,
+            this->current_conversions[0].mem_addr_confirmations_remaining,
+            this->current_conversions[0].wait_reg_deps_number,
+            this->current_conversions[0].deps_readyAt,
+            orcs_engine.get_global_cycle());
+    }*/
+}
 
 // Conversion address
-void vima_converter_t::AGU_result(uop_package_t *uop) {
+bool vima_converter_t::AGU_result(uop_package_t *uop) {
     
     // Find correspondent conversion
     int32_t conversion_index = -1;
@@ -190,8 +265,8 @@ void vima_converter_t::AGU_result(uop_package_t *uop) {
                     printf("Stride %ld ([%d] %lu - [%d] %lu) != %u ==>> Invalidating conversion\n", stride, 7-i, this->mem_addr[7-i], 3-i, this->mem_addr[3-i], uop->memory_size[0]);
 #endif
                     this->invalidation_reason["FIRST TWO ITERATIONS NOT CONTIGUOUS"]++;
-                    this->invalidate_conversion(&this->current_conversions[conversion_index]);
-                    return;
+                    this->stop_conversion(&this->current_conversions[conversion_index]);
+                    return false;
                 }
             }
 
@@ -200,11 +275,11 @@ void vima_converter_t::AGU_result(uop_package_t *uop) {
             // *****************************
             if(this->get_index_for_alignment(&this->current_conversions[conversion_index], uop->memory_size[0], this->mem_addr[3]) == false) {
 #if VIMA_CONVERSION_DEBUG
-                    printf("Could not align! Store address %ld Current iteration %ld\n", this->mem_addr[3], this->iteration);
+                    printf("Could not align! Store address %ld Current iteration %u\n", this->mem_addr[3], this->iteration);
 #endif
                 this->invalidation_reason["NO ITERATION WITH STORE ALIGNED WITH VIMA CACHE LINES"]++;
-                this->invalidate_conversion(&this->current_conversions[conversion_index]);
-                return;
+                this->stop_conversion(&this->current_conversions[conversion_index]);
+                return false;
             }
 #if VIMA_CONVERSION_DEBUG == 1
             printf("//****************************\n");
@@ -226,28 +301,27 @@ void vima_converter_t::AGU_result(uop_package_t *uop) {
 			    orcs_engine.processor->fetchBuffer.is_empty() &&
 			    orcs_engine.processor->decodeBuffer.is_empty()) {
                     this->invalidation_reason["GENERATING INSTRUCTION BUT THE PROGRAM ALREADY FINISHED"]++;
-                    invalidate_conversion(&this->current_conversions[conversion_index]);
-                    return;
+                    this->stop_conversion(&this->current_conversions[conversion_index]);
+                    return false;
                 }
 
 
 
             // Create VIMA and insert into the pipeline
             this->generate_VIMA_instruction(&this->current_conversions[conversion_index]);
+
+            // Create placeholder and insert into the pipeline
+            this->generate_placeholder_instruction(&this->current_conversions[conversion_index]);
+
             this->current_conversions[conversion_index].vima_sent = true;
 
-	     if (uop->memory_size[0] == AVX_256_SIZE) {
-                this->current_conversions[conversion_index].mem_addr_confirmations_remaining = (this->current_conversions[conversion_index].is_mov) ? 2 * this->necessary_AVX_256_iterations_to_one_vima : 3 * this->necessary_AVX_256_iterations_to_one_vima;
-                ++AVX_256_to_VIMA_conversions;
-            } else {
-                this->current_conversions[conversion_index].mem_addr_confirmations_remaining = (this->current_conversions[conversion_index].is_mov) ? 2 * this->necessary_AVX_512_iterations_to_one_vima : 3 * this->necessary_AVX_512_iterations_to_one_vima;
-                ++AVX_512_to_VIMA_conversions;
-            }
+            CPU_to_VIMA_conversions[uop->memory_size[0]]++;
+            this->current_conversions[conversion_index].mem_addr_confirmations_remaining = (this->current_conversions[conversion_index].is_mov) ? 2 * (VIMA_SIZE/uop->memory_size[0]) : 3 * (VIMA_SIZE/uop->memory_size[0]);
 
-	    this->current_conversions[conversion_index].conversion_started = true;
+	        this->current_conversions[conversion_index].conversion_started = true;
 
-            this->time_waiting_for_infos_stop = orcs_engine.get_global_cycle();
-            this->time_waiting_for_infos += (this->time_waiting_for_infos_stop - this->time_waiting_for_infos_start);
+                this->time_waiting_for_infos_stop = orcs_engine.get_global_cycle();
+                this->time_waiting_for_infos += (this->time_waiting_for_infos_stop - this->time_waiting_for_infos_start);
         }
         /* Ignored instruction trying to confirm its stride */
         else if (this->current_conversions[conversion_index].vima_sent) {
@@ -289,7 +363,8 @@ void vima_converter_t::AGU_result(uop_package_t *uop) {
                 printf("Unexpected memory address (%lu != %lu): ", expected, uop->memory_address[0]);
 #endif
                 this->invalidation_reason["CONVERTED INSTRUCTION ADDRESS IS NOT THE EXPECTED"]++;
-                invalidate_conversion(&this->current_conversions[conversion_index]);
+                orcs_engine.processor->conversion_mark_to_invalidate(this->current_conversions[conversion_index].unique_conversion_id);
+                return false;
             }
         }
     }
@@ -300,6 +375,7 @@ void vima_converter_t::AGU_result(uop_package_t *uop) {
         printf("AGU result from wrong conversion! (Received: %lu)\n", uop->unique_conversion_id);
 #endif
     }
+    return true;
 }
 
 
@@ -327,11 +403,7 @@ bool vima_converter_t::get_index_for_alignment(conversion_status_t * current_con
 
     current_conversion->conversion_beginning = this->iteration + aligned_i;
     
-    if (access_size == AVX_256_SIZE) {
-    	current_conversion->conversion_ending = this->iteration + aligned_i + necessary_AVX_256_iterations_to_one_vima - 1;    
-    } else {
-        current_conversion->conversion_ending = this->iteration + aligned_i + necessary_AVX_512_iterations_to_one_vima - 1;
-    }
+    current_conversion->conversion_ending = this->iteration + aligned_i + (VIMA_SIZE/access_size) - 1;    
 
     
 //#if VIMA_CONVERSION_DEBUG == 1
@@ -344,6 +416,21 @@ bool vima_converter_t::get_index_for_alignment(conversion_status_t * current_con
     return true;
 }
 
+void vima_converter_t::confirm_mem_addr(uop_package_t *uop) {
+    // Find correspondent conversion
+    int32_t conversion_index = -1;
+    for (uint32_t i=0; i<this->current_conversions.get_size(); ++i) {
+        if (this->current_conversions[i].unique_conversion_id == uop->unique_conversion_id) {
+            if (this->current_conversions[i].entry_can_be_removed == false) {
+                conversion_index = i;
+                break;
+            }
+        }
+    }
+    if (conversion_index >= 0) {
+        this->current_conversions[conversion_index].mem_addr_confirmations_remaining--;
+    }
+}
 
 // TODO
 // Get data from VIMA and set registers with it before meet the requirements
@@ -374,15 +461,14 @@ void vima_converter_t::vima_execution_completed(memory_package_t *vima_package, 
     }
 }
 
-void vima_converter_t::invalidate_conversion(conversion_status_t *invalidated_conversion) {
+void vima_converter_t::stop_conversion(conversion_status_t *invalidated_conversion) {
 #if VIMA_CONVERSION_DEBUG == 1
-    printf("Conversão %lu invalidada!\n", invalidated_conversion->unique_conversion_id);
+    printf("Conversão %lu interrompida antes de iniciar!\n", invalidated_conversion->unique_conversion_id);
 #endif
 
     // ***********************
     // Store in the black list
     // ***********************
-
 
     // Just the conversions that fail before even being converted once are blacklisted
     if (invalidated_conversion->first_conversion) {
@@ -397,10 +483,57 @@ void vima_converter_t::invalidate_conversion(conversion_status_t *invalidated_co
         ++this->conversions_blacklisted;
     }
 
+    // ****************************************
+    // Libera a entrada da conversão invalidada
+    // ****************************************
+    invalidated_conversion->entry_can_be_removed = true;
+
+
+    // *************************
+	// Remove conversões antigas
+	// *************************
+	while(this->current_conversions.get_size() > 0 && this->current_conversions[0].entry_can_be_removed)
+	{
+		this->current_conversions.pop_front();
+	}
+
+
+    // ******************************
+    // Libera para futuras conversões
+    // ******************************
+    this->start_new_conversion(); 
+}
+
+void vima_converter_t::invalidate_conversion(conversion_status_t *invalidated_conversion) {
+#if VIMA_CONVERSION_DEBUG == 1
+    printf("Conversão %lu invalidada!\n", invalidated_conversion->unique_conversion_id);
+#endif
+
+    // ***********************
+    // Store in the black list
+    // ***********************
+
+    // Just the conversions that fail before even being converted once are blacklisted
+    if (invalidated_conversion->first_conversion) {
+        if (this->conversions_blacklist.is_full()) {
+            this->conversions_blacklist.pop_front();
+        }
+        back_list_entry_t new_black_list_entry;
+        new_black_list_entry.package_clean();
+        new_black_list_entry.pc = invalidated_conversion->base_addr[0]; // Primeiro load da conversão que deu errado
+        new_black_list_entry.uop_id = invalidated_conversion->base_uop_id[0];
+        this->conversions_blacklist.push_back(new_black_list_entry);
+        ++this->conversions_blacklisted;
+    }
+
+    // ******************************************************
+    // Faz flush do pipeline
+    // ******************************************************
+    orcs_engine.processor->conversion_flush(invalidated_conversion);
 
 
     // *****************************************
-    // Invalida cada uma das pŕoximas conversões
+    // Invalida cada uma das próximas conversões
     // *****************************************
     for (uint32_t i=0; i < this->current_conversions.get_size(); ++i)
     {
@@ -414,16 +547,16 @@ void vima_converter_t::invalidate_conversion(conversion_status_t *invalidated_co
             // Statistics
             // **********
             ++this->conversion_failed;
-
-            // ******************************************************
-            // Libera instruções da conversão em espera para execução
-            // ******************************************************
-            orcs_engine.processor->conversion_invalidation(this->current_conversions[i].unique_conversion_id);
-
+            
             // *************************************
             // Avisa VIMA para descartar o resultado
             // *************************************
             orcs_engine.vima_controller->confirm_transaction(2 /* Failure */, this->current_conversions[i].unique_conversion_id);
+
+            // ***************************
+            // Remove dependências com ela
+            // ***************************
+            orcs_engine.processor->resolve_registers_to(&this->current_conversions[i]);
 
             // ****************************************
             // Libera a entrada da conversão invalidada
@@ -514,30 +647,20 @@ void vima_converter_t::continue_conversion(conversion_status_t *prev_conversion)
         this->current_conversion->infos_remaining = 0;
 
 
-	if (prev_conversion->mem_size == AVX_256_SIZE) {
-            this->current_conversion->conversion_ending = this->current_conversion->conversion_beginning + necessary_AVX_256_iterations_to_one_vima - 1;
-            this->current_conversion->mem_addr_confirmations_remaining = (prev_conversion->is_mov) ? 2 * this->necessary_AVX_256_iterations_to_one_vima : 3 * this->necessary_AVX_256_iterations_to_one_vima;
-            ++AVX_256_to_VIMA_conversions;
-        } else {
-            this->current_conversion->conversion_ending = this->current_conversion->conversion_beginning + necessary_AVX_512_iterations_to_one_vima - 1;
-            this->current_conversion->mem_addr_confirmations_remaining = (prev_conversion->is_mov) ? 2 * this->necessary_AVX_512_iterations_to_one_vima : 3 * this->necessary_AVX_512_iterations_to_one_vima;
-            ++AVX_512_to_VIMA_conversions;
-        }
+        CPU_to_VIMA_conversions[prev_conversion->mem_size]++;
+        this->current_conversion->conversion_ending = this->current_conversion->conversion_beginning + (VIMA_SIZE/prev_conversion->mem_size) - 1;
+        this->current_conversion->mem_addr_confirmations_remaining = (prev_conversion->is_mov) ? 2 * (VIMA_SIZE/prev_conversion->mem_size) : 3 * (VIMA_SIZE/prev_conversion->mem_size);
+
 
         this->current_conversion->vima_sent = false;
         this->current_conversion->CPU_requirements_meet = false;
         this->current_conversion->VIMA_requirements_meet = false;
         this->current_conversion->VIMA_requirements_meet_readyAt = 0;
 
-	if (prev_conversion->mem_size == AVX_256_SIZE) {
-        	this->current_conversion->base_mem_addr[0] = prev_conversion->base_mem_addr[0] + (prev_conversion->mem_size * this->necessary_AVX_256_iterations_to_one_vima);
-        	this->current_conversion->base_mem_addr[1] = (prev_conversion->is_mov) ? 0x0 : prev_conversion->base_mem_addr[1] + (prev_conversion->mem_size * this->necessary_AVX_256_iterations_to_one_vima);
-        	this->current_conversion->base_mem_addr[3] = prev_conversion->base_mem_addr[3] + (prev_conversion->mem_size * this->necessary_AVX_256_iterations_to_one_vima);
-	} else {
-		this->current_conversion->base_mem_addr[0] = prev_conversion->base_mem_addr[0] + (prev_conversion->mem_size * this->necessary_AVX_512_iterations_to_one_vima);
-        	this->current_conversion->base_mem_addr[1] = (prev_conversion->is_mov) ? 0x0 : prev_conversion->base_mem_addr[1] + (prev_conversion->mem_size * this->necessary_AVX_512_iterations_to_one_vima);
-        	this->current_conversion->base_mem_addr[3] = prev_conversion->base_mem_addr[3] + (prev_conversion->mem_size * this->necessary_AVX_512_iterations_to_one_vima);
-	}
+    
+    this->current_conversion->base_mem_addr[0] = prev_conversion->base_mem_addr[0] + (prev_conversion->mem_size * (VIMA_SIZE/prev_conversion->mem_size));
+    this->current_conversion->base_mem_addr[1] = (prev_conversion->is_mov) ? 0x0 : prev_conversion->base_mem_addr[1] + (prev_conversion->mem_size * (VIMA_SIZE/prev_conversion->mem_size));
+    this->current_conversion->base_mem_addr[3] = prev_conversion->base_mem_addr[3] + (prev_conversion->mem_size * (VIMA_SIZE/prev_conversion->mem_size));
     this->current_conversion->mem_size = prev_conversion->mem_size;
 
         // Send VIMA speculatively
@@ -575,8 +698,10 @@ void vima_converter_t::continue_conversion(conversion_status_t *prev_conversion)
         }
         if (this->contiguous_conversions >= this->CONTIGUOUS_CONVERSIONS_TO_PREFETCH) {
             this->prefetcher->make_prefetch(this->current_conversion);
-
         }
+
+        //  Placeholder
+        this->generate_placeholder_instruction(this->current_conversion);
     }
     // *******************************
     // An entry could not be allocated
@@ -588,6 +713,7 @@ void vima_converter_t::continue_conversion(conversion_status_t *prev_conversion)
         if (this->current_conversion != 0x0) {
             ++this->not_enough_conversion_entries;
         }
+        printf("ALERT: Could not allocate!\n");
         this->current_conversion = 0x0;
 
         this->iteration = UINT32_MAX;
@@ -607,6 +733,10 @@ void vima_converter_t::continue_conversion(conversion_status_t *prev_conversion)
     }
 }
 
+void vima_converter_t::clock() {
+    this->check_conversions();
+}
+
 bool vima_converter_t::is_blacklisted(uop_package_t *uop) {
     for (uint32_t i=0; i < this->conversions_blacklist.get_size(); ++i) {
         if (this->conversions_blacklist[i].pc == uop->opcode_address &&
@@ -621,4 +751,13 @@ bool vima_converter_t::is_blacklisted(uop_package_t *uop) {
             }
     }
     return false;
+}
+
+conversion_status_t *vima_converter_t::get_conversion(uint64_t conversion_unique_id) {
+    for (uint32_t i=0; i < this->current_conversions.get_size(); ++i) {
+        if (this->current_conversions[i].unique_conversion_id == conversion_unique_id) {
+            return &this->current_conversions[i];
+        }
+    }
+    return 0x0;
 }
