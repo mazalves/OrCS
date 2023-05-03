@@ -4,6 +4,7 @@
     this->iteration = 0;
     this->state_machine = 0;
     this->vima_instructions_buffer.allocate(VIMA_INSTRUCTIONS_BUFFER);
+    this->placeholders_buffer.allocate(VIMA_INSTRUCTIONS_BUFFER);
 
 
     // Write register control
@@ -127,10 +128,14 @@ uop_package_t vima_converter_t::create_placeholder_for_conversion(conversion_sta
 
 void vima_converter_t::generate_placeholder_instruction(conversion_status_t *conversion_data) {
     /* Conversion Placeholder */
-    assert (!this->vima_instructions_buffer.is_full());
-    this->vima_instructions_buffer.push_back(this->create_placeholder_for_conversion(conversion_data));
+    assert (!this->placeholders_buffer.is_full());
+    this->placeholders_buffer.push_back(this->create_placeholder_for_conversion(conversion_data));
 
     this->placeholder_instructions_launched++;
+
+#ifdef DEBUG_CONVERSION
+						printf(" => Placeholder inserted on placeholders_buffer\n");
+#endif
 }
 
 void vima_converter_t::generate_VIMA_instruction(conversion_status_t *conversion_data) {

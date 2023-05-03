@@ -702,6 +702,7 @@ bool processor_t::isBusy()
 			!this->fetchBuffer.is_empty() ||
 			!this->decodeBuffer.is_empty() ||
 			!this->vima_converter.vima_instructions_buffer.is_empty() ||
+			!this->vima_converter.placeholders_buffer.is_empty() ||
 			reorderBuffer.robUsed != 0);
 }
 
@@ -1946,6 +1947,10 @@ void processor_t::update_registers_to_conversion(uop_package_t *uop, conversion_
 bool converted = false;
 bool invalidate = false;
 bool ignore_on_conversion_success = false;
+
+// Indica que a próxima instrução deve ser um placeholder (início de conversão)
+bool next_is_placeholder = false; 
+
 // bool travado = false;
 
 void processor_t::rename()
@@ -1957,7 +1962,11 @@ void processor_t::rename()
 	// printf("Rename\n");
 
 	// Traço acabou, só estamos travando pela conversão :p
-	if (this->traceIsOver && this->fetchBuffer.is_empty() && this->decodeBuffer.is_empty() && this->vima_converter.vima_instructions_buffer.is_empty())
+	if (this->traceIsOver && 
+		this->fetchBuffer.is_empty() && 
+		this->decodeBuffer.is_empty() && 
+		this->vima_converter.vima_instructions_buffer.is_empty() &&
+		this->vima_converter.placeholders_buffer.is_empty())
 	{
 #if VIMA_CONVERSION_DEBUG
 		printf("  Fim da simulação: ");
@@ -1979,15 +1988,32 @@ void processor_t::rename()
 		if ((this->decodeBuffer.is_empty() ||
 			 this->decodeBuffer.front()->status != PACKAGE_STATE_WAIT ||
 			 this->decodeBuffer.front()->readyAt > orcs_engine.get_global_cycle()) &&
-			(this->vima_converter.vima_instructions_buffer.is_empty()))
+			(this->vima_converter.vima_instructions_buffer.is_empty()) &&
+			(this->vima_converter.placeholders_buffer.is_empty() || (next_is_placeholder == false)))
 		{
-			/*
-			if (this->decodeBuffer.is_empty()) {
+			
+			/*if (this->decodeBuffer.is_empty()) {
 				printf("Decode empty!\n");
 			} else {
 				printf("Decode front not ready STATUS %s readyAt %lu\n", get_enum_package_state_char(this->decodeBuffer.front()->status), this->decodeBuffer.front()->readyAt);
-			}
-			*/
+			}*/
+
+			// Invalidação
+			// Se não houver mais nenhuma instrução para entrar no pipeline,
+			// e o placeholder não tiver sido lançado, ele deve ser descartado.
+			if (this->traceIsOver &&
+				this->fetchBuffer.is_empty() &&
+				this->decodeBuffer.is_empty() &&
+				this->vima_converter.vima_instructions_buffer.is_empty() &&
+				(!this->vima_converter.placeholders_buffer.is_empty())
+				) {
+#ifdef DEBUG_CONVERSION
+					printf(" Invalidation: not remaining instructions, discarding placeholders.\n");
+#endif
+					this->vima_converter.placeholders_buffer.pop_all();
+				}
+
+			
 			break;
 		}
 
@@ -1996,7 +2022,12 @@ void processor_t::rename()
 		// *************************************************
 		if (this->vima_converter.vima_instructions_buffer.is_empty())
 		{
-			origin_buffer = &this->decodeBuffer;
+			if (!next_is_placeholder) {
+				origin_buffer = &this->decodeBuffer;
+			} else {
+				origin_buffer = &this->vima_converter.placeholders_buffer;
+			}
+			
 		}
 		else
 		{
@@ -2499,9 +2530,17 @@ void processor_t::rename()
 					}
 					this->vima_converter.iteration++;
 
+
 #if VIMA_CONVERSION_DEBUG
 					printf("  ACHEI O PADRÃO %d vezes!!! (%lu #%u; %lu #%u; %lu #%u; %lu #%u)\n", this->vima_converter.iteration, this->vima_converter.addr[0], this->vima_converter.uop_id[0], this->vima_converter.addr[1], this->vima_converter.uop_id[1], this->vima_converter.addr[2], this->vima_converter.uop_id[2], this->vima_converter.addr[3], this->vima_converter.uop_id[3]);
 #endif
+					// Launch placeholder
+					if (this->vima_converter.iteration == this->vima_converter.current_conversion->conversion_beginning) {
+#ifdef DEBUG_CONVERSION
+						printf(" => next_is_placeholder = true\n");
+#endif
+						next_is_placeholder = true;
+					}
 
 					// *********************************************
 					// Check if can start converting next iterations
@@ -2513,6 +2552,13 @@ void processor_t::rename()
 						// ********************************
 						//printf("Iniciando uma continuação\n");
 						this->vima_converter.continue_conversion(this->vima_converter.current_conversion);
+
+						// Launch placeholder
+#ifdef DEBUG_CONVERSION
+						printf(" => next_is_placeholder = true (continue)\n");
+#endif
+						next_is_placeholder = true;
+
 					}
 				}
 				else if (all_written && this->vima_converter.state_machine != 3 && this->vima_converter.state_machine != 1)
@@ -2787,9 +2833,20 @@ void processor_t::rename()
 			printf("[%lu] Iteration %u (Start: %lu, End: %lu) (Remaining Mem addr: %ld -> %ld)\n", this->vima_converter.current_conversion->unique_conversion_id, this->vima_converter.iteration, this->vima_converter.current_conversion->conversion_beginning, this->vima_converter.current_conversion->conversion_ending, this->vima_converter.current_conversion->mem_addr_confirmations_remaining + 1, this->vima_converter.current_conversion->mem_addr_confirmations_remaining);
 #endif
 		}
+
+		// If the inserted instruction was a placeholder, unset the flag
+		if (origin_buffer->front()->is_placeholder) {
+#ifdef DEBUG_CONVERSION
+			printf(" => Sending placeholder\n");
+#endif
+			next_is_placeholder = false;
+		}
+
 		origin_buffer->front()->package_clean();
 		origin_buffer->pop_front();
 		this->renameCounter++;
+
+
 
 		if (ignore_on_conversion_success)
 		{
@@ -4280,6 +4337,9 @@ void processor_t::conversion_flush(conversion_status_t *conversion)
 	this->vima_converter.flushed_instructions += this->vima_converter.vima_instructions_buffer.get_size();
 	this->vima_converter.vima_instructions_buffer.pop_all();
 
+	/* Clean Placeholders Buffer */
+	this->vima_converter.placeholders_buffer.pop_all();
+
 	/* Clean decode buffer */
 	this->vima_converter.flushed_instructions += this->decodeBuffer.get_size();
 	this->decodeBuffer.pop_all();
@@ -5132,6 +5192,7 @@ void processor_t::statistics()
 		fprintf(output, "VIMA_SIZE: %u\n", this->VIMA_SIZE);
 		this->vima_converter.statistics(output);
 		fprintf(output, "VIMA Converter buffer: %u\n", this->vima_converter.vima_instructions_buffer.size);
+		fprintf(output, "VIMA Placeholders buffer: %u\n", this->vima_converter.placeholders_buffer.size);
 
 		delete[] cache_indexes;
 	}
@@ -5243,7 +5304,8 @@ void processor_t::clock()
 
 
 	if (!this->decodeBuffer.is_empty() ||
-		!this->vima_converter.vima_instructions_buffer.is_empty())
+		!this->vima_converter.vima_instructions_buffer.is_empty() ||
+		!this->vima_converter.placeholders_buffer.is_empty())
 	{
 		this->rename();
 	}

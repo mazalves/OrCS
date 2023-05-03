@@ -153,6 +153,7 @@ class vima_converter_t {
         // Launch vima instruction
         // ***********************
         circular_buffer_t<uop_package_t> vima_instructions_buffer;
+        circular_buffer_t<uop_package_t> placeholders_buffer;
 
         // *******************
         // VIMA configurations
