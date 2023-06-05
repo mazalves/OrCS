@@ -70,7 +70,7 @@ g++ -ggdb3 -o orcs simulator.o orcs_engine.o trace_reader.o package/opcode_packa
 
 ### Creating traces
 In order to create OrCS traces, its necessary to install the correct Pin tool version inside the OrCS directory. The Pin tool is a dynamic binary instrumentation framework that allows the creation of traces.
-The correct Pin version is available [here] (https://drive.google.com/file/d/1UEsOS00owGh-W0f4nZWRwlkaY4AKK9eE/view?usp=drive_link).
+The correct Pin version is available [here](https://drive.google.com/file/d/1UEsOS00owGh-W0f4nZWRwlkaY4AKK9eE/view?usp=drive_link).
 
 After downloading this file, it must be placed inside the **trace_generator** folder.
 Then, run the following command, in order to extract the Pin tool and compile the tracer files:
