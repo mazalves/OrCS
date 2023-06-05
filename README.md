@@ -90,7 +90,7 @@ For example:
 $ ../../../pin -t ../bin/intel64/sinuca_tracer.so -trace x86 -- /bin/ls
 ```
 
-This command will generate three files in the same directory as the executable. These files are the traces that will be used by OrCS.
+This command will generate three files in the current directory. These files are the traces that will be used by OrCS.
 ```bash
 output_trace.out.tid0.dyn.out.gz
 output_trace.out.tid0.mem.out.gz
@@ -109,7 +109,7 @@ $ mv path/to_the/trace/application_name.tid0.stat.out.gz path/to_orcs/orcs/
 
 Then execute OrCS in terminal:
 ```bash
-$ ./orcs -t <application_name> -c sandy_bridge/sandy_bridge.cfg
+$ ./orcs -c configuration_files/skylakeServer.cfg -t <application_name>
 ```
 
 For example:
