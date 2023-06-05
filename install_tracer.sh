@@ -26,3 +26,7 @@ temp="make.temp"
 additionalFlags=" -Wno-deprecated-declarations -faligned-new"
 sed -r 's/(TOOL_CXXFLAGS_NOOPT :=)(.*)/\1 '"$additionalFlags"' \2/g' $src > $temp
 mv $temp $src
+
+# Compile tracer files
+cd extras/pinplay/sinuca_tracer/
+make clean && make
