@@ -217,7 +217,7 @@ void memory_controller_t::clock(){
             working[i]->updatePackageWait (1);
             this->total_operations[working[i]->memory_operation]++;
             if (wait_time < this->min_wait_operations[working[i]->memory_operation]) this->min_wait_operations[working[i]->memory_operation] = wait_time;
-            if (wait_time > this->min_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
+            if (wait_time > this->max_wait_operations[working[i]->memory_operation]) this->max_wait_operations[working[i]->memory_operation] = wait_time;
             this->total_latency[working[i]->memory_operation] += wait_time;
             working.erase(std::remove(working.begin(), working.end(), working[i]), working.end());
             working.shrink_to_fit();
